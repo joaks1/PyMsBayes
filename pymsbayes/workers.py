@@ -3,11 +3,14 @@
 import os
 import sys
 import multiprocessing
+import subprocess
 import time
 
+from pymsbayes.utils import BIN_DIR, get_random_int
+from pymsbayes.utils.errors import MsBayesExecutionError
 from pymsbayes.utils.messaging import get_logger
 
-_LOG = get_logger(__name__, 'debug')
+_LOG = get_logger(__name__)
 _LOCK = multiprocessing.Lock()
 
 class Worker(multiprocessing.Process):
@@ -45,25 +48,62 @@ class Worker(multiprocessing.Process):
 class MsBayesWorker(Worker):
     count = 0
     def __init__(self,
-            exe_path,
+            sample_size,
             config_path,
             out_path,
-            seed,
+            exe_path = None,
+            model_index = None,
+            sort_index = None,
             report_parameters = False,
+            seed = None,
             **kwargs):
         Worker.__init__(self, **kwargs)
         self.__class__.count += 1
         self.name = 'MsBayesWorker-' + str(self.count)
-        self.exe_path = exe_path
+        self.sample_size = int(sample_size)
         self.config_path = config_path
         self.out_path = out_path
-        self.seed = seed
+        self.exe_path = exe_path
+        if not self.exe_path:
+            self.exe_path = os.path.join(BIN_DIR, 'msbayes.pl')
+        self.model_index = int(model_index)
+        self.sort_index = int(sort_index)
+        self.report_parameters = report_parameters
+        self.seed = int(seed)
+        if not self.seed:
+            self.seed = get_random_int()
+        self.cmd = []
+        self.update_cmd()
         self.kill_received = False
+        self.finished = False
+        self.msbayes_stdout = None
+        self.msbayes_stderr = None
+        self.msbayes_exit_code = None
+
+    def update_cmd(self):
+        cmd = [self.exe_path,
+               '-r', str(self.sample_size),
+               '-c', self.config_path,
+               '-o', self.out_path,
+               '-S', str(self.seed),]
+        if self.sort_index:
+            cmd.extend(['-s', str(self.sort_index)])
+        if self.model_index:
+            cmd.extend(['-m', str(self.model_index)])
+        if self.report_parameters:
+            cmd.append('-p')
+        self.cmd = cmd
 
     def run(self):
-        for i in range(4):
-            self.send_warning('working...')
-            time.sleep(2)
+        self.update_cmd()
+        self.send_info('Starting msbayes.pl with following command:\n\t'
+                '{0}'.format(' '.join(self.cmd)))
+        p = subprocess.Popen(self.cmd,
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE,
+                shell = False)
+        self.msbayes_stdout, self.msbayes_stderr = p.communicate()
+        self.msbayes_exit_code = p.wait()
         
 
 class MsRejectWorker(Worker):

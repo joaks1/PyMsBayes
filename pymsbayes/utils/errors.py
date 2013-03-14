@@ -4,7 +4,11 @@ class PyMsBayesError(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
-class TempFSError(Exception):
+class TempFSError(PyMsBayesError):
     def __init__(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
+        PyMsBayesError.__init__(self, *args, **kwargs)
+
+class MsBayesExecutionError(PyMsBayesError):
+    def __init__(self, *args, **kwargs):
+        PyMsBayesError.__init__(self, *args, **kwargs)
 

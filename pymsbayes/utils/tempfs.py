@@ -11,7 +11,7 @@ _LOG = get_logger(__name__)
 
 class TempFileSystem(object):
     """
-    A temporary file system that protects against deleting anything directories
+    A temporary file system that protects against deleting any directories
     or files that are not created by an instance of this class.
     """
     def __init__(self, parent, prefix='pymsbayes-temp-'):
