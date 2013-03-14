@@ -11,21 +11,16 @@ _LOG = get_logger(__name__, 'debug')
 _LOCK = multiprocessing.Lock()
 
 class Worker(multiprocessing.Process):
-    def __init__(self,
-            process_id,
-            log = None,
-            lock = None):
+    total = 0
+    def __init__(self, **kwargs):
+        self.__class__.total += 1
         multiprocessing.Process.__init__(self)
-        self.process_id = process_id
-        self.log = log
-        if not log:
-            self.log = _LOG
-        self.lock = lock
-        if not lock:
-            self.lock = _LOCK
+        self.log = kwargs.get('log', _LOG)
+        self.lock = kwargs.get('lock', _LOCK)
+        self.queue = kwargs.get('queue', multiprocessing.Queue())
 
     def send_msg(self, msg, method_str='info'):
-        msg = '{0}: {1}: {2}'.format(self.name, self.process_id, msg)
+        msg = '{0} ({1}): {2}'.format(self.name, self.pid, msg)
         self.lock.acquire()
         try:
             getattr(self.log, method_str)(msg)
@@ -38,26 +33,27 @@ class Worker(multiprocessing.Process):
     def send_info(self, msg):
         self.send_msg(msg, method_str='info')
 
-    def send_warn(self, msg):
-        self.send_msg(msg, method_str='warn')
+    def send_warning(self, msg):
+        self.send_msg(msg, method_str='warning')
+
+    def send_error(self, msg):
+        self.send_msg(msg, method_str='error')
 
     def run(self):
         pass
 
 class MsBayesWorker(Worker):
+    count = 0
     def __init__(self,
-            process_id,
             exe_path,
             config_path,
             out_path,
             seed,
-            log = None,
-            lock = None,
-            report_parameters = False):
-        Worker.__init__(self,
-                process_id = process_id,
-                log = log,
-                lock = lock)
+            report_parameters = False,
+            **kwargs):
+        Worker.__init__(self, **kwargs)
+        self.__class__.count += 1
+        self.name = 'MsBayesWorker-' + str(self.count)
         self.exe_path = exe_path
         self.config_path = config_path
         self.out_path = out_path
@@ -66,24 +62,22 @@ class MsBayesWorker(Worker):
 
     def run(self):
         for i in range(4):
-            self.send_warn('working...')
-            time.sleep(30)
+            self.send_warning('working...')
+            time.sleep(2)
         
 
 class MsRejectWorker(Worker):
+    count = 0
     def __init__(self,
-            process_id,
             exe_path,
             prior_path,
             out_path,
             tolerance,
             stats,
-            log = None,
-            lock = None):
-        Worker.__init__(self,
-                process_id = process_id,
-                log = log,
-                lock = lock)
+            **kwargs):
+        Worker.__init__(self, **kwargs)
+        self.__class__.count += 1
+        self.name = 'MsRejectWorker-' + str(self.count)
         self.exe_path = e
         self.prior_path = prior_path
         self.out_path = out_path
@@ -98,7 +92,6 @@ if __name__ == '__main__':
     jobs = []
     for i in range(5):
         p = MsBayesWorker(
-                process_id = 'msbw-{0}'.format(i),
                 exe_path = 'msbayes.pl',
                 config_path = 'conf',
                 out_path = 'prior',
