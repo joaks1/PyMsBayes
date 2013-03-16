@@ -40,3 +40,6 @@ def random_str(length=8,
 def get_random_int():
     return GLOBAL_RNG.randint(1, 999999999)
 
+def expand_path(path):
+    return os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
+

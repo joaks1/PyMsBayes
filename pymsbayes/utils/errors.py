@@ -8,7 +8,7 @@ class TempFSError(PyMsBayesError):
     def __init__(self, *args, **kwargs):
         PyMsBayesError.__init__(self, *args, **kwargs)
 
-class MsBayesExecutionError(PyMsBayesError):
+class WorkerExecutionError(PyMsBayesError):
     def __init__(self, *args, **kwargs):
         PyMsBayesError.__init__(self, *args, **kwargs)
 

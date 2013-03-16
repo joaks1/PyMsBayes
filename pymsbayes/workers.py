@@ -6,8 +6,8 @@ import multiprocessing
 import subprocess
 import time
 
-from pymsbayes.utils import BIN_DIR, get_random_int
-from pymsbayes.utils.errors import MsBayesExecutionError
+from pymsbayes.utils import BIN_DIR, get_random_int, expand_path
+from pymsbayes.utils.errors import WorkerExecutionError
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -21,6 +21,11 @@ class Worker(multiprocessing.Process):
         self.log = kwargs.get('log', _LOG)
         self.lock = kwargs.get('lock', _LOCK)
         self.queue = kwargs.get('queue', multiprocessing.Queue())
+        self.stdout_path = kwargs.get('stdout_path', None)
+        self.stderr_path = kwargs.get('stderr_path', None)
+        self.cmd = []
+        self.finished = False
+        self.subprocess_exit_code = None
 
     def send_msg(self, msg, method_str='info'):
         msg = '{0} ({1}): {2}'.format(self.name, self.pid, msg)
@@ -42,70 +47,105 @@ class Worker(multiprocessing.Process):
     def send_error(self, msg):
         self.send_msg(msg, method_str='error')
 
+    def get_stderr(self):
+        if not self.stderr_path:
+            return None
+        try:
+            return open(self.stderr_path, 'rU').read()
+        except IOError, e:
+            self.send_error('Could not open stderr file')
+            raise e
+
     def run(self):
-        pass
+        self.send_info('Starting process with following command:\n\t'
+                '{0}'.format(' '.join(self.cmd)))
+        if self.stdout_path:
+            sout = open(self.stdout_path, 'w')
+        else:
+            sout = subprocess.PIPE
+        if self.stderr_path:
+            serr = open(self.stderr_path, 'w')
+        else:
+            serr = subprocess.PIPE
+        p = subprocess.Popen(self.cmd,
+                stdout = sout,
+                stderr = serr,
+                shell = False)
+        stdout, stderr = p.communicate()
+        exit_code = p.wait()
+        if self.stdout_path:
+            sout.close()
+        if self.stderr_path:
+            serr.close()
+        if exit_code != 0:
+            if self.stderr_path:
+                stderr = open(self.stderr_path, 'rU').read()
+            send_error('execution failed')
+            raise WorkerExecutionError('{0} ({1}) failed. stderr:\n{2}'.format(
+                self.name, self.pid, stderr))
+        results = {'exit_code': exit_code}
+        self.queue.put(results)
+
+    def finish(self):
+        results = self.queue.get()
+        self.subprocess_exit_code = results['exit_code']
+        self.finished = True
 
 class MsBayesWorker(Worker):
     count = 0
     def __init__(self,
             sample_size,
             config_path,
-            out_path,
+            output_dir,
+            output_prefix = 'prior',
             exe_path = None,
             model_index = None,
             sort_index = None,
-            report_parameters = False,
+            report_parameters = True,
             seed = None,
             **kwargs):
         Worker.__init__(self, **kwargs)
         self.__class__.count += 1
         self.name = 'MsBayesWorker-' + str(self.count)
         self.sample_size = int(sample_size)
-        self.config_path = config_path
-        self.out_path = out_path
-        self.exe_path = exe_path
-        if not self.exe_path:
-            self.exe_path = os.path.join(BIN_DIR, 'msbayes.pl')
-        self.model_index = int(model_index)
-        self.sort_index = int(sort_index)
+        self.config_path = expand_path(config_path)
+        self.output_dir = expand_path(output_dir)
+        if not exe_path:
+            exe_path = os.path.join(BIN_DIR, 'msbayes.pl')
+        self.exe_path = expand_path(exe_path)
+        self.model_index = None
+        if model_index != None:
+            self.model_index = int(model_index)
+        self.sort_index = None
+        if sort_index != None:
+            self.sort_index = int(sort_index)
         self.report_parameters = report_parameters
-        self.seed = int(seed)
-        if not self.seed:
+        if seed is None:
             self.seed = get_random_int()
-        self.cmd = []
-        self.update_cmd()
-        self.kill_received = False
-        self.finished = False
-        self.msbayes_stdout = None
-        self.msbayes_stderr = None
-        self.msbayes_exit_code = None
+        else:
+            self.seed = int(seed)
+        self.out_path = os.path.join(
+                self.output_dir,
+                '{0}-{1}-{2}.txt'.format(
+                        output_prefix,
+                        self.sample_size,
+                        self.seed))
+        self._update_cmd()
 
-    def update_cmd(self):
+    def _update_cmd(self):
         cmd = [self.exe_path,
                '-r', str(self.sample_size),
                '-c', self.config_path,
                '-o', self.out_path,
                '-S', str(self.seed),]
-        if self.sort_index:
+        if self.sort_index != None:
             cmd.extend(['-s', str(self.sort_index)])
-        if self.model_index:
+        if self.model_index != None:
             cmd.extend(['-m', str(self.model_index)])
         if self.report_parameters:
             cmd.append('-p')
         self.cmd = cmd
-
-    def run(self):
-        self.update_cmd()
-        self.send_info('Starting msbayes.pl with following command:\n\t'
-                '{0}'.format(' '.join(self.cmd)))
-        p = subprocess.Popen(self.cmd,
-                stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE,
-                shell = False)
-        self.msbayes_stdout, self.msbayes_stderr = p.communicate()
-        self.msbayes_exit_code = p.wait()
         
-
 class MsRejectWorker(Worker):
     count = 0
     def __init__(self,
