@@ -3,7 +3,7 @@
 import os
 import unittest
 
-from pymsbayes.utils import random_str
+from pymsbayes.utils.functions import random_str
 from pymsbayes.utils.tempfs import TempFileSystem
 from pymsbayes.test.support import package_paths
 from pymsbayes.utils.messaging import get_logger

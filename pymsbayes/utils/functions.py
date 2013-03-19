@@ -5,6 +5,7 @@ import os
 import errno
 import random
 import string
+import stat
 
 from pymsbayes.utils import GLOBAL_RNG
 

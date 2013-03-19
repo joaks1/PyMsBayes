@@ -10,7 +10,12 @@ from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 class MkdrTestCase(PyMsBayesTestCase):
     def setUp(self):
         self.set_up()
-        self.path = os.path.join(self.tempf.base_dir, 'mkdr', 'test', 'dir')
+        p = ['mkdr', 'test', 'dir']
+        self.path = os.path.join(self.tempfs.base_dir, *p)
+        for i in range(1, len(p)+1):
+            self.register_dir(os.path.join(
+                    self.tempfs.base_dir,
+                    *p[:i]))
 
     def tearDown(self):
         self.tear_down()
@@ -34,7 +39,7 @@ class WhereisTestCase(unittest.TestCase):
 
 class IsFileTestCase(unittest.TestCase):
     def setUp(self):
-        self.file = package_paths.data_path("msbayes_sim.xml")
+        self.file = package_paths.data_path("4pairs_1locus.cfg")
         self.bogus_file = package_paths.data_path("bogusdatafilename")
     
     def test_is_file(self):
@@ -44,9 +49,9 @@ class IsFileTestCase(unittest.TestCase):
         
 class IsExecutableTestCase(unittest.TestCase):
     def setUp(self):
-        self.file = package_paths.data_path("msbayes_sim.xml")
+        self.file = package_paths.data_path("4pairs_1locus.cfg")
         self.bogus_file = package_paths.data_path("bogusdatafilename")
-        self.exe = package_paths.bin_path('msbayes_mod.pl')
+        self.exe = package_paths.bin_path('msbayes.pl')
     
     def test_is_executable(self):
         self.assertFalse(functions.is_executable(None))
