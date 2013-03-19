@@ -45,7 +45,7 @@ def parse_header(file_obj, sep='\t'):
         file_stream.seek(0)
     return header
 
-def get_parameters_indices(header_list, parameter_patterns=PARAMETER_PATTERNS):
+def get_parameter_indices(header_list, parameter_patterns=PARAMETER_PATTERNS):
     return get_indices_of_patterns(header_list, parameter_patterns)
 
 def get_stat_indices(header_list, stat_patterns=DEFAULT_STAT_PATTERNS):
