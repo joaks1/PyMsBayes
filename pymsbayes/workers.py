@@ -2,16 +2,149 @@
 
 import os
 import sys
+import re
 import multiprocessing
 import subprocess
 import time
 
-from pymsbayes.utils import BIN_DIR, get_random_int, expand_path
+from pymsbayes.utils import BIN_DIR
+from pymsbayes.utils.functions import (get_random_int, expand_path,
+        get_indices_of_patterns, reduce_columns, process_file_arg)
 from pymsbayes.utils.errors import WorkerExecutionError
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
 _LOCK = multiprocessing.Lock()
+
+
+##############################################################################
+## msBayes prior header patterns
+
+PARAMETER_PATTERNS = [
+        re.compile(r'\s*PRI\.(?!numTauClass)\S+\s*$'),
+        ]
+DEFAULT_STAT_PATTERNS = [
+        re.compile(r'\s*pi\.\d+\s*'),
+        re.compile(r'\s*wattTheta\.\d+\s*'),
+        re.compile(r'\s*pi\.net\.\d+\s*'),
+        re.compile(r'\s*tajD\.denom\.\d+\s*'),
+        ]
+DUMMY_PATTERNS = [
+        re.compile(r'\s*PRI\.numTauClass\s*')
+        ]
+
+##############################################################################
+## functions for manipulating prior files
+
+def parse_header(file_obj, sep='\t'):
+    file_stream, close = process_file_arg(in_file, 'rU')
+    header = file_stream.next().strip().split(sep)
+    if close:
+        file_stream.close()
+    else:
+        file_stream.seek(0)
+    return header
+
+def get_parameters_indices(header_list, parameter_patterns=PARAMETER_PATTERNS):
+    return get_indices_of_patterns(header_list, parameter_patterns)
+
+def get_stat_indices(header_list, stat_patterns=DEFAULT_STAT_PATTERNS):
+    return get_indices_of_patterns(header_list, stat_patterns)
+
+def get_dummy_indices(header_list, dummy_patterns=DUMMY_PATTERNS):
+    return get_indices_of_patterns(header_list, dummy_patterns)
+    
+def observed_stats_for_abctoolbox(in_file, out_file,
+        stat_patterns=DEFAULT_STAT_PATTERNS):
+    header = parse_header(in_file)
+    indices = get_stat_indices(header, stat_patterns=stat_patterns)
+    reduce_columns(in_file, out_file, indices)
+
+def observed_parameters_for_abctoolbox(in_file, out_file,
+        parameter_patterns=PARAMETER_PATTERNS):
+    header = parse_header(in_file)
+    indices = get_parameter_indices(header,
+            parameter_patterns=parameter_patterns)
+    reduce_columns(in_file, out_file, indices)
+
+def observed_for_acceptrej(in_file, out_file,
+        stat_patterns=DEFAULT_STAT_PATTERNS,
+        parameter_patterns=PARAMETER_PATTERNS):
+    # in_file, close_in = process_file_arg(in_file, 'rU')
+    # out_file, close_out = process_file_arg(out_file, 'w')
+    header = parse_header(in_file)
+    parameter_indices = get_parameter_indices(header,
+            parameter_patterns=parameter_patterns)
+    stat_indices = get_stat_indices(header,
+            stat_patterns=stat_patterns)
+    indices = sorted(parameter_indices + stat_indices)
+    reduce_columns(in_file, out_file, indices)
+    # new_head = [header[i] for i in (parameter_indices + stat_indices)]
+    # out_file.write('%s\t\n' % '\t'.join(new_head))
+    # line_iter = iter(in_file)
+    # line_iter.next()
+    # for line_num, line in enumerate(line_iter):
+    #     l = line.strip().split()
+    #     new_line = ['1', '0', '1', '0'] + [l[i] for i in stat_indices]
+    #     out_file.write('%s\t\n' % '\t'.join(new_line))
+    # if close_in:
+    #     in_file.close()
+    # if close_out:
+    #     out_file.close()
+
+# def observed_for_msreject(in_file, out_file,
+#         stat_patterns=DEFAULT_STAT_PATTERNS,
+#         parameter_patterns=PARAMETER_PATTERNS,
+#         dummy_patterns=DUMMY_PATTERNS):
+#     # in_file, close_in = process_file_arg(in_file, 'rU')
+#     # out_file, close_out = process_file_arg(out_file, 'w')
+#     header = parse_header(in_file)
+#     parameter_indices = get_parameter_indices(header,
+#             parameter_patterns=parameter_patterns)
+#     stat_indices = get_stat_indices(header,
+#             stat_patterns=stat_patterns)
+#     dummy_indices = get_dummy_indices(header,
+#             dummy_patterns=DUMMY_PATTERNS)
+#     indices = sorted(dummy_indices + parameter_indices + stat_indices)
+#     reduce_columns(in_file, out_file, indices)
+#     # new_head = [header[i] for i in (dummy_indices + parameter_indices + stat_indices)]
+#     # out_file.write('%s\t\n' % '\t'.join(new_head))
+#     # line_iter = iter(in_file)
+#     # line_iter.next()
+#     # for line_num, line in enumerate(line_iter):
+#     #     l = line.strip().split()
+#     #     new_line = ['0', '1', '0', '1', '0'] + [l[i] for i in stat_indices]
+#     #     out_file.write('%s\n' % '\t'.join(new_line))
+
+def prior_for_abctoolbox(in_file, out_file,
+        stat_patterns=DEFAULT_STAT_PATTERNS,
+        parameter_patterns=PARAMETER_PATTERNS):
+    header = parse_header(in_file)
+    indices = get_parameter_indices(header,
+            parameter_patterns=parameter_patterns)
+    indices.extend(get_stat_indices(header, stat_patterns=stat_patterns))
+    reduce_columns(in_file, out_file, sorted(indices))
+    
+def prior_for_msreject(in_file, out_file,
+        stat_patterns=DEFAULT_STAT_PATTERNS,
+        parameter_patterns=PARAMETER_PATTERNS,
+        dummy_patterns=DUMMY_PATTERNS,
+        header=False):
+    in_file, close = process_file_arg(in_file)
+    header = parse_header(in_file)
+    indices = get_parameter_indices(header,
+            parameter_patterns=parameter_patterns)
+    indices.extend(get_stat_indices(header, stat_patterns=stat_patterns))
+    indices.extend(get_dummy_indices(header, dummy_patterns=DUMMY_PATTERNS))
+    if not header:
+        in_file.next()
+    reduce_columns(in_file, out_file, sorted(indices), extra_tab=True)
+    if close:
+        in_file.close()
+
+
+##############################################################################
+## Base class for all workers
 
 class Worker(multiprocessing.Process):
     total = 0
@@ -86,10 +219,22 @@ class Worker(multiprocessing.Process):
         results = {'exit_code': exit_code}
         self.queue.put(results)
 
-    def finish(self):
+    def finish(self, **kwargs):
         results = self.queue.get()
         self.subprocess_exit_code = results['exit_code']
+        try:
+            self._post_process(**kwargs)
+        except Exception, e:
+            self.send_error('Error during post-processing')
+            raise e
         self.finished = True
+
+    def _post_process(self, **kwargs):
+        pass
+
+
+##############################################################################
+## msBayes class for generating prior files
 
 class MsBayesWorker(Worker):
     count = 0
