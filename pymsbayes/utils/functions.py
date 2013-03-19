@@ -30,6 +30,14 @@ def get_random_int():
 def expand_path(path):
     return os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
 
+def process_file_arg(file_arg, mode='rU'):
+    close = False
+    file_stream = file_arg
+    if isinstance(file_arg, str):
+        file_stream = open(file_arg, mode)
+        close = True
+    return file_stream, close
+
 def get_indices_of_patterns(target_list, regex_list):
     indices = []
     for regex in regex_list:
@@ -42,16 +50,22 @@ def get_indices_of_strings(target_list, string_list):
         indices.extend([i for i, e in enumerate(target_list) if s.strip() == e.strip()])
     return sorted(indices)
     
-def reduce_columns(in_stream, out_stream, column_indices, sep='\t',
+def reduce_columns(in_file, out_file, column_indices, sep='\t',
         extra_tab=False):
+    in_stream, close_in = process_file_arg(in_file, 'rU')
+    out_stream, close_out = process_file_arg(out_file, 'w')
     line_iter = iter(in_stream)
     for line_num, line in enumerate(line_iter):
-        l = line.strip().split()
+        l = line.strip().split(sep)
         new_line = [l[i] for i in column_indices]
         if extra_tab:
             out_stream.write('%s\t\n' % sep.join(new_line))
         else:
             out_stream.write('%s\n' % sep.join(new_line))
+    if close_in:
+        in_stream.close()
+    if close_out:
+        out_stream.close()
 
 def list_splitter(l, n, by_size=False):
     """
