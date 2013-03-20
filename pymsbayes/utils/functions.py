@@ -39,17 +39,21 @@ def process_file_arg(file_arg, mode='rU'):
         close = True
     return file_stream, close
 
-def get_indices_of_patterns(target_list, regex_list):
+def get_indices_of_patterns(target_list, regex_list, sort=True):
     indices = []
     for regex in regex_list:
         indices.extend([i for i, e in enumerate(target_list) if regex.match(e)])
-    return sorted(indices)
+    if sort:
+        return sorted(indices)
+    return indices
 
-def get_indices_of_strings(target_list, string_list):
+def get_indices_of_strings(target_list, string_list, sort=True):
     indices = []
     for s in string_list:
         indices.extend([i for i, e in enumerate(target_list) if s.strip() == e.strip()])
-    return sorted(indices)
+    if sort:
+        return sorted(indices)
+    return indices
     
 def reduce_columns(in_file, out_file, column_indices, sep='\t',
         extra_tab=False):
