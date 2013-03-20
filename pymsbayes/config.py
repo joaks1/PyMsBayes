@@ -51,6 +51,8 @@ class MsBayesConfig(object):
                 table.write(line)
             else:
                 preamble.write(line)
+        if close:
+            cfg_stream.close()
         return preamble, table
 
     def _parse_table(self, table):
