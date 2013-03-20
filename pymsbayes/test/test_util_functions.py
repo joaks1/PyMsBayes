@@ -11,10 +11,10 @@ class MkdrTestCase(PyMsBayesTestCase):
     def setUp(self):
         self.set_up()
         p = ['mkdr', 'test', 'dir']
-        self.path = os.path.join(self.tempfs.base_dir, *p)
+        self.path = os.path.join(self.temp_fs.base_dir, *p)
         for i in range(len(p)):
             self.register_dir(os.path.join(
-                    self.tempfs.base_dir,
+                    self.temp_fs.base_dir,
                     *p[:i+1]))
 
     def tearDown(self):
