@@ -11,6 +11,8 @@ from pymsbayes.utils.messaging import get_logger
 _LOG = get_logger(__name__)
 
 class Distribution(object):
+    name = 'Abstract distribution object'
+
     def _get_min(self):
         raise NotImplementedError
 
@@ -47,9 +49,10 @@ class Distribution(object):
             raise NotImplementedError
         return sd
 
-    std_dev = property(_get_std_dev)
+    std_deviation = property(_get_std_dev)
 
 class ContinuousUniformDistribution(Distribution):
+    name = 'uniform'
     def __init__(self, minimum, maximum):
         if not maximum >= minimum:
             raise ValueError('max must be greater than min')
@@ -95,6 +98,7 @@ class ContinuousUniformDistribution(Distribution):
         return 'U({0},{1})'.format(self._min, self._max)
  
 class BetaDistribution(Distribution):
+    name = 'beta'
     def __init__(self, alpha, beta, multiplier=1):
         if not alpha > 0 or not beta > 0:
             raise ValueError('alpha and beta must be positive')
@@ -111,10 +115,10 @@ class BetaDistribution(Distribution):
     alpha = property(_get_alpha)
     beta = property(_get_beta)
 
-    def _get_minimum(self):
+    def _get_min(self):
         return 0
 
-    def _get_maximum(self):
+    def _get_max(self):
         return self._m
 
     def _get_mean(self):
@@ -132,7 +136,7 @@ class BetaDistribution(Distribution):
     def draw(self, rng=None):
         if not rng:
             rng = GLOBAL_RNG
-        return rng._bvariate(self._a, self._b)
+        return rng.betavariate(self._a, self._b)
         
     def draw_iter(self, n, rng=None):
         if not rng:
@@ -144,6 +148,7 @@ class BetaDistribution(Distribution):
         return 'Beta({0},{1})*{2}'.format(self._a, self._b, self._m)
 
 class DiscreteUniformDistribution(Distribution):
+    name = 'discrete-uniform'
     def __init__(self, minimum, maximum):
         if not maximum >= minimum:
             raise ValueError('max must be greater than min')
@@ -169,6 +174,8 @@ class DiscreteUniformDistribution(Distribution):
         return ((self._n**2) - 1) / float(12)
 
     def probability_mass(self, x):
+        if not isinstance(x, int):
+            raise ValueError('x must be an integer')
         if self._min <= x <= self._max:
             return 1 / float(self._n)
         else:
