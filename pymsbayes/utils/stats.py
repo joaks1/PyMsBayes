@@ -78,6 +78,7 @@ class SampleSummarizer(object):
 
     def __str__(self):
         s = StringIO()
+        s.write('name = {0}\n'.format(self.name))
         s.write('sample size = {0}\n'.format(self._n))
         s.write('sum = {0}\n'.format(self._sum))
         s.write('sum of squares = {0}\n'.format(self._sum_of_squares))
