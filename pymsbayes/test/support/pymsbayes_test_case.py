@@ -2,8 +2,9 @@
 
 import os
 import unittest
+from cStringIO import StringIO
 
-from pymsbayes.utils.functions import random_str
+from pymsbayes.utils.functions import random_str, process_file_arg
 from pymsbayes.utils.tempfs import TempFileSystem
 from pymsbayes.test.support import package_paths
 from pymsbayes.utils.messaging import get_logger
@@ -84,4 +85,64 @@ class PyMsBayesTestCase(unittest.TestCase):
             return False
         return True
 
+    def assertApproxEqual(self, x, y, percent_tol=1e-6):
+        eq = (((abs(x-y) / ((abs(x)+abs(y))/2))*100) < percent_tol)
+        if not eq:
+            _LOG.error('x ({0}) and y ({1}) are not equal'.format(x, y))
+        self.assertTrue(eq)
+
+    def files_equal(self, f1, f2):
+        equal = True
+        diffs = []
+        f1, c1 = process_file_arg(f1)
+        f2, c2 = process_file_arg(f2)
+        line = 0
+        f1_end = False
+        f2_end = False
+        lines_left = True
+        while True:
+            try:
+                l1 = f1.next()
+            except EOFError:
+                f1_end = line
+            try:
+                l2 = f2.next()
+            except EOFError:
+                f2_end = line
+            if f1_end != False and f2_end != False:
+                break
+            if f1_end == False and f2_end == False and l1 != l2:
+                diffs.append(line)
+                equal = False
+        if f1_end != f2_end:
+            mn = min([f1_end, f2_end])
+            mx = max([f1_end, f2_end])
+            diffs.extend(range(mn, mx+1))
+            equal = False
+        assert len(diffs) == len(set(diffs))
+        if c1:
+            f1.close()
+        if c2:
+            f2.close()
+        return equal, diffs
+
+    def assertSameFiles(self, files):
+        all_equal = True
+        diffs = StringIO()
+        f1 = files.pop(0)
+        for f2 in files:
+            equal, diff_list = self.files_equal(f1, f2)
+            if not equal:
+                all_equal = False
+                n1 = f1
+                if not isinstance(n1, str):
+                    n1 = f1.name
+                n2 = f2
+                if not isinstance(n2, str):
+                    n2 = f2.name
+                diffs.write('{0} and {1} differ at lines:\n\t{2}\n'.format(
+                        n1, n2, ','.join([str(i) for i in diff_list])))
+        if not all_equal:
+            _LOG.error('files are not equal:\n{0}\n'.format(diffs.getvalue()))
+        self.assertTrue(all_equal)
 
