@@ -118,37 +118,22 @@ class MsBayesWorkerTestCase(PyMsBayesTestCase):
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
                         sys._getframe().f_code.co_name])):
-            w = workers.MsBayesWorker(
-                    temp_fs = self.temp_fs,
-                    sample_size = 1000,
-                    config_path = self.cfg_path,
-                    schema = 'msreject')
-            self.assertIsInstance(w, workers.MsBayesWorker)
-            self.assertFalse(w.finished)
-            w.start()
-            w.join()
-            w.finish()
-            self._assert_success(w, 4, 1000)
-            self.assertPriorIsValid(w, 1)
-
-    def test_validity(self):
-        if test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            w = workers.MsBayesWorker(
-                    temp_fs = self.temp_fs,
-                    sample_size = 10000,
-                    config_path = self.cfg_path,
-                    schema = 'msreject')
-            self.assertIsInstance(w, workers.MsBayesWorker)
-            self.assertFalse(w.finished)
-            w.start()
-            w.join()
-            w.finish()
-            self._assert_success(w, 4, 10000)
-            self.assertPriorIsValid(w, 1)
+            jobs = []
+            for i in range(10):
+                w = workers.MsBayesWorker(
+                        temp_fs = self.temp_fs,
+                        sample_size = 100,
+                        config_path = self.cfg_path,
+                        schema = 'msreject')
+                jobs.append(w)
+                self.assertIsInstance(w, workers.MsBayesWorker)
+                self.assertFalse(w.finished)
+                w.start()
+            for w in jobs:
+                w.join()
+                w.finish()
+                self._assert_success(w, 4, 100)
+            self.assertPriorIsValid(jobs, 0)
 
 if __name__ == '__main__':
     unittest.main()

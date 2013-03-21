@@ -99,66 +99,93 @@ class PyMsBayesTestCase(unittest.TestCase):
             return False
         return True
 
-    def get_config_from_msbayes_worker(self, msbayes_worker):
-        return MsBayesConfig(msbayes_worker.config_path)
+    def get_config_from_msbayes_workers(self, msbayes_workers):
+        cfgs = [MsBayesConfig(w.config_path) for w in msbayes_workers]
+        self.assertSameConfigs(cfgs)
+        return cfgs[0]
 
-    def get_parameter_summaries_from_msbayes_worker(self, msbayes_worker,
+    def assertSameConfigs(self, cfgs):
+        configs = list(cfgs)
+        c1 = configs.pop(0)
+        for c2 in cfgs:
+            self.assertEqual(c1.npairs, c2.npairs)
+            self.assertSameDistributions(c1.psi, c2.psi)
+            self.assertSameDistributions(c1.tau, c2.tau)
+            self.assertSameDistributions(c1.theta, c2.theta)
+            self.assertSameDistributions(c1.a_theta, c2.a_theta)
+            self.assertSameDistributions(c1.d_theta, c2.d_theta)
+            self.assertSameDistributions(c1.recombination, c2.recombination)
+            self.assertSameDistributions(c1.migration, c2.migration)
+
+    def get_parameter_summaries_from_msbayes_workers(self, msbayes_workers,
             shuffle_taus=True):
+        msbayes_workers = list(msbayes_workers)
         s = dict(zip(
-            [i for i in msbayes_worker.parameter_indices],
-            [SampleSummarizer(name=msbayes_worker.header[i]) for i in msbayes_worker.parameter_indices]))
-        f = open(msbayes_worker.prior_path, 'rU')
+            [i for i in msbayes_workers[0].parameter_indices],
+            [SampleSummarizer(
+                name=msbayes_workers[0].header[i]) for i in msbayes_workers[
+                    0].parameter_indices]))
         ncols = None
-        for line_idx, row in enumerate(f):
-            if not ncols:
-                ncols = len(row.strip().split())
-            if HEADER_PATTERN.match(row.strip()):
-                continue
-            r = row.strip().split()
-            assert len(r) == ncols
-            if shuffle_taus: # because taus are sorted in prior files
-                psi_index = get_indices_of_patterns(msbayes_worker.header,
-                        PSI_PATTERNS)[0]
-                tau_indices = get_indices_of_patterns(msbayes_worker.header,
-                        TAU_PATTERNS)
-                psi = int(r[psi_index])
-                taus = [float(r[i]) for i in tau_indices]
-                self.assertEqual(psi, len(set(taus)))
-                random.shuffle(taus)
-                for n, i in enumerate(tau_indices):
-                    s[i].add_sample(taus[n])
-                p_set = set(msbayes_worker.parameter_indices) - set(tau_indices)
-                p = sorted(list(p_set))
-                for i in p:
-                    s[i].add_sample(float(r[i]))
-            else:
-                for i in msbayes_worker.parameter_indices:
-                    s[i].add_sample(float(r[i]))
+        header = msbayes_workers[0].header
+        pi = msbayes_workers[0].parameter_indices
+        for w in msbayes_workers:
+            self.assertEqual(w.header, header)
+            self.assertEqual(w.parameter_indices, pi)
+            f = open(w.prior_path, 'rU')
+            for line_idx, row in enumerate(f):
+                if not ncols:
+                    ncols = len(row.strip().split())
+                if HEADER_PATTERN.match(row.strip()):
+                    continue
+                r = row.strip().split()
+                assert len(r) == ncols
+                if shuffle_taus: # because taus are sorted in prior files
+                    psi_index = get_indices_of_patterns(w.header,
+                            PSI_PATTERNS)[0]
+                    tau_indices = get_indices_of_patterns(w.header,
+                            TAU_PATTERNS)
+                    psi = int(r[psi_index])
+                    taus = [float(r[i]) for i in tau_indices]
+                    self.assertEqual(psi, len(set(taus)))
+                    random.shuffle(taus)
+                    for n, i in enumerate(tau_indices):
+                        s[i].add_sample(taus[n])
+                    p_set = set(w.parameter_indices) - set(tau_indices)
+                    p = sorted(list(p_set))
+                    for i in p:
+                        s[i].add_sample(float(r[i]))
+                else:
+                    for i in w.parameter_indices:
+                        s[i].add_sample(float(r[i]))
         return s
 
-    def assertPriorIsValid(self, msbayes_worker, places=2):
-        self.assertTrue(msbayes_worker.finished)
-        param_sums = self.get_parameter_summaries_from_msbayes_worker(
-                msbayes_worker)
+    def assertPriorIsPrecise(self, msbayes_workers, places=2):
+        msbayes_workers = list(msbayes_workers)
+        self.assertWorkersFinished(msbayes_workers)
+        param_sums = self.get_parameter_summaries_from_msbayes_workers(
+                msbayes_workers)
+        sample_size = 0
+        for w in msbayes_workers:
+            sample_size += w.sample_size
         for s in param_sums.itervalues():
-            self.assertEqual(s.n, msbayes_worker.sample_size)
-        cfg = self.get_config_from_msbayes_worker(msbayes_worker)
-        psi_indices = get_indices_of_patterns(msbayes_worker.header,
+            self.assertEqual(s.n, sample_size)
+        cfg = self.get_config_from_msbayes_workers(msbayes_workers)
+        psi_indices = get_indices_of_patterns(msbayes_workers[0].header,
                 PSI_PATTERNS)
         self.assertEqual(len(psi_indices), 1)
-        model_indices = get_indices_of_patterns(msbayes_worker.header,
+        model_indices = get_indices_of_patterns(msbayes_workers[0].header,
                 MODEL_PATTERNS)
-        if not msbayes_worker.model_index is None:
+        if not msbayes_workers[0].model_index is None:
             self.assertEqual(len(model_indices), 1)
         else:
             self.assertEqual(len(model_indices), 0)
-        tau_indices = get_indices_of_patterns(msbayes_worker.header,
+        tau_indices = get_indices_of_patterns(msbayes_workers[0].header,
                 TAU_PATTERNS)
-        a_theta_indices = get_indices_of_patterns(msbayes_worker.header,
+        a_theta_indices = get_indices_of_patterns(msbayes_workers[0].header,
                 A_THETA_PATTERNS)
-        d_theta_indices = get_indices_of_patterns(msbayes_worker.header,
+        d_theta_indices = get_indices_of_patterns(msbayes_workers[0].header,
                 D_THETA_PATTERNS)
-        if msbayes_worker.report_parameters:
+        if msbayes_workers[0].report_parameters:
             self.assertEqual(len(tau_indices), cfg.npairs)
             self.assertEqual(len(a_theta_indices), cfg.npairs)
             self.assertEqual(len(d_theta_indices), 2*cfg.npairs)
@@ -166,16 +193,43 @@ class PyMsBayesTestCase(unittest.TestCase):
             self.assertEqual(len(tau_indices), 0)
             self.assertEqual(len(a_theta_indices), 0)
             self.assertEqual(len(d_theta_indices), 0)
+        _LOG.debug('\n{0}\n'.format('\n'.join(
+                [str(param_sums[i]) for i in sorted(param_sums.iterkeys())])))
         for i in psi_indices:
-            self.assertSampleIsFromDistribution(param_sums[i], cfg.psi, places)
+            self.assertSampleIsFromDistribution(param_sums[i], cfg.psi,
+                    places=places)
         for i in tau_indices:
-            self.assertSampleIsFromDistribution(param_sums[i], cfg.tau, places)
+            self.assertSampleIsFromDistribution(param_sums[i], cfg.tau,
+                    places=places)
         for i in a_theta_indices:
-            self.assertSampleIsFromDistribution(param_sums[i], cfg.a_theta, places)
+            self.assertSampleIsFromDistribution(param_sums[i], cfg.a_theta,
+                    places=places)
         for i in d_theta_indices:
-            self.assertSampleIsFromDistribution(param_sums[i], cfg.d_theta, places)
+            self.assertSampleIsFromDistribution(param_sums[i], cfg.d_theta,
+                    mean_adj=cfg.theta.mean,
+                    max_adj=cfg.theta.maximum,
+                    compare_variance=False,
+                    places=places)
+
+    def assertPriorIsAccurate(self, msbayes_workers, places=2):
+        msbayes_workers = list(msbayes_workers)
+        self.assertWorkersFinished(msbayes_workers)
+        pass
+
+    def assertPriorIsValid(self, msbayes_workers, places=2):
+        msbayes_workers = list(msbayes_workers)
+        self.assertWorkersFinished(msbayes_workers)
+        self.assertPriorIsPrecise(msbayes_workers, places=places)
+        self.assertPriorIsAccurate(msbayes_workers, places=places)
+
+    def assertWorkersFinished(self, msbayes_workers):
+        for w in msbayes_workers:
+            self.assertTrue(w.finished)
                     
-    def assertSampleIsFromDistribution(self, sample_sum, dist, places=2):
+    def assertSampleIsFromDistribution(self, sample_sum, dist, places=2,
+            mean_adj=1,
+            max_adj=1,
+            compare_variance=True):
         if isinstance(dist, probability.DiscreteUniformDistribution):
             self.assertEqual(sample_sum.minimum, dist.minimum)
             self.assertEqual(sample_sum.maximum, dist.maximum)
@@ -183,9 +237,10 @@ class PyMsBayesTestCase(unittest.TestCase):
             if dist.minimum != float('-inf') or dist.minimum != float('inf'):
                 self.assertAlmostEqual(sample_sum.minimum, dist.minimum, places)
             if dist.maximum != float('-inf') or dist.maximum != float('inf'):
-                self.assertAlmostEqual(sample_sum.maximum, dist.maximum, places)
-        self.assertAlmostEqual(sample_sum.mean, dist.mean, places)
-        self.assertAlmostEqual(sample_sum.variance, dist.variance, places)
+                self.assertAlmostEqual(sample_sum.maximum, dist.maximum*max_adj, places)
+        self.assertAlmostEqual(sample_sum.mean, dist.mean*mean_adj, places)
+        if compare_variance:
+            self.assertAlmostEqual(sample_sum.variance, dist.variance, places)
 
     def assertApproxEqual(self, x, y, percent_tol=1e-6):
         eq = (((abs(x-y) / ((abs(x)+abs(y))/2))*100) < percent_tol)
@@ -234,6 +289,7 @@ class PyMsBayesTestCase(unittest.TestCase):
         return equal, diffs
 
     def assertSameFiles(self, files):
+        files = list(files)
         all_equal = True
         diffs = StringIO()
         f1 = files.pop(0)
