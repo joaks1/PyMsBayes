@@ -56,8 +56,8 @@ class ContinuousUniformDistribution(Distribution):
     def __init__(self, minimum, maximum):
         if not maximum >= minimum:
             raise ValueError('max must be greater than min')
-        self._min = minimum
-        self._max = maximum
+        self._min = float(minimum)
+        self._max = float(maximum)
 
     def _get_min(self):
         return self._min
