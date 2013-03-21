@@ -35,6 +35,11 @@ class SampleSummarizer(object):
         for x in x_iter:
             self.add_sample(x)
 
+    def _get_n(self):
+        return self._n
+    
+    n = property(_get_n)
+
     def _get_min(self):
         return self._min
 
