@@ -39,6 +39,28 @@ ALL_STAT_PATTERNS = [
 DUMMY_PATTERNS = [
         re.compile(r'\s*PRI\.numTauClass\s*')
         ]
+MODEL_PATTERNS = [
+        re.compile(r'\s*PRI\.model\s*'),
+        ]
+TAU_PATTERNS = [
+        re.compile(r'\s*PRI\.t\.\d+\s*'),
+        ]
+D_THETA_PATTERNS = [
+        re.compile(r'\s*PRI\.d[12]Theta\.\d+\s*'),
+        ]
+A_THETA_PATTERNS = [
+        re.compile(r'\s*PRI\.aTheta\.\d+\s*'),
+        ]
+PSI_PATTERNS = [
+        re.compile(r'\s*PRI\.Psi\s*'),
+        ]
+MEAN_TAU_PATTERNS = [
+        re.compile(r'\s*PRI\.E\.t\s*'),
+        ]
+OMEGA_PATTERNS = [
+        re.compile(r'\s*PRI\.omega\s*'),
+        ]
+HEADER_PATTERN = re.compile(r'^\s*\D.+')
 
 ##############################################################################
 ## functions for manipulating prior files
