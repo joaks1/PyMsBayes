@@ -146,3 +146,11 @@ class PyMsBayesTestCase(unittest.TestCase):
             _LOG.error('files are not equal:\n{0}\n'.format(diffs.getvalue()))
         self.assertTrue(all_equal)
 
+    def assertSameDistributions(self, d1, d2):
+        self.assertEqual(d1.name, d2.name)
+        self.assertEqual(str(d1), str(d2))
+        self.assertEqual(d1.minimum, d2.minimum)
+        self.assertEqual(d1.maximum, d2.maximum)
+        self.assertEqual(d1.mean, d2.mean)
+        self.assertEqual(d1.variance, d2.variance)
+
