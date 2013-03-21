@@ -3,8 +3,22 @@
 import os
 import unittest
 from cStringIO import StringIO
+import re
+import random
 
-from pymsbayes.utils.functions import random_str, process_file_arg
+from pymsbayes.workers import (TAU_PATTERNS,
+        MODEL_PATTERNS,
+        D_THETA_PATTERNS,
+        A_THETA_PATTERNS,
+        PSI_PATTERNS,
+        MEAN_TAU_PATTERNS,
+        OMEGA_PATTERNS,
+        HEADER_PATTERN)
+from pymsbayes.config import MsBayesConfig
+from pymsbayes.utils.stats import SampleSummarizer
+from pymsbayes.utils import probability
+from pymsbayes.utils.functions import (random_str, process_file_arg,
+        get_indices_of_patterns)
 from pymsbayes.utils.tempfs import TempFileSystem
 from pymsbayes.test.support import package_paths
 from pymsbayes.utils.messaging import get_logger
@@ -85,6 +99,94 @@ class PyMsBayesTestCase(unittest.TestCase):
             return False
         return True
 
+    def get_config_from_msbayes_worker(self, msbayes_worker):
+        return MsBayesConfig(msbayes_worker.config_path)
+
+    def get_parameter_summaries_from_msbayes_worker(self, msbayes_worker,
+            shuffle_taus=True):
+        s = dict(zip(
+            [i for i in msbayes_worker.parameter_indices],
+            [SampleSummarizer(name=msbayes_worker.header[i]) for i in msbayes_worker.parameter_indices]))
+        f = open(msbayes_worker.prior_path, 'rU')
+        ncols = None
+        for line_idx, row in enumerate(f):
+            if not ncols:
+                ncols = len(row.strip().split())
+            if HEADER_PATTERN.match(row.strip()):
+                continue
+            r = row.strip().split()
+            assert len(r) == ncols
+            if shuffle_taus: # because taus are sorted in prior files
+                psi_index = get_indices_of_patterns(msbayes_worker.header,
+                        PSI_PATTERNS)[0]
+                tau_indices = get_indices_of_patterns(msbayes_worker.header,
+                        TAU_PATTERNS)
+                psi = int(r[psi_index])
+                taus = [float(r[i]) for i in tau_indices]
+                self.assertEqual(psi, len(set(taus)))
+                random.shuffle(taus)
+                for n, i in enumerate(tau_indices):
+                    s[i].add_sample(taus[n])
+                p_set = set(msbayes_worker.parameter_indices) - set(tau_indices)
+                p = sorted(list(p_set))
+                for i in p:
+                    s[i].add_sample(float(r[i]))
+            else:
+                for i in msbayes_worker.parameter_indices:
+                    s[i].add_sample(float(r[i]))
+        return s
+
+    def assertPriorIsValid(self, msbayes_worker, places=2):
+        self.assertTrue(msbayes_worker.finished)
+        param_sums = self.get_parameter_summaries_from_msbayes_worker(
+                msbayes_worker)
+        for s in param_sums.itervalues():
+            self.assertEqual(s.n, msbayes_worker.sample_size)
+        cfg = self.get_config_from_msbayes_worker(msbayes_worker)
+        psi_indices = get_indices_of_patterns(msbayes_worker.header,
+                PSI_PATTERNS)
+        self.assertEqual(len(psi_indices), 1)
+        model_indices = get_indices_of_patterns(msbayes_worker.header,
+                MODEL_PATTERNS)
+        if not msbayes_worker.model_index is None:
+            self.assertEqual(len(model_indices), 1)
+        else:
+            self.assertEqual(len(model_indices), 0)
+        tau_indices = get_indices_of_patterns(msbayes_worker.header,
+                TAU_PATTERNS)
+        a_theta_indices = get_indices_of_patterns(msbayes_worker.header,
+                A_THETA_PATTERNS)
+        d_theta_indices = get_indices_of_patterns(msbayes_worker.header,
+                D_THETA_PATTERNS)
+        if msbayes_worker.report_parameters:
+            self.assertEqual(len(tau_indices), cfg.npairs)
+            self.assertEqual(len(a_theta_indices), cfg.npairs)
+            self.assertEqual(len(d_theta_indices), 2*cfg.npairs)
+        else:
+            self.assertEqual(len(tau_indices), 0)
+            self.assertEqual(len(a_theta_indices), 0)
+            self.assertEqual(len(d_theta_indices), 0)
+        for i in psi_indices:
+            self.assertSampleIsFromDistribution(param_sums[i], cfg.psi, places)
+        for i in tau_indices:
+            self.assertSampleIsFromDistribution(param_sums[i], cfg.tau, places)
+        for i in a_theta_indices:
+            self.assertSampleIsFromDistribution(param_sums[i], cfg.a_theta, places)
+        for i in d_theta_indices:
+            self.assertSampleIsFromDistribution(param_sums[i], cfg.d_theta, places)
+                    
+    def assertSampleIsFromDistribution(self, sample_sum, dist, places=2):
+        if isinstance(dist, probability.DiscreteUniformDistribution):
+            self.assertEqual(sample_sum.minimum, dist.minimum)
+            self.assertEqual(sample_sum.maximum, dist.maximum)
+        else:
+            if dist.minimum != float('-inf') or dist.minimum != float('inf'):
+                self.assertAlmostEqual(sample_sum.minimum, dist.minimum, places)
+            if dist.maximum != float('-inf') or dist.maximum != float('inf'):
+                self.assertAlmostEqual(sample_sum.maximum, dist.maximum, places)
+        self.assertAlmostEqual(sample_sum.mean, dist.mean, places)
+        self.assertAlmostEqual(sample_sum.variance, dist.variance, places)
+
     def assertApproxEqual(self, x, y, percent_tol=1e-6):
         eq = (((abs(x-y) / ((abs(x)+abs(y))/2))*100) < percent_tol)
         if not eq:
@@ -101,14 +203,19 @@ class PyMsBayesTestCase(unittest.TestCase):
         f2_end = False
         lines_left = True
         while True:
-            try:
-                l1 = f1.next()
-            except EOFError:
-                f1_end = line
-            try:
-                l2 = f2.next()
-            except EOFError:
-                f2_end = line
+            line += 1
+            if f1_end == False:
+                try:
+                    l1 = f1.next()
+                except (StopIteration, EOFError):
+                    f1_end = line
+                    pass
+            if f2_end == False:
+                try:
+                    l2 = f2.next()
+                except (StopIteration, EOFError):
+                    f2_end = line
+                    pass
             if f1_end != False and f2_end != False:
                 break
             if f1_end == False and f2_end == False and l1 != l2:
