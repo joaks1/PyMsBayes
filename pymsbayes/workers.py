@@ -3,7 +3,6 @@
 import os
 import sys
 import re
-import multiprocessing
 import subprocess
 import time
 import shutil
@@ -18,7 +17,6 @@ from pymsbayes.utils.errors import WorkerExecutionError
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
-_LOCK = multiprocessing.Lock()
 
 
 ##############################################################################
@@ -156,55 +154,34 @@ def prior_for_msreject(in_file, out_file,
 ##############################################################################
 ## Base class for all workers
 
-class Worker(multiprocessing.Process):
+class Worker(object):
     total = 0
-    def __init__(self, **kwargs):
+    def __init__(self,
+            temp_fs,
+            stdout_path = None,
+            stderr_path = None):
         self.__class__.total += 1
-        multiprocessing.Process.__init__(self)
-        self.temp_fs = kwargs.get('temp_fs', None)
-        if not isinstance(self.temp_fs, TempFileSystem):
-            raise ValueError('All workers require a TempFileSystem at '
-                    'initiation')
-        self.log = kwargs.get('log', _LOG)
-        self.lock = kwargs.get('lock', _LOCK)
-        self.queue = kwargs.get('queue', multiprocessing.Queue())
-        self.stdout_path = kwargs.get('stdout_path', None)
-        self.stderr_path = kwargs.get('stderr_path', None)
+        self.temp_fs = temp_fs
+        self.stdout_path = stdout_path
+        self.stderr_path = stderr_path
         self.cmd = []
+        self.process = None
         self.finished = False
-        self.subprocess_exit_code = None
-
-    def send_msg(self, msg, method_str='info'):
-        msg = '{0} ({1}): {2}'.format(self.name, self.pid, msg)
-        self.lock.acquire()
-        try:
-            getattr(self.log, method_str)(msg)
-        finally:
-            self.lock.release()
-
-    def send_debug(self, msg):
-        self.send_msg(msg, method_str='debug')
-
-    def send_info(self, msg):
-        self.send_msg(msg, method_str='info')
-
-    def send_warning(self, msg):
-        self.send_msg(msg, method_str='warning')
-
-    def send_error(self, msg):
-        self.send_msg(msg, method_str='error')
+        self.exit_code = None
+        self.std_out = None
+        self.std_err = None
 
     def get_stderr(self):
         if not self.stderr_path:
-            return None
+            return self.std_err
         try:
             return open(self.stderr_path, 'rU').read()
         except IOError, e:
-            self.send_error('Could not open stderr file')
+            _LOG.error('Could not open stderr file')
             raise e
 
-    def run(self):
-        self.send_info('Starting process with following command:\n\t'
+    def start(self):
+        _LOG.info('Starting process with following command:\n\t'
                 '{0}'.format(' '.join(self.cmd)))
         if self.stdout_path:
             sout = open(self.stdout_path, 'w')
@@ -214,43 +191,33 @@ class Worker(multiprocessing.Process):
             serr = open(self.stderr_path, 'w')
         else:
             serr = subprocess.PIPE
-        p = subprocess.Popen(self.cmd,
+        self.process = subprocess.Popen(self.cmd,
                 stdout = sout,
                 stderr = serr,
                 shell = False)
-        stdout, stderr = p.communicate()
-        exit_code = p.wait()
+        self.std_out, self.std_err = self.process.communicate()
+        self.exit_code = self.process.wait()
         if self.stdout_path:
             sout.close()
         if self.stderr_path:
             serr.close()
-        if exit_code != 0:
+        if self.exit_code != 0:
             if self.stderr_path:
                 stderr = open(self.stderr_path, 'rU').read()
-            send_error('execution failed')
+            _LOG.error('execution failed')
             raise WorkerExecutionError('{0} ({1}) failed. stderr:\n{2}'.format(
                 self.name, self.pid, stderr))
-        results = {'exit_code': exit_code}
-        self.queue.put(results)
         try:
             self._post_process()
         except:
             e = StringIO()
             traceback.print_exc(file=e)
-            self.send_error('Error during post-processing:\n{0}'.format(
+            _LOG.error('Error during post-processing:\n{0}'.format(
                     e.getvalue()))
             raise
-
-    def finish(self, **kwargs):
-        results = self.queue.get()
-        self.subprocess_exit_code = results['exit_code']
         self.finished = True
-        self._finish()
 
     def _post_process(self):
-        pass
-
-    def _finish(self):
         pass
 
 
@@ -262,6 +229,7 @@ class MsBayesWorker(Worker):
     valid_schemas = ['msreject'] #, 'abctoolbox']
 
     def __init__(self,
+            temp_fs,
             sample_size,
             config_path,
             exe_path = None,
@@ -273,8 +241,11 @@ class MsBayesWorker(Worker):
             schema = 'msreject',
             stat_patterns=DEFAULT_STAT_PATTERNS,
             parameter_patterns=PARAMETER_PATTERNS,
-            **kwargs):
-        Worker.__init__(self, **kwargs)
+            stdout_path = None,
+            stderr_path = None):
+        Worker.__init__(self, temp_fs,
+                stdout_path = stdout_path,
+                stderr_path = stderr_path)
         self.__class__.count += 1
         self.name = 'MsBayesWorker-' + str(self.count)
         self.sample_size = int(sample_size)
@@ -319,6 +290,9 @@ class MsBayesWorker(Worker):
         self.stat_indices = None
         self._update_cmd()
 
+    def compose_msg(self, msg):
+        return '{0}: {1}'.format(self.name, msg)
+
     def _update_cmd(self):
         cmd = [self.exe_path,
                '-r', str(self.sample_size),
@@ -336,7 +310,6 @@ class MsBayesWorker(Worker):
     def _post_process(self):
         raw_prior_path = self.prior_path + '.raw'
         shutil.move(self.prior_path, raw_prior_path)
-        header = None
         if self.schema == 'msreject':
             header = prior_for_msreject(
                     in_file = raw_prior_path,
@@ -345,16 +318,15 @@ class MsBayesWorker(Worker):
                     parameter_patterns = self.parameter_patterns,
                     dummy_patterns = DUMMY_PATTERNS,
                     include_header = False)
+        os.remove(raw_prior_path)
         if header:
             out = open(self.header_path, 'w')
             out.write('{0}\n'.format('\t'.join(header)))
             out.close()
-        os.remove(raw_prior_path)
+            self._set_header(header)
 
-    def _finish(self):
-        header_file = open(self.header_path, 'rU')
-        self.header = header_file.read().strip().split('\t')
-        header_file.close()
+    def _set_header(self, header):
+        self.header = header
         self.parameter_indices = get_parameter_indices(
                 header_list = self.header,
                 parameter_patterns = PARAMETER_PATTERNS)
@@ -384,17 +356,4 @@ class MsRejectWorker(Worker):
 
     def run(self):
         time.sleep(120)
-
-if __name__ == '__main__':
-    jobs = []
-    for i in range(5):
-        p = MsBayesWorker(
-                exe_path = 'msbayes.pl',
-                config_path = 'conf',
-                out_path = 'prior',
-                seed = 234234)
-        jobs.append(p)
-        p.start()
-    for j in jobs:
-        j.join()
 
