@@ -20,12 +20,6 @@ class MsBayesWorkerTestCase(PyMsBayesTestCase):
     def tearDown(self):
         self.tear_down()
 
-    def test_tempfs_error(self):
-        kwargs = {'sample_size': 10,
-                'config_path': self.cfg_path,
-                'schema': 'bogus'}
-        self.assertRaises(ValueError, workers.MsBayesWorker, **kwargs)
-
     def test_schema_error(self):
         kwargs = {'temp_fs': self.temp_fs,
                 'sample_size': 10,
@@ -34,10 +28,8 @@ class MsBayesWorkerTestCase(PyMsBayesTestCase):
         self.assertRaises(ValueError, workers.MsBayesWorker, **kwargs)
 
     def _assert_success(self, w, num_pairs, sample_size):
-        self.assertFalse(w.is_alive())
         self.assertTrue(w.finished)
-        self.assertEqual(0, w.exitcode)
-        self.assertEqual(0, w.subprocess_exit_code)
+        self.assertEqual(0, w.exit_code)
         self.assertTrue(os.path.isdir(w.output_dir))
         self.assertTrue(os.path.isfile(w.prior_path))
         self.assertTrue(os.path.isfile(w.header_path))
@@ -62,35 +54,7 @@ class MsBayesWorkerTestCase(PyMsBayesTestCase):
         self.assertIsInstance(w, workers.MsBayesWorker)
         self.assertFalse(w.finished)
         w.start()
-        w.join()
-        w.finish()
         self._assert_success(w, 4, 10)
-
-    def test_simple_batch(self):
-        jobs = []
-        for i in range(5):
-            w = workers.MsBayesWorker(
-                temp_fs = self.temp_fs,
-                sample_size = 10,
-                config_path = self.cfg_path,
-                schema = 'msreject')
-            jobs.append(w)
-            self.assertFalse(w.finished)
-            self.assertFalse(w.is_alive())
-        for w in jobs:
-            w.start()
-            self.assertFalse(w.finished)
-            self.assertTrue(w.is_alive())
-        for w in jobs:
-            self.assertFalse(w.finished)
-            w.join()
-            self.assertFalse(w.finished)
-            self.assertFalse(w.is_alive())
-            w.finish()
-            self.assertTrue(w.finished)
-            self.assertFalse(w.is_alive())
-        for w in jobs:
-            self._assert_success(w, 4, 10)
 
     def test_repeatability(self):
         jobs = []
@@ -105,35 +69,32 @@ class MsBayesWorkerTestCase(PyMsBayesTestCase):
         for w in jobs:
             w.start()
         for w in jobs:
-            w.join()
-            w.finish()
-        for w in jobs:
             self._assert_success(w, 4, 10)
         self.assertSameFiles([j.prior_path for j in jobs])
         self.assertSameFiles([j.header_path for j in jobs])
 
-    def test_validity(self):
-        if test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            jobs = []
-            for i in range(10):
-                w = workers.MsBayesWorker(
-                        temp_fs = self.temp_fs,
-                        sample_size = 100,
-                        config_path = self.cfg_path,
-                        schema = 'msreject')
-                jobs.append(w)
-                self.assertIsInstance(w, workers.MsBayesWorker)
-                self.assertFalse(w.finished)
-                w.start()
-            for w in jobs:
-                w.join()
-                w.finish()
-                self._assert_success(w, 4, 100)
-            self.assertPriorIsValid(jobs, 0)
+    # def test_validity(self):
+    #     if test_enabled(
+    #             level = TestLevel.EXHAUSTIVE,
+    #             log = _LOG,
+    #             module_name = '.'.join([self.__class__.__name__,
+    #                     sys._getframe().f_code.co_name])):
+    #         jobs = []
+    #         for i in range(10):
+    #             w = workers.MsBayesWorker(
+    #                     temp_fs = self.temp_fs,
+    #                     sample_size = 100,
+    #                     config_path = self.cfg_path,
+    #                     schema = 'msreject')
+    #             jobs.append(w)
+    #             self.assertIsInstance(w, workers.MsBayesWorker)
+    #             self.assertFalse(w.finished)
+    #             w.start()
+    #         for w in jobs:
+    #             w.join()
+    #             w.finish()
+    #             self._assert_success(w, 4, 100)
+    #         self.assertPriorIsValid(jobs, 0)
 
 if __name__ == '__main__':
     unittest.main()
