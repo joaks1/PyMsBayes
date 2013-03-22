@@ -12,21 +12,35 @@ _LOCK = multiprocessing.Lock()
 
 class Manager(multiprocessing.Process):
     count = 0
-    def __init__(self, **kwargs):
+    def __init__(self,
+            work_queue = None,
+            result_queue = None,
+            log = None,
+            lock = None):
         multiprocessing.Process.__init__(self)
         self.__class__.count += 1
         self.name = 'Manager-' + str(self.count)
-        self.log = kwargs.get('log', _LOG)
-        self.lock = kwargs.get('lock', _LOCK)
-        self.work_queue = kwargs.get('job_queue', multiprocessing.Queue())
-        self.result_queue = kwargs.get('result_queue', multiprocessing.Queue())
+        if not work_queue:
+            work_queue = multiprocessing.Queue()
+        if not result_queue:
+            result_queue = multiprocessing.Queue()
+        self.work_queue = work_queue
+        self.result_queue = result_queue
+        if not log:
+            log = _LOG
+        self.log = log
+        if not lock:
+            lock = _LOCK
+        self.lock = lock
         self.killed = False
 
+    def compose_msg(self, msg):
+        return '{0} ({1}): {2}'.format(self.name, self.pid, msg)
+
     def send_msg(self, msg, method_str='info'):
-        msg = '{0} ({1}): {2}'.format(self.name, self.pid, msg)
         self.lock.acquire()
         try:
-            getattr(self.log, method_str)(msg)
+            getattr(self.log, method_str)(self.compose_msg(msg))
         finally:
             self.lock.release()
 
@@ -42,19 +56,13 @@ class Manager(multiprocessing.Process):
     def send_error(self, msg):
         self.send_msg(msg, method_str='error')
 
-    def get_stderr(self):
-        if not self.stderr_path:
-            return None
-        try:
-            return open(self.stderr_path, 'rU').read()
-        except IOError, e:
-            self.send_error('Could not open stderr file')
-            raise e
-
     def run(self):
         while not self.killed:
             try:
-                worker = self.work_queue.get_nowait()
+                worker = self.work_queue.get(block=True, timeout=1)
+                # without blocking processes were stopping when the queue
+                # was not empty, and without timeout, the processes would
+                # hang waiting for jobs.
             except Queue.Empty:
                 break
             self.send_info('starting worker {0}'.format(worker.name))
