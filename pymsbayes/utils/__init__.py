@@ -4,7 +4,9 @@ import sys
 import os
 import platform
 import random
+import multiprocessing
 
+WORK_FORCE = multiprocessing.Queue()
 GLOBAL_RNG = random.Random()
 PLATFORM = platform.system().lower()
 

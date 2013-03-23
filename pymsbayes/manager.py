@@ -5,6 +5,7 @@ import sys
 import multiprocessing
 import Queue
 
+from pymsbayes.utils import WORK_FORCE
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -21,7 +22,7 @@ class Manager(multiprocessing.Process):
         self.__class__.count += 1
         self.name = 'Manager-' + str(self.count)
         if not work_queue:
-            work_queue = multiprocessing.Queue()
+            work_queue = WORK_FORCE
         if not result_queue:
             result_queue = multiprocessing.Queue()
         self.work_queue = work_queue
