@@ -12,3 +12,7 @@ class WorkerExecutionError(PyMsBayesError):
     def __init__(self, *args, **kwargs):
         PyMsBayesError.__init__(self, *args, **kwargs)
 
+class PriorMergeError(PyMsBayesError):
+    def __init__(self, *args, **kwargs):
+        PyMsBayesError.__init__(self, *args, **kwargs)
+
