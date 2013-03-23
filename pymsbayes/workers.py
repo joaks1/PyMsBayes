@@ -13,7 +13,7 @@ from pymsbayes.utils.tempfs import TempFileSystem
 from pymsbayes.utils import BIN_DIR
 from pymsbayes.utils.functions import (get_random_int, expand_path,
         get_indices_of_patterns, reduce_columns, process_file_arg)
-from pymsbayes.utils.errors import WorkerExecutionError
+from pymsbayes.utils.errors import WorkerExecutionError, PriorMergeError
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -220,6 +220,33 @@ class Worker(object):
     def _post_process(self):
         pass
 
+
+##############################################################################
+## functions for managing msbayes workers
+
+def merge_priors(workers, prior_path, header_path=None, include_header=False):
+    out = open(prior_path, 'w')
+    h = None
+    std = None
+    for w in workers:
+        if not h:
+            h = w.header
+            std = w
+            if include_header:
+                out.write('{0}\n'.format('\t'.join(h)))
+        if not w.header == h:
+            raise PriorMergeError('Workers {0} and {1} have different prior '
+                    'headers. Cannot merge!'.format(std.name, w.name))
+        prior_file = open(w.prior_path, 'rU')
+        for line in prior_file:
+            out.write(line)
+        prior_file.close()
+    out.close()
+    if not header_path:
+        header_path = prior_path + '.header'
+    out = open(header_path, 'w')
+    out.write('{0}\n'.format('\t'.join(h)))
+    out.close()
 
 ##############################################################################
 ## msBayes class for generating prior files
