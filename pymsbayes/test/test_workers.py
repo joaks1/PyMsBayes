@@ -169,6 +169,203 @@ class PriorMergeTestCase(PyMsBayesTestCase):
         self.assertTrue(self._correct_n_lines(ppath, 41))
         self.assertTrue(self._correct_n_lines(hpath, 1))
 
+class MsRejectWorkerTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.cfg_path = package_paths.data_path('4pairs_1locus.cfg')
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_reject_no_parameters(self):
+        self.msbayes_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'msreject',
+                report_parameters = False)
+        self.msbayes_worker.start()
+        self.prior_path = self.msbayes_worker.prior_path
+        self.header = self.msbayes_worker.header
+        self.observed_path = self.get_test_path(prefix='test-obs',
+                create=True)
+        self.posterior_path = self.get_test_path(prefix='test-post',
+                create=False)
+        prior = open(self.prior_path, 'rU')
+        obs = open(self.observed_path, 'w')
+        observed = prior.next().strip().split()
+        for i in (set(range(len(self.header))) - \
+                set(self.msbayes_worker.stat_indices)):
+            observed[i] = '999999999'
+        obs.write('{0}\t\n'.format('\t'.join(observed)))
+        obs.close()
+        prior.close()
+
+        w = workers.MsRejectWorker(
+            header = self.header,
+            observed_path = self.observed_path,
+            prior_path = self.prior_path,
+            tolerance = 0.1,
+            posterior_path = self.posterior_path)
+        self.assertFalse(w.finished)
+        w.start()
+        self.assertTrue(w.finished)
+        self.assertEqual(w.exit_code, 0)
+        self.assertTrue(os.path.isfile(w.posterior_path))
+        post = open(self.posterior_path, 'rU')
+        post_header = post.next().strip().split()
+        posterior = post.next().strip().split()
+        post.close()
+        self.assertEqual(self.msbayes_worker.header, w.header)
+        pr = open(self.prior_path, 'rU')
+        expected_post = pr.next().strip().split()
+        pr.close()
+        self.assertEqual(posterior, expected_post)
+
+    def test_reject_with_parameters(self):
+        self.msbayes_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'msreject',
+                report_parameters = True)
+        self.msbayes_worker.start()
+        self.prior_path = self.msbayes_worker.prior_path
+        self.header = self.msbayes_worker.header
+        self.observed_path = self.get_test_path(prefix='test-obs',
+                create=True)
+        self.posterior_path = self.get_test_path(prefix='test-post',
+                create=False)
+        prior = open(self.prior_path, 'rU')
+        obs = open(self.observed_path, 'w')
+        observed = prior.next().strip().split()
+        for i in (set(range(len(self.header))) - \
+                set(self.msbayes_worker.stat_indices)):
+            observed[i] = '999999999'
+        obs.write('{0}\t\n'.format('\t'.join(observed)))
+        obs.close()
+        prior.close()
+
+        w = workers.MsRejectWorker(
+            header = self.header,
+            observed_path = self.observed_path,
+            prior_path = self.prior_path,
+            tolerance = 0.1,
+            posterior_path = self.posterior_path)
+        self.assertFalse(w.finished)
+        w.start()
+        self.assertTrue(w.finished)
+        self.assertEqual(w.exit_code, 0)
+        self.assertTrue(os.path.isfile(w.posterior_path))
+        post = open(self.posterior_path, 'rU')
+        post_header = post.next().strip().split()
+        posterior = post.next().strip().split()
+        post.close()
+        self.assertEqual(self.msbayes_worker.header, w.header)
+        pr = open(self.prior_path, 'rU')
+        expected_post = pr.next().strip().split()
+        pr.close()
+        self.assertEqual(posterior, expected_post)
+
+    def test_reject_with_parameters_posterier_sample(self):
+        self.msbayes_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'msreject',
+                report_parameters = True)
+        self.msbayes_worker.start()
+        self.prior_path = self.msbayes_worker.prior_path
+        self.header = self.msbayes_worker.header
+        self.observed_path = self.get_test_path(prefix='test-obs',
+                create=True)
+        self.posterior_path = self.get_test_path(prefix='test-post',
+                create=False)
+        prior = open(self.prior_path, 'rU')
+        obs = open(self.observed_path, 'w')
+        obs_sample = prior.next()
+        observed = obs_sample.strip().split()
+        other_sample = prior.next()
+        for i in (set(range(len(self.header))) - \
+                set(self.msbayes_worker.stat_indices)):
+            observed[i] = '999999999'
+        obs.write('{0}\t\n'.format('\t'.join(observed)))
+        obs.close()
+        self.new_prior_path = self.get_test_path(prefix='test-prior',
+                create=True)
+        new_prior = open(self.new_prior_path, 'w')
+        for i in range(2):
+            new_prior.write(obs_sample)
+        for i in range(10):
+            new_prior.write(other_sample)
+        for line in prior:
+            new_prior.write(line)
+        new_prior.close()
+        prior.close()
+
+        w = workers.MsRejectWorker(
+            header = self.header,
+            observed_path = self.observed_path,
+            prior_path = self.new_prior_path,
+            tolerance = 0.1,
+            posterior_path = self.posterior_path)
+        self.assertFalse(w.finished)
+        w.start()
+        self.assertTrue(w.finished)
+        self.assertEqual(w.exit_code, 0)
+        self.assertTrue(os.path.isfile(w.posterior_path))
+        post = open(self.posterior_path, 'rU')
+        post_header = post.next().strip().split()
+        posterior1 = post.next().strip().split()
+        posterior2 = post.next().strip().split()
+        post.close()
+        self.assertEqual(self.msbayes_worker.header, w.header)
+        pr = open(self.prior_path, 'rU')
+        expected_post = pr.next().strip().split()
+        pr.close()
+        self.assertEqual(posterior1, expected_post)
+        self.assertEqual(posterior2, expected_post)
+
+class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.cfg_path = package_paths.data_path('4pairs_1locus.cfg')
+        self.results_dir = self.get_test_subdir(
+                prefix='test-posteriors')
+        self.posterior_prefix = self.test_id + '-posterior'
+
+    def tearDown(self):
+        self.tear_down()
+
+    def _get_prior(self, n=100, observed=False):
+        w = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = n,
+                config_path = self.cfg_path,
+                schema = 'msreject',
+                report_parameters = True,
+                observed = observed)
+        w.start()
+        return w
+    
+    def test_simple(self):
+        prior_worker = self._get_prior()
+        obs_worker = self._get_prior(n=10, observed=True)
+        jobs = workers.assemble_msreject_workers(
+                temp_fs = self.temp_fs,
+                observed_sims_file = obs_worker.prior_path,
+                prior_path = prior_worker.prior_path,
+                tolerance = 0.05,
+                results_dir = self.results_dir,
+                posterior_prefix = self.posterior_prefix)
+        for j in jobs:
+            self.assertFalse(j.finished)
+            j.start()
+        for j in jobs:
+            self.assertTrue(j.finished)
+            self.assertTrue(os.path.isfile(j.posterior_path))
+            self.assertEqual(self.get_number_of_lines(j.posterior_path), 6)
+
 if __name__ == '__main__':
     unittest.main()
 

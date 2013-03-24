@@ -98,6 +98,15 @@ class PyMsBayesTestCase(unittest.TestCase):
                     nrows, num_of_rows))
             return False
         return True
+    
+    def get_number_of_lines(self, path):
+        f, close = process_file_arg(path)
+        count = 0
+        for l in f:
+            count += 1
+        if close:
+            f.close()
+        return count
 
     def get_config_from_msbayes_workers(self, msbayes_workers):
         cfgs = [MsBayesConfig(w.config_path) for w in msbayes_workers]
