@@ -65,7 +65,10 @@ HEADER_PATTERN = re.compile(r'^\s*\D.+')
 
 def parse_header(file_obj, sep='\t'):
     file_stream, close = process_file_arg(file_obj, 'rU')
-    header = file_stream.next().strip().split(sep)
+    header_line = file_stream.next()
+    if not HEADER_PATTERN.match(header_line):
+        raise Exception('did not find header in {0}'.format(file_stream.name))
+    header = header_line.strip().split(sep)
     if close:
         file_stream.close()
     else:
@@ -157,11 +160,9 @@ def prior_for_msreject(in_file, out_file,
 class Worker(object):
     total = 0
     def __init__(self,
-            temp_fs,
             stdout_path = None,
             stderr_path = None):
         self.__class__.total += 1
-        self.temp_fs = temp_fs
         self.stdout_path = stdout_path
         self.stderr_path = stderr_path
         self.cmd = []
@@ -184,7 +185,7 @@ class Worker(object):
         _LOG.info('Starting process with following command:\n\t'
                 '{0}'.format(' '.join(self.cmd)))
         if self.stdout_path:
-            sout = open(self.stdout_path, 'w')
+            sout = open(self.stdout_path, 'a')
         else:
             sout = subprocess.PIPE
         if self.stderr_path:
@@ -247,6 +248,7 @@ def merge_priors(workers, prior_path, header_path=None, include_header=False):
     out = open(header_path, 'w')
     out.write('{0}\n'.format('\t'.join(h)))
     out.close()
+    return prior_path, header_path
 
 ##############################################################################
 ## msBayes class for generating prior files
@@ -270,11 +272,12 @@ class MsBayesWorker(Worker):
             parameter_patterns=PARAMETER_PATTERNS,
             stdout_path = None,
             stderr_path = None):
-        Worker.__init__(self, temp_fs,
+        Worker.__init__(self,
                 stdout_path = stdout_path,
                 stderr_path = stderr_path)
         self.__class__.count += 1
         self.name = 'MsBayesWorker-' + str(self.count)
+        self.temp_fs = temp_fs
         self.sample_size = int(sample_size)
         self.config_path = expand_path(config_path)
         self.output_dir = self.temp_fs.create_subdir(prefix=self.name)
@@ -317,9 +320,6 @@ class MsBayesWorker(Worker):
         self.stat_indices = None
         self._update_cmd()
 
-    def compose_msg(self, msg):
-        return '{0}: {1}'.format(self.name, msg)
-
     def _update_cmd(self):
         cmd = [self.exe_path,
                '-r', str(self.sample_size),
@@ -344,7 +344,7 @@ class MsBayesWorker(Worker):
                     stat_patterns = self.stat_patterns,
                     parameter_patterns = self.parameter_patterns,
                     dummy_patterns = DUMMY_PATTERNS,
-                    include_header = False)
+                    include_header = self.observed)
         os.remove(raw_prior_path)
         if header:
             out = open(self.header_path, 'w')
@@ -362,25 +362,95 @@ class MsBayesWorker(Worker):
                 stat_patterns = ALL_STAT_PATTERNS)
 
         
+##############################################################################
+## functions for managing msreject workers
+
+def assemble_msreject_workers(temp_fs,
+        observed_sims_file,
+        prior_path,
+        tolerance,
+        results_dir,
+        posterior_prefix='uncorrected-posterior',
+        stat_indices = None,
+        exe_path = None):
+    obs_file, close = process_file_arg(observed_sims_file)
+    header = parse_header(obs_file)
+    obs_temp_dir = temp_fs.create_subdir(prefix = 'observed-files-')
+    obs_file.next() # header
+    workers = []
+    for i, line in enumerate(obs_file):
+        obs_path = temp_fs.get_file_path(parent = obs_temp_dir,
+                prefix = 'observed-{0}-'.format(i+1),
+                create = True)
+        out = open(obs_path, 'w')
+        out.write(line)
+        out.close()
+        posterior_file_name = '{0}.{1}.txt'.format(posterior_prefix, i+1)
+        posterior_path = os.path.join(results_dir, posterior_file_name)
+        workers.append(MsRejectWorker(
+                header = header,
+                observed_path = obs_path,
+                prior_path = prior_path,
+                tolerance = tolerance,
+                posterior_path = posterior_path,
+                stat_indices = stat_indices,
+                exe_path = exe_path))
+    if close:
+        obs_file.close()
+    return workers
+
+
+##############################################################################
+## worker class for rejection via msreject
+
 class MsRejectWorker(Worker):
     count = 0
     def __init__(self,
-            exe_path,
+            header,
+            observed_path,
             prior_path,
-            out_path,
             tolerance,
-            stats,
-            **kwargs):
-        Worker.__init__(self, **kwargs)
+            posterior_path = None,
+            stat_indices = None,
+            exe_path = None,
+            stderr_path = None):
+        Worker.__init__(self,
+                stdout_path = None,
+                stderr_path = stderr_path)
         self.__class__.count += 1
         self.name = 'MsRejectWorker-' + str(self.count)
-        self.exe_path = e
+        if not exe_path:
+            exe_path = os.path.join(BIN_DIR, 'msReject')
+        self.exe_path = expand_path(exe_path)
+        self.observed_path = observed_path
         self.prior_path = prior_path
-        self.out_path = out_path
-        self.tolerance = tolerance
-        self.stats = stats
-        self.kill_received = False
+        if not posterior_path:
+            posterior_path = observed_path + '.posterior'
+        self.posterior_path = posterior_path
+        self.header = header
+        potential_stat_indices = get_stat_indices(
+                self.header,
+                stat_patterns=ALL_STAT_PATTERNS)
+        if not stat_indices:
+            self.stat_indices = potential_stat_indices
+        else:
+            diff = set(stat_indices) - set(potential_stat_indices)
+            if len(diff) > 0:
+                raise ValueError('stat indices are not valid')
+            self.stat_indices = stat_indices
+        self.stdout_path = self.posterior_path
+        stdout = open(self.stdout_path, 'w')
+        stdout.write('{0}\n'.format('\t'.join(self.header)))
+        stdout.close()
+        self.tolerance = float(tolerance)
+        self._update_cmd()
 
-    def run(self):
-        time.sleep(120)
+    def _update_cmd(self):
+        cmd = [self.exe_path,
+               self.observed_path,
+               self.prior_path,
+               str(self.tolerance)]
+        cmd.extend([str(i+1) for i in self.stat_indices])
+        self.cmd = cmd
+
 
