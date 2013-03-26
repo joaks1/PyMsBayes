@@ -387,7 +387,7 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
             self.assertTrue(j.finished)
             self.assertTrue(j.regression_worker.finished)
             self.assertTrue(os.path.isfile(j.posterior_path))
-            self.assertEqual(
+            self.assertTrue(
                     abs(self.get_number_of_lines(j.posterior_path) - 101) < 6)
             self.assertTrue(os.path.isfile(j.regression_worker.summary_path))
             self.assertTrue(os.path.isfile(j.regression_worker.adjusted_path))
