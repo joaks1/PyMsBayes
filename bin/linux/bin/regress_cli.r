@@ -3,15 +3,18 @@
 ##############################################################################
 ## Functions
 
-stdAnalysis <- function(obs.infile,
-                        sim.infile,
-                        out.file="results.txt",
-                        tol=1,
-                        used.stats=c("pi","wattTheta","pi.net","tajD.denom"),
-                        rejmethod=F,
-                        continuous_prefixes=c("PRI.E.t", "PRI.omega"),
-                        discrete_prefixes=c("PRI.Psi", "PRI.model")
-                        ) {
+stdAnalysis = function(obs.infile,
+        sim.infile,
+        out.file="posterior-summary.txt",
+        adjusted_path="adjusted-posterior-samples.txt",
+        tol=1,
+        rejmethod=F,
+        stat_prefixes=c("pi","wattTheta","pi.net","tajD.denom"),
+        continuous_prefixes=c("PRI.E.t", "PRI.omega"),
+        discrete_prefixes=c("PRI.Psi", "PRI.model"),
+        stat_indices = NULL,
+        discrete_indices = NULL,
+        continuous_indices = NULL) {
     header = parse_header(sim.infile)
     simDat <- getData(sim.infile)
 
@@ -31,6 +34,7 @@ stdAnalysis <- function(obs.infile,
                 discrete_prefixes,
                 invert=T,
                 ignore.case=T)]
+        discrete_indices = discrete_indices[discrete_indices != model_idx]
     }
 
     # if tol is NA, set default tol to get 1000 best matches.
@@ -39,8 +43,13 @@ stdAnalysis <- function(obs.infile,
     }
 
     # construct the column names
-    usedColNames <- as.vector(sapply(used.stats, paste,
+    usedColNames = NULL
+    if (is.null(stat_indices)) {
+        usedColNames <- as.vector(sapply(stat_prefixes, paste,
                                      1:nPairs, sep="."))
+    } else {
+        usedColNames = names(simDat)[stat_indices]
+    }
 
     #load OBSERVED summary stat vector
     obsDat <-getData(obs.infile, header=header)
@@ -54,26 +63,43 @@ stdAnalysis <- function(obs.infile,
 
     # acceptance/regression, .... ie  the meat
     # The 1st column is PRI.numTauClass, which should be removed from analysis
-    result <- list(prior.names=
-                   params.from.priorDistn[params.from.priorDistn != "PRI.numTauClass"])
+    result = list(prior.names=params.from.priorDistn)
+    dummy_idx = grep('PRI.numTauClass', params.from.priorDistn, ignore.case=TRUE)
+    if (length(dummy_idx) > 0) {
+        stopifnot(dummy_idx == c(1))
+        result <- list(prior.names=params.from.priorDistn[-dummy_idx])
+        if (!is.null(continuous_indices)) {
+            continuous_indices = continuous_indices[continuous_indices != 1]
+            continuous_indices = continuous_indices - 1
+        }
+        if (!is.null(discrete_indices)) {
+            discrete_indices = discrete_indices[discrete_indices != 1]
+            discrete_indices = discrete_indices - 1
+        }
+    }
 
     noPsiAnalysis <- F
     constrained = F
     prior.names = result$prior.names
-    continuous_patterns = gsub('[.]', '[.]', continuous_prefixes)
-    discrete_patterns = gsub('[.]', '[.]', discrete_prefixes)
-    continuous_indices = get_indices_of_patterns(
-            target_vector = prior.names,
-            patterns = continuous_patterns,
-            ignore_case = TRUE,
-            sort_indices = TRUE)
-    discrete_indices = get_indices_of_patterns(
-            target_vector = prior.names,
-            patterns = discrete_patterns,
-            ignore_case = TRUE,
-            sort_indices = TRUE)
+    if (is.null(continuous_indices)) {
+        continuous_patterns = gsub('[.]', '[.]', continuous_prefixes)
+        continuous_indices = get_indices_of_patterns(
+                target_vector = prior.names,
+                patterns = continuous_patterns,
+                ignore_case = TRUE,
+                sort_indices = TRUE)
+    }
+    if (is.null(discrete_indices)) {
+        discrete_patterns = gsub('[.]', '[.]', discrete_prefixes)
+        discrete_indices = get_indices_of_patterns(
+                target_vector = prior.names,
+                patterns = discrete_patterns,
+                ignore_case = TRUE,
+                sort_indices = TRUE)
+    }
     prior.names.cont = prior.names[continuous_indices]
     prior.names.discrete = prior.names[discrete_indices]
+
     # prior.names.pretty = list(PRI.Psi="psi",
     #   		    PRI.omega="omega",
     #   		    PRI.E.t="tau_mean",
@@ -148,11 +174,11 @@ stdAnalysis <- function(obs.infile,
         temp <- list(calmod.res)
         names(temp) <- thisPriorName
         
-        # if (rejmethod || this.failed) {
+        if (rejmethod || this.failed) {
           # with simple rejection, $x contains the accepted values
           # Need to copy to $vals to make the later handling easier.
           temp[[thisPriorName]]$vals <- temp[[thisPriorName]]$x
-        # }
+        }
         result <- c(result, temp)
       }
     }
@@ -166,6 +192,7 @@ stdAnalysis <- function(obs.infile,
             post.modes[p] = m[1]
         }
     }
+    adjusted_samples = list()
     sink(out.file)
     for (p in prior.names.discrete) {
         pname = sub("[.]", "_", sub("PRI[.]", "", p))
@@ -184,18 +211,20 @@ stdAnalysis <- function(obs.infile,
             post.prob.matrix = result[[p]]$x2
             post.prob.vector = as.vector(post.prob.matrix)
             names(post.prob.vector) = colnames(post.prob.matrix)
-            cat("[", pname, "_posterior_probabilities]\n", sep="")
             m = as.numeric(names(post.prob.vector)[which.max(post.prob.vector)])
-            cat("mode = ", m, "\n", sep="")
+            cat("\t[[adjusted_results]]\n")
+            cat("\tmode = ", m, "\n", sep="")
+            cat("\t\t[[[post_probs]]]\n")
             write_probabilites(post.prob.vector, values)
         }
         # m = as.numeric(colnames(post.probs)[which.max(post.probs)])
         # cat("mode = ", m, "\n", sep="")
         raw.post.counts = table(simDat[,p])
         raw.post.prob.table = raw.post.counts / sum(raw.post.counts)
-        cat("[", pname, "_unadjusted_posterior_probabilities]\n", sep="")
         m = as.numeric(names(raw.post.prob.table)[which.max(raw.post.prob.table)])
-        cat("mode = ", m, "\n", sep="")
+        cat("\t[[unadjusted_results]]\n")
+        cat("\tmode = ", m, "\n", sep="")
+        cat("\t\t[[[post_probs]]]\n")
         write_probabilites(raw.post.prob.table, values)
     }
     for (p in prior.names.cont) {
@@ -205,26 +234,42 @@ stdAnalysis <- function(obs.infile,
         cat("mean = ", mean(result[[p]]$x), "\n", sep="")
         cat("median = ", median(result[[p]]$x), "\n", sep="")
         quants = quantile(result[[p]]$x, prob=c(0.025,0.975))
-        cat("quantile_0.025 = ", quants[[1]], "\n", sep="")
-        cat("quantile_0.975 = ", quants[[2]], "\n", sep="")
+        cat("\t[[quantiles]]\n")
+        cat("\t'0.025' = ", quants[[1]], "\n", sep="")
+        cat("\t'0.975' = ", quants[[2]], "\n", sep="")
         if (p == "PRI.omega") {
             omega.post = result[[p]]$x
             omega.prob = length(omega.post[omega.post<0.01]) / length(omega.post)
-            cat("posterior_probability_simultaneous = ", omega.prob, "\n", sep="")
+            cat("post_prob_zero = ", omega.prob, "\n", sep="")
         }
-        cat("posterior = ")
-        cat(result[[p]]$x, sep=",")
-        cat("\n")
+        adjusted_samples[[p]] = result[[p]]$x
     }
+    cat("[settings]\n")
+    cat("stats_used = ")
+    cat(usedColNames, sep=', ')
+    cat("\n")
+    cat("continuous_parameters = ")
+    cat(prior.names.cont, sep=', ')
+    cat("\n")
+    cat("discrete_parameters = ")
+    cat(prior.names.discrete, sep=', ')
+    cat("\n")
     sink()
-
+    adj_samples = data.frame(adjusted_samples)
+    write.table(adj_samples,
+            adjusted_path,
+            sep='\t',
+            row.names=F,
+            col.names=T,
+            quote=F,
+            fileEncoding='UTF-8')
 }
 
 write_probabilites = function(probs, n) {
     for (i in n) {
         val.str = as.character(i)
         if (val.str %in% names(probs)) {
-            cat(i, " = ", probs[val.str], "\n", sep="")
+            cat("\t\t", i, " = ", probs[val.str], "\n", sep="")
         } else {
         cat(i, " = 0.0\n", sep="")
         }
@@ -779,35 +824,84 @@ option_list = list(
     make_option("--observed-path", type="character", dest="observed_path",
             help="Path to file with observed summary statistics."),
     make_option("--posterior-path", type="character", dest="posterior_path",
-            help="Path to file with uncorrected posterior samples."),
-    make_option(c("-o", "--output-path"), type="character",
-            dest="output_path", default="results.txt",
-            help="Path to desired output file (default: './results.txt')."),
-    make_option(c("-c", "--continuous-prefixes"), type="character",
+            help="Path to file with unadjusted posterior samples."),
+    make_option("--summary-path", type="character",
+            dest="summary_path", default="posterior-summary.txt",
+            help=paste(
+                "Path to posterior summary output file. This file will",
+                "contain summary statistics (i.e., mean, median, mode,",
+                "CIs) for the regression-adjusted posterior samples of",
+                "each continuous parameter specified by",
+                "`--continuous-prefixes'. It will also contain the posterior",
+                "probabilities for discrete parameters specified by the",
+                "'--discrete-prefixes' option. It will also indicate whether",
+                "the multinomial logistic regression of each discrete",
+                "parameter failed. The unadjusted probabilities are always",
+                "reported, and the adjusted values are reported if the",
+                "regression worked. This file is formatted as a Python",
+                "config file for easy parsing.",
+                sep = '\n\t\t')),
+    make_option(c("--adjusted-path"), type="character",
+            dest="adjusted_path", default="adjusted-posterior-samples.txt",
+            help=paste(
+                "Path to output file for the regression-adjusted",
+                "posterior samples. This will contain the adjusted values",
+                "for continuous parameters specified with the",
+                "'--continuous-prefixes' option. The default is",
+                "'./adjusted-posterior-samples.txt'.",
+                sep = '\n\t\t')),
+    make_option("--continuous-prefixes", type="character",
             default="PRI.omega,PRI.E.t",
             dest="continuous_prefixes",
             help=paste(
                 "The comma-separated prefixes of continuous parameters",
                 "to analyze. The default is 'PRI.omega,PRI.E.t'. If you",
-                "specify an empty string or 'none', no continuous",
-                "parameters will be analyzed.",
+                "specify an empty string, no continuous parameters will",
+                "will be analyzed.",
                 sep = '\n\t\t')),
-    make_option(c("-d", "--discrete-prefixes"), type="character",
+    make_option("--discrete-prefixes", type="character",
             default="PRI.Psi,PRI.model",
             dest="discrete_prefixes",
             help=paste(
                 "The comma-separated prefixes of discrete parameters",
                 "to analyze. The default is 'PRI.Psi,PRI.model'. If you",
-                "specify an empty string or 'none', no discrete",
-                "parameters will be analyzed.",
+                "specify an empty string, no discrete parameters will be",
+                "analyzed.",
                 sep = '\n\t\t')),
-    make_option(c("-s", "--stat-prefixes"), type="character",
+    make_option("--stat-prefixes", type="character",
             default="pi,wattTheta,pi.net,tajD.denom",
             dest="stat_prefixes",
             help=paste(
-                "The comma-separated prefixes of summary statistcs",
+                "The comma-separated prefixes of summary statistics",
                 "to use in the analysis. The default is",
                 "'pi,wattTheta,pi.net,tajD.denom'.",
+                sep = '\n\t\t')),
+    make_option(c("-c", "--continuous-indices"), type="character",
+            default=NULL,
+            dest="continuous_indices",
+            help=paste(
+                "The comma-separated column indices of continuous parameters",
+                "to analyze. The default is 'NULL' (i.e.",
+                "'--continuous-prefixes' is used). If you specify this",
+                "option, it will override the prefix option",
+                sep = '\n\t\t')),
+    make_option(c("-d", "--discrete-indices"), type="character",
+            default=NULL,
+            dest="discrete_indices",
+            help=paste(
+                "The comma-separated column indices of discrete parameters",
+                "to analyze. The default is 'NULL' (i.e.",
+                "'--discrete-prefixes' is used). If you specify this",
+                "option, it will override the prefix option",
+                sep = '\n\t\t')),
+    make_option(c("-s", "--stat-indices"), type="character",
+            default=NULL,
+            dest="stat_indices",
+            help=paste(
+                "The comma-separated indices of summary statistics",
+                "to use in the analysis. The default is 'NULL' (i.e.",
+                "'--stat-prefixes' is used). If you specify this",
+                "option, it will override the prefix option",
                 sep = '\n\t\t')))
 
 options = parse_args(OptionParser(option_list=option_list))
@@ -816,21 +910,38 @@ library(VGAM, warn.conflicts=F)
 library(KernSmooth)
 library(locfit) 
 
-stats = strsplit(options$stat_prefixes, ",")[[1]]
+stat_prefixes = strsplit(options$stat_prefixes, ",")[[1]]
 continuous_prefixes = strsplit(options$continuous_prefixes, ",")[[1]]
 discrete_prefixes = strsplit(options$discrete_prefixes, ",")[[1]]
+
+stat_indices = NULL
+discrete_indices = NULL
+continuous_indices = NULL
+if (!is.null(options$stat_indices)){
+    stat_indices = as.numeric(strsplit(options$stat_indices, ",")[[1]])
+}
+if (!is.null(options$continuous_indices)){
+    continuous_indices = as.numeric(strsplit(options$continuous_indices, ",")[[1]])
+}
+if (!is.null(options$discrete_indices)){
+    discrete_indices = as.numeric(strsplit(options$discrete_indices, ",")[[1]])
+}
 
 rejmethod = FALSE
 if (options$tolerance < 1.0) {
     rejmethod = TRUE
 }
 
-res = stdAnalysis(obs.infile=options$observed_path,
-		  sim.infile=options$posterior_path,
-		  out.file=options$output_path,
-          tol=options$tolerance,
-          used.stats=stats,
-          rejmethod=rejmethod,
-          continuous_prefixes=continuous_prefixes,
-          discrete_prefixes=discrete_prefixes)
+res = stdAnalysis(obs.infile = options$observed_path,
+		sim.infile = options$posterior_path,
+		out.file = options$summary_path,
+        adjusted_path = options$adjusted_path,
+        tol = options$tolerance,
+        rejmethod = rejmethod,
+        stat_prefixes = stat_prefixes,
+        continuous_prefixes = continuous_prefixes,
+        discrete_prefixes = discrete_prefixes,
+        stat_indices = stat_indices,
+        discrete_indices = discrete_indices,
+        continuous_indices = continuous_indices)
 
