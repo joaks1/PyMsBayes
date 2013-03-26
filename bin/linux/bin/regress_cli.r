@@ -25,16 +25,17 @@ stdAnalysis = function(obs.infile,
 
     models = NULL
     model_idx = grep('PRI.model', names(simDat), ignore.case=TRUE)
+    stopifnot(length(model_idx) < 2)
     if (length(model_idx) == 1) {
         models = unique(simDat[,model_idx])
-    }
-    if (length(models) < 2) {
-        discrete_prefixes = discrete_prefixes[grep(
-                'model',
-                discrete_prefixes,
-                invert=T,
-                ignore.case=T)]
-        discrete_indices = discrete_indices[discrete_indices != model_idx]
+        if (length(models) < 2) {
+            discrete_prefixes = discrete_prefixes[grep(
+                    'model',
+                    discrete_prefixes,
+                    invert=T,
+                    ignore.case=T)]
+            discrete_indices = discrete_indices[discrete_indices != model_idx]
+        }
     }
 
     # if tol is NA, set default tol to get 1000 best matches.
@@ -61,30 +62,10 @@ stdAnalysis = function(obs.infile,
     }
     obsDat <- obsDat[["dat"]]
 
-    # acceptance/regression, .... ie  the meat
-    # The 1st column is PRI.numTauClass, which should be removed from analysis
-    result = list(prior.names=params.from.priorDistn)
-    dummy_idx = grep('PRI.numTauClass', params.from.priorDistn, ignore.case=TRUE)
-    if (length(dummy_idx) > 0) {
-        stopifnot(dummy_idx == c(1))
-        result <- list(prior.names=params.from.priorDistn[-dummy_idx])
-        if (!is.null(continuous_indices)) {
-            continuous_indices = continuous_indices[continuous_indices != 1]
-            continuous_indices = continuous_indices - 1
-        }
-        if (!is.null(discrete_indices)) {
-            discrete_indices = discrete_indices[discrete_indices != 1]
-            discrete_indices = discrete_indices - 1
-        }
-    }
-
-    noPsiAnalysis <- F
-    constrained = F
-    prior.names = result$prior.names
     if (is.null(continuous_indices)) {
         continuous_patterns = gsub('[.]', '[.]', continuous_prefixes)
         continuous_indices = get_indices_of_patterns(
-                target_vector = prior.names,
+                target_vector = params.from.priorDistn,
                 patterns = continuous_patterns,
                 ignore_case = TRUE,
                 sort_indices = TRUE)
@@ -92,13 +73,21 @@ stdAnalysis = function(obs.infile,
     if (is.null(discrete_indices)) {
         discrete_patterns = gsub('[.]', '[.]', discrete_prefixes)
         discrete_indices = get_indices_of_patterns(
-                target_vector = prior.names,
+                target_vector = params.from.priorDistn,
                 patterns = discrete_patterns,
                 ignore_case = TRUE,
                 sort_indices = TRUE)
     }
-    prior.names.cont = prior.names[continuous_indices]
-    prior.names.discrete = prior.names[discrete_indices]
+    prior.names.cont = params.from.priorDistn[continuous_indices]
+    prior.names.discrete = params.from.priorDistn[discrete_indices]
+
+    # acceptance/regression, .... ie  the meat
+    # The 1st column is PRI.numTauClass, which should be removed from analysis
+    dummy_idx = grep('PRI.numTauClass', params.from.priorDistn, ignore.case=TRUE)
+    result <- list(prior.names=params.from.priorDistn[-dummy_idx])
+
+    noPsiAnalysis <- F
+    constrained = F
 
     # prior.names.pretty = list(PRI.Psi="psi",
     #   		    PRI.omega="omega",
@@ -271,7 +260,7 @@ write_probabilites = function(probs, n) {
         if (val.str %in% names(probs)) {
             cat("\t\t", i, " = ", probs[val.str], "\n", sep="")
         } else {
-        cat(i, " = 0.0\n", sep="")
+            cat("\t\t", i, " = 0.0\n", sep="")
         }
     }
 }
