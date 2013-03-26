@@ -370,9 +370,13 @@ def assemble_msreject_workers(temp_fs,
         prior_path,
         tolerance,
         results_dir,
-        posterior_prefix='uncorrected-posterior',
+        posterior_prefix='unadjusted-posterior',
         stat_indices = None,
-        exe_path = None):
+        continuous_parameter_indices = None,
+        discrete_parameter_indices = None,
+        msreject_path = None,
+        regress_path = None,
+        regress = True):
     obs_file, close = process_file_arg(observed_sims_file)
     header = parse_header(obs_file)
     obs_temp_dir = temp_fs.create_subdir(prefix = 'observed-files-')
@@ -387,6 +391,16 @@ def assemble_msreject_workers(temp_fs,
         out.close()
         posterior_file_name = '{0}.{1}.txt'.format(posterior_prefix, i+1)
         posterior_path = os.path.join(results_dir, posterior_file_name)
+        regress_worker = None
+        if regress:
+            regress_worker = RegressionWorker(
+                    observed_path = obs_path,
+                    posterior_path = posterior_path,
+                    tolerance = 1.0,
+                    stat_indices = stat_indices,
+                    continuous_parameter_indices = continuous_parameter_indices,
+                    discrete_parameter_indices = discrete_parameter_indices,
+                    exe_path = regress_path)
         workers.append(MsRejectWorker(
                 header = header,
                 observed_path = obs_path,
@@ -394,7 +408,8 @@ def assemble_msreject_workers(temp_fs,
                 tolerance = tolerance,
                 posterior_path = posterior_path,
                 stat_indices = stat_indices,
-                exe_path = exe_path))
+                regression_worker = regress_worker,
+                exe_path = msreject_path))
     if close:
         obs_file.close()
     return workers
@@ -412,6 +427,7 @@ class MsRejectWorker(Worker):
             tolerance,
             posterior_path = None,
             stat_indices = None,
+            regression_worker = None,
             exe_path = None,
             stderr_path = None):
         Worker.__init__(self,
@@ -422,11 +438,11 @@ class MsRejectWorker(Worker):
         if not exe_path:
             exe_path = os.path.join(BIN_DIR, 'msReject')
         self.exe_path = expand_path(exe_path)
-        self.observed_path = observed_path
-        self.prior_path = prior_path
+        self.observed_path = expand_path(observed_path)
+        self.prior_path = expand_path(prior_path)
         if not posterior_path:
             posterior_path = observed_path + '.posterior'
-        self.posterior_path = posterior_path
+        self.posterior_path = expand_path(posterior_path)
         self.header = header
         potential_stat_indices = get_stat_indices(
                 self.header,
@@ -453,4 +469,79 @@ class MsRejectWorker(Worker):
         cmd.extend([str(i+1) for i in self.stat_indices])
         self.cmd = cmd
 
+    def _post_process(self):
+        if self.regression_worker:
+            self.regression_worker.start()
+
+
+##############################################################################
+## worker class for regression via regress_cli.r
+
+class RegressionWorker(Worker):
+    count = 0
+    def __init__(self,
+            observed_path,
+            posterior_path,
+            summary_path = None,
+            adjusted_path = None,
+            tolerance = 1.0,
+            stat_indices = None,
+            continuous_parameter_indices = None,
+            discrete_parameter_indices = None,
+            exe_path = None,
+            stdout_path = None,
+            stderr_path = None):
+        Worker.__init__(self,
+                stdout_path = stdout_path,
+                stderr_path = stderr_path)
+        self.__class__.count += 1
+        self.name = 'RegressionWorker-' + str(self.count)
+        if not exe_path:
+            exe_path = os.path.join(BIN_DIR, 'regress_cli.r')
+        self.exe_path = expand_path(exe_path)
+        self.observed_path = expand_path(observed_path)
+        self.posterior_path = expand_path(posterior_path)
+        self.header = parse_header(self.posterior_path)
+        self.tolerance = float(tolerance)
+        potential_stat_indices = get_stat_indices(
+                self.header,
+                stat_patterns=ALL_STAT_PATTERNS)
+        if not stat_indices:
+            self.stat_indices = potential_stat_indices
+        else:
+            diff = set(stat_indices) - set(potential_stat_indices)
+            if len(diff) > 0:
+                raise ValueError('stat indices are not valid')
+            self.stat_indices = stat_indices
+        if not continuous_parameter_indices:
+            continuous_parameter_indices = get_parameter_indices(
+                    self.header,
+                    parameter_patterns=(MEAN_TAU_PATTERNS+OMEGA_PATTERNS))
+        self.continuous_parameter_indices = continuous_parameter_indices
+        if not discrete_parameter_indices:
+            discrete_parameter_indices = get_parameter_indices(
+                    self.header,
+                    parameter_patterns=(MODEL_PATTERNS+PSI_PATTERNS))
+        self.discrete_parameter_indices = discrete_parameter_indices
+        if not summary_path:
+            summary_path = self.posterior_path + '.regression-summary.txt'
+        self.summary_path = summary_path
+        if not adjusted_path:
+            adjusted_path = self.posterior_path + '.regression-adjusted.txt'
+        self.adjusted_path = adjusted_path
+
+    def _update_cmd(self):
+        cmd = [self.exe_path,
+               '-t', str(self.tolerance),
+               '--observed-path={0}'.format(self.observed_path),
+               '--posterior-path={0}'.format(self.posterior_path),
+               '--summary-path={0}'.format(self.summary_path),
+               '--adjusted-path={0}'.format(self.adjusted_path),
+               '-c', ','.join(
+                    [str(i+1) for i in self.continuous_parameter_indices]),
+               '-d', ','.join(
+                    [str(i+1) for i in self.discrete_parameter_indices]),
+               '-s', ','.join(
+                    [str(i+1) for i in self.stat_indices]),]
+        self.cmd = cmd
 
