@@ -365,7 +365,8 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
         for j in jobs:
             self.assertTrue(j.finished)
             self.assertTrue(os.path.isfile(j.posterior_path))
-            self.assertEqual(self.get_number_of_lines(j.posterior_path), 6)
+            self.assertTrue(
+                    abs(self.get_number_of_lines(j.posterior_path) - 6) < 2)
 
     def test_with_regression(self):
         prior_worker = self._get_prior(n=200)
@@ -386,11 +387,12 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
             self.assertTrue(j.finished)
             self.assertTrue(j.regression_worker.finished)
             self.assertTrue(os.path.isfile(j.posterior_path))
-            self.assertEqual(self.get_number_of_lines(j.posterior_path), 101)
+            self.assertEqual(
+                    abs(self.get_number_of_lines(j.posterior_path) - 101) < 6)
             self.assertTrue(os.path.isfile(j.regression_worker.summary_path))
             self.assertTrue(os.path.isfile(j.regression_worker.adjusted_path))
-            self.assertEqual(self.get_number_of_lines(
-                    j.regression_worker.adjusted_path), 101)
+            self.assertTrue(abs(self.get_number_of_lines(
+                    j.regression_worker.adjusted_path) - 101) < 6)
 
 class RegressionWorkerTestCase(PyMsBayesTestCase):
     def setUp(self):
