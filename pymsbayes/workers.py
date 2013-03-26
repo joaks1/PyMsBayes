@@ -169,12 +169,12 @@ class Worker(object):
         self.process = None
         self.finished = False
         self.exit_code = None
-        self.std_out = None
-        self.std_err = None
+        self.stdout = None
+        self.stderr = None
 
     def get_stderr(self):
         if not self.stderr_path:
-            return self.std_err
+            return self.stderr
         try:
             return open(self.stderr_path, 'rU').read()
         except IOError, e:
@@ -182,6 +182,14 @@ class Worker(object):
             raise e
 
     def start(self):
+        try:
+            self._pre_process()
+        except:
+            e = StringIO()
+            traceback.print_exc(file=e)
+            _LOG.error('Error during pre-processing:\n{0}'.format(
+                    e.getvalue()))
+            raise
         _LOG.info('Starting process with following command:\n\t'
                 '{0}'.format(' '.join(self.cmd)))
         if self.stdout_path:
@@ -196,7 +204,7 @@ class Worker(object):
                 stdout = sout,
                 stderr = serr,
                 shell = False)
-        self.std_out, self.std_err = self.process.communicate()
+        self.stdout, self.stderr = self.process.communicate()
         self.exit_code = self.process.wait()
         if self.stdout_path:
             sout.close()
@@ -204,10 +212,10 @@ class Worker(object):
             serr.close()
         if self.exit_code != 0:
             if self.stderr_path:
-                stderr = open(self.stderr_path, 'rU').read()
+                self.stderr = open(self.stderr_path, 'rU').read()
             _LOG.error('execution failed')
-            raise WorkerExecutionError('{0} ({1}) failed. stderr:\n{2}'.format(
-                self.name, self.pid, stderr))
+            raise WorkerExecutionError('{0} failed. stderr:\n{1}'.format(
+                self.name, self.stderr))
         try:
             self._post_process()
         except:
@@ -219,6 +227,9 @@ class Worker(object):
         self.finished = True
 
     def _post_process(self):
+        pass
+
+    def _pre_process(self):
         pass
 
 
@@ -381,7 +392,7 @@ def assemble_msreject_workers(temp_fs,
     header = parse_header(obs_file)
     obs_temp_dir = temp_fs.create_subdir(prefix = 'observed-files-')
     obs_file.next() # header
-    workers = []
+    msreject_workers = []
     for i, line in enumerate(obs_file):
         obs_path = temp_fs.get_file_path(parent = obs_temp_dir,
                 prefix = 'observed-{0}-'.format(i+1),
@@ -391,9 +402,9 @@ def assemble_msreject_workers(temp_fs,
         out.close()
         posterior_file_name = '{0}.{1}.txt'.format(posterior_prefix, i+1)
         posterior_path = os.path.join(results_dir, posterior_file_name)
-        regress_worker = None
+        regression_worker = None
         if regress:
-            regress_worker = RegressionWorker(
+            regression_worker = RegressionWorker(
                     observed_path = obs_path,
                     posterior_path = posterior_path,
                     tolerance = 1.0,
@@ -401,18 +412,18 @@ def assemble_msreject_workers(temp_fs,
                     continuous_parameter_indices = continuous_parameter_indices,
                     discrete_parameter_indices = discrete_parameter_indices,
                     exe_path = regress_path)
-        workers.append(MsRejectWorker(
+        msreject_workers.append(MsRejectWorker(
                 header = header,
                 observed_path = obs_path,
                 prior_path = prior_path,
                 tolerance = tolerance,
                 posterior_path = posterior_path,
                 stat_indices = stat_indices,
-                regression_worker = regress_worker,
+                regression_worker = regression_worker,
                 exe_path = msreject_path))
     if close:
         obs_file.close()
-    return workers
+    return msreject_workers
 
 
 ##############################################################################
@@ -459,6 +470,7 @@ class MsRejectWorker(Worker):
         stdout.write('{0}\n'.format('\t'.join(self.header)))
         stdout.close()
         self.tolerance = float(tolerance)
+        self.regression_worker = regression_worker
         self._update_cmd()
 
     def _update_cmd(self):
@@ -468,11 +480,10 @@ class MsRejectWorker(Worker):
                str(self.tolerance)]
         cmd.extend([str(i+1) for i in self.stat_indices])
         self.cmd = cmd
-
+    
     def _post_process(self):
         if self.regression_worker:
             self.regression_worker.start()
-
 
 ##############################################################################
 ## worker class for regression via regress_cli.r
@@ -501,27 +512,10 @@ class RegressionWorker(Worker):
         self.exe_path = expand_path(exe_path)
         self.observed_path = expand_path(observed_path)
         self.posterior_path = expand_path(posterior_path)
-        self.header = parse_header(self.posterior_path)
         self.tolerance = float(tolerance)
-        potential_stat_indices = get_stat_indices(
-                self.header,
-                stat_patterns=ALL_STAT_PATTERNS)
-        if not stat_indices:
-            self.stat_indices = potential_stat_indices
-        else:
-            diff = set(stat_indices) - set(potential_stat_indices)
-            if len(diff) > 0:
-                raise ValueError('stat indices are not valid')
-            self.stat_indices = stat_indices
-        if not continuous_parameter_indices:
-            continuous_parameter_indices = get_parameter_indices(
-                    self.header,
-                    parameter_patterns=(MEAN_TAU_PATTERNS+OMEGA_PATTERNS))
+        self.header = None
+        self.stat_indices = stat_indices
         self.continuous_parameter_indices = continuous_parameter_indices
-        if not discrete_parameter_indices:
-            discrete_parameter_indices = get_parameter_indices(
-                    self.header,
-                    parameter_patterns=(MODEL_PATTERNS+PSI_PATTERNS))
         self.discrete_parameter_indices = discrete_parameter_indices
         if not summary_path:
             summary_path = self.posterior_path + '.regression-summary.txt'
@@ -529,6 +523,27 @@ class RegressionWorker(Worker):
         if not adjusted_path:
             adjusted_path = self.posterior_path + '.regression-adjusted.txt'
         self.adjusted_path = adjusted_path
+
+    def _pre_process(self):
+        self.header = parse_header(self.posterior_path)
+        potential_stat_indices = get_stat_indices(
+                self.header,
+                stat_patterns=ALL_STAT_PATTERNS)
+        if not self.stat_indices:
+            self.stat_indices = potential_stat_indices
+        else:
+            diff = set(self.stat_indices) - set(potential_stat_indices)
+            if len(diff) > 0:
+                raise ValueError('stat indices are not valid')
+        if not self.continuous_parameter_indices:
+            self.continuous_parameter_indices = get_parameter_indices(
+                    self.header,
+                    parameter_patterns=(MEAN_TAU_PATTERNS+OMEGA_PATTERNS))
+        if not self.discrete_parameter_indices:
+            self.discrete_parameter_indices = get_parameter_indices(
+                    self.header,
+                    parameter_patterns=(MODEL_PATTERNS+PSI_PATTERNS))
+        self._update_cmd()
 
     def _update_cmd(self):
         cmd = [self.exe_path,
