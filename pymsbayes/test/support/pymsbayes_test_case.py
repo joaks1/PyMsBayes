@@ -5,6 +5,7 @@ import unittest
 from cStringIO import StringIO
 import re
 import random
+from configobj import ConfigObj
 
 from pymsbayes.workers import (TAU_PATTERNS,
         MODEL_PATTERNS,
@@ -107,6 +108,9 @@ class PyMsBayesTestCase(unittest.TestCase):
         if close:
             f.close()
         return count
+
+    def parse_python_config(self, path):
+        return ConfigObj(path)
 
     def get_config_from_msbayes_workers(self, msbayes_workers):
         cfgs = [MsBayesConfig(w.config_path) for w in msbayes_workers]

@@ -348,7 +348,7 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
         w.start()
         return w
     
-    def test_simple(self):
+    def test_no_regression(self):
         prior_worker = self._get_prior()
         obs_worker = self._get_prior(n=10, observed=True)
         jobs = workers.assemble_msreject_workers(
@@ -357,7 +357,8 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
                 prior_path = prior_worker.prior_path,
                 tolerance = 0.05,
                 results_dir = self.results_dir,
-                posterior_prefix = self.posterior_prefix)
+                posterior_prefix = self.posterior_prefix,
+                regress = False)
         for j in jobs:
             self.assertFalse(j.finished)
             j.start()
@@ -366,6 +367,96 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
             self.assertTrue(os.path.isfile(j.posterior_path))
             self.assertEqual(self.get_number_of_lines(j.posterior_path), 6)
 
+    def test_with_regression(self):
+        prior_worker = self._get_prior(n=200)
+        obs_worker = self._get_prior(n=2, observed=True)
+        msreject_workers = workers.assemble_msreject_workers(
+                temp_fs = self.temp_fs,
+                observed_sims_file = obs_worker.prior_path,
+                prior_path = prior_worker.prior_path,
+                tolerance = 0.5,
+                results_dir = self.results_dir,
+                posterior_prefix = self.posterior_prefix,
+                regress = True)
+        for j in msreject_workers:
+            self.assertFalse(j.finished)
+            self.assertFalse(j.regression_worker.finished)
+            j.start()
+        for j in msreject_workers:
+            self.assertTrue(j.finished)
+            self.assertTrue(j.regression_worker.finished)
+            self.assertTrue(os.path.isfile(j.posterior_path))
+            self.assertEqual(self.get_number_of_lines(j.posterior_path), 101)
+            self.assertTrue(os.path.isfile(j.regression_worker.summary_path))
+            self.assertTrue(os.path.isfile(j.regression_worker.adjusted_path))
+            self.assertEqual(self.get_number_of_lines(
+                    j.regression_worker.adjusted_path), 101)
+
+class RegressionWorkerTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.cfg_path = package_paths.data_path('4pairs_1locus.cfg')
+        self.summary_path = self.get_test_path(prefix='post_summary')
+        self.adjusted_path = self.get_test_path(prefix='adjusted_samples')
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_simple(self):
+        posterior_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 100,
+                config_path = self.cfg_path,
+                schema = 'msreject',
+                report_parameters = True,
+                observed = True)
+        posterior_worker.start()
+        obs_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'msreject',
+                report_parameters = True,
+                observed = False)
+        obs_worker.start()
+
+        regress_worker = workers.RegressionWorker(
+                observed_path = obs_worker.prior_path,
+                posterior_path = posterior_worker.prior_path,
+                summary_path = self.summary_path,
+                adjusted_path = self.adjusted_path,
+                tolerance = 1.0)
+        self.assertFalse(regress_worker.finished)
+        regress_worker.start()
+        self.assertTrue(regress_worker.finished)
+        self.assertEqual(
+                self.get_number_of_lines(regress_worker.adjusted_path),
+                101)
+        result_header = open(regress_worker.adjusted_path, 
+                'rU').next().strip().split()
+        cont_params = [regress_worker.header[
+                i] for i in regress_worker.continuous_parameter_indices]
+        self.assertEqual(sorted(result_header), sorted(cont_params))
+        disc_params = [regress_worker.header[
+                i] for i in regress_worker.discrete_parameter_indices]
+        stats = [regress_worker.header[
+                i] for i in regress_worker.stat_indices]
+        results = self.parse_python_config(regress_worker.summary_path)
+        expected_keys = [x.replace('PRI.', '').replace('.',
+                '_') for x in cont_params + disc_params] + ['settings']
+        self.assertEqual(sorted(results.keys()),
+                sorted(expected_keys))
+        self.assertEqual(sorted(results['settings']['stats_used']),
+                sorted(stats))
+        self.assertEqual(sorted(results['settings']['continuous_parameters']),
+                sorted(cont_params))
+        if len(disc_params) > 1:
+            self.assertEqual(sorted(results['settings']['discrete_parameters']),
+                    sorted(disc_params))
+        else:
+            self.assertEqual(results['settings']['discrete_parameters'],
+                    disc_params[0])
+        
 if __name__ == '__main__':
     unittest.main()
 
