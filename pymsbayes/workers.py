@@ -251,7 +251,8 @@ def merge_priors(workers, prior_path, header_path=None, include_header=False):
                     'headers. Cannot merge!'.format(std.name, w.name))
         prior_file = open(w.prior_path, 'rU')
         for line in prior_file:
-            out.write(line)
+            if not HEADER_PATTERN.match(line.strip()):
+                out.write(line)
         prior_file.close()
     out.close()
     if not header_path:
@@ -277,7 +278,7 @@ class MsBayesWorker(Worker):
             sort_index = None,
             report_parameters = True,
             seed = None,
-            observed = False,
+            include_header = False,
             schema = 'msreject',
             stat_patterns=DEFAULT_STAT_PATTERNS,
             parameter_patterns=PARAMETER_PATTERNS,
@@ -323,7 +324,7 @@ class MsBayesWorker(Worker):
                     'schema {0} is not valid. Options are: {1}'.format(
                         schema, ','.join(self.valid_schemas)))
         self.schema = schema.lower()
-        self.observed = observed
+        self.include_header = include_header
         self.stat_patterns = stat_patterns
         self.parameter_patterns = parameter_patterns
         self.header = None
@@ -355,7 +356,7 @@ class MsBayesWorker(Worker):
                     stat_patterns = self.stat_patterns,
                     parameter_patterns = self.parameter_patterns,
                     dummy_patterns = DUMMY_PATTERNS,
-                    include_header = self.observed)
+                    include_header = self.include_header)
         os.remove(raw_prior_path)
         if header:
             out = open(self.header_path, 'w')
