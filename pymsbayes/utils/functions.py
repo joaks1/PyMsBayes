@@ -104,6 +104,13 @@ def is_file(path):
         return False
     return True
 
+def is_dir(path):
+    if not path:
+        return False
+    if not os.path.isdir(path):
+        return False
+    return True
+
 def is_executable(path):
     is_f = is_file(path)
     if not is_f:
