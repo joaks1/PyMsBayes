@@ -109,6 +109,16 @@ class PyMsBayesTestCase(unittest.TestCase):
             f.close()
         return count
 
+    def get_number_of_header_lines(self, path):
+        f, close = process_file_arg(path)
+        count = 0
+        for l in f:
+            if HEADER_PATTERN.match(l.strip()):
+                count += 1
+        if close:
+            f.close()
+        return count
+
     def parse_python_config(self, path):
         return ConfigObj(path)
 
