@@ -79,8 +79,6 @@ def get_parameter_indices(header_list, parameter_patterns=PARAMETER_PATTERNS):
     return get_indices_of_patterns(header_list, parameter_patterns)
 
 def get_stat_indices(header_list, stat_patterns=DEFAULT_STAT_PATTERNS):
-    if not stat_patterns:
-        stat_patterns = ALL_STAT_PATTERNS
     return get_indices_of_patterns(header_list, stat_patterns)
 
 def get_dummy_indices(header_list, dummy_patterns=DUMMY_PATTERNS):
@@ -458,7 +456,7 @@ class MsRejectWorker(Worker):
         self.header = header
         potential_stat_indices = get_stat_indices(
                 self.header,
-                stat_patterns=ALL_STAT_PATTERNS)
+                stat_patterns = ALL_STAT_PATTERNS)
         if not stat_indices:
             self.stat_indices = potential_stat_indices
         else:
@@ -529,7 +527,7 @@ class RegressionWorker(Worker):
         self.header = parse_header(self.posterior_path)
         potential_stat_indices = get_stat_indices(
                 self.header,
-                stat_patterns=ALL_STAT_PATTERNS)
+                stat_patterns = ALL_STAT_PATTERNS)
         if not self.stat_indices:
             self.stat_indices = potential_stat_indices
         else:
