@@ -19,7 +19,25 @@ def mkdr(path):
         if e.errno == errno.EEXIST:
             pass
         else:
-            raise
+            raise e
+
+def mk_new_dir(path):
+    attempt = -1
+    while True:
+        try:
+            if attempt < 0:
+                os.makedirs(path)
+                return path
+            else:
+                p = path + '-' + str(attempt)
+                os.makedirs(p)
+                return p
+        except OSError, e:
+            if e.errno == errno.EEXIST:
+                attempt += 1
+                continue
+            else:
+                raise e
 
 def random_str(length=8,
         char_pool=string.ascii_letters + string.digits):
@@ -38,6 +56,13 @@ def process_file_arg(file_arg, mode='rU'):
         file_stream = open(file_arg, mode)
         close = True
     return file_stream, close
+
+def line_count(file_obj):
+    f, close = process_file_arg(file_obj)
+    count = 0
+    for line in f:
+        count += 1
+    return count
 
 def get_indices_of_patterns(target_list, regex_list, sort=True):
     indices = []
@@ -118,4 +143,10 @@ def is_executable(path):
     if (os.stat(path)[stat.ST_MODE] & (stat.S_IXUSR|stat.S_IXGRP|stat.S_IXOTH)) == 0:
         return False
     return True
+
+def long_division(dividend, diviser):
+    n, d = int(dividend), int(diviser)
+    quotient = n / d
+    remainder = n - (d * quotient)
+    return quotient, remainder
 
