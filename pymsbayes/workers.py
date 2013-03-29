@@ -63,6 +63,16 @@ HEADER_PATTERN = re.compile(r'^\s*\D.+')
 ##############################################################################
 ## functions for manipulating prior files
 
+def get_patterns_from_prefixes(prefixes, ignore_case=True):
+    patterns = []
+    for prefix in prefixes:
+        pattern_str = r'\s*{0}.*\s*'.format(prefix.replace('.', '\.'))
+        if ignore_case:
+            patterns.append(re.compile(pattern_str, re.IGNORECASE))
+        else:
+            patterns.append(re.compile(pattern_str))
+    return patterns
+
 def parse_header(file_obj, sep='\t'):
     file_stream, close = process_file_arg(file_obj, 'rU')
     header_line = file_stream.next()
