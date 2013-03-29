@@ -29,7 +29,7 @@ def mk_new_dir(path):
                 os.makedirs(path)
                 return path
             else:
-                p = path + '-' + str(attempt)
+                p = path.rstrip(os.path.sep) + '-' + str(attempt)
                 os.makedirs(p)
                 return p
         except OSError, e:
