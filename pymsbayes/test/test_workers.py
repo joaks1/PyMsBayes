@@ -73,7 +73,7 @@ class MsBayesWorkerTestCase(PyMsBayesTestCase):
         self.assertSameFiles([j.prior_path for j in jobs])
         self.assertSameFiles([j.header_path for j in jobs])
 
-class PriorMergeTestCase(PyMsBayesTestCase):
+class MergePriorTestCase(PyMsBayesTestCase):
     def setUp(self):
         self.set_up()
         self.cfg_path = package_paths.data_path('4pairs_1locus.cfg')
@@ -198,6 +198,60 @@ class PriorMergeTestCase(PyMsBayesTestCase):
         self.assertTrue(self._correct_n_lines(hpath, 1))
         self.assertEqual(self.get_number_of_header_lines(ppath), 1)
         self.assertEqual(self.get_number_of_header_lines(hpath), 1)
+
+class MergePriorFilesTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.cfg_path = package_paths.data_path('4pairs_1locus.cfg')
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_merge_prior_files_with_headers(self):
+        jobs = []
+        for i in range(4):
+            w = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'msreject',
+                include_header = True)
+            jobs.append(w)
+        for w in jobs:
+            w.start()
+        for w in jobs:
+            self.assertEqual(self.get_number_of_lines(w.prior_path), 11)
+            self.assertEqual(self.get_number_of_header_lines(w.prior_path), 1)
+        ppath = self.get_test_path(prefix='merged_prior', create=False)
+        workers.merge_prior_files(
+                paths = [w.prior_path for w in jobs],
+                dest_path = ppath)
+        self.assertTrue(os.path.exists(ppath))
+        self.assertEqual(self.get_number_of_header_lines(ppath), 1)
+        self.assertEqual(self.get_number_of_lines(ppath), 41)
+
+    def test_merge_prior_files_no_headers(self):
+        jobs = []
+        for i in range(4):
+            w = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'msreject',
+                include_header = False)
+            jobs.append(w)
+        for w in jobs:
+            w.start()
+        for w in jobs:
+            self.assertEqual(self.get_number_of_lines(w.prior_path), 10)
+            self.assertEqual(self.get_number_of_header_lines(w.prior_path), 0)
+        ppath = self.get_test_path(prefix='merged_prior', create=False)
+        workers.merge_prior_files(
+                paths = [w.prior_path for w in jobs],
+                dest_path = ppath)
+        self.assertTrue(os.path.exists(ppath))
+        self.assertEqual(self.get_number_of_header_lines(ppath), 0)
+        self.assertEqual(self.get_number_of_lines(ppath), 40)
 
 class MsRejectWorkerTestCase(PyMsBayesTestCase):
     def setUp(self):
