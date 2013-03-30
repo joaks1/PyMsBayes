@@ -151,6 +151,8 @@ def main_cli():
 
     args = parser.parse_args()
 
+    ##########################################################################
+    ## handle args
     if not args.output_dir:
         args.output_dir = os.path.dirname(args.observed_config)
     base_dir = mk_new_dir(os.path.join(args.output_dir, 'pymsbayes-output'))
@@ -178,6 +180,7 @@ def main_cli():
     if args.seed:
         GLOBAL_RNG.seed(args.seed)
 
+    # calculate decent prior chunk size from user settings
     prior_subsample_size = 100000
     total_nsamples = args.nsamples * len(args.prior_configs)
     if args.reps > 0:
@@ -190,6 +193,8 @@ def main_cli():
     num_observed_workers, remainder_observed_reps = long_division(args.reps,
             prior_subsample_size)
 
+    ##########################################################################
+    ## begin analysis
     working_prior_temp_fs = TempFileSystem(parent = base_temp_dir,
             prefix = 'pymsbayes-working-prior-files-')
     working_observed_temp_fs = TempFileSystem(parent = base_temp_dir,
@@ -250,7 +255,7 @@ def main_cli():
         WORK_FORCE.put(worker)
         msbayes_workers.append(worker)
 
-    # run parallel processes
+    # run parallel msbayes processes
     msbayes_result_queue = multiprocessing.Queue()
     msbayes_managers = []
     for i in range(args.np):
@@ -265,6 +270,7 @@ def main_cli():
     assert WORK_FORCE.empty()
     assert msbayes_result_queue.empty()
 
+    # sort out the finished workers
     msbayes_observed_workers = []
     msbayes_prior_workers = {}
     for w in msbayes_workers:
@@ -276,7 +282,8 @@ def main_cli():
             else:
                 msbayes_prior_workers[w.model_index] = [w]
     assert len(msbayes_prior_workers) == len(args.prior_configs)
-    
+
+    # merged simulated observed data into one file
     observed_path = os.path.join(base_dir, 'observed.txt')
     if args.reps > 0:
         obs_header_path = working_observed_temp_fs.get_file_path(
@@ -293,6 +300,8 @@ def main_cli():
     if not args.keep_temps:
         _LOG.debug('purging working observed...')
         working_observed_temp_fs.purge()
+
+    # merge model priors into one file per model
     prior_temp_fs = TempFileSystem(parent = base_temp_dir,
             prefix = 'pymsbayes-prior-files-')
     prior_paths = {}
@@ -316,6 +325,7 @@ def main_cli():
         _LOG.debug('purging working observed...')
         working_prior_temp_fs.purge()
 
+    # merge all model priors into one file if requested
     if args.merge_priors:
         ntotal = args.nsamples * len(args.prior_configs)
         merged_path = prior_temp_fs.get_file_path(
