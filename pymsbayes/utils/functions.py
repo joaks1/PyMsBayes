@@ -150,3 +150,6 @@ def long_division(dividend, diviser):
     remainder = n - (d * quotient)
     return quotient, remainder
 
+def get_tolerance(num_prior_samples, num_posterior_samples):
+    return num_posterior_samples / float(num_prior_samples)
+
