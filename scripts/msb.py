@@ -8,6 +8,7 @@ import os
 import sys
 import re
 import multiprocessing
+import random
 import argparse
 
 from pymsbayes.workers import (MsBayesWorker, MsRejectWorker, RegressionWorker,
@@ -152,7 +153,7 @@ def main_cli():
             action = 'version',
             version = '%(prog)s ' + _program_info['version'],
             help = 'Report version and exit.')
-    parser.add_argument('-v', '--verbose',
+    parser.add_argument('-q', '--quiet',
             action = 'store_true',
             help = 'Run with verbose messaging.')
     parser.add_argument('--debug',
@@ -163,13 +164,25 @@ def main_cli():
 
     ##########################################################################
     ## handle args
+
+    if args.quiet:
+        _LOG.setlevel(logging.WARNING)
+    if args.debug:
+        _LOG.setlevel(logging.DEBUG)
     if not args.output_dir:
         args.output_dir = os.path.dirname(args.observed_config)
     base_dir = mk_new_dir(os.path.join(args.output_dir, 'pymsbayes-output'))
+    info = open(os.path.join(base_dir, 'pymsbayes-info.txt'), 'w')
+    info.write('[pymsbayes]\n'.format(base_dir))
+    info.write('\toutput_directory = {0}\n'.format(base_dir))
     base_temp_dir = mk_new_dir(os.path.join(base_dir, 'temp-files'))
+    info.write('\ttemp_directory = {0}\n'.format(base_temp_dir))
     if args.reps < 1:
+        info.write('\tsimulate_data = False\n')
         raise NotImplementedError('Sorry, analyzing real data is not yet '
                 'implemented')
+    else:
+        info.write('\tsimulate_data = True\n')
     if len(args.prior_configs) != len(set(args.prior_configs)):
         raise ValueError('All paths to prior config files must be unique') 
     stat_patterns = DEFAULT_STAT_PATTERNS
@@ -187,8 +200,17 @@ def main_cli():
         discrete_patterns = get_patterns_from_prefixes(
                 args.discrete_prefixes,
                 ignore_case=True)
-    if args.seed:
-        GLOBAL_RNG.seed(args.seed)
+    if not args.seed:
+        args.seed = random.randint(1, 999999999)
+    GLOBAL_RNG.seed(args.seed)
+    info.write('\tseed = {0}\n'.format(args.seed))
+    info.write('\tnum_processors = {0}\n'.format(args.np))
+    info.write('\t[[column_prefixes]]\n')
+    info.write('\t\tstat_prefixes = {0}\n'.format(', '.join(stat_prefixes)))
+    info.write('\t\tcontinuous_prefixes = {0}\n'.format(
+            ', '.join(continuous_prefixes)))
+    info.write('\t\tdiscrete_prefixes = {0}\n'.format(
+            ', '.join(discrete_prefixes)))
 
     # calculate decent prior chunk size from user settings
     prior_subsample_size = 100000
@@ -241,6 +263,9 @@ def main_cli():
             WORK_FORCE.put(worker)
             msbayes_workers.append(worker)
     model_indices = models_to_configs.keys()
+    info.write('\t[[prior_configs]]\n')
+    for model_idx, cfg in models_to_configs.iteritems():
+        info.write('\t\t{0} = {1}\n'.format(model_idx, cfg))
 
     # put observed-data-generating msbayes workers in the queue
     observed_model_idx = configs_to_models.get(args.observed_config, 0)
@@ -266,6 +291,9 @@ def main_cli():
                 stat_patterns = stat_patterns)
         WORK_FORCE.put(worker)
         msbayes_workers.append(worker)
+    info.write('\t[[observed_configs]]\n')
+    info.write('\t\t{0} = {1}\n'.format(observed_model_idx,
+        args.observed_config))
 
     # run parallel msbayes processes
     msbayes_result_queue = multiprocessing.Queue()
@@ -304,6 +332,8 @@ def main_cli():
 
     # merged simulated observed data into one file
     observed_path = os.path.join(base_dir, 'observed.txt')
+    info.write('\t[[observed_paths]]\n')
+    info.write('\t\t{0} = {1}\n'.format(observed_model_idx, observed_path))
     if args.reps > 0:
         obs_header_path = working_observed_temp_fs.get_file_path(
                 prefix = 'observed-header-')
@@ -360,6 +390,10 @@ def main_cli():
                     'number of samples ({1})'.format(lc, ntotal))
         prior_paths['merged'] = merged_path
 
+    info.write('\t[[prior_paths]]\n')
+    for idx, path in prior_paths.iteritems():
+        info.write('\t\t{0} = {1}\n'.format(idx, path))
+
     ##########################################################################
     ## begin rejection and regression
 
@@ -371,6 +405,12 @@ def main_cli():
             continuous_patterns),
     discrete_parameter_indices = get_parameter_indices(prior_header,
             discrete_patterns)
+    info.write('\t[[column_indices]]\n')
+    info.write('\t\tstat_indices = {0}\n'.format(', '.join(stat_indices)))
+    info.write('\t\tcontinuous_indices = {0}\n'.format(
+            ', '.join(continuous_parameter_indices)))
+    info.write('\t\tdiscrete_indices = {0}\n'.format(
+            ', '.join(discrete_parameter_indices)))
     msreject_workers = []
     if args.merge_priors:
         tolerance = get_tolerance(ntotal, args.num_posterior_samples)
@@ -404,6 +444,29 @@ def main_cli():
                     continuous_parameter_indices = continuous_parameter_indices,
                     discrete_parameter_indices = discrete_parameter_indices,
                     regress = args.regression))
+
+    # run parallel msreject processes
+    for w in msreject_workers:
+        WORK_FORCE.put(w)
+    msreject_result_queue = multiprocessing.Queue()
+    msreject_managers = []
+    for i in range(args.np):
+        m = Manager(work_queue = WORK_FORCE,
+                result_queue = msreject_result_queue)
+        m.start()
+        msreject_managers.append(m)
+    for i in range(len(msreject_workers)):
+        msreject_workers[i] = msreject_result_queue.get()
+    for m in msreject_managers:
+        m.join()
+    assert WORK_FORCE.empty()
+    assert msreject_result_queue.empty()
+
+    if not args.keep_temps:
+        rejection_temp_fs.purge()
+    if not args.keep_priors:
+        prior_temp_fs.purge()
+    info.close()
 
 if __name__ == '__main__':
     main_cli()
