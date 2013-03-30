@@ -194,7 +194,7 @@ def main_cli():
             prior_subsample_size)
 
     ##########################################################################
-    ## begin analysis
+    ## begin analysis --- generate priors and observed simulations
     working_prior_temp_fs = TempFileSystem(parent = base_temp_dir,
             prefix = 'pymsbayes-working-prior-files-')
     working_observed_temp_fs = TempFileSystem(parent = base_temp_dir,
@@ -339,6 +339,9 @@ def main_cli():
                     'merged prior file does not match the expected '
                     'number of samples ({1})'.format(lc, ntotal))
         prior_paths['merged'] = merged_path
+
+    ##########################################################################
+    ## begin rejection and regression
 
 if __name__ == '__main__':
     main_cli()
