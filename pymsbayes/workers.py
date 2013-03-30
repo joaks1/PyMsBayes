@@ -245,7 +245,7 @@ class Worker(object):
 ## functions for managing msbayes workers
 
 def merge_priors(workers, prior_path, header_path=None, include_header=False):
-    out = open(prior_path, 'w')
+    out, close = process_file_arg(prior_path, 'w')
     h = None
     std = None
     for w in workers:
@@ -254,7 +254,7 @@ def merge_priors(workers, prior_path, header_path=None, include_header=False):
             std = w
             if include_header:
                 out.write('{0}\n'.format('\t'.join(h)))
-        if not w.header == h:
+        if w.header != h:
             raise PriorMergeError('Workers {0} and {1} have different prior '
                     'headers. Cannot merge!'.format(std.name, w.name))
         prior_file = open(w.prior_path, 'rU')
@@ -262,13 +262,49 @@ def merge_priors(workers, prior_path, header_path=None, include_header=False):
             if not HEADER_PATTERN.match(line.strip()):
                 out.write(line)
         prior_file.close()
-    out.close()
+    if close:
+        out.close()
     if not header_path:
         header_path = prior_path + '.header'
-    out = open(header_path, 'w')
+    out, close = process_file_arg(header_path, 'w')
     out.write('{0}\n'.format('\t'.join(h)))
-    out.close()
+    if close:
+        out.close()
     return prior_path, header_path
+
+def merge_prior_files(paths, dest_path):
+    out, close = process_file_arg(dest_path, 'w')
+    h = None
+    ncols = None
+    for p in paths:
+        header = None
+        f, f_close = process_file_arg(p, 'rU')
+        for line_num, line in enumerate(f):
+            if line_num == 0:
+                if HEADER_PATTERN.match(line.strip()):
+                    header = line.strip().split()
+                    if h and h != header:
+                        raise PriorMergeError('prior files {0} and {1} have '
+                                'different headers'.format(f.name, std.name))
+                if not ncols:
+                    ncols = len(line.strip().split())
+                    std = f
+                    if header:
+                        h = header
+                        out.write(line)
+                        continue
+                if len(line.strip().split()) != ncols:
+                    raise PriorMergeError('prior files {0} and {1} do not '
+                            'have the same number of columns. Cannot '
+                            'merge!'.format(f.name, std.name))
+                if not header:
+                    out.write(line)
+            else:
+                out.write(line)
+        if f_close:
+            f.close()
+    if close:
+        out.close()
 
 ##############################################################################
 ## msBayes class for generating prior files
@@ -317,13 +353,13 @@ class MsBayesWorker(Worker):
             self.seed = int(seed)
         self.prior_path = self.temp_fs.get_file_path(
                 parent = self.output_dir,
-                prefix = 'prior-{0}-{1}.'.format(
+                prefix = 'prior-{0}-{1}-'.format(
                         self.sample_size,
                         self.seed),
                 create = False)
         self.header_path = self.temp_fs.get_file_path(
                 parent = self.output_dir,
-                prefix = 'prior-{0}-{1}-header.'.format(
+                prefix = 'prior-{0}-{1}-header-'.format(
                         self.sample_size,
                         self.seed),
                 create = False)
