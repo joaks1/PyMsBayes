@@ -12,7 +12,8 @@ import argparse
 
 from pymsbayes.workers import (MsBayesWorker, MsRejectWorker, RegressionWorker,
         merge_priors, assemble_msreject_workers, get_parameter_indices,
-        get_stat_indices, parse_header, get_patterns_from_prefixes)
+        get_stat_indices, parse_header, get_patterns_from_prefixes,
+        merge_prior_files)
 from pymsbayes.workers import (DEFAULT_STAT_PATTERNS, PSI_PATTERNS,
         MODEL_PATTERNS, MEAN_TAU_PATTERNS, OMEGA_PATTERNS)
 from pymsbayes.manager import Manager
@@ -30,7 +31,7 @@ _program_info = {
     'copyright': 'Copyright (C) 2013 Jamie Oaks',
     'license': 'GNU GPL version 3 or later',}
 
-_LOG = get_logger(__name__, 'INFO')
+_LOG = get_logger(__name__)
 
 
 def arg_is_file(path):
@@ -85,7 +86,7 @@ def main_cli():
             type = int,
             default = multiprocessing.cpu_count(),
             help = ('The maximum number of processes to run in parallel. The '
-                    'default is the number of CPUs available on the machine.')
+                    'default is the number of CPUs available on the machine.'))
     parser.add_argument('--output-dir',
             action = 'store',
             type = arg_is_dir,
@@ -114,7 +115,6 @@ def main_cli():
                     'Default: `-c PRI.model PRI.Psi`.'))
     parser.add_argument('-m', '--merge-priors',
             action = 'store_true',
-            default = 'False',
             help = ('Merge the priors generated from the specified configs '
                     'together before analysis. Otherwise, the observed data '
                     'sets will be analyzed under each prior separately.'))
@@ -127,11 +127,9 @@ def main_cli():
                     'msBayes.'))
     parser.add_argument('-k', '--keep-priors',
             action = 'store_true',
-            default = 'False',
             help = 'Keep prior-sample files.')
     parser.add_argument('--keep-temps',
             action = 'store_true',
-            default = 'False',
             help = 'Keep all temporary files.')
     parser.add_argument('--seed',
             action = 'store',
@@ -139,7 +137,6 @@ def main_cli():
             help = 'Random number seed to use for the analysis.')
     parser.add_argument('--dry-run',
             action = 'store_true',
-            default = 'False',
             help = 'Report configuration of the analysis and exit.')
     parser.add_argument('--version',
             action = 'version',
@@ -147,11 +144,9 @@ def main_cli():
             help = 'Report version and exit.')
     parser.add_argument('-v', '--verbose',
             action = 'store_true',
-            default = 'False',
             help = 'Run with verbose messaging.')
     parser.add_argument('--debug',
             action = 'store_true',
-            default = 'False',
             help = 'Run in debugging mode.')
 
     args = parser.parse_args()
@@ -160,7 +155,7 @@ def main_cli():
         args.output_dir = os.path.dirname(args.observed_config)
     base_dir = mk_new_dir(os.path.join(args.output_dir, 'pymsbayes-output'))
     base_temp_dir = mk_new_dir(os.path.join(base_dir, 'temp-files'))
-    if not args.reps < 1:
+    if args.reps < 1:
         raise NotImplementedError('Sorry, analyzing real data is not yet '
                 'implemented')
     if len(args.prior_configs) != len(set(args.prior_configs)):
@@ -208,7 +203,7 @@ def main_cli():
         models_to_configs[model_idx] = args.prior_configs[i]
         configs_to_models[args.prior_configs[i]] = model_idx
         for j in range(num_prior_workers):
-            worker = MsBayeWorker(
+            worker = MsBayesWorker(
                     temp_fs = working_prior_temp_fs,
                     sample_size = prior_subsample_size,
                     config_path = args.prior_configs[i],
@@ -219,7 +214,7 @@ def main_cli():
             WORK_FORCE.put(worker)
             msbayes_workers.append(worker)
         if remainder_samples > 0:
-            worker = MsBayeWorker(
+            worker = MsBayesWorker(
                     temp_fs = working_prior_temp_fs,
                     sample_size = remainder_samples,
                     config_path = args.prior_configs[i],
@@ -233,7 +228,7 @@ def main_cli():
     # put observed-data-generating msbayes workers in the queue
     observed_model_idx = configs_to_models.get(args.observed_config, 0)
     for i in range(num_observed_workers):
-        worker = MsBayeWorker(
+        worker = MsBayesWorker(
                 temp_fs = working_observed_temp_fs,
                 sample_size = prior_subsample_size,
                 config_path = args.observed_config,
@@ -244,13 +239,13 @@ def main_cli():
         WORK_FORCE.put(worker)
         msbayes_workers.append(worker)
     if remainder_observed_reps > 0:
-        worker = MsBayeWorker(
+        worker = MsBayesWorker(
                 temp_fs = working_observed_temp_fs,
                 sample_size = remainder_observed_reps,
                 config_path = args.observed_config,
                 model_index = observed_model_idx,
                 report_parameters = args.report_parameters,
-                include_header = False,
+                include_header = True,
                 stat_patterns = stat_patterns)
         WORK_FORCE.put(worker)
         msbayes_workers.append(worker)
@@ -263,7 +258,7 @@ def main_cli():
                 result_queue = msbayes_result_queue)
         m.start()
         msbayes_managers.append(m)
-    for i in len(msbayes_workers):
+    for i in range(len(msbayes_workers)):
         msbayes_workers[i] = msbayes_result_queue.get()
     for m in msbayes_managers:
         m.join()
@@ -295,8 +290,9 @@ def main_cli():
             raise Exception('The number of observed simulations ({0}) does '
                     'not match the number of reps ({1})'.format(lc-1,
                             args.reps))
-        if not args.keep_temps:
-            working_observed_temp_fs.purge()
+    if not args.keep_temps:
+        _LOG.debug('purging working observed...')
+        working_observed_temp_fs.purge()
     prior_temp_fs = TempFileSystem(parent = base_temp_dir,
             prefix = 'pymsbayes-prior-files-')
     prior_paths = {}
@@ -314,14 +310,25 @@ def main_cli():
             raise Exception('The number of prior samples ({0}) for model '
                     '{1} does not match nsamples ({2})'.format(
                             lc, model_idx, args.nsamples))
+        prior_paths[mod_idx] = prior_path
+
     if not args.keep_temps:
+        _LOG.debug('purging working observed...')
         working_prior_temp_fs.purge()
+
     if args.merge_priors:
-
-                            
-
-
-def merge_priors(workers, prior_path, header_path=None, include_header=False):
+        ntotal = args.nsamples * len(args.prior_configs)
+        merged_path = prior_temp_fs.get_file_path(
+                prefix = 'prior-merged-{0}-'.format(ntotal))
+        merge_prior_files(
+                paths = [prior_paths[i] for i in models_to_configs.iterkeys()],
+                dest_path = merged_path)
+        lc = line_count(merged_path)
+        if lc != ntotal:
+            raise Exception('The number of prior samples ({0}) in the '
+                    'merged prior file does not match the expected '
+                    'number of samples ({1})'.format(lc, ntotal))
+        prior_paths['merged'] = merged_path
 
 if __name__ == '__main__':
     main_cli()
