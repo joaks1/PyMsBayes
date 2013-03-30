@@ -19,7 +19,7 @@ from pymsbayes.workers import (DEFAULT_STAT_PATTERNS, PSI_PATTERNS,
 from pymsbayes.manager import Manager
 from pymsbayes.utils import WORK_FORCE, GLOBAL_RNG
 from pymsbayes.utils.functions import (is_file, is_dir, expand_path,
-        long_division, mk_new_dir, line_count)
+        long_division, mk_new_dir, line_count, get_tolerance)
 from pymsbayes.utils.tempfs import TempFileSystem
 from pymsbayes.utils.messaging import get_logger
 
@@ -75,12 +75,18 @@ def main_cli():
                     'data will be used). Second, it specifies how many '
                     'simulation replicates to perform (i.e., how many data '
                     'sets to simulate and analyze).'))
-    parser.add_argument('-n', '--nsamples',
+    parser.add_argument('-n', '--num-prior-samples',
             action = 'store',
             type = int,
             default = 1000000,
             help = ('The number of prior samples to simulate for each prior '
                     'config specified with `-p`.'))
+    parser.add_argument('--num-posterior-samples',
+            action = 'store',
+            type = int,
+            default = 1000,
+            help = ('The number of posterior samples desired for each '
+                    'analysis. Default: 1000.'))
     parser.add_argument('--np',
             action = 'store',
             type = int,
@@ -125,6 +131,10 @@ def main_cli():
                     'parameters (i.e. only report the summaries of '
                     'parameters [E(t), Var(t), omega, psi] as in the standard '
                     'msBayes.'))
+    parser.add_argument('--no-regression',
+            action = 'store_false',
+            dest = 'regression',
+            help = 'Do not perform regression on posterior.')
     parser.add_argument('-k', '--keep-priors',
             action = 'store_true',
             help = 'Keep prior-sample files.')
@@ -182,19 +192,20 @@ def main_cli():
 
     # calculate decent prior chunk size from user settings
     prior_subsample_size = 100000
-    total_nsamples = args.nsamples * len(args.prior_configs)
+    total_num_prior_samples = args.num_prior_samples * len(args.prior_configs)
     if args.reps > 0:
-        total_nsamples += args.reps
-    max_proc_samples = total_nsamples / args.np
+        total_num_prior_samples += args.reps
+    max_proc_samples = total_num_prior_samples / args.np
     if max_proc_samples < prior_subsample_size:
         prior_subsample_size = max_proc_samples
-    num_prior_workers, remainder_samples = long_division(args.nsamples,
+    num_prior_workers, remainder_samples = long_division(args.num_prior_samples,
             prior_subsample_size)
     num_observed_workers, remainder_observed_reps = long_division(args.reps,
             prior_subsample_size)
 
     ##########################################################################
     ## begin analysis --- generate priors and observed simulations
+
     working_prior_temp_fs = TempFileSystem(parent = base_temp_dir,
             prefix = 'pymsbayes-working-prior-files-')
     working_observed_temp_fs = TempFileSystem(parent = base_temp_dir,
@@ -229,6 +240,7 @@ def main_cli():
                     stat_patterns = stat_patterns)
             WORK_FORCE.put(worker)
             msbayes_workers.append(worker)
+    model_indices = models_to_configs.keys()
 
     # put observed-data-generating msbayes workers in the queue
     observed_model_idx = configs_to_models.get(args.observed_config, 0)
@@ -273,15 +285,22 @@ def main_cli():
     # sort out the finished workers
     msbayes_observed_workers = []
     msbayes_prior_workers = {}
+    observed_header = None
+    prior_header = None
     for w in msbayes_workers:
         if w.include_header:
             msbayes_observed_workers.append(w)
+            if not observed_header:
+                observed_header = w.header
         else:
             if w.model_index in msbayes_prior_workers.keys():
                 msbayes_prior_workers[w.model_index].append(w)
             else:
                 msbayes_prior_workers[w.model_index] = [w]
+            if not prior_header:
+                prior_header = w.header
     assert len(msbayes_prior_workers) == len(args.prior_configs)
+    assert prior_header and prior_header == observed_header
 
     # merged simulated observed data into one file
     observed_path = os.path.join(base_dir, 'observed.txt')
@@ -307,18 +326,19 @@ def main_cli():
     prior_paths = {}
     prior_paths['header'] = prior_temp_fs.get_file_path(
             prefix = 'prior-header-')
-    for mod_idx in msbayes_prior_workers.iterkeys():
+    for mod_idx in model_indices:
         prior_path = prior_temp_fs.get_file_path(
-                prefix = 'prior-{0}-{1}-'.format(mod_idx, args.nsamples))
+                prefix = 'prior-{0}-{1}-'.format(mod_idx,
+                        args.num_prior_samples))
         merge_priors(workers = msbayes_prior_workers[mod_idx],
                 prior_path = prior_path,
                 header_path = prior_paths['header'],
                 include_header = False)
         lc = line_count(prior_path)
-        if lc != args.nsamples:
+        if lc != args.num_prior_samples:
             raise Exception('The number of prior samples ({0}) for model '
-                    '{1} does not match nsamples ({2})'.format(
-                            lc, model_idx, args.nsamples))
+                    '{1} does not match num_prior_samples ({2})'.format(
+                            lc, model_idx, args.num_prior_samples))
         prior_paths[mod_idx] = prior_path
 
     if not args.keep_temps:
@@ -327,11 +347,11 @@ def main_cli():
 
     # merge all model priors into one file if requested
     if args.merge_priors:
-        ntotal = args.nsamples * len(args.prior_configs)
+        ntotal = args.num_prior_samples * len(args.prior_configs)
         merged_path = prior_temp_fs.get_file_path(
                 prefix = 'prior-merged-{0}-'.format(ntotal))
         merge_prior_files(
-                paths = [prior_paths[i] for i in models_to_configs.iterkeys()],
+                paths = [prior_paths[i] for i in model_indices],
                 dest_path = merged_path)
         lc = line_count(merged_path)
         if lc != ntotal:
@@ -342,6 +362,48 @@ def main_cli():
 
     ##########################################################################
     ## begin rejection and regression
+
+    rejection_temp_fs = TempFileSystem(parent = base_temp_dir,
+            prefix = 'pymsbayes-rejection-temp-')
+    stat_indices = get_stat_indices(prior_header,
+            stat_patterns),
+    continuous_parameter_indices = get_parameter_indices(prior_header,
+            continuous_patterns),
+    discrete_parameter_indices = get_parameter_indices(prior_header,
+            discrete_patterns)
+    msreject_workers = []
+    if args.merge_priors:
+        tolerance = get_tolerance(ntotal, args.num_posterior_samples)
+        if tolerance > 1.0:
+            tolerance = 1.0
+        msreject_workers.extend(assemble_msreject_workers(
+                temp_fs = rejection_temp_fs,
+                observed_sims_file = observed_path,
+                prior_path = prior_paths['merged'],
+                tolerance = tolerance,
+                results_dir = base_dir,
+                posterior_prefix = 'unadjusted-posterior',
+                stat_indices = stat_indices,
+                continuous_parameter_indices = continuous_parameter_indices,
+                discrete_parameter_indices = discrete_parameter_indices,
+                regress = args.regression))
+    else:
+        tolerance = get_tolerance(args.num_prior_samples,
+                args.num_posterior_samples)
+        if tolerance > 1.0:
+            tolerance = 1.0
+        for i in model_indices:
+            msreject_workers.extend(assemble_msreject_workers(
+                    temp_fs = rejection_temp_fs,
+                    observed_sims_file = observed_path,
+                    prior_path = prior_paths[i],
+                    tolerance = tolerance,
+                    results_dir = base_dir,
+                    posterior_prefix = 'unadjusted-posterior',
+                    stat_indices = stat_indices,
+                    continuous_parameter_indices = continuous_parameter_indices,
+                    discrete_parameter_indices = discrete_parameter_indices,
+                    regress = args.regression))
 
 if __name__ == '__main__':
     main_cli()
