@@ -146,9 +146,9 @@ def main_cli():
             action = 'store',
             type = int,
             help = 'Random number seed to use for the analysis.')
-    parser.add_argument('--dry-run',
-            action = 'store_true',
-            help = 'Report configuration of the analysis and exit.')
+    # parser.add_argument('--dry-run',
+    #         action = 'store_true',
+    #         help = 'Report configuration of the analysis and exit.')
     parser.add_argument('--version',
             action = 'version',
             version = '%(prog)s ' + _program_info['version'],
