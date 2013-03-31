@@ -206,11 +206,12 @@ def main_cli():
     info.write('\tseed = {0}\n'.format(args.seed))
     info.write('\tnum_processors = {0}\n'.format(args.np))
     info.write('\t[[column_prefixes]]\n')
-    info.write('\t\tstat_prefixes = {0}\n'.format(', '.join(stat_prefixes)))
-    info.write('\t\tcontinuous_prefixes = {0}\n'.format(
-            ', '.join(continuous_prefixes)))
-    info.write('\t\tdiscrete_prefixes = {0}\n'.format(
-            ', '.join(discrete_prefixes)))
+    info.write('\t\tstat_patterns = {0}\n'.format(
+            ', '.join([p.pattern for p in stat_patterns])))
+    info.write('\t\tcontinuous_patterns = {0}\n'.format(
+            ', '.join([p.pattern for p in continuous_patterns])))
+    info.write('\t\tdiscrete_patterns = {0}\n'.format(
+            ', '.join([p.pattern for p in discrete_patterns])))
 
     # calculate decent prior chunk size from user settings
     prior_subsample_size = 100000
