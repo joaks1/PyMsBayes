@@ -1,5 +1,9 @@
 from setuptools import setup, find_packages
 import sys, os
+import glob
+
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+SCRIPTS = glob.glob(os.path.join(BASE_DIR, 'scripts', '*.py'))
 
 version = '0.1'
 
@@ -15,6 +19,7 @@ Python msBayes wrapper""",
       url='',
       license="GPL",
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
+      scripts=SCRIPTS,
       include_package_data=True,
       zip_safe=False,
       test_suite="pymsbayes.test",
