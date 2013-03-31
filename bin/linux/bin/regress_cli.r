@@ -192,7 +192,8 @@ stdAnalysis = function(obs.infile,
         if (regexpr('model', p, ignore.case=TRUE)[1] != -1) {
             values = models
         }
-        cat("[", pname, "]\n", sep="")
+        cat("[", p, "]\n", sep="")
+        cat("observed = ", obsDat[1,p], "\n", sep="")
         if (p %in% calmod.fail) {
             cat("failed = True\n")
         } else {
@@ -218,7 +219,8 @@ stdAnalysis = function(obs.infile,
     }
     for (p in prior.names.cont) {
         pname = sub("[.]", "_", sub("PRI[.]", "", p))
-        cat("[", pname, "]\n", sep="")
+        cat("[", p, "]\n", sep="")
+        cat("observed = ", obsDat[1,p], "\n", sep="")
         cat("mode = ", post.modes[[p]], "\n", sep="")
         cat("mean = ", mean(result[[p]]$x), "\n", sep="")
         cat("median = ", median(result[[p]]$x), "\n", sep="")
