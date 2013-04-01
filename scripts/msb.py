@@ -401,9 +401,9 @@ def main_cli():
     rejection_temp_fs = TempFileSystem(parent = base_temp_dir,
             prefix = 'pymsbayes-rejection-temp-')
     stat_indices = get_stat_indices(prior_header,
-            stat_patterns),
+            stat_patterns)
     continuous_parameter_indices = get_parameter_indices(prior_header,
-            continuous_patterns),
+            continuous_patterns)
     discrete_parameter_indices = get_parameter_indices(prior_header,
             discrete_patterns)
     info.write('\t[[column_indices]]\n')
