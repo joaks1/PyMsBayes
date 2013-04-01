@@ -114,7 +114,13 @@ class TempFileSystem(object):
                 self._remove_file(path)
             else:
                 self.remove_dir(path)
-        os.rmdir(full_path)
+        try:
+            os.rmdir(full_path)
+        except OSError, e:
+            _LOG.warning('Could not remove temp directory {0}. Here are the '
+                    'contents:\n{1}'.format(full_path,
+                            '\n'.join(os.listdir(full_path))))
+            pass
         if full_path == self.base_dir:
             self.deleted = True
                 
