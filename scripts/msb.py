@@ -407,11 +407,12 @@ def main_cli():
     discrete_parameter_indices = get_parameter_indices(prior_header,
             discrete_patterns)
     info.write('\t[[column_indices]]\n')
-    info.write('\t\tstat_indices = {0}\n'.format(', '.join(stat_indices)))
-    info.write('\t\tcontinuous_indices = {0}\n'.format(
-            ', '.join(continuous_parameter_indices)))
-    info.write('\t\tdiscrete_indices = {0}\n'.format(
-            ', '.join(discrete_parameter_indices)))
+    info.write('\t\tstat_indices = {0}\n'.format(', '.join(
+            [str(i) for i in stat_indices])))
+    info.write('\t\tcontinuous_indices = {0}\n'.format(', '.join(
+            [str(i) for i in continuous_parameter_indices])))
+    info.write('\t\tdiscrete_indices = {0}\n'.format(', '.join(
+            [str(i) for i in discrete_parameter_indices])))
     msreject_workers = []
     if args.merge_priors:
         tolerance = get_tolerance(ntotal, args.num_posterior_samples)
