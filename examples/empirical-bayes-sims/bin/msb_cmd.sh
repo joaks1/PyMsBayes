@@ -2,10 +2,10 @@
 #$ -S /bin/bash
 #$ -cwd
 #$ -V
-#$ -l h_vmem=2G
-#$ -l vf=2G
+#$ -l h_vmem=8G
+#$ -l vf=8G
 #$ -q all.q
-#$ -pe orte 10
+#$ -pe orte 8
 
 if [ -n "$SGE_O_WORKDIR" ]
 then
@@ -14,12 +14,12 @@ then
     cd $SGE_O_WORKDIR
 fi
 
-nprocs=10
-nreps=100
-nprior=10000
-npost=100
+nprocs=8
+nreps=10
+nprior=1000
+npost=10
 
-mpirun -np $nprocs msb.py --np $nprocs \
+msb.py --np $nprocs \
     -o ../configs/m5.cfg \
     -p ../configs/*.cfg \
     -r $nreps \
