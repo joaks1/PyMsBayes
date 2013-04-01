@@ -17,7 +17,7 @@ fi
 nprocs=8
 nreps=10
 nprior=1000
-npost=10
+npost=100
 
 msb.py --np $nprocs \
     -o ../configs/m5.cfg \
