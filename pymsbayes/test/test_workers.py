@@ -600,8 +600,9 @@ class RegressionWorkerTestCase(PyMsBayesTestCase):
         stats = [regress_worker.header[
                 i] for i in regress_worker.stat_indices]
         results = self.parse_python_config(regress_worker.summary_path)
-        expected_keys = [x.replace('PRI.', '').replace('.',
-                '_') for x in cont_params + disc_params] + ['settings']
+        # expected_keys = [x.replace('PRI.', '').replace('.',
+        #         '_') for x in cont_params + disc_params] + ['settings']
+        expected_keys = cont_params + disc_params + ['settings']
         self.assertEqual(sorted(results.keys()),
                 sorted(expected_keys))
         self.assertEqual(sorted(results['settings']['stats_used']),
