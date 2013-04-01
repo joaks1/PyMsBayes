@@ -27,15 +27,7 @@ stdAnalysis = function(obs.infile,
     model_idx = grep('PRI.model', names(simDat), ignore.case=TRUE)
     stopifnot(length(model_idx) < 2)
     if (length(model_idx) == 1) {
-        models = unique(simDat[,model_idx])
-        if (length(models) < 2) {
-            discrete_prefixes = discrete_prefixes[grep(
-                    'model',
-                    discrete_prefixes,
-                    invert=T,
-                    ignore.case=T)]
-            discrete_indices = discrete_indices[discrete_indices != model_idx]
-        }
+        models = sort(unique(simDat[,model_idx]))
     }
 
     # if tol is NA, set default tol to get 1000 best matches.
@@ -257,7 +249,7 @@ stdAnalysis = function(obs.infile,
 }
 
 write_probabilites = function(probs, n) {
-    for (i in n) {
+    for (i in sort(n)) {
         val.str = as.character(i)
         if (val.str %in% names(probs)) {
             cat("\t\t", i, " = ", probs[val.str], "\n", sep="")
