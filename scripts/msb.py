@@ -100,6 +100,14 @@ def main_cli():
             help = ('The directory in which all output files will be written. '
                     'The default is to use the directory of the observed '
                     'config file.'))
+    parser.add_argument('--staging-dir',
+            action = 'store',
+            type = arg_is_dir,
+            help = ('A directory to temporarily stage prior files. This option '
+                    'can be useful on clusters to speed up I/O while '
+                    'generating prior samples. You can designate a local temp '
+                    'directory on a compute node to avoid constant writing to '
+                    'a shared drive.'))
     parser.add_argument('-s', '--stat-prefixes',
             nargs = '*',
             type = str,
@@ -171,6 +179,9 @@ def main_cli():
         _LOG.setlevel(logging.DEBUG)
     if not args.output_dir:
         args.output_dir = os.path.dirname(args.observed_config)
+    staging_dir = None
+    if args.staging_dir:
+        staging_dir = args.staging_dir
     base_dir = mk_new_dir(os.path.join(args.output_dir, 'pymsbayes-output'))
     info = open(os.path.join(base_dir, 'pymsbayes-info.txt'), 'w')
     info.write('[pymsbayes]\n'.format(base_dir))
@@ -249,7 +260,8 @@ def main_cli():
                     model_index = model_idx,
                     report_parameters = args.report_parameters,
                     include_header = False,
-                    stat_patterns = stat_patterns)
+                    stat_patterns = stat_patterns,
+                    staging_dir = staging_dir)
             WORK_FORCE.put(worker)
             msbayes_workers.append(worker)
         if remainder_samples > 0:
@@ -260,7 +272,8 @@ def main_cli():
                     model_index = model_idx,
                     report_parameters = args.report_parameters,
                     include_header = False,
-                    stat_patterns = stat_patterns)
+                    stat_patterns = stat_patterns,
+                    staging_dir = staging_dir)
             WORK_FORCE.put(worker)
             msbayes_workers.append(worker)
     model_indices = models_to_configs.keys()
@@ -278,7 +291,8 @@ def main_cli():
                 model_index = observed_model_idx,
                 report_parameters = args.report_parameters,
                 include_header = True,
-                stat_patterns = stat_patterns)
+                stat_patterns = stat_patterns,
+                staging_dir = staging_dir)
         WORK_FORCE.put(worker)
         msbayes_workers.append(worker)
     if remainder_observed_reps > 0:
@@ -289,7 +303,8 @@ def main_cli():
                 model_index = observed_model_idx,
                 report_parameters = args.report_parameters,
                 include_header = True,
-                stat_patterns = stat_patterns)
+                stat_patterns = stat_patterns,
+                staging_dir = staging_dir)
         WORK_FORCE.put(worker)
         msbayes_workers.append(worker)
     info.write('\t[[observed_configs]]\n')
