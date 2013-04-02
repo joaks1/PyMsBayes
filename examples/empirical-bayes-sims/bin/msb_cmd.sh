@@ -30,7 +30,7 @@ msb.py --np $nprocs \
     --staging-dir $tmp_dir \
     --merge-priors --keep-priors --seed 4849390
 
-echo 'Here are the contents of the local temp directory $tmp_dir:'
+echo 'Here are the contents of the local temp directory '${$tmp_dir}':'
 ls -Fla $tmp_dir
 echo 'Removing the local temp directory...'
 rm -r $tmp_dir
