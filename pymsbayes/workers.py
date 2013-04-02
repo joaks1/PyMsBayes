@@ -12,7 +12,7 @@ from cStringIO import StringIO
 from pymsbayes.utils.tempfs import TempFileSystem
 from pymsbayes.utils import BIN_DIR
 from pymsbayes.utils.functions import (get_random_int, expand_path,
-        get_indices_of_patterns, reduce_columns, process_file_arg)
+        get_indices_of_patterns, reduce_columns, process_file_arg, is_dir)
 from pymsbayes.utils.errors import WorkerExecutionError, PriorMergeError
 from pymsbayes.utils.messaging import get_logger
 
@@ -327,7 +327,8 @@ class MsBayesWorker(Worker):
             stat_patterns=DEFAULT_STAT_PATTERNS,
             parameter_patterns=PARAMETER_PATTERNS,
             stdout_path = None,
-            stderr_path = None):
+            stderr_path = None,
+            staging_dir = None):
         Worker.__init__(self,
                 stdout_path = stdout_path,
                 stderr_path = stderr_path)
@@ -374,14 +375,23 @@ class MsBayesWorker(Worker):
         self.header = None
         self.parameter_indices = None
         self.stat_indices = None
+        self.staging_dir = None
+        self.staging_prior_path = None
+        if is_dir(staging_dir):
+            self.staging_dir = staging_dir
+            self.staging_prior_path = os.path.join(staging_dir,
+                    os.path.basename(self.prior_path))
         self._update_cmd()
 
     def _update_cmd(self):
         cmd = [self.exe_path,
                '-r', str(self.sample_size),
-               '-c', self.config_path,
-               '-o', self.prior_path,
-               '-S', str(self.seed),]
+               '-S', str(self.seed),
+               '-c', self.config_path,]
+        if self.staging_dir:
+            cmd.extend(['-o', self.staging_prior_path])
+        else:
+            cmd.extend(['-o', self.prior_path])
         if self.sort_index != None:
             cmd.extend(['-s', str(self.sort_index)])
         if self.model_index != None:
@@ -391,12 +401,15 @@ class MsBayesWorker(Worker):
         self.cmd = cmd
 
     def _post_process(self):
-        raw_prior_path = self.prior_path + '.raw'
-        shutil.move(self.prior_path, raw_prior_path)
+        prior_path = self.prior_path
+        if self.staging_dir:
+            prior_path = self.staging_prior_path
+        raw_prior_path = prior_path + '.raw'
+        shutil.move(prior_path, raw_prior_path)
         if self.schema == 'msreject':
             header = prior_for_msreject(
                     in_file = raw_prior_path,
-                    out_file = self.prior_path,
+                    out_file = prior_path,
                     stat_patterns = self.stat_patterns,
                     parameter_patterns = self.parameter_patterns,
                     dummy_patterns = DUMMY_PATTERNS,
@@ -407,6 +420,8 @@ class MsBayesWorker(Worker):
             out.write('{0}\n'.format('\t'.join(header)))
             out.close()
             self._set_header(header)
+        if self.staging_dir:
+            shutil.move(self.staging_prior_path, self.prior_path)
 
     def _set_header(self, header):
         self.header = header
