@@ -56,6 +56,23 @@ class MsBayesWorkerTestCase(PyMsBayesTestCase):
         w.start()
         self._assert_success(w, 4, 10)
 
+    def test_staging_dir(self):
+        staging_dir = self.get_test_subdir(prefix='test-staging-dir-')
+        self.assertTrue(os.path.isdir(staging_dir))
+        self.assertEqual(os.listdir(staging_dir), [])
+        w = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'msreject',
+                staging_dir = staging_dir)
+        self.assertIsInstance(w, workers.MsBayesWorker)
+        self.assertFalse(w.finished)
+        w.start()
+        self._assert_success(w, 4, 10)
+        self.assertTrue(os.path.isdir(staging_dir))
+        self.assertEqual(os.listdir(staging_dir), [])
+
     def test_repeatability(self):
         jobs = []
         for i in range(4):
