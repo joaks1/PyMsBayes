@@ -225,7 +225,7 @@ def main_cli():
             ', '.join([p.pattern for p in discrete_patterns])))
 
     # calculate decent prior chunk size from user settings
-    prior_subsample_size = 100000
+    prior_subsample_size = 20000
     total_num_prior_samples = args.num_prior_samples * len(args.prior_configs)
     if args.reps > 0:
         total_num_prior_samples += args.reps
