@@ -2,8 +2,8 @@
 #$ -S /bin/bash
 #$ -cwd
 #$ -V
-#$ -l h_vmem=8G
-#$ -l vf=8G
+#$ -l h_vmem=16G
+#$ -l vf=16G
 #$ -q all.q
 #$ -pe orte 8
 
