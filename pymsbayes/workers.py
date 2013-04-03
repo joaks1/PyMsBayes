@@ -337,7 +337,7 @@ class MsBayesWorker(Worker):
         self.temp_fs = temp_fs
         self.sample_size = int(sample_size)
         self.config_path = expand_path(config_path)
-        self.output_dir = self.temp_fs.create_subdir(prefix=self.name)
+        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
         if not exe_path:
             exe_path = os.path.join(BIN_DIR, 'msbayes.pl')
         self.exe_path = expand_path(exe_path)
