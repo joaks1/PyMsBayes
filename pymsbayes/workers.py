@@ -526,9 +526,6 @@ class MsRejectWorker(Worker):
                 raise ValueError('stat indices are not valid')
             self.stat_indices = stat_indices
         self.stdout_path = self.posterior_path
-        stdout = open(self.stdout_path, 'w')
-        stdout.write('{0}\n'.format('\t'.join(self.header)))
-        stdout.close()
         self.tolerance = float(tolerance)
         self.regression_worker = regression_worker
         self._update_cmd()
@@ -544,6 +541,12 @@ class MsRejectWorker(Worker):
     def _post_process(self):
         if self.regression_worker:
             self.regression_worker.start()
+
+    def _pre_process(self):
+        stdout = open(self.stdout_path, 'w')
+        stdout.write('{0}\n'.format('\t'.join(self.header)))
+        stdout.close()
+        
 
 ##############################################################################
 ## worker class for regression via regress_cli.r
