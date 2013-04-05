@@ -24,6 +24,20 @@ class OpenTestCase(PyMsBayesTestCase):
         fs.close()
         self.assertEqual(FileStream.open_files, set())
 
+    def test_write(self):
+        self.assertEqual(FileStream.open_files, set())
+        fs = open(self.test_path, 'w')
+        self.assertEqual(FileStream.open_files, set([fs]))
+        s = 'This\nis\n\na\n\ttest\n'
+        fs.write(s)
+        fs.close()
+        self.assertEqual(FileStream.open_files, set())
+        fs = open(self.test_path, 'rU')
+        self.assertEqual(FileStream.open_files, set([fs]))
+        self.assertEqual(fs.read(), s)
+        fs.close()
+        self.assertEqual(FileStream.open_files, set())
+
 class ProcessFileArgTestCase(PyMsBayesTestCase):
     def setUp(self):
         self.set_up()
