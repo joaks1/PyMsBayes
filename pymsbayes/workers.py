@@ -9,10 +9,11 @@ import shutil
 import traceback
 from cStringIO import StringIO
 
+from pymsbayes.fileio import expand_path, process_file_arg, FileStream, open
 from pymsbayes.utils.tempfs import TempFileSystem
 from pymsbayes.utils import BIN_DIR
-from pymsbayes.utils.functions import (get_random_int, expand_path,
-        get_indices_of_patterns, reduce_columns, process_file_arg, is_dir)
+from pymsbayes.utils.functions import (get_random_int, get_indices_of_patterns,
+        reduce_columns, is_dir)
 from pymsbayes.utils.errors import WorkerExecutionError, PriorMergeError
 from pymsbayes.utils.messaging import get_logger
 
@@ -456,7 +457,7 @@ def assemble_msreject_workers(temp_fs,
     for i, line in enumerate(obs_file):
         obs_path = temp_fs.get_file_path(parent = obs_temp_dir,
                 prefix = 'observed-{0}-'.format(i+1),
-                create = True)
+                create = False)
         out = open(obs_path, 'w')
         out.write(line)
         out.close()
