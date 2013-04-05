@@ -8,6 +8,7 @@ import string
 import stat
 
 from pymsbayes.utils import GLOBAL_RNG
+from pymsbayes.fileio import process_file_arg
 
 def mkdr(path):
     """
@@ -45,17 +46,6 @@ def random_str(length=8,
 
 def get_random_int():
     return GLOBAL_RNG.randint(1, 999999999)
-
-def expand_path(path):
-    return os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
-
-def process_file_arg(file_arg, mode='rU'):
-    close = False
-    file_stream = file_arg
-    if isinstance(file_arg, str):
-        file_stream = open(file_arg, mode)
-        close = True
-    return file_stream, close
 
 def line_count(file_obj):
     f, close = process_file_arg(file_obj)

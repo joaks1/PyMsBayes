@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 
 import os
+
+from pymsbayes.fileio import open
 from pymsbayes.utils import (PLATFORM, PACKAGE_DIR, BASE_DIR, SCRIPTS_DIR,
         BIN_DIR)
 

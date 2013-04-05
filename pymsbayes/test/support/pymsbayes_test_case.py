@@ -7,6 +7,7 @@ import re
 import random
 from configobj import ConfigObj
 
+from pymsbayes.fileio import process_file_arg, open
 from pymsbayes.workers import (TAU_PATTERNS,
         MODEL_PATTERNS,
         D_THETA_PATTERNS,
@@ -18,8 +19,7 @@ from pymsbayes.workers import (TAU_PATTERNS,
 from pymsbayes.config import MsBayesConfig
 from pymsbayes.utils.stats import SampleSummarizer
 from pymsbayes.utils import probability
-from pymsbayes.utils.functions import (random_str, process_file_arg,
-        get_indices_of_patterns)
+from pymsbayes.utils.functions import random_str, get_indices_of_patterns
 from pymsbayes.utils.tempfs import TempFileSystem
 from pymsbayes.test.support import package_paths
 from pymsbayes.utils.messaging import get_logger

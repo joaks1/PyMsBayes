@@ -11,6 +11,7 @@ import multiprocessing
 import random
 import argparse
 
+from pymsbayes.fileio import expand_path, process_file_arg, open
 from pymsbayes.workers import (MsBayesWorker, MsRejectWorker, RegressionWorker,
         merge_priors, assemble_msreject_workers, get_parameter_indices,
         get_stat_indices, parse_header, get_patterns_from_prefixes,
@@ -19,8 +20,8 @@ from pymsbayes.workers import (DEFAULT_STAT_PATTERNS, PSI_PATTERNS,
         MODEL_PATTERNS, MEAN_TAU_PATTERNS, OMEGA_PATTERNS)
 from pymsbayes.manager import Manager
 from pymsbayes.utils import WORK_FORCE, GLOBAL_RNG
-from pymsbayes.utils.functions import (is_file, is_dir, expand_path,
-        long_division, mk_new_dir, line_count, get_tolerance)
+from pymsbayes.utils.functions import (is_file, is_dir, long_division,
+        mk_new_dir, line_count, get_tolerance)
 from pymsbayes.utils.tempfs import TempFileSystem
 from pymsbayes.utils.messaging import get_logger
 
@@ -352,7 +353,8 @@ def main_cli():
     info.write('\t\t{0} = {1}\n'.format(observed_model_idx, observed_path))
     if args.reps > 0:
         obs_header_path = working_observed_temp_fs.get_file_path(
-                prefix = 'observed-header-')
+                prefix = 'observed-header-',
+                create = False)
         merge_priors(workers = msbayes_observed_workers,
                 prior_path = observed_path,
                 header_path = obs_header_path,
@@ -371,11 +373,13 @@ def main_cli():
             prefix = 'pymsbayes-prior-files-')
     prior_paths = {}
     prior_paths['header'] = prior_temp_fs.get_file_path(
-            prefix = 'prior-header-')
+            prefix = 'prior-header-',
+            create = False)
     for mod_idx in model_indices:
         prior_path = prior_temp_fs.get_file_path(
                 prefix = 'prior-{0}-{1}-'.format(mod_idx,
-                        args.num_prior_samples))
+                        args.num_prior_samples),
+                create = False)
         merge_priors(workers = msbayes_prior_workers[mod_idx],
                 prior_path = prior_path,
                 header_path = prior_paths['header'],
@@ -395,7 +399,8 @@ def main_cli():
     if args.merge_priors:
         ntotal = args.num_prior_samples * len(args.prior_configs)
         merged_path = prior_temp_fs.get_file_path(
-                prefix = 'prior-merged-{0}-'.format(ntotal))
+                prefix = 'prior-merged-{0}-'.format(ntotal),
+                create = False)
         merge_prior_files(
                 paths = [prior_paths[i] for i in model_indices],
                 dest_path = merged_path)

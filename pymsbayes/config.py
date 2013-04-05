@@ -7,7 +7,7 @@ from cStringIO import StringIO
 import ConfigParser
 
 from pymsbayes.utils.messaging import get_logger
-from pymsbayes.utils.functions import process_file_arg
+from pymsbayes.fileio import process_file_arg
 from pymsbayes.utils.probability import (ContinuousUniformDistribution,
         BetaDistribution, DiscreteUniformDistribution)
 
