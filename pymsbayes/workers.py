@@ -13,7 +13,7 @@ from pymsbayes.fileio import expand_path, process_file_arg, FileStream, open
 from pymsbayes.utils.tempfs import TempFileSystem
 from pymsbayes.utils import BIN_DIR
 from pymsbayes.utils.functions import (get_random_int, get_indices_of_patterns,
-        reduce_columns, is_dir, line_count)
+        reduce_columns, is_dir)
 from pymsbayes.utils.errors import WorkerExecutionError, PriorMergeError
 from pymsbayes.utils.messaging import get_logger
 
@@ -23,6 +23,7 @@ _LOG = get_logger(__name__)
 ##############################################################################
 ## msBayes prior header patterns
 
+HEADER_PATTERN = re.compile(r'^\s*\D.+')
 PARAMETER_PATTERNS = [
         re.compile(r'\s*PRI\.(?!numTauClass)\S+\s*$'),
         ]
@@ -59,10 +60,27 @@ MEAN_TAU_PATTERNS = [
 OMEGA_PATTERNS = [
         re.compile(r'\s*PRI\.omega\s*'),
         ]
-HEADER_PATTERN = re.compile(r'^\s*\D.+')
+
+##############################################################################
+## other globals
+
+VALID_REJECTION_TOOLS = ['msreject', 'abctoolbox']
+VALID_REGRESSION_METHODS = ['llr', 'glm']
 
 ##############################################################################
 ## functions for manipulating prior files
+
+def line_count(file_obj, ignore_headers=False):
+    f, close = process_file_arg(file_obj)
+    count = 0
+    for line in f:
+        if ignore_headers:
+            if HEADER_PATTERN.match(line):
+                continue
+        count += 1
+    if close:
+        f.close()
+    return count
 
 def get_patterns_from_prefixes(prefixes, ignore_case=True):
     patterns = []
@@ -444,36 +462,64 @@ class MsBayesWorker(Worker):
 
         
 ##############################################################################
-## functions for managing msreject workers
+## functions for managing rejection workers
 
-def assemble_msreject_workers(temp_fs,
+def assemble_rejection_workers(temp_fs,
         observed_sims_file,
         prior_path,
-        tolerance,
         results_dir,
+        tolerance = None,
+        num_posterior_samples = None,
+        num_prior_samples = None,
         posterior_prefix='unadjusted-posterior',
         stat_indices = None,
         continuous_parameter_indices = None,
         discrete_parameter_indices = None,
-        msreject_path = None,
+        reject_path = None,
         regress_path = None,
-        regress = True):
+        regress = True,
+        rejection_tool = 'abctoolbox',
+        regression_method = 'glm',
+        keep_temps = False,
+        dirac_peak_width = None,
+        num_posterior_density_points = None):
+    if tolerance is None and num_posterior_samples is None:
+        raise ValueError('must specify either `tolerance` or '
+                '`num_posterior_samples`')
+    if rejection_tool.lower() not in VALID_REJECTION_TOOLS:
+        raise ValueError('invalid rejection tool {0}; valid options are: '
+                '{1}'.format(rejection_tool, ', '.join(VALID_REJECTION_TOOLS)))
+    if regression_method.lower() not in VALID_REGRESSION_METHODS:
+        raise ValueError('invalid regression method {0}; valid options are: '
+                '{1}'.format(regression_method, ', '.join(
+                        VALID_REGRESSION_METHODS)))
+    if (tolerance is None or num_posterior_samples is None) and \
+            num_prior_samples is None:
+        num_prior_samples = line_count(prior_path, ignore_headers=True)
+    if tolerance is None:
+        tolerance = num_posterior_samples / float(num_prior_samples)
+    if num_posterior_samples is None:
+        num_posterior_samples = int(tolerance * num_prior_samples)
+    if num_prior_samples is None:
+        num_prior_samples = int(num_posterior_samples / tolerance)
     obs_file, close = process_file_arg(observed_sims_file)
     header = parse_header(obs_file)
     obs_temp_dir = temp_fs.create_subdir(prefix = 'observed-files-')
-    obs_file.next() # header
-    msreject_workers = []
+    header_line = obs_file.next()
+    reject_workers = []
     for i, line in enumerate(obs_file):
         obs_path = temp_fs.get_file_path(parent = obs_temp_dir,
                 prefix = 'observed-{0}-'.format(i+1),
                 create = False)
         out = open(obs_path, 'w')
+        if rejection_tool.lower() == 'abctoolbox':
+            out.write(header_line)
         out.write(line)
         out.close()
         posterior_file_name = '{0}.{1}.txt'.format(posterior_prefix, i+1)
         posterior_path = os.path.join(results_dir, posterior_file_name)
         regression_worker = None
-        if regress:
+        if regress and regression_method.lower() == 'llr':
             regression_worker = RegressionWorker(
                     observed_path = obs_path,
                     posterior_path = posterior_path,
@@ -482,18 +528,43 @@ def assemble_msreject_workers(temp_fs,
                     continuous_parameter_indices = continuous_parameter_indices,
                     discrete_parameter_indices = discrete_parameter_indices,
                     exe_path = regress_path)
-        msreject_workers.append(MsRejectWorker(
-                header = header,
-                observed_path = obs_path,
-                prior_path = prior_path,
-                tolerance = tolerance,
-                posterior_path = posterior_path,
-                stat_indices = stat_indices,
-                regression_worker = regression_worker,
-                exe_path = msreject_path))
+        if regress and regression_method.lower() == 'glm':
+            regression_worker = ABCToolBoxRegressWorker(
+                    temp_fs = temp_fs,
+                    observed_path = obs_path,
+                    posterior_path = posterior_path,
+                    parameter_indices = sorted(continuous_parameter_indices + \
+                            discrete_parameter_indices),
+                    exe_path = regress_path,
+                    keep_temps = keep_temps,
+                    num_posterior_samples = num_posterior_samples,
+                    dirac_peak_width = dirac_peak_width,
+                    num_posterior_density_points = num_posterior_density_points)
+        if rejection_tool.lower() == 'msreject':
+            reject_workers.append(MsRejectWorker(
+                    header = header,
+                    observed_path = obs_path,
+                    prior_path = prior_path,
+                    tolerance = tolerance,
+                    posterior_path = posterior_path,
+                    stat_indices = stat_indices,
+                    regression_worker = regression_worker,
+                    exe_path = reject_path))
+        if rejection_tool.lower() == 'abctoolbox':
+            reject_workers.append(ABCToolBoxRejectWorker(
+                    temp_fs = temp_fs,
+                    observed_path = obs_path,
+                    prior_path = prior_path,
+                    num_posterior_samples = num_posterior_samples,
+                    posterior_path = posterior_path,
+                    regression_worker = regression_worker,
+                    exe_path = reject_path,
+                    keep_temps = keep_temps,
+                    max_read_sims = int(num_prior_samples + \
+                            (0.01 * num_prior_samples))))
     if close:
         obs_file.close()
-    return msreject_workers
+    return reject_workers
 
 
 ##############################################################################
@@ -721,9 +792,9 @@ class ABCToolBoxRegressWorker(Worker):
             stdout_path = None,
             stderr_path = None,
             keep_temps = False,
-            num_posterior_samples = None,
             dirac_peak_width = None,
-            num_posterior_density_points = 1000,
+            num_posterior_samples = None,
+            num_posterior_density_points = None,
             ):
         Worker.__init__(self,
                 stdout_path = stdout_path,
@@ -742,9 +813,11 @@ class ABCToolBoxRegressWorker(Worker):
         self.observed_path = expand_path(observed_path)
         self.posterior_path = expand_path(posterior_path)
         self.parameter_indices = parameter_indices
+        if not num_posterior_density_points:
+            num_posterior_density_points = 1000
         self.num_posterior_density_points = int(num_posterior_density_points)
-        self.dirac_peak_width = 1 / float(num_posterior_density_points)
         self.num_posterior_samples = num_posterior_samples
+        self.dirac_peak_width = 1 / float(num_posterior_density_points)
         if not summary_path:
             summary_path = self.posterior_path + '.regression-summary.txt'
         self.summary_path = summary_path
@@ -755,7 +828,8 @@ class ABCToolBoxRegressWorker(Worker):
     def _pre_process(self):
         self.header = parse_header(self.posterior_path)
         if not self.num_posterior_samples:
-            self.num_posterior_samples = line_count(self.posterior_path - 1)
+            self.num_posterior_samples = line_count(self.posterior_path,
+                    ignore_headers=True)
         potential_stat_indices = get_stat_indices(
                 self.header,
                 stat_patterns = ALL_STAT_PATTERNS)
@@ -794,13 +868,12 @@ class ABCToolBoxRegressWorker(Worker):
         cfg.write('obsName {0}\n'.format(self.observed_path))
         cfg.write('params {0}\n'.format(','.join(
                 [str(i+1) for i in self.parameter_indices])))
-        cfg.write('numRetained {0}\n'.format(self.num_posterior_samples))
         cfg.write('diracPeakWidth {0}\n'.format(self.dirac_peak_width))
         cfg.write('posteriorDensityPoints {0}\n'.format(
                 self.num_posterior_density_points))
         cfg.write('stadardizeStats 1\n')
         cfg.write('writeRetained 0\n')
-        cfg.write('maxReadSims {0}\n'.format(self.num_posterior_samples + 1))
+        cfg.write('maxReadSims {0}\n'.format(self.num_posterior_samples + 100))
         cfg.write('outputPrefix {0}\n'.format(self.output_prefix))
         return cfg
 
