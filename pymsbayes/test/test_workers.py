@@ -427,6 +427,230 @@ class MsRejectWorkerTestCase(PyMsBayesTestCase):
         self.assertEqual(posterior1, expected_post)
         self.assertEqual(posterior2, expected_post)
 
+class ABCToolBoxRejectWorkerTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.cfg_path = package_paths.data_path('4pairs_1locus.cfg')
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_rejection_with_parameters(self):
+        prior_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 100,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                report_parameters = True)
+        prior_worker.start()
+        obs_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox-observed',
+                report_parameters = True)
+        obs_worker.start()
+
+        post_path = self.get_test_path(prefix='test-posterior-')
+        reject_worker = workers.ABCToolBoxRejectWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                prior_path = prior_worker.prior_path,
+                num_posterior_samples = 10,
+                posterior_path = post_path,
+                regression_worker = None,
+                exe_path = None,
+                stdout_path = None,
+                stderr_path = None,
+                keep_temps = False,
+                max_read_sims = 1000)
+        self.assertFalse(reject_worker.finished)
+        reject_worker.start()
+        self.assertTrue(reject_worker.finished)
+        self.assertTrue(os.path.isfile(reject_worker.posterior_path))
+        self.assertEqual(self.get_number_of_lines(
+                reject_worker.posterior_path), 11)
+        self.assertEqual(self.get_number_of_header_lines(
+                reject_worker.posterior_path), 1)
+
+class ABCToolBoxRegressWorkerTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.cfg_path = package_paths.data_path('4pairs_1locus.cfg')
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_regression_from_prior(self):
+        post_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 100,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                report_parameters = True)
+        post_worker.start()
+        obs_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox-observed',
+                report_parameters = True)
+        obs_worker.start()
+
+        summary_path = self.get_test_path(prefix='test-summary-')
+        adjusted_path = self.get_test_path(prefix='test-adjusted-')
+        regress_worker = workers.ABCToolBoxRegressWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                posterior_path = post_worker.prior_path,
+                parameter_indices = None,
+                summary_path = summary_path,
+                adjusted_path = adjusted_path,
+                exe_path = None,
+                stdout_path = None,
+                stderr_path = None,
+                keep_temps = False,
+                num_posterior_samples = 100,
+                dirac_peak_width = None,
+                num_posterior_density_points = 100)
+        self.assertFalse(regress_worker.finished)
+        regress_worker.start()
+        self.assertTrue(regress_worker.finished)
+        self.assertTrue(os.path.isfile(regress_worker.summary_path))
+        self.assertTrue(os.path.isfile(regress_worker.adjusted_path))
+        self.assertEqual(self.get_number_of_lines(
+                regress_worker.adjusted_path), 101)
+
+    def test_regression_from_prior_with_indices(self):
+        post_worker1 = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 100,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                report_parameters = True,
+                model_index=1)
+        post_worker2 = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 100,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                report_parameters = True,
+                model_index=2)
+        post_worker1.start()
+        post_worker2.start()
+        obs_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox-observed',
+                report_parameters = True)
+        obs_worker.start()
+        post_path = self.get_test_path(prefix='test-posterior')
+        head_path = self.get_test_path(prefix='test-posterior-head')
+        workers.merge_priors(workers = [post_worker1, post_worker2],
+                prior_path = post_path,
+                header_path = head_path,
+                include_header=True)
+        summary_path = self.get_test_path(prefix='test-summary-')
+        adjusted_path = self.get_test_path(prefix='test-adjusted-')
+        regress_worker = workers.ABCToolBoxRegressWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                posterior_path = post_path,
+                parameter_indices = None,
+                summary_path = summary_path,
+                adjusted_path = adjusted_path,
+                exe_path = None,
+                stdout_path = None,
+                stderr_path = None,
+                keep_temps = False,
+                num_posterior_samples = 200,
+                dirac_peak_width = None,
+                num_posterior_density_points = 100)
+        self.assertFalse(regress_worker.finished)
+        regress_worker.start()
+        self.assertTrue(regress_worker.finished)
+        self.assertTrue(os.path.isfile(regress_worker.summary_path))
+        self.assertTrue(os.path.isfile(regress_worker.adjusted_path))
+        self.assertEqual(self.get_number_of_lines(
+                regress_worker.adjusted_path), 101)
+
+    def test_regression_from_posterior_with_indices(self):
+        prior_worker1 = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 100,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                report_parameters = True,
+                model_index=1)
+        prior_worker2 = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 100,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                report_parameters = True,
+                model_index=2)
+        prior_worker1.start()
+        prior_worker2.start()
+        obs_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox-observed',
+                report_parameters = True)
+        obs_worker.start()
+        prior_path = self.get_test_path(prefix='test-prior')
+        head_path = self.get_test_path(prefix='test-prior-head')
+        post_path = self.get_test_path(prefix='test-post')
+        workers.merge_priors(workers = [prior_worker1, prior_worker2],
+                prior_path = prior_path,
+                header_path = head_path,
+                include_header=True)
+        reject_worker = workers.ABCToolBoxRejectWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                prior_path = prior_path,
+                num_posterior_samples = 100,
+                posterior_path = post_path,
+                regression_worker = None,
+                exe_path = None,
+                stdout_path = None,
+                stderr_path = None,
+                keep_temps = False,
+                max_read_sims = 1000)
+        self.assertFalse(reject_worker.finished)
+        reject_worker.start()
+        self.assertTrue(reject_worker.finished)
+        self.assertTrue(os.path.isfile(reject_worker.posterior_path))
+        self.assertEqual(self.get_number_of_lines(
+                reject_worker.posterior_path), 101)
+        self.assertEqual(self.get_number_of_header_lines(
+                reject_worker.posterior_path), 1)
+        summary_path = self.get_test_path(prefix='test-summary-')
+        adjusted_path = self.get_test_path(prefix='test-adjusted-')
+        regress_worker = workers.ABCToolBoxRegressWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                posterior_path = post_path,
+                parameter_indices = None,
+                summary_path = summary_path,
+                adjusted_path = adjusted_path,
+                exe_path = None,
+                stdout_path = None,
+                stderr_path = None,
+                keep_temps = False,
+                num_posterior_samples = 100,
+                dirac_peak_width = None,
+                num_posterior_density_points = 100)
+        self.assertFalse(regress_worker.finished)
+        regress_worker.start()
+        self.assertTrue(regress_worker.finished)
+        self.assertTrue(os.path.isfile(regress_worker.summary_path))
+        self.assertTrue(os.path.isfile(regress_worker.adjusted_path))
+        self.assertEqual(self.get_number_of_lines(
+                regress_worker.adjusted_path), 101)
+
+
 class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
     def setUp(self):
         self.set_up()
