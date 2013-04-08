@@ -52,6 +52,8 @@ def line_count(file_obj):
     count = 0
     for line in f:
         count += 1
+    if close:
+        f.close()
     return count
 
 def get_indices_of_patterns(target_list, regex_list, sort=True):
