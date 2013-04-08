@@ -4,6 +4,7 @@ import sys
 import os
 import tempfile
 
+from pymsbayes.utils.functions import random_str
 from pymsbayes.utils.errors import TempFSError
 from pymsbayes.utils.messaging import get_logger
 
@@ -32,6 +33,7 @@ class TempFileSystem(object):
         self.parent = self._get_full_path(parent)
         self.prefix = prefix
         self.base_dir = self._make_dir(parent=self.parent, prefix=self.prefix)
+        self.token_id = random_str()
         self.deleted = False
 
     def _get_full_path(self, path):
@@ -71,7 +73,7 @@ class TempFileSystem(object):
             raise TempFSError('unregistered parent: {0}'.format(full_parent))
         return full_parent
 
-    def get_file_path(self, parent=None, prefix='temp', create=True):
+    def get_file_path(self, parent=None, prefix='temp', create=False):
         """
         Get temp file path within the temp directory.
 
@@ -107,10 +109,12 @@ class TempFileSystem(object):
         self.dirs.remove(full_path)
         for p in os.listdir(full_path):
             path = os.path.join(full_path, p)
+            if p.startswith(self.token_id):
+                self._register_file(path)
             if os.path.isfile(path):
                 if not path in self.files:
-                    raise TempFSError('File {0!r} is not registered; cannot '
-                            'remove'.format(path))
+                    raise TempFSError('File {0!r} is not registered; '
+                        'cannot remove'.format(path))
                 self._remove_file(path)
             else:
                 self.remove_dir(path)
