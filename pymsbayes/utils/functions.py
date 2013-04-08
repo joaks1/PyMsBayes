@@ -47,15 +47,6 @@ def random_str(length=8,
 def get_random_int():
     return GLOBAL_RNG.randint(1, 999999999)
 
-def line_count(file_obj):
-    f, close = process_file_arg(file_obj)
-    count = 0
-    for line in f:
-        count += 1
-    if close:
-        f.close()
-    return count
-
 def get_indices_of_patterns(target_list, regex_list, sort=True):
     indices = []
     for regex in regex_list:
