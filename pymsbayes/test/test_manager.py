@@ -8,7 +8,7 @@ import multiprocessing
 from pymsbayes.fileio import open
 from pymsbayes.manager import Manager
 from pymsbayes.workers import (MsBayesWorker, merge_priors,
-        assemble_msreject_workers, MsRejectWorker)
+        assemble_rejection_workers, MsRejectWorker)
 from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test import TestLevel, test_enabled
@@ -161,14 +161,15 @@ class ManagerTestCase(PyMsBayesTestCase):
             merge_priors(workers=workers, prior_path=obs_path,
                     header_path=obs_header_path, include_header=True)
             results_dir = self.get_test_subdir(prefix='test-rejection-results-')
-            msreject_workers = assemble_msreject_workers(
+            msreject_workers = assemble_rejection_workers(
                     temp_fs = self.temp_fs,
                     observed_sims_file = obs_path,
                     prior_path = prior_path,
                     tolerance = 0.1,
                     results_dir = results_dir,
                     posterior_prefix = self.test_id + '-posterior-',
-                    regress = False)
+                    regress = False,
+                    rejection_tool = 'msreject')
             self.assertEqual(len(msreject_workers), 2000)
             for w in msreject_workers:
                 self.workq.put(w)

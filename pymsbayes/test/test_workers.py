@@ -510,7 +510,6 @@ class ABCToolBoxRegressWorkerTestCase(PyMsBayesTestCase):
                 stdout_path = None,
                 stderr_path = None,
                 keep_temps = False,
-                num_posterior_samples = 100,
                 dirac_peak_width = None,
                 num_posterior_density_points = 100)
         self.assertFalse(regress_worker.finished)
@@ -564,7 +563,6 @@ class ABCToolBoxRegressWorkerTestCase(PyMsBayesTestCase):
                 stdout_path = None,
                 stderr_path = None,
                 keep_temps = False,
-                num_posterior_samples = 200,
                 dirac_peak_width = None,
                 num_posterior_density_points = 100)
         self.assertFalse(regress_worker.finished)
@@ -676,14 +674,15 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
     def test_no_regression(self):
         prior_worker = self._get_prior()
         obs_worker = self._get_prior(n=10, include_header=True)
-        jobs = workers.assemble_msreject_workers(
+        jobs = workers.assemble_rejection_workers(
                 temp_fs = self.temp_fs,
                 observed_sims_file = obs_worker.prior_path,
                 prior_path = prior_worker.prior_path,
                 tolerance = 0.05,
                 results_dir = self.results_dir,
                 posterior_prefix = self.posterior_prefix,
-                regress = False)
+                regress = False,
+                rejection_tool = 'msreject')
         for j in jobs:
             self.assertFalse(j.finished)
             j.start()
@@ -696,14 +695,16 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
     def test_with_regression(self):
         prior_worker = self._get_prior(n=200)
         obs_worker = self._get_prior(n=2, include_header=True)
-        msreject_workers = workers.assemble_msreject_workers(
+        msreject_workers = workers.assemble_rejection_workers(
                 temp_fs = self.temp_fs,
                 observed_sims_file = obs_worker.prior_path,
                 prior_path = prior_worker.prior_path,
                 tolerance = 0.5,
                 results_dir = self.results_dir,
                 posterior_prefix = self.posterior_prefix,
-                regress = True)
+                regress = True,
+                rejection_tool = 'msreject',
+                regression_method = 'llr')
         for j in msreject_workers:
             self.assertFalse(j.finished)
             self.assertFalse(j.regression_worker.finished)
