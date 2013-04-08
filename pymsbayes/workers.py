@@ -13,7 +13,7 @@ from pymsbayes.fileio import expand_path, process_file_arg, FileStream, open
 from pymsbayes.utils.tempfs import TempFileSystem
 from pymsbayes.utils import BIN_DIR
 from pymsbayes.utils.functions import (get_random_int, get_indices_of_patterns,
-        reduce_columns, is_dir)
+        reduce_columns, is_dir, line_count)
 from pymsbayes.utils.errors import WorkerExecutionError, PriorMergeError
 from pymsbayes.utils.messaging import get_logger
 
@@ -110,30 +110,6 @@ def observed_parameters_for_abctoolbox(in_file, out_file,
     reduce_columns(in_file, out_file, indices)
     return [header[i] for i in sorted(indices)]
 
-# def observed_for_msreject(in_file, out_file,
-#         stat_patterns=DEFAULT_STAT_PATTERNS,
-#         parameter_patterns=PARAMETER_PATTERNS,
-#         dummy_patterns=DUMMY_PATTERNS):
-#     # in_file, close_in = process_file_arg(in_file, 'rU')
-#     # out_file, close_out = process_file_arg(out_file, 'w')
-#     header = parse_header(in_file)
-#     parameter_indices = get_parameter_indices(header,
-#             parameter_patterns=parameter_patterns)
-#     stat_indices = get_stat_indices(header,
-#             stat_patterns=stat_patterns)
-#     dummy_indices = get_dummy_indices(header,
-#             dummy_patterns=DUMMY_PATTERNS)
-#     indices = sorted(dummy_indices + parameter_indices + stat_indices)
-#     reduce_columns(in_file, out_file, indices)
-#     # new_head = [header[i] for i in (dummy_indices + parameter_indices + stat_indices)]
-#     # out_file.write('%s\t\n' % '\t'.join(new_head))
-#     # line_iter = iter(in_file)
-#     # line_iter.next()
-#     # for line_num, line in enumerate(line_iter):
-#     #     l = line.strip().split()
-#     #     new_line = ['0', '1', '0', '1', '0'] + [l[i] for i in stat_indices]
-#     #     out_file.write('%s\n' % '\t'.join(new_line))
-
 def prior_for_abctoolbox(in_file, out_file,
         stat_patterns=DEFAULT_STAT_PATTERNS,
         parameter_patterns=PARAMETER_PATTERNS):
@@ -141,7 +117,7 @@ def prior_for_abctoolbox(in_file, out_file,
     indices = get_parameter_indices(header,
             parameter_patterns=parameter_patterns)
     indices.extend(get_stat_indices(header, stat_patterns=stat_patterns))
-    reduce_columns(in_file, out_file, sorted(indices))
+    reduce_columns(in_file, out_file, sorted(indices), extra_tab=False)
     return [header[i] for i in sorted(indices)]
 
 def prior_for_msreject(in_file, out_file,
@@ -312,7 +288,7 @@ def merge_prior_files(paths, dest_path):
 
 class MsBayesWorker(Worker):
     count = 0
-    valid_schemas = ['msreject'] #, 'abctoolbox']
+    valid_schemas = ['msreject', 'abctoolbox', 'abctoolbox-observed']
 
     def __init__(self,
             temp_fs,
@@ -370,6 +346,10 @@ class MsBayesWorker(Worker):
                     'schema {0} is not valid. Options are: {1}'.format(
                         schema, ','.join(self.valid_schemas)))
         self.schema = schema.lower()
+        self.prior_stats_path = self.prior_path
+        if self.schema == 'abctoolbox-observed':
+            self.prior_stats_path = self.prior_path + '.stats.txt'
+            self.temp_fs._register_file(self.prior_stats_path)
         self.include_header = include_header
         self.stat_patterns = stat_patterns
         self.parameter_patterns = parameter_patterns
@@ -382,6 +362,10 @@ class MsBayesWorker(Worker):
             self.staging_dir = staging_dir
             self.staging_prior_path = os.path.join(staging_dir,
                     os.path.basename(self.prior_path))
+            self.staging_prior_stats_path = self.staging_prior_path
+            if self.schema == 'abctoolbox-observed':
+                self.staging_prior_stats_path = self.staging_prior_path + \
+                        '.stats.txt'
         self._update_cmd()
 
     def _update_cmd(self):
@@ -403,8 +387,10 @@ class MsBayesWorker(Worker):
 
     def _post_process(self):
         prior_path = self.prior_path
+        prior_stats_path = self.prior_stats_path
         if self.staging_dir:
             prior_path = self.staging_prior_path
+            prior_stats_path = self.staging_prior_stats_path
         raw_prior_path = prior_path + '.raw'
         shutil.move(prior_path, raw_prior_path)
         if self.schema == 'msreject':
@@ -415,6 +401,26 @@ class MsBayesWorker(Worker):
                     parameter_patterns = self.parameter_patterns,
                     dummy_patterns = DUMMY_PATTERNS,
                     include_header = self.include_header)
+        elif self.schema == 'abctoolbox':
+            header = prior_for_abctoolbox(
+                    in_file = raw_prior_path,
+                    out_file = prior_path,
+                    stat_patterns = self.stat_patterns,
+                    parameter_patterns = self.parameter_patterns)
+        elif self.schema == 'abctoolbox-observed':
+            header = observed_stats_for_abctoolbox(
+                    in_file = raw_prior_path,
+                    out_file = prior_stats_path,
+                    stat_patterns = self.stat_patterns)
+            header = observed_parameters_for_abctoolbox(
+                    in_file = raw_prior_path,
+                    out_file = prior_path,
+                    parameter_patterns = self.parameter_patterns)
+            header = None
+        else:
+            raise ValueError(
+                    'schema {0} is not valid. Options are: {1}'.format(
+                        self.schema, ','.join(self.valid_schemas)))
         os.remove(raw_prior_path)
         if header:
             out = open(self.header_path, 'w')
@@ -423,6 +429,9 @@ class MsBayesWorker(Worker):
             self._set_header(header)
         if self.staging_dir:
             shutil.move(self.staging_prior_path, self.prior_path)
+            if self.schema == 'abctoolbox-observed':
+                shutil.move(self.staging_prior_stats_path,
+                        self.prior_stats_path)
 
     def _set_header(self, header):
         self.header = header
@@ -623,4 +632,175 @@ class RegressionWorker(Worker):
                '-s', ','.join(
                     [str(i+1) for i in self.stat_indices]),]
         self.cmd = cmd
+
+class ABCToolBoxRejectWorker(Worker):
+    count = 0
+    def __init__(self,
+            temp_fs,
+            observed_path,
+            prior_path,
+            num_posterior_samples,
+            posterior_path = None,
+            regression_worker = None,
+            exe_path = None,
+            stdout_path = None,
+            stderr_path = None,
+            keep_temps = False,
+            max_read_sims = 10000000):
+        Worker.__init__(self,
+                stdout_path = stdout_path,
+                stderr_path = stderr_path)
+        self.__class__.count += 1
+        self.name = 'ABCToolBoxRejectWorker-' + str(self.count)
+        self.temp_fs = temp_fs
+        if not exe_path:
+            exe_path = os.path.join(BIN_DIR, 'ABCestimator')
+        self.exe_path = expand_path(exe_path)
+        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
+        self.output_prefix = os.path.join(self.output_dir, 
+                self.temp_fs.token_id + '_ABC_GLM_')
+        self.cfg_path = self.temp_fs.get_file_path(parent = self.output_dir,
+                prefix = 'cfg-',
+                create = False)
+        self.observed_path = expand_path(observed_path)
+        self.prior_path = expand_path(prior_path)
+        if not posterior_path:
+            posterior_path = observed_path + '.posterior'
+        self.posterior_path = expand_path(posterior_path)
+        self.parameter_indices = None
+        self.num_posterior_samples = int(num_posterior_samples)
+        self.regression_worker = regression_worker
+        self.max_read_sims = int(max_read_sims)
+
+    def _pre_process(self):
+        self.header = parse_header(self.prior_path)
+        self.parameter_indices = sorted(get_parameter_indices(
+                self.header,
+                parameter_patterns=(PARAMETER_PATTERNS)))
+        cfg = self._compose_cfg_string()
+        out = open(self.cfg_path, 'w')
+        out.write(cfg.getvalue())
+        out.close()
+        self._update_cmd()
+
+    def _post_process(self):
+        post_path = self.output_prefix + 'BestSimsParamStats_Obs0.txt'
+        shutil.move(post_path, self.posterior_path)
+        self.temp_fs.remove_dir(self.output_dir)
+
+    def _update_cmd(self):
+        cmd = [self.exe_path, self.cfg_path]
+        self.cmd = cmd
+        
+    def _compose_cfg_string(self):
+        cfg = StringIO()
+        cfg.write('estimationType standard\n')
+        cfg.write('simName {0}\n'.format(self.prior_path))
+        cfg.write('obsName {0}\n'.format(self.observed_path))
+        cfg.write('params {0}\n'.format(','.join(
+                [str(i+1) for i in self.parameter_indices])))
+        cfg.write('numRetained {0}\n'.format(self.num_posterior_samples))
+        cfg.write('diracPeakWidth 0\n') # No GLM regression
+        cfg.write('posteriorDensityPoints 0\n')
+        cfg.write('stadardizeStats 1\n')
+        cfg.write('writeRetained 1\n')
+        cfg.write('maxReadSims {0}\n'.format(self.max_read_sims))
+        cfg.write('outputPrefix {0}\n'.format(self.output_prefix))
+        return cfg
+
+class ABCToolBoxRegressWorker(Worker):
+    count = 0
+    def __init__(self,
+            temp_fs,
+            observed_path,
+            posterior_path,
+            parameter_indices = None,
+            summary_path = None,
+            adjusted_path = None,
+            exe_path = None,
+            stdout_path = None,
+            stderr_path = None,
+            keep_temps = False,
+            num_posterior_samples = None,
+            dirac_peak_width = None,
+            num_posterior_density_points = 1000,
+            ):
+        Worker.__init__(self,
+                stdout_path = stdout_path,
+                stderr_path = stderr_path)
+        self.__class__.count += 1
+        self.name = 'ABCToolBoxRegressWorker-' + str(self.count)
+        self.temp_fs = temp_fs
+        if not exe_path:
+            exe_path = os.path.join(BIN_DIR, 'ABCestimator')
+        self.exe_path = expand_path(exe_path)
+        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
+        self.output_prefix = os.path.join(self.output_dir, 
+                self.temp_fs.token_id + '_ABC_GLM_')
+        self.cfg_path = self.temp_fs.get_file_path(prefix = 'cfg-',
+                create = False)
+        self.observed_path = expand_path(observed_path)
+        self.posterior_path = expand_path(posterior_path)
+        self.parameter_indices = parameter_indices
+        self.num_posterior_density_points = int(num_posterior_density_points)
+        self.dirac_peak_width = 1 / float(num_posterior_density_points)
+        self.num_posterior_samples = num_posterior_samples
+        if not summary_path:
+            summary_path = self.posterior_path + '.regression-summary.txt'
+        self.summary_path = summary_path
+        if not adjusted_path:
+            adjusted_path = self.posterior_path + '.regression-adjusted.txt'
+        self.adjusted_path = adjusted_path
+
+    def _pre_process(self):
+        self.header = parse_header(self.posterior_path)
+        if not self.num_posterior_samples:
+            self.num_posterior_samples = line_count(self.posterior_path - 1)
+        potential_stat_indices = get_stat_indices(
+                self.header,
+                stat_patterns = ALL_STAT_PATTERNS)
+        if not self.parameter_indices:
+            self.parameter_indices = sorted(get_parameter_indices(
+                    self.header,
+                    parameter_patterns=(MEAN_TAU_PATTERNS + \
+                            OMEGA_PATTERNS + \
+                            MODEL_PATTERNS + \
+                            PSI_PATTERNS)))
+        if len(set.intersection(set(potential_stat_indices),
+                set(self.parameter_indices))) > 0:
+            raise ValueError('parameter indices are not valid. '
+                    'they contain stat indices!')
+        cfg = self._compose_cfg_string()
+        out = open(self.cfg_path, 'w')
+        out.write(cfg.getvalue())
+        out.close()
+        self._update_cmd()
+
+    def _post_process(self):
+        summary_path = self.output_prefix + 'PosteriorCharacteristics_Obs0.txt'
+        adjusted_path = self.output_prefix + 'PosteriorEstimates_Obs0.txt'
+        shutil.move(summary_path, self.summary_path)
+        shutil.move(adjusted_path, self.adjusted_path)
+        self.temp_fs.remove_dir(self.output_dir)
+
+    def _update_cmd(self):
+        cmd = [self.exe_path, self.cfg_path]
+        self.cmd = cmd
+        
+    def _compose_cfg_string(self):
+        cfg = StringIO()
+        cfg.write('estimationType standard\n')
+        cfg.write('simName {0}\n'.format(self.posterior_path))
+        cfg.write('obsName {0}\n'.format(self.observed_path))
+        cfg.write('params {0}\n'.format(','.join(
+                [str(i+1) for i in self.parameter_indices])))
+        cfg.write('numRetained {0}\n'.format(self.num_posterior_samples))
+        cfg.write('diracPeakWidth {0}\n'.format(self.dirac_peak_width))
+        cfg.write('posteriorDensityPoints {0}\n'.format(
+                self.num_posterior_density_points))
+        cfg.write('stadardizeStats 1\n')
+        cfg.write('writeRetained 0\n')
+        cfg.write('maxReadSims {0}\n'.format(self.num_posterior_samples + 1))
+        cfg.write('outputPrefix {0}\n'.format(self.output_prefix))
+        return cfg
 
