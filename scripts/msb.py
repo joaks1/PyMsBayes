@@ -13,15 +13,15 @@ import argparse
 
 from pymsbayes.fileio import expand_path, process_file_arg, open
 from pymsbayes.workers import (MsBayesWorker, MsRejectWorker, RegressionWorker,
-        merge_priors, assemble_msreject_workers, get_parameter_indices,
+        merge_priors, assemble_rejection_workers, get_parameter_indices,
         get_stat_indices, parse_header, get_patterns_from_prefixes,
-        merge_prior_files)
+        merge_prior_files, line_count)
 from pymsbayes.workers import (DEFAULT_STAT_PATTERNS, PSI_PATTERNS,
         MODEL_PATTERNS, MEAN_TAU_PATTERNS, OMEGA_PATTERNS)
 from pymsbayes.manager import Manager
 from pymsbayes.utils import WORK_FORCE, GLOBAL_RNG
 from pymsbayes.utils.functions import (is_file, is_dir, long_division,
-        mk_new_dir, line_count, get_tolerance)
+        mk_new_dir, get_tolerance)
 from pymsbayes.utils.tempfs import TempFileSystem
 from pymsbayes.utils.messaging import get_logger
 
@@ -438,7 +438,7 @@ def main_cli():
         tolerance = get_tolerance(ntotal, args.num_posterior_samples)
         if tolerance > 1.0:
             tolerance = 1.0
-        msreject_workers.extend(assemble_msreject_workers(
+        msreject_workers.extend(assemble_rejection_workers(
                 temp_fs = rejection_temp_fs,
                 observed_sims_file = observed_path,
                 prior_path = prior_paths['merged'],
@@ -448,14 +448,16 @@ def main_cli():
                 stat_indices = stat_indices,
                 continuous_parameter_indices = continuous_parameter_indices,
                 discrete_parameter_indices = discrete_parameter_indices,
-                regress = args.regression))
+                regress = args.regression,
+                rejection_tool = 'msreject',
+                regression_method = 'llr'))
     else:
         tolerance = get_tolerance(args.num_prior_samples,
                 args.num_posterior_samples)
         if tolerance > 1.0:
             tolerance = 1.0
         for i in model_indices:
-            msreject_workers.extend(assemble_msreject_workers(
+            msreject_workers.extend(assemble_rejection_workers(
                     temp_fs = rejection_temp_fs,
                     observed_sims_file = observed_path,
                     prior_path = prior_paths[i],
@@ -465,7 +467,9 @@ def main_cli():
                     stat_indices = stat_indices,
                     continuous_parameter_indices = continuous_parameter_indices,
                     discrete_parameter_indices = discrete_parameter_indices,
-                    regress = args.regression))
+                    regress = args.regression,
+                    rejection_tool = 'msreject',
+                    regression_method = 'llr'))
 
     # run parallel msreject processes
     for w in msreject_workers:
