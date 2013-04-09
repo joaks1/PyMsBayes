@@ -430,11 +430,11 @@ class MsBayesWorker(Worker):
                     in_file = raw_prior_path,
                     out_file = prior_stats_path,
                     stat_patterns = self.stat_patterns)
-            header = observed_parameters_for_abctoolbox(
+            header = prior_for_abctoolbox(
                     in_file = raw_prior_path,
                     out_file = prior_path,
+                    stat_patterns = self.stat_patterns,
                     parameter_patterns = self.parameter_patterns)
-            header = None
         else:
             raise ValueError(
                     'schema {0} is not valid. Options are: {1}'.format(
@@ -481,8 +481,8 @@ def assemble_rejection_workers(temp_fs,
         rejection_tool = 'abctoolbox',
         regression_method = 'glm',
         keep_temps = False,
-        dirac_peak_width = None,
-        num_posterior_density_points = None):
+        bandwidth = None,
+        num_posterior_quantiles = None):
     if tolerance is None and num_posterior_samples is None:
         raise ValueError('must specify either `tolerance` or '
                 '`num_posterior_samples`')
@@ -504,6 +504,22 @@ def assemble_rejection_workers(temp_fs,
         num_prior_samples = int(num_posterior_samples / tolerance)
     obs_file, close = process_file_arg(observed_sims_file)
     header = parse_header(obs_file)
+    if rejection_tool == 'abctoolbox':
+        header = parse_header(prior_path)
+    dummy_indices = get_dummy_indices(header)
+    if len(dummy_indices) > 1:
+        raise ValueError('header has more than one dummy column')
+    if len(dummy_indices) == 1 and dummy_indices[0] != 0:
+        raise ValueError('dummy column is not first column')
+    # if rejecting with abctoolbox we must adjust parameter indices
+    if rejection_tool == 'abctoolbox':
+        diff = 2 - len(dummy_indices)
+        if continuous_parameter_indices:
+            continuous_parameter_indices = [
+                    i + diff for i in continuous_parameter_indices]
+        if discrete_parameter_indices:
+            discrete_parameter_indices = [
+                    i + diff for i in discrete_parameter_indices]
     obs_temp_dir = temp_fs.create_subdir(prefix = 'observed-files-')
     header_line = obs_file.next()
     reject_workers = []
@@ -538,8 +554,8 @@ def assemble_rejection_workers(temp_fs,
                     exe_path = regress_path,
                     keep_temps = keep_temps,
                     num_posterior_samples = num_posterior_samples,
-                    dirac_peak_width = dirac_peak_width,
-                    num_posterior_density_points = num_posterior_density_points)
+                    bandwidth = bandwidth,
+                    num_posterior_quantiles = num_posterior_quantiles)
         if rejection_tool.lower() == 'msreject':
             reject_workers.append(MsRejectWorker(
                     header = header,
@@ -792,9 +808,9 @@ class ABCToolBoxRegressWorker(Worker):
             stdout_path = None,
             stderr_path = None,
             keep_temps = False,
-            dirac_peak_width = None,
+            bandwidth = None,
             num_posterior_samples = None,
-            num_posterior_density_points = None,
+            num_posterior_quantiles = None,
             ):
         Worker.__init__(self,
                 stdout_path = stdout_path,
@@ -813,11 +829,11 @@ class ABCToolBoxRegressWorker(Worker):
         self.observed_path = expand_path(observed_path)
         self.posterior_path = expand_path(posterior_path)
         self.parameter_indices = parameter_indices
-        if not num_posterior_density_points:
-            num_posterior_density_points = 1000
-        self.num_posterior_density_points = int(num_posterior_density_points)
+        if not num_posterior_quantiles:
+            num_posterior_quantiles = 1000
+        self.num_posterior_quantiles = int(num_posterior_quantiles)
         self.num_posterior_samples = num_posterior_samples
-        self.dirac_peak_width = 1 / float(num_posterior_density_points)
+        self.bandwidth = bandwidth
         if not summary_path:
             summary_path = self.posterior_path + '.regression-summary.txt'
         self.summary_path = summary_path
@@ -830,6 +846,8 @@ class ABCToolBoxRegressWorker(Worker):
         if not self.num_posterior_samples:
             self.num_posterior_samples = line_count(self.posterior_path,
                     ignore_headers=True)
+        if not self.bandwidth:
+            self.bandwidth = 2 / float(self.num_posterior_samples)
         potential_stat_indices = get_stat_indices(
                 self.header,
                 stat_patterns = ALL_STAT_PATTERNS)
@@ -868,9 +886,9 @@ class ABCToolBoxRegressWorker(Worker):
         cfg.write('obsName {0}\n'.format(self.observed_path))
         cfg.write('params {0}\n'.format(','.join(
                 [str(i+1) for i in self.parameter_indices])))
-        cfg.write('diracPeakWidth {0}\n'.format(self.dirac_peak_width))
+        cfg.write('diracPeakWidth {0}\n'.format(self.bandwidth))
         cfg.write('posteriorDensityPoints {0}\n'.format(
-                self.num_posterior_density_points))
+                self.num_posterior_quantiles))
         cfg.write('stadardizeStats 1\n')
         cfg.write('writeRetained 0\n')
         cfg.write('maxReadSims {0}\n'.format(self.num_posterior_samples + 100))
