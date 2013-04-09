@@ -35,15 +35,29 @@ _program_info = {
 
 _LOG = get_logger(__name__)
 
+class InfoLogger(object):
+    def __init__(self, path):
+        self.path = path
+
+    def write(self, msg):
+        out = open(self.path, 'w')
+        out.write(msg)
+        out.close()
 
 def arg_is_file(path):
-    if not is_file(path):
+    try:
+        if not is_file(path):
+            raise
+    except:
         msg = '{0!r} is not a file'.format(path)
         raise argparse.ArgumentTypeError(msg)
     return expand_path(path)
 
 def arg_is_dir(path):
-    if not is_dir(path):
+    try:
+        if not is_dir(path):
+            raise
+    except:
         msg = '{0!r} is not a directory'.format(path)
         raise argparse.ArgumentTypeError(msg)
     return expand_path(path)
@@ -95,6 +109,22 @@ def main_cli():
             default = multiprocessing.cpu_count(),
             help = ('The maximum number of processes to run in parallel. The '
                     'default is the number of CPUs available on the machine.'))
+    parser.add_argument('--rejection-tool',
+            action = 'store',
+            type = str,
+            choices = ['msreject', 'abctoolbox'],
+            default = 'abctoolbox',
+            help = ('The tool to use for accepting posterior samples. '
+                    'The default is `abctoolbox`.'))
+    parser.add_argument('--regression-method',
+            action = 'store',
+            type = str,
+            choices = ['llr', 'glm'],
+            default = 'glm',
+            help = ('The regression method to use for post-rejection '
+                    'adjustment of the posterior sample: '
+                    'local-linear/multinomial-logistic regression (`llr`) '
+                    'or general-linear model regression (`glm`; Default).'))
     parser.add_argument('--output-dir',
             action = 'store',
             type = arg_is_dir,
@@ -145,6 +175,21 @@ def main_cli():
             action = 'store_false',
             dest = 'regression',
             help = 'Do not perform regression on posterior.')
+    parser.add_argument('-b', '--bandwidth',
+            action = 'store',
+            type = float,
+            help = ('Smoothing parameter for the posterior kernal density '
+                    'estimation. This option is only used if `glm` is the '
+                    'regression method. The default is 2 / '
+                    '`num-posterior-samples`.'))
+    parser.add_argument('-q', '--num-posterior-quantiles',
+            action = 'store',
+            type = int,
+            default = 1000,
+            help = ('The number of equally spaced quantiles at which to '
+                    'evaluate the GLM-estimated posterior density. '
+                    'This option is only used if `glm` is the regression '
+                    'method. Default: 1000.'))
     parser.add_argument('-k', '--keep-priors',
             action = 'store_true',
             help = 'Keep prior-sample files.')
@@ -162,7 +207,7 @@ def main_cli():
             action = 'version',
             version = '%(prog)s ' + _program_info['version'],
             help = 'Report version and exit.')
-    parser.add_argument('-q', '--quiet',
+    parser.add_argument('--quiet',
             action = 'store_true',
             help = 'Run with verbose messaging.')
     parser.add_argument('--debug',
@@ -184,7 +229,7 @@ def main_cli():
     if args.staging_dir:
         staging_dir = args.staging_dir
     base_dir = mk_new_dir(os.path.join(args.output_dir, 'pymsbayes-output'))
-    info = open(os.path.join(base_dir, 'pymsbayes-info.txt'), 'w')
+    info = InfoLogger(os.path.join(base_dir, 'pymsbayes-info.txt'))
     info.write('[pymsbayes]\n'.format(base_dir))
     info.write('\toutput_directory = {0}\n'.format(base_dir))
     base_temp_dir = mk_new_dir(os.path.join(base_dir, 'temp-files'))
@@ -212,6 +257,8 @@ def main_cli():
         discrete_patterns = get_patterns_from_prefixes(
                 args.discrete_prefixes,
                 ignore_case=True)
+    if not args.bandwidth:
+        args.bandwidth = 2 / float(args.num_posterior_samples)
     if not args.seed:
         args.seed = random.randint(1, 999999999)
     GLOBAL_RNG.seed(args.seed)
@@ -260,6 +307,7 @@ def main_cli():
                     config_path = args.prior_configs[i],
                     model_index = model_idx,
                     report_parameters = args.report_parameters,
+                    schema = args.rejection_tool,
                     include_header = False,
                     stat_patterns = stat_patterns,
                     staging_dir = staging_dir)
@@ -272,6 +320,7 @@ def main_cli():
                     config_path = args.prior_configs[i],
                     model_index = model_idx,
                     report_parameters = args.report_parameters,
+                    schema = args.rejection_tool,
                     include_header = False,
                     stat_patterns = stat_patterns,
                     staging_dir = staging_dir)
@@ -284,6 +333,9 @@ def main_cli():
 
     # put observed-data-generating msbayes workers in the queue
     observed_model_idx = configs_to_models.get(args.observed_config, 0)
+    schema = 'msreject'
+    if args.rejection_tool == 'abctoolbox':
+        schema = 'abctoolbox-observed'
     for i in range(num_observed_workers):
         worker = MsBayesWorker(
                 temp_fs = working_observed_temp_fs,
@@ -291,6 +343,7 @@ def main_cli():
                 config_path = args.observed_config,
                 model_index = observed_model_idx,
                 report_parameters = args.report_parameters,
+                schema = schema,
                 include_header = True,
                 stat_patterns = stat_patterns,
                 staging_dir = staging_dir)
@@ -303,6 +356,7 @@ def main_cli():
                 config_path = args.observed_config,
                 model_index = observed_model_idx,
                 report_parameters = args.report_parameters,
+                schema = schema,
                 include_header = True,
                 stat_patterns = stat_patterns,
                 staging_dir = staging_dir)
@@ -349,6 +403,9 @@ def main_cli():
 
     # merged simulated observed data into one file
     observed_path = os.path.join(base_dir, 'observed.txt')
+    observed_stats_path = observed_path
+    if args.rejection_tool == 'abctoolbox':
+        observed_stats_path = os.path.join(base_dir, 'observed-stats.txt')
     info.write('\t[[observed_paths]]\n')
     info.write('\t\t{0} = {1}\n'.format(observed_model_idx, observed_path))
     if args.reps > 0:
@@ -359,11 +416,20 @@ def main_cli():
                 prior_path = observed_path,
                 header_path = obs_header_path,
                 include_header = True)
-        lc = line_count(observed_path)
-        if lc != args.reps + 1:
+        lc = line_count(observed_path, ignore_headers=True)
+        if lc != args.reps:
             raise Exception('The number of observed simulations ({0}) does '
-                    'not match the number of reps ({1})'.format(lc-1,
+                    'not match the number of reps ({1})'.format(lc,
                             args.reps))
+        if args.rejection_tool == 'abctoolbox':
+            merge_prior_files(
+                path = [w.prior_stats_path for w in msbayes_observed_workers],
+                dest_path = observed_stats_path)
+            lc = line_count(observed_stats_path, ignore_headers=True)
+            if lc != args.reps:
+                raise Exception('The number of observed stats ({0}) does '
+                        'not match the number of reps ({1})'.format(lc,
+                                args.reps))
     if not args.keep_temps:
         _LOG.debug('purging working observed...')
         working_observed_temp_fs.purge()
@@ -375,6 +441,9 @@ def main_cli():
     prior_paths['header'] = prior_temp_fs.get_file_path(
             prefix = 'prior-header-',
             create = False)
+    include_header = False
+    if args.rejection_tool == 'abctoolbox':
+        include_header = True
     for mod_idx in model_indices:
         prior_path = prior_temp_fs.get_file_path(
                 prefix = 'prior-{0}-{1}-'.format(mod_idx,
@@ -383,7 +452,7 @@ def main_cli():
         merge_priors(workers = msbayes_prior_workers[mod_idx],
                 prior_path = prior_path,
                 header_path = prior_paths['header'],
-                include_header = False)
+                include_header = include_header)
         lc = line_count(prior_path)
         if lc != args.num_prior_samples:
             raise Exception('The number of prior samples ({0}) for model '
@@ -418,8 +487,12 @@ def main_cli():
     ##########################################################################
     ## begin rejection and regression
 
-    rejection_temp_fs = TempFileSystem(parent = base_temp_dir,
-            prefix = 'pymsbayes-rejection-temp-')
+    if staging_dir:
+        rejection_temp_fs = TempFileSystem(parent = staging_dir,
+                prefix = 'pymsbayes-rejection-temp-')
+    else:
+        rejection_temp_fs = TempFileSystem(parent = base_temp_dir,
+                prefix = 'pymsbayes-rejection-temp-')
     stat_indices = get_stat_indices(prior_header,
             stat_patterns)
     continuous_parameter_indices = get_parameter_indices(prior_header,
@@ -433,60 +506,61 @@ def main_cli():
             [str(i) for i in continuous_parameter_indices])))
     info.write('\t\tdiscrete_indices = {0}\n'.format(', '.join(
             [str(i) for i in discrete_parameter_indices])))
-    msreject_workers = []
+    reject_workers = []
     if args.merge_priors:
-        tolerance = get_tolerance(ntotal, args.num_posterior_samples)
-        if tolerance > 1.0:
-            tolerance = 1.0
-        msreject_workers.extend(assemble_rejection_workers(
+        reject_workers.extend(assemble_rejection_workers(
                 temp_fs = rejection_temp_fs,
-                observed_sims_file = observed_path,
+                observed_sims_file = observed_stats_path,
                 prior_path = prior_paths['merged'],
-                tolerance = tolerance,
+                num_posterior_samples = args.num_posterior_samples,
+                num_prior_samples = ntotal,
                 results_dir = base_dir,
                 posterior_prefix = 'unadjusted-posterior',
                 stat_indices = stat_indices,
                 continuous_parameter_indices = continuous_parameter_indices,
                 discrete_parameter_indices = discrete_parameter_indices,
                 regress = args.regression,
-                rejection_tool = 'msreject',
-                regression_method = 'llr'))
+                rejection_tool = args.rejection_tool,
+                regression_method = args.regression_method,
+                keep_temps = args.keep_temps,
+                bandwidth = args.bandwidth,
+                num_posterior_quantiles = args.num_posterior_quantiles))
     else:
-        tolerance = get_tolerance(args.num_prior_samples,
-                args.num_posterior_samples)
-        if tolerance > 1.0:
-            tolerance = 1.0
         for i in model_indices:
-            msreject_workers.extend(assemble_rejection_workers(
+            reject_workers.extend(assemble_rejection_workers(
                     temp_fs = rejection_temp_fs,
-                    observed_sims_file = observed_path,
+                    observed_sims_file = observed_stats_path,
                     prior_path = prior_paths[i],
-                    tolerance = tolerance,
+                    num_posterior_samples = args.num_posterior_samples,
+                    num_prior_samples = args.num_prior_samples,
                     results_dir = base_dir,
                     posterior_prefix = 'unadjusted-posterior',
                     stat_indices = stat_indices,
                     continuous_parameter_indices = continuous_parameter_indices,
                     discrete_parameter_indices = discrete_parameter_indices,
                     regress = args.regression,
-                    rejection_tool = 'msreject',
-                    regression_method = 'llr'))
+                    rejection_tool = args.rejection_tool,
+                    regression_method = args.regression_method,
+                    keep_temps = args.keep_temps,
+                    bandwidth = args.bandwidth,
+                    num_posterior_quantiles = args.num_posterior_quantiles))
 
-    # run parallel msreject processes
-    for w in msreject_workers:
+    # run parallel rejection processes
+    for w in reject_workers:
         WORK_FORCE.put(w)
-    msreject_result_queue = multiprocessing.Queue()
-    msreject_managers = []
+    reject_result_queue = multiprocessing.Queue()
+    reject_managers = []
     for i in range(args.np):
         m = Manager(work_queue = WORK_FORCE,
-                result_queue = msreject_result_queue)
+                result_queue = reject_result_queue)
         m.start()
-        msreject_managers.append(m)
-    for i in range(len(msreject_workers)):
-        msreject_workers[i] = msreject_result_queue.get()
-    for m in msreject_managers:
+        reject_managers.append(m)
+    for i in range(len(reject_workers)):
+        reject_workers[i] = reject_result_queue.get()
+    for m in reject_managers:
         m.join()
     assert WORK_FORCE.empty()
-    assert msreject_result_queue.empty()
+    assert reject_result_queue.empty()
 
     if not args.keep_temps:
         rejection_temp_fs.purge()
