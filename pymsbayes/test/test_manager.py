@@ -51,7 +51,7 @@ class ManagerTestCase(PyMsBayesTestCase):
         self.assertEqual(w.stat_indices, expected_s_indices)
         self.assertEqual(w.parameter_indices, expected_p_indices)
         self.assertTrue(self.prior_file_is_valid(w.prior_path,
-               num_of_rows = sample_size,
+               num_of_samples = sample_size,
                num_of_columns = len(expected_p_indices + expected_s_indices)+1))
 
     def test_simple_serial(self):

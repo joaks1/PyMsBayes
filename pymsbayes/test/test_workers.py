@@ -32,25 +32,56 @@ class MsBayesWorkerTestCase(PyMsBayesTestCase):
         self.assertEqual(0, w.exit_code)
         self.assertTrue(os.path.isdir(w.output_dir))
         self.assertTrue(os.path.isfile(w.prior_path))
+        self.assertTrue(os.path.isfile(w.prior_stats_path))
         self.assertTrue(os.path.isfile(w.header_path))
         self.assertEqual(w.header,
                 open(w.header_path, 'rU').read().strip().split())
+        dummy_column = True
+        if w.schema.startswith('abctoolbox'):
+            dummy_column = False
         expected_p_indices, expected_s_indices = self.get_expected_indices(
                 num_pairs = num_pairs,
-                dummy_column = True,
+                dummy_column = dummy_column,
                 parameters_reported = True)
         self.assertEqual(w.stat_indices, expected_s_indices)
         self.assertEqual(w.parameter_indices, expected_p_indices)
         self.assertTrue(self.prior_file_is_valid(w.prior_path,
-               num_of_rows = sample_size,
-               num_of_columns = len(expected_p_indices + expected_s_indices)+1))
+                num_of_samples = sample_size,
+                num_of_columns = len(expected_p_indices + \
+                        expected_s_indices) + int(dummy_column)))
+        if w.schema == 'abctoolbox-observed':
+            self.assertTrue(self.prior_file_is_valid(w.prior_stats_path,
+                num_of_samples = sample_size,
+                num_of_columns = len(expected_s_indices)))
 
-    def test_simple(self):
+    def test_schema_msreject(self):
         w = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 10,
                 config_path = self.cfg_path,
                 schema = 'msreject')
+        self.assertIsInstance(w, workers.MsBayesWorker)
+        self.assertFalse(w.finished)
+        w.start()
+        self._assert_success(w, 4, 10)
+
+    def test_schema_abctoolbox(self):
+        w = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox')
+        self.assertIsInstance(w, workers.MsBayesWorker)
+        self.assertFalse(w.finished)
+        w.start()
+        self._assert_success(w, 4, 10)
+
+    def test_schema_abctoolbox_observed(self):
+        w = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox-observed')
         self.assertIsInstance(w, workers.MsBayesWorker)
         self.assertFalse(w.finished)
         w.start()
@@ -510,8 +541,8 @@ class ABCToolBoxRegressWorkerTestCase(PyMsBayesTestCase):
                 stdout_path = None,
                 stderr_path = None,
                 keep_temps = False,
-                dirac_peak_width = None,
-                num_posterior_density_points = 100)
+                bandwidth = None,
+                num_posterior_quantiles = 100)
         self.assertFalse(regress_worker.finished)
         regress_worker.start()
         self.assertTrue(regress_worker.finished)
@@ -563,8 +594,8 @@ class ABCToolBoxRegressWorkerTestCase(PyMsBayesTestCase):
                 stdout_path = None,
                 stderr_path = None,
                 keep_temps = False,
-                dirac_peak_width = None,
-                num_posterior_density_points = 100)
+                bandwidth = None,
+                num_posterior_quantiles = 100)
         self.assertFalse(regress_worker.finished)
         regress_worker.start()
         self.assertTrue(regress_worker.finished)
@@ -638,8 +669,8 @@ class ABCToolBoxRegressWorkerTestCase(PyMsBayesTestCase):
                 stderr_path = None,
                 keep_temps = False,
                 num_posterior_samples = 100,
-                dirac_peak_width = None,
-                num_posterior_density_points = 100)
+                bandwidth = None,
+                num_posterior_quantiles = 100)
         self.assertFalse(regress_worker.finished)
         regress_worker.start()
         self.assertTrue(regress_worker.finished)
@@ -660,23 +691,23 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
     def tearDown(self):
         self.tear_down()
 
-    def _get_prior(self, n=100, include_header=False):
+    def _get_prior(self, n=100, schema='msreject', include_header=False):
         w = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = n,
                 config_path = self.cfg_path,
-                schema = 'msreject',
+                schema = schema,
                 report_parameters = True,
                 include_header = include_header)
         w.start()
         return w
     
-    def test_no_regression(self):
+    def test_msreject_no_regression(self):
         prior_worker = self._get_prior()
         obs_worker = self._get_prior(n=10, include_header=True)
         jobs = workers.assemble_rejection_workers(
                 temp_fs = self.temp_fs,
-                observed_sims_file = obs_worker.prior_path,
+                observed_sims_file = obs_worker.prior_stats_path,
                 prior_path = prior_worker.prior_path,
                 tolerance = 0.05,
                 results_dir = self.results_dir,
@@ -692,7 +723,29 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
             self.assertTrue(
                     abs(self.get_number_of_lines(j.posterior_path) - 6) < 2)
 
-    def test_with_regression(self):
+    def test_abctoolbox_no_regression(self):
+        prior_worker = self._get_prior(schema='abctoolbox')
+        obs_worker = self._get_prior(n=10, schema='abctoolbox-observed',
+                include_header=True)
+        jobs = workers.assemble_rejection_workers(
+                temp_fs = self.temp_fs,
+                observed_sims_file = obs_worker.prior_stats_path,
+                prior_path = prior_worker.prior_path,
+                num_prior_samples = 100,
+                num_posterior_samples = 10,
+                results_dir = self.results_dir,
+                posterior_prefix = self.posterior_prefix,
+                regress = False,
+                rejection_tool = 'abctoolbox')
+        for j in jobs:
+            self.assertFalse(j.finished)
+            j.start()
+        for j in jobs:
+            self.assertTrue(j.finished)
+            self.assertTrue(os.path.isfile(j.posterior_path))
+            self.assertTrue(self.get_number_of_lines(j.posterior_path), 11)
+
+    def test_msreject_llr(self):
         prior_worker = self._get_prior(n=200)
         obs_worker = self._get_prior(n=2, include_header=True)
         msreject_workers = workers.assemble_rejection_workers(

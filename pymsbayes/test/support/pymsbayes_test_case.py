@@ -77,7 +77,8 @@ class PyMsBayesTestCase(unittest.TestCase):
         stat_indices = range(start, start+num_default_stats)
         return param_indices, stat_indices
     
-    def prior_file_is_valid(self, prior_path, num_of_rows, num_of_columns=None):
+    def prior_file_is_valid(self, prior_path, num_of_samples,
+            num_of_columns=None):
         try:
             prior_file = open(prior_path, 'rU')
         except:
@@ -86,7 +87,10 @@ class PyMsBayesTestCase(unittest.TestCase):
             return False
         nrows = 0
         for i, line in enumerate(prior_file):
-            nrows += 1
+            if nrows == 0 and HEADER_PATTERN.match(line):
+                pass
+            else:
+                nrows += 1
             if not num_of_columns:
                 num_of_columns = len(line.strip().split())
             ncols = len(line.strip().split())
@@ -94,9 +98,9 @@ class PyMsBayesTestCase(unittest.TestCase):
                 _LOG.error('prior invalid: num of columns at line {0} is {1} '
                         'NOT {2}'.format(i+1, ncols, num_of_columns))
                 return False
-        if num_of_rows != nrows:
+        if num_of_samples != nrows:
             _LOG.error('prior invalid: num of rows is {0} NOT {1}'.format(
-                    nrows, num_of_rows))
+                    nrows, num_of_samples))
             return False
         return True
     
