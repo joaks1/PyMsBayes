@@ -151,7 +151,7 @@ def prior_for_msreject(in_file, out_file,
     indices.extend(get_dummy_indices(header, dummy_patterns=DUMMY_PATTERNS))
     if not include_header:
         in_file.next()
-    reduce_columns(in_file, out_file, sorted(indices), extra_tab=True)
+    reduce_columns(in_file, out_file, sorted(indices), extra_tab=False)
     if close:
         in_file.close()
     return [header[i] for i in sorted(indices)]
@@ -306,7 +306,7 @@ def merge_prior_files(paths, dest_path):
 
 class MsBayesWorker(Worker):
     count = 0
-    valid_schemas = ['msreject', 'abctoolbox', 'abctoolbox-observed']
+    valid_schemas = ['msreject', 'abctoolbox']
 
     def __init__(self,
             temp_fs,
@@ -317,13 +317,14 @@ class MsBayesWorker(Worker):
             sort_index = None,
             report_parameters = True,
             seed = None,
-            include_header = False,
             schema = 'msreject',
+            include_header = False,
             stat_patterns=DEFAULT_STAT_PATTERNS,
             parameter_patterns=PARAMETER_PATTERNS,
             stdout_path = None,
             stderr_path = None,
-            staging_dir = None):
+            staging_dir = None,
+            write_stats_file = False):
         Worker.__init__(self,
                 stdout_path = stdout_path,
                 stderr_path = stderr_path)
@@ -364,11 +365,11 @@ class MsBayesWorker(Worker):
                     'schema {0} is not valid. Options are: {1}'.format(
                         schema, ','.join(self.valid_schemas)))
         self.schema = schema.lower()
-        self.prior_stats_path = self.prior_path
-        if self.schema == 'abctoolbox-observed':
+        self.include_header = include_header
+        self.prior_stats_path = None
+        if write_stats_file:
             self.prior_stats_path = self.prior_path + '.stats.txt'
             self.temp_fs._register_file(self.prior_stats_path)
-        self.include_header = include_header
         self.stat_patterns = stat_patterns
         self.parameter_patterns = parameter_patterns
         self.header = None
@@ -381,7 +382,7 @@ class MsBayesWorker(Worker):
             self.staging_prior_path = os.path.join(staging_dir,
                     os.path.basename(self.prior_path))
             self.staging_prior_stats_path = self.staging_prior_path
-            if self.schema == 'abctoolbox-observed':
+            if write_stats_file:
                 self.staging_prior_stats_path = self.staging_prior_path + \
                         '.stats.txt'
         self._update_cmd()
@@ -411,6 +412,11 @@ class MsBayesWorker(Worker):
             prior_stats_path = self.staging_prior_stats_path
         raw_prior_path = prior_path + '.raw'
         shutil.move(prior_path, raw_prior_path)
+        if self.prior_stats_path:
+            h = observed_stats_for_abctoolbox(
+                    in_file = raw_prior_path,
+                    out_file = prior_stats_path,
+                    stat_patterns = self.stat_patterns)
         if self.schema == 'msreject':
             header = prior_for_msreject(
                     in_file = raw_prior_path,
@@ -420,16 +426,6 @@ class MsBayesWorker(Worker):
                     dummy_patterns = DUMMY_PATTERNS,
                     include_header = self.include_header)
         elif self.schema == 'abctoolbox':
-            header = prior_for_abctoolbox(
-                    in_file = raw_prior_path,
-                    out_file = prior_path,
-                    stat_patterns = self.stat_patterns,
-                    parameter_patterns = self.parameter_patterns)
-        elif self.schema == 'abctoolbox-observed':
-            header = observed_stats_for_abctoolbox(
-                    in_file = raw_prior_path,
-                    out_file = prior_stats_path,
-                    stat_patterns = self.stat_patterns)
             header = prior_for_abctoolbox(
                     in_file = raw_prior_path,
                     out_file = prior_path,
@@ -447,7 +443,7 @@ class MsBayesWorker(Worker):
             self._set_header(header)
         if self.staging_dir:
             shutil.move(self.staging_prior_path, self.prior_path)
-            if self.schema == 'abctoolbox-observed':
+            if self.prior_stats_path:
                 shutil.move(self.staging_prior_stats_path,
                         self.prior_stats_path)
 
@@ -507,6 +503,8 @@ def assemble_rejection_workers(temp_fs,
     if rejection_tool == 'abctoolbox':
         header = parse_header(prior_path)
     dummy_indices = get_dummy_indices(header)
+    all_stat_indices = get_stat_indices(header,
+            stat_patterns=ALL_STAT_PATTERNS)
     if len(dummy_indices) > 1:
         raise ValueError('header has more than one dummy column')
     if len(dummy_indices) == 1 and dummy_indices[0] != 0:
@@ -524,20 +522,45 @@ def assemble_rejection_workers(temp_fs,
     header_line = obs_file.next()
     reject_workers = []
     for i, line in enumerate(obs_file):
-        obs_path = temp_fs.get_file_path(parent = obs_temp_dir,
-                prefix = 'observed-{0}-'.format(i+1),
+        rej_obs_path = temp_fs.get_file_path(parent = obs_temp_dir,
+                prefix = 'observed-{0}-reject-'.format(i+1),
                 create = False)
-        out = open(obs_path, 'w')
-        if rejection_tool.lower() == 'abctoolbox':
-            out.write(header_line)
-        out.write(line)
-        out.close()
+        reg_obs_path = temp_fs.get_file_path(parent = obs_temp_dir,
+                prefix = 'observed-{0}-regress-'.format(i+1),
+                create = False)
+        l = line.strip().split()
+        if rejection_tool.lower() == 'msreject':
+            with open(rej_obs_path, 'w') as out:
+                out.write(line)
+        elif rejection_tool.lower() == 'abctoolbox':
+            with open(rej_obs_path, 'w') as out:
+                out.write('{0}\n{1}\n'.format(
+                        '\t'.join([header[i] for i in all_stat_indices]),
+                        '\t'.join([str(l[i]) for i in all_stat_indices])))
+        else:
+            raise ValueError('Unexpected rejection tool {0}'.format(
+                    rejection_tool))
+        if regression_method.lower() == 'llr':
+            with open(reg_obs_path, 'w') as out:
+                out.write(header_line)
+                out.write(line)
+        elif regression_method.lower() == 'glm':
+            if rejection_tool.lower() == 'abctoolbox':
+                reg_obs_path = rej_obs_path
+            else:
+                with open(reg_obs_path, 'w') as out:
+                    out.write('{0}\n{1}\n'.format(
+                            '\t'.join([header[i] for i in all_stat_indices]),
+                            '\t'.join([str(l[i]) for i in all_stat_indices])))
+        else:
+            raise ValueError('Unexpected regression method {0}'.format(
+                    regression_method))
         posterior_file_name = '{0}.{1}.txt'.format(posterior_prefix, i+1)
         posterior_path = os.path.join(results_dir, posterior_file_name)
         regression_worker = None
         if regress and regression_method.lower() == 'llr':
             regression_worker = RegressionWorker(
-                    observed_path = obs_path,
+                    observed_path = reg_obs_path,
                     posterior_path = posterior_path,
                     tolerance = 1.0,
                     stat_indices = stat_indices,
@@ -547,7 +570,7 @@ def assemble_rejection_workers(temp_fs,
         if regress and regression_method.lower() == 'glm':
             regression_worker = ABCToolBoxRegressWorker(
                     temp_fs = temp_fs,
-                    observed_path = obs_path,
+                    observed_path = reg_obs_path,
                     posterior_path = posterior_path,
                     parameter_indices = sorted(continuous_parameter_indices + \
                             discrete_parameter_indices),
@@ -559,7 +582,7 @@ def assemble_rejection_workers(temp_fs,
         if rejection_tool.lower() == 'msreject':
             reject_workers.append(MsRejectWorker(
                     header = header,
-                    observed_path = obs_path,
+                    observed_path = rej_obs_path,
                     prior_path = prior_path,
                     tolerance = tolerance,
                     posterior_path = posterior_path,
@@ -569,7 +592,7 @@ def assemble_rejection_workers(temp_fs,
         if rejection_tool.lower() == 'abctoolbox':
             reject_workers.append(ABCToolBoxRejectWorker(
                     temp_fs = temp_fs,
-                    observed_path = obs_path,
+                    observed_path = rej_obs_path,
                     prior_path = prior_path,
                     num_posterior_samples = num_posterior_samples,
                     posterior_path = posterior_path,
