@@ -45,7 +45,11 @@ stdAnalysis = function(obs.infile,
     }
 
     #load OBSERVED summary stat vector
-    obsDat <-getData(obs.infile, header=header)
+    h = header
+    if (has_header(obs.infile)) {
+        h = NULL
+    }
+    obsDat <-getData(obs.infile, header=h)
     if (obsDat[["numTaxonPairs"]] != nPairs) {
       cat("ERROR: The number of taxon pairs are not same between the\n      ",
           "observed data,", obsDat$numTaxonPairs, "pairs, and simulated data,",
@@ -267,6 +271,12 @@ write_probabilites = function(probs, n) {
 parse_header = function(infile) {
     header = scan(infile, what="character", nlines=1, quiet=T)
     return(header)
+}
+
+has_header = function(infile) {
+    header = scan(infile, what='character', nlines=1, quiet=T)
+    char_indices = grep('.*[a-z]+.*', header, ignore.case=T)
+    return(length(char_indices) == length(header))
 }
 
 getData <- function (infile, header=NULL) {
