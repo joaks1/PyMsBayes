@@ -333,9 +333,7 @@ def main_cli():
 
     # put observed-data-generating msbayes workers in the queue
     observed_model_idx = configs_to_models.get(args.observed_config, 0)
-    schema = 'msreject'
-    if args.rejection_tool == 'abctoolbox':
-        schema = 'abctoolbox-observed'
+    schema = args.rejection_tool
     for i in range(num_observed_workers):
         worker = MsBayesWorker(
                 temp_fs = working_observed_temp_fs,
