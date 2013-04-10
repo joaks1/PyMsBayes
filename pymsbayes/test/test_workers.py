@@ -860,8 +860,8 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
             reg_params = [j.regression_worker.header[
                     i] for i in j.regression_worker.parameter_indices]
             self.assertEqual(set(reg_params),
-                    self.expected_continuous_parameters + \
-                    self.expected_discrete_parameters)
+                    self.expected_continuous_parameters.update(
+                    self.expected_discrete_parameters))
             rej_stats = [j.header[i] for i in j.stat_indices]
             self.assertEqual(set(reg_params) - set(parameters), set())
             self.assertEqual(sorted(stats), sorted(rej_stats))
@@ -914,8 +914,8 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
             reg_params = [j.regression_worker.header[
                     i] for i in j.regression_worker.parameter_indices]
             self.assertEqual(set(reg_params),
-                    self.expected_continuous_parameters + \
-                    self.expected_discrete_parameters)
+                    self.expected_continuous_parameters.update(
+                    self.expected_discrete_parameters))
             rej_params = [j.header[i] for i in j.parameter_indices]
             self.assertEqual(set(reg_params) - set(parameters), set())
             self.assertEqual(sorted(parameters), sorted(rej_params))
