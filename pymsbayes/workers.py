@@ -502,22 +502,13 @@ def assemble_rejection_workers(temp_fs,
     header = parse_header(obs_file)
     if rejection_tool == 'abctoolbox':
         header = parse_header(prior_path)
-    dummy_indices = get_dummy_indices(header)
     all_stat_indices = get_stat_indices(header,
             stat_patterns=ALL_STAT_PATTERNS)
-    if len(dummy_indices) > 1:
-        raise ValueError('header has more than one dummy column')
-    if len(dummy_indices) == 1 and dummy_indices[0] != 0:
-        raise ValueError('dummy column is not first column')
-    # if rejecting with abctoolbox we must adjust parameter indices
-    if rejection_tool == 'abctoolbox':
-        diff = 2 - len(dummy_indices)
-        if continuous_parameter_indices:
-            continuous_parameter_indices = [
-                    i + diff for i in continuous_parameter_indices]
-        if discrete_parameter_indices:
-            discrete_parameter_indices = [
-                    i + diff for i in discrete_parameter_indices]
+    parameter_indices = []
+    if continuous_parameter_indices:
+        parameter_indices += continuous_parameter_indices
+    if discrete_parameter_indices:
+        parameter_indices += discrete_parameter_indices
     obs_temp_dir = temp_fs.create_subdir(prefix = 'observed-files-')
     header_line = obs_file.next()
     reject_workers = []
@@ -572,8 +563,7 @@ def assemble_rejection_workers(temp_fs,
                     temp_fs = temp_fs,
                     observed_path = reg_obs_path,
                     posterior_path = posterior_path,
-                    parameter_indices = sorted(continuous_parameter_indices + \
-                            discrete_parameter_indices),
+                    parameter_indices = sorted(parameter_indices),
                     exe_path = regress_path,
                     keep_temps = keep_temps,
                     num_posterior_samples = num_posterior_samples,
@@ -777,6 +767,8 @@ class ABCToolBoxRejectWorker(Worker):
         if not posterior_path:
             posterior_path = observed_path + '.posterior'
         self.posterior_path = expand_path(posterior_path)
+        self.header = None
+        self.stats_header = None
         self.parameter_indices = None
         self.num_posterior_samples = int(num_posterior_samples)
         self.regression_worker = regression_worker
@@ -784,9 +776,11 @@ class ABCToolBoxRejectWorker(Worker):
 
     def _pre_process(self):
         self.header = parse_header(self.prior_path)
-        self.parameter_indices = sorted(get_parameter_indices(
-                self.header,
-                parameter_patterns=(PARAMETER_PATTERNS)))
+        self.parameter_indices = sorted(
+                get_parameter_indices(self.header,
+                        parameter_patterns=(PARAMETER_PATTERNS)) + \
+                get_dummy_indices(self.header))
+        self.stats_header = parse_header(self.observed_path)
         cfg = self._compose_cfg_string()
         out = open(self.cfg_path, 'w')
         out.write(cfg.getvalue())
@@ -795,8 +789,14 @@ class ABCToolBoxRejectWorker(Worker):
 
     def _post_process(self):
         post_path = self.output_prefix + 'BestSimsParamStats_Obs0.txt'
-        shutil.move(post_path, self.posterior_path)
+        # remove extra two columns added by abctoolbox
+        with open(self.posterior_path, 'w') as o:
+            with open(post_path, 'rU') as i:
+                for l in i:
+                    o.write('{0}\n'.format('\t'.join(l.strip().split()[2:])))
         self.temp_fs.remove_dir(self.output_dir)
+        if self.regression_worker:
+            self.regression_worker.start()
 
     def _update_cmd(self):
         cmd = [self.exe_path, self.cfg_path]
@@ -852,6 +852,8 @@ class ABCToolBoxRegressWorker(Worker):
         self.observed_path = expand_path(observed_path)
         self.posterior_path = expand_path(posterior_path)
         self.parameter_indices = parameter_indices
+        self.header = None
+        self.stats_header = None
         if not num_posterior_quantiles:
             num_posterior_quantiles = 1000
         self.num_posterior_quantiles = int(num_posterior_quantiles)
@@ -885,6 +887,7 @@ class ABCToolBoxRegressWorker(Worker):
                 set(self.parameter_indices))) > 0:
             raise ValueError('parameter indices are not valid. '
                     'they contain stat indices!')
+        self.stats_header = parse_header(self.observed_path)
         cfg = self._compose_cfg_string()
         out = open(self.cfg_path, 'w')
         out.write(cfg.getvalue())

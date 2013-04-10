@@ -780,6 +780,201 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
             self.assertTrue(os.path.isfile(j.regression_worker.adjusted_path))
             self.assertTrue(abs(self.get_number_of_lines(
                     j.regression_worker.adjusted_path) - 101) < 6)
+        # check regression results
+        parameters = [prior_worker.header[
+                i] for i in prior_worker.parameter_indices]
+        stats = [prior_worker.header[
+                i] for i in prior_worker.stat_indices]
+        for j in msreject_workers:
+            cont_params = [j.regression_worker.header[
+                    i] for i in j.regression_worker.continuous_parameter_indices]
+            disc_params = [j.regression_worker.header[
+                    i] for i in j.regression_worker.discrete_parameter_indices]
+            rej_stats = [j.header[i] for i in j.stat_indices]
+            self.assertEqual(set(cont_params + disc_params) - set(parameters), set())
+            self.assertEqual(sorted(stats), sorted(rej_stats))
+            result_header = open(j.regression_worker.adjusted_path, 
+                    'rU').next().strip().split()
+            self.assertEqual(sorted(result_header), sorted(cont_params))
+            results = self.parse_python_config(j.regression_worker.summary_path)
+            expected_keys = cont_params + disc_params + ['settings']
+            self.assertEqual(sorted(results.keys()),
+                    sorted(expected_keys))
+            self.assertEqual(sorted(results['settings']['stats_used']),
+                    sorted(stats))
+            self.assertEqual(sorted(results['settings']['continuous_parameters']),
+                    sorted(cont_params))
+            if len(disc_params) > 1:
+                self.assertEqual(sorted(results['settings']['discrete_parameters']),
+                        sorted(disc_params))
+            else:
+                self.assertEqual(results['settings']['discrete_parameters'],
+                        disc_params[0])
+
+    def test_msreject_glm(self):
+        prior_worker = self._get_prior(n=200)
+        obs_worker = self._get_prior(n=2, include_header=True)
+        msreject_workers = workers.assemble_rejection_workers(
+                temp_fs = self.temp_fs,
+                observed_sims_file = obs_worker.prior_path,
+                prior_path = prior_worker.prior_path,
+                num_prior_samples = 200,
+                num_posterior_samples = 100,
+                results_dir = self.results_dir,
+                posterior_prefix = self.posterior_prefix,
+                regress = True,
+                rejection_tool = 'msreject',
+                regression_method = 'glm',
+                num_posterior_quantiles = 50)
+        self.assertEqual(len(msreject_workers), 2)
+        for j in msreject_workers:
+            self.assertFalse(j.finished)
+            self.assertFalse(j.regression_worker.finished)
+            j.start()
+        for j in msreject_workers:
+            self.assertTrue(j.finished)
+            self.assertTrue(j.regression_worker.finished)
+            self.assertTrue(os.path.isfile(j.posterior_path))
+            self.assertTrue(
+                    abs(self.get_number_of_lines(j.posterior_path) - 101) < 6)
+            self.assertTrue(os.path.isfile(j.regression_worker.summary_path))
+            self.assertTrue(os.path.isfile(j.regression_worker.adjusted_path))
+            self.assertEqual(self.get_number_of_lines(
+                    j.regression_worker.adjusted_path), 51)
+            self.assertEqual(self.get_number_of_lines(
+                    j.regression_worker.summary_path), 20)
+        # check regression results
+        parameters = [prior_worker.header[
+                i] for i in prior_worker.parameter_indices]
+        stats = [prior_worker.header[
+                i] for i in prior_worker.stat_indices]
+        for j in msreject_workers:
+            reg_params = [j.regression_worker.header[
+                    i] for i in j.regression_worker.parameter_indices]
+            rej_stats = [j.header[i] for i in j.stat_indices]
+            self.assertEqual(set(reg_params) - set(parameters), set())
+            self.assertEqual(sorted(stats), sorted(rej_stats))
+            result_header = set(open(j.regression_worker.adjusted_path, 
+                    'rU').next().strip().split()) - \
+                    set(['number', 'density'])
+            expected_header = set(reg_params)
+            self.assertEqual(result_header, expected_header)
+            summary_header = set(open(j.regression_worker.summary_path, 
+                    'rU').next().strip().split()) -  set(['what'])
+            self.assertEqual(summary_header, expected_header)
+            self.assertEqual(sorted(stats),
+                    sorted(j.regression_worker.stats_header))
+
+    def test_abctoolbox_glm(self):
+        prior_worker = self._get_prior(n=200, schema='abctoolbox')
+        obs_worker = self._get_prior(n=2, schema='abctoolbox')
+        jobs = workers.assemble_rejection_workers(
+                temp_fs = self.temp_fs,
+                observed_sims_file = obs_worker.prior_path,
+                prior_path = prior_worker.prior_path,
+                num_prior_samples = 200,
+                num_posterior_samples = 100,
+                results_dir = self.results_dir,
+                posterior_prefix = self.posterior_prefix,
+                regress = True,
+                rejection_tool = 'abctoolbox',
+                regression_method = 'glm',
+                num_posterior_quantiles = 50)
+        self.assertEqual(len(jobs), 2)
+        for j in jobs:
+            self.assertFalse(j.finished)
+            j.start()
+        for j in jobs:
+            self.assertTrue(j.finished)
+            self.assertTrue(os.path.isfile(j.posterior_path))
+            self.assertTrue(self.get_number_of_lines(j.posterior_path), 101)
+            self.assertTrue(os.path.isfile(j.regression_worker.summary_path))
+            self.assertTrue(os.path.isfile(j.regression_worker.adjusted_path))
+            self.assertEqual(self.get_number_of_lines(
+                    j.regression_worker.adjusted_path), 51)
+            self.assertEqual(self.get_number_of_lines(
+                    j.regression_worker.summary_path), 20)
+        # check regression results
+        parameters = [prior_worker.header[
+                i] for i in prior_worker.parameter_indices]
+        stats = [prior_worker.header[
+                i] for i in prior_worker.stat_indices]
+        for j in jobs:
+            reg_params = [j.regression_worker.header[
+                    i] for i in j.regression_worker.parameter_indices]
+            rej_params = [j.header[i] for i in j.parameter_indices]
+            self.assertEqual(set(reg_params) - set(parameters), set())
+            self.assertEqual(sorted(parameters), sorted(rej_params))
+            result_header = set(open(j.regression_worker.adjusted_path, 
+                    'rU').next().strip().split()) - \
+                    set(['number', 'density'])
+            expected_header = set(reg_params)
+            self.assertEqual(result_header, expected_header)
+            summary_header = set(open(j.regression_worker.summary_path, 
+                    'rU').next().strip().split()) -  set(['what'])
+            self.assertEqual(summary_header, expected_header)
+            self.assertEqual(sorted(stats), sorted(j.stats_header))
+            self.assertEqual(sorted(stats),
+                    sorted(j.regression_worker.stats_header))
+
+    def test_abctoolbox_llr(self):
+        prior_worker = self._get_prior(n=200, schema='abctoolbox')
+        obs_worker = self._get_prior(n=2, schema='abctoolbox')
+        jobs = workers.assemble_rejection_workers(
+                temp_fs = self.temp_fs,
+                observed_sims_file = obs_worker.prior_path,
+                prior_path = prior_worker.prior_path,
+                num_prior_samples = 200,
+                num_posterior_samples = 100,
+                results_dir = self.results_dir,
+                posterior_prefix = self.posterior_prefix,
+                regress = True,
+                rejection_tool = 'abctoolbox',
+                regression_method = 'llr')
+        self.assertEqual(len(jobs), 2)
+        for j in jobs:
+            self.assertFalse(j.finished)
+            j.start()
+        for j in jobs:
+            self.assertTrue(j.finished)
+            self.assertTrue(os.path.isfile(j.posterior_path))
+            self.assertTrue(self.get_number_of_lines(j.posterior_path), 101)
+            self.assertTrue(os.path.isfile(j.regression_worker.summary_path))
+            self.assertTrue(os.path.isfile(j.regression_worker.adjusted_path))
+            self.assertEqual(self.get_number_of_lines(
+                    j.regression_worker.adjusted_path), 101)
+            self.assertTrue(self.get_number_of_lines(
+                    j.regression_worker.summary_path) > 10)
+        # check regression results
+        parameters = [prior_worker.header[
+                i] for i in prior_worker.parameter_indices]
+        stats = [prior_worker.header[
+                i] for i in prior_worker.stat_indices]
+        for j in jobs:
+            cont_params = [j.regression_worker.header[
+                    i] for i in j.regression_worker.continuous_parameter_indices]
+            disc_params = [j.regression_worker.header[
+                    i] for i in j.regression_worker.discrete_parameter_indices]
+            rej_params = [j.header[i] for i in j.parameter_indices]
+            self.assertEqual(set(cont_params + disc_params) - set(parameters), set())
+            self.assertEqual(sorted(parameters), sorted(rej_params))
+            result_header = open(j.regression_worker.adjusted_path, 
+                    'rU').next().strip().split()
+            self.assertEqual(sorted(result_header), sorted(cont_params))
+            results = self.parse_python_config(j.regression_worker.summary_path)
+            expected_keys = cont_params + disc_params + ['settings']
+            self.assertEqual(sorted(results.keys()),
+                    sorted(expected_keys))
+            self.assertEqual(sorted(results['settings']['stats_used']),
+                    sorted(stats))
+            self.assertEqual(sorted(results['settings']['continuous_parameters']),
+                    sorted(cont_params))
+            if len(disc_params) > 1:
+                self.assertEqual(sorted(results['settings']['discrete_parameters']),
+                        sorted(disc_params))
+            else:
+                self.assertEqual(results['settings']['discrete_parameters'],
+                        disc_params[0])
 
 class RegressionWorkerTestCase(PyMsBayesTestCase):
     def setUp(self):
@@ -831,8 +1026,7 @@ class RegressionWorkerTestCase(PyMsBayesTestCase):
         stats = [regress_worker.header[
                 i] for i in regress_worker.stat_indices]
         results = self.parse_python_config(regress_worker.summary_path)
-        expected_keys = [x.replace('PRI.', '').replace('.',
-                '_') for x in cont_params + disc_params] + ['settings']
+        expected_keys = cont_params + disc_params + ['settings']
         self.assertEqual(sorted(results.keys()),
                 sorted(expected_keys))
         self.assertEqual(sorted(results['settings']['stats_used']),
@@ -846,7 +1040,7 @@ class RegressionWorkerTestCase(PyMsBayesTestCase):
             self.assertEqual(results['settings']['discrete_parameters'],
                     disc_params[0])
         
-    def test_regression_no_models(self):
+    def test_regression_with_models(self):
         posterior_worker1 = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 100,
@@ -903,8 +1097,6 @@ class RegressionWorkerTestCase(PyMsBayesTestCase):
         stats = [regress_worker.header[
                 i] for i in regress_worker.stat_indices]
         results = self.parse_python_config(regress_worker.summary_path)
-        # expected_keys = [x.replace('PRI.', '').replace('.',
-        #         '_') for x in cont_params + disc_params] + ['settings']
         expected_keys = cont_params + disc_params + ['settings']
         self.assertEqual(sorted(results.keys()),
                 sorted(expected_keys))
