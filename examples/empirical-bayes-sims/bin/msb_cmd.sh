@@ -7,6 +7,7 @@
 #$ -q all.q
 #$ -pe orte 8
 
+tmp_dir="../results"
 if [ -n "$SGE_O_WORKDIR" ]
 then
     source ~/.bash_profile
@@ -15,24 +16,30 @@ then
     tmp_dir=$(mktemp -d /tmp/output.XXXXXXXXX)
 fi
 
-nprocs=8
-nreps=1000
-nprior=1000000
-npost=1000
+nprocs=4
+nreps=10
+nprior=500
+npost=500
+seed=4849390
 
 msb.py --np $nprocs \
     -o ../configs/m5.cfg \
-    -p ../configs/*.cfg \
+    -p ../configs/m[123478].cfg \
     -r $nreps \
     -n $nprior \
     --num-posterior-samples $npost \
+    --rejection-tool abctoolbox \
+    --regression-method glm \
     --output-dir ../results \
     --staging-dir $tmp_dir \
-    --merge-priors --keep-priors --seed 4849390
+    --merge-priors --keep-priors --seed $seed
 
-echo 'Here are the contents of the local temp directory '${$tmp_dir}':'
-ls -Fla $tmp_dir
-echo 'Removing the local temp directory...'
-rm -r $tmp_dir
+if [ -n "$SGE_O_WORKDIR" ]
+then
+    echo 'Here are the contents of the local temp directory '${$tmp_dir}':'
+    ls -Fla $tmp_dir
+    echo 'Removing the local temp directory...'
+    rm -r $tmp_dir
+fi
 echo 'Done!'
 
