@@ -10,6 +10,7 @@ import re
 import multiprocessing
 import random
 import argparse
+import datetime
 
 from pymsbayes.fileio import expand_path, process_file_arg, open
 from pymsbayes.workers import (MsBayesWorker, MsRejectWorker, RegressionWorker,
@@ -40,7 +41,7 @@ class InfoLogger(object):
         self.path = path
 
     def write(self, msg):
-        out = open(self.path, 'w')
+        out = open(self.path, 'a')
         out.write(msg)
         out.close()
 
@@ -288,6 +289,7 @@ def main_cli():
     ##########################################################################
     ## begin analysis --- generate priors and observed simulations
 
+    start_time = datetime.datetime.now()
     working_prior_temp_fs = TempFileSystem(parent = base_temp_dir,
             prefix = 'pymsbayes-working-prior-files-')
     working_observed_temp_fs = TempFileSystem(parent = base_temp_dir,
@@ -439,7 +441,7 @@ def main_cli():
                 prior_path = prior_path,
                 header_path = prior_paths['header'],
                 include_header = include_header)
-        lc = line_count(prior_path)
+        lc = line_count(prior_path, ignore_headers=True)
         if lc != args.num_prior_samples:
             raise Exception('The number of prior samples ({0}) for model '
                     '{1} does not match num_prior_samples ({2})'.format(
@@ -459,7 +461,7 @@ def main_cli():
         merge_prior_files(
                 paths = [prior_paths[i] for i in model_indices],
                 dest_path = merged_path)
-        lc = line_count(merged_path)
+        lc = line_count(merged_path, ignore_headers=True)
         if lc != ntotal:
             raise Exception('The number of prior samples ({0}) in the '
                     'merged prior file does not match the expected '
@@ -552,7 +554,13 @@ def main_cli():
         rejection_temp_fs.purge()
     if not args.keep_priors:
         prior_temp_fs.purge()
-    info.close()
+
+    stop_time = datetime.datetime.now()
+    info.write('\t[[run_stats]]\n')
+    info.write('\t\tstart_time = {0}\n'.format(str(start_time)))
+    info.write('\t\tstop_time = {0}\n'.format(str(stop_time)))
+    info.write('\t\tduration = {0}\n'.format(str(stop_time - start_time)))
+
 
 if __name__ == '__main__':
     main_cli()
