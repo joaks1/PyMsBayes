@@ -485,6 +485,7 @@ def main_cli():
     ##########################################################################
     ## begin rejection and regression
 
+    reject_start_time = datetime.datetime.now()
     if staging_dir:
         rejection_temp_fs = TempFileSystem(parent = staging_dir,
                 prefix = 'pymsbayes-rejection-temp-')
@@ -569,7 +570,11 @@ def main_cli():
     info.write('\t[[run_stats]]\n')
     info.write('\t\tstart_time = {0}\n'.format(str(start_time)))
     info.write('\t\tstop_time = {0}\n'.format(str(stop_time)))
-    info.write('\t\tduration = {0}\n'.format(str(stop_time - start_time)))
+    info.write('\t\tprior_duration = {0}\n'.format(str(
+            reject_start_time - start_time)))
+    info.write('\t\trejection_duration = {0}\n'.format(str(
+            stop_time - reject_start_time)))
+    info.write('\t\ttotal_duration = {0}\n'.format(str(stop_time - start_time)))
 
 
 if __name__ == '__main__':
