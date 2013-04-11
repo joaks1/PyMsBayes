@@ -526,8 +526,8 @@ def assemble_rejection_workers(temp_fs,
         elif rejection_tool.lower() == 'abctoolbox':
             with open(rej_obs_path, 'w') as out:
                 out.write('{0}\n{1}\n'.format(
-                        '\t'.join([header[i] for i in all_stat_indices]),
-                        '\t'.join([str(l[i]) for i in all_stat_indices])))
+                        '\t'.join([header[idx] for idx in all_stat_indices]),
+                        '\t'.join([str(l[idx]) for idx in all_stat_indices])))
         else:
             raise ValueError('Unexpected rejection tool {0}'.format(
                     rejection_tool))
@@ -541,8 +541,8 @@ def assemble_rejection_workers(temp_fs,
             else:
                 with open(reg_obs_path, 'w') as out:
                     out.write('{0}\n{1}\n'.format(
-                            '\t'.join([header[i] for i in all_stat_indices]),
-                            '\t'.join([str(l[i]) for i in all_stat_indices])))
+                            '\t'.join([header[idx] for idx in all_stat_indices]),
+                            '\t'.join([str(l[idx]) for idx in all_stat_indices])))
         else:
             raise ValueError('Unexpected regression method {0}'.format(
                     regression_method))
