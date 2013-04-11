@@ -695,19 +695,28 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
         self.posterior_prefix = self.test_id + '-posterior'
         self.expected_continuous_parameters = set(['PRI.omega', 'PRI.E.t'])
         self.expected_discrete_parameters = set(['PRI.Psi'])
-        self.expected_discrete_parameter_with_models = set(['PRI.Psi',
+        self.expected_discrete_parameters_with_models = set(['PRI.Psi',
                 'PRI.model'])
+        self.expected_parameters = set(
+                list(self.expected_continuous_parameters) + \
+                list(self.expected_discrete_parameters))
+        self.expected_parameters_with_models = set(
+                list(self.expected_continuous_parameters) + \
+                list(self.expected_discrete_parameters_with_models))
 
     def tearDown(self):
         self.tear_down()
 
-    def _get_prior(self, n=100, schema='msreject', include_header=False):
+    def _get_prior(self, n=100, schema='msreject',
+            model_index = None,
+            include_header=False):
         w = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = n,
                 config_path = self.cfg_path,
                 schema = schema,
                 report_parameters = True,
+                model_index = model_index,
                 include_header = include_header)
         w.start()
         return w
@@ -819,6 +828,80 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
                 self.assertEqual(results['settings']['discrete_parameters'],
                         disc_params[0])
 
+    def test_msreject_llr_with_models(self):
+        prior_workers = []
+        for i in range(2):
+            prior_workers.append(self._get_prior(n=100, model_index=i))
+        prior_path = self.get_test_path()
+        header_path = self.get_test_path()
+        workers.merge_priors(prior_workers,
+                prior_path = prior_path,
+                header_path = header_path,
+                include_header = False)
+        prior_worker = prior_workers[0]
+        prior_worker.prior_path = prior_path
+        obs_worker = self._get_prior(n=2, model_index=1,
+                include_header=True)
+        msreject_workers = workers.assemble_rejection_workers(
+                temp_fs = self.temp_fs,
+                observed_sims_file = obs_worker.prior_path,
+                prior_path = prior_worker.prior_path,
+                tolerance = 0.5,
+                results_dir = self.results_dir,
+                posterior_prefix = self.posterior_prefix,
+                regress = True,
+                rejection_tool = 'msreject',
+                regression_method = 'llr')
+        self.assertEqual(len(msreject_workers), 2)
+        for j in msreject_workers:
+            self.assertFalse(j.finished)
+            self.assertFalse(j.regression_worker.finished)
+            j.start()
+        for j in msreject_workers:
+            self.assertTrue(j.finished)
+            self.assertTrue(j.regression_worker.finished)
+            self.assertTrue(os.path.isfile(j.posterior_path))
+            self.assertTrue(
+                    abs(self.get_number_of_lines(j.posterior_path) - 101) < 6)
+            self.assertTrue(os.path.isfile(j.regression_worker.summary_path))
+            self.assertTrue(os.path.isfile(j.regression_worker.adjusted_path))
+            self.assertTrue(abs(self.get_number_of_lines(
+                    j.regression_worker.adjusted_path) - 101) < 6)
+        # check regression results
+        parameters = [prior_worker.header[
+                i] for i in prior_worker.parameter_indices]
+        stats = [prior_worker.header[
+                i] for i in prior_worker.stat_indices]
+        for j in msreject_workers:
+            cont_params = [j.regression_worker.header[
+                    i] for i in j.regression_worker.continuous_parameter_indices]
+            disc_params = [j.regression_worker.header[
+                    i] for i in j.regression_worker.discrete_parameter_indices]
+            self.assertEqual(set(cont_params),
+                    self.expected_continuous_parameters)
+            self.assertEqual(set(disc_params),
+                    self.expected_discrete_parameters_with_models)
+            rej_stats = [j.header[i] for i in j.stat_indices]
+            self.assertEqual(set(cont_params + disc_params) - set(parameters), set())
+            self.assertEqual(sorted(stats), sorted(rej_stats))
+            result_header = open(j.regression_worker.adjusted_path, 
+                    'rU').next().strip().split()
+            self.assertEqual(sorted(result_header), sorted(cont_params))
+            results = self.parse_python_config(j.regression_worker.summary_path)
+            expected_keys = cont_params + disc_params + ['settings']
+            self.assertEqual(sorted(results.keys()),
+                    sorted(expected_keys))
+            self.assertEqual(sorted(results['settings']['stats_used']),
+                    sorted(stats))
+            self.assertEqual(sorted(results['settings']['continuous_parameters']),
+                    sorted(cont_params))
+            if len(disc_params) > 1:
+                self.assertEqual(sorted(results['settings']['discrete_parameters']),
+                        sorted(disc_params))
+            else:
+                self.assertEqual(results['settings']['discrete_parameters'],
+                        disc_params[0])
+
     def test_msreject_glm(self):
         prior_worker = self._get_prior(n=200)
         obs_worker = self._get_prior(n=2, include_header=True)
@@ -859,9 +942,74 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
         for j in msreject_workers:
             reg_params = [j.regression_worker.header[
                     i] for i in j.regression_worker.parameter_indices]
+            self.assertEqual(set(reg_params), self.expected_parameters)
+            rej_stats = [j.header[i] for i in j.stat_indices]
+            self.assertEqual(set(reg_params) - set(parameters), set())
+            self.assertEqual(sorted(stats), sorted(rej_stats))
+            result_header = set(open(j.regression_worker.adjusted_path, 
+                    'rU').next().strip().split()) - \
+                    set(['number', 'density'])
+            expected_header = set(reg_params)
+            self.assertEqual(result_header, expected_header)
+            summary_header = set(open(j.regression_worker.summary_path, 
+                    'rU').next().strip().split()) -  set(['what'])
+            self.assertEqual(summary_header, expected_header)
+            self.assertEqual(sorted(stats),
+                    sorted(j.regression_worker.stats_header))
+
+    def test_msreject_glm_with_models(self):
+        prior_workers = []
+        for i in range(2):
+            prior_workers.append(self._get_prior(n=100, model_index=i))
+        prior_path = self.get_test_path()
+        header_path = self.get_test_path()
+        workers.merge_priors(prior_workers,
+                prior_path = prior_path,
+                header_path = header_path,
+                include_header = False)
+        prior_worker = prior_workers[0]
+        prior_worker.prior_path = prior_path
+        obs_worker = self._get_prior(n=2, model_index=1,
+                include_header=True)
+        msreject_workers = workers.assemble_rejection_workers(
+                temp_fs = self.temp_fs,
+                observed_sims_file = obs_worker.prior_path,
+                prior_path = prior_worker.prior_path,
+                num_prior_samples = 200,
+                num_posterior_samples = 100,
+                results_dir = self.results_dir,
+                posterior_prefix = self.posterior_prefix,
+                regress = True,
+                rejection_tool = 'msreject',
+                regression_method = 'glm',
+                num_posterior_quantiles = 50)
+        self.assertEqual(len(msreject_workers), 2)
+        for j in msreject_workers:
+            self.assertFalse(j.finished)
+            self.assertFalse(j.regression_worker.finished)
+            j.start()
+        for j in msreject_workers:
+            self.assertTrue(j.finished)
+            self.assertTrue(j.regression_worker.finished)
+            self.assertTrue(os.path.isfile(j.posterior_path))
+            self.assertTrue(
+                    abs(self.get_number_of_lines(j.posterior_path) - 101) < 6)
+            self.assertTrue(os.path.isfile(j.regression_worker.summary_path))
+            self.assertTrue(os.path.isfile(j.regression_worker.adjusted_path))
+            self.assertEqual(self.get_number_of_lines(
+                    j.regression_worker.adjusted_path), 51)
+            self.assertEqual(self.get_number_of_lines(
+                    j.regression_worker.summary_path), 20)
+        # check regression results
+        parameters = [prior_worker.header[
+                i] for i in prior_worker.parameter_indices]
+        stats = [prior_worker.header[
+                i] for i in prior_worker.stat_indices]
+        for j in msreject_workers:
+            reg_params = [j.regression_worker.header[
+                    i] for i in j.regression_worker.parameter_indices]
             self.assertEqual(set(reg_params),
-                    self.expected_continuous_parameters.update(
-                    self.expected_discrete_parameters))
+                    self.expected_parameters_with_models)
             rej_stats = [j.header[i] for i in j.stat_indices]
             self.assertEqual(set(reg_params) - set(parameters), set())
             self.assertEqual(sorted(stats), sorted(rej_stats))
@@ -913,9 +1061,73 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
         for j in jobs:
             reg_params = [j.regression_worker.header[
                     i] for i in j.regression_worker.parameter_indices]
+            self.assertEqual(set(reg_params), self.expected_parameters)
+            rej_params = [j.header[i] for i in j.parameter_indices]
+            self.assertEqual(set(reg_params) - set(parameters), set())
+            self.assertEqual(sorted(parameters), sorted(rej_params))
+            result_header = set(open(j.regression_worker.adjusted_path, 
+                    'rU').next().strip().split()) - \
+                    set(['number', 'density'])
+            expected_header = set(reg_params)
+            self.assertEqual(result_header, expected_header)
+            summary_header = set(open(j.regression_worker.summary_path, 
+                    'rU').next().strip().split()) -  set(['what'])
+            self.assertEqual(summary_header, expected_header)
+            self.assertEqual(sorted(stats), sorted(j.stats_header))
+            self.assertEqual(sorted(stats),
+                    sorted(j.regression_worker.stats_header))
+
+    def test_abctoolbox_glm_with_models(self):
+        prior_workers = []
+        for i in range(2):
+            prior_workers.append(self._get_prior(n=100, model_index=i,
+                schema='abctoolbox'))
+        prior_path = self.get_test_path()
+        header_path = self.get_test_path()
+        workers.merge_priors(prior_workers,
+                prior_path = prior_path,
+                header_path = header_path,
+                include_header = True)
+        prior_worker = prior_workers[0]
+        prior_worker.prior_path = prior_path
+        obs_worker = self._get_prior(n=2, model_index=1,
+                schema='abctoolbox')
+        jobs = workers.assemble_rejection_workers(
+                temp_fs = self.temp_fs,
+                observed_sims_file = obs_worker.prior_path,
+                prior_path = prior_worker.prior_path,
+                num_prior_samples = 200,
+                num_posterior_samples = 100,
+                results_dir = self.results_dir,
+                posterior_prefix = self.posterior_prefix,
+                regress = True,
+                rejection_tool = 'abctoolbox',
+                regression_method = 'glm',
+                num_posterior_quantiles = 50)
+        self.assertEqual(len(jobs), 2)
+        for j in jobs:
+            self.assertFalse(j.finished)
+            j.start()
+        for j in jobs:
+            self.assertTrue(j.finished)
+            self.assertTrue(os.path.isfile(j.posterior_path))
+            self.assertTrue(self.get_number_of_lines(j.posterior_path), 101)
+            self.assertTrue(os.path.isfile(j.regression_worker.summary_path))
+            self.assertTrue(os.path.isfile(j.regression_worker.adjusted_path))
+            self.assertEqual(self.get_number_of_lines(
+                    j.regression_worker.adjusted_path), 51)
+            self.assertEqual(self.get_number_of_lines(
+                    j.regression_worker.summary_path), 20)
+        # check regression results
+        parameters = [prior_worker.header[
+                i] for i in prior_worker.parameter_indices]
+        stats = [prior_worker.header[
+                i] for i in prior_worker.stat_indices]
+        for j in jobs:
+            reg_params = [j.regression_worker.header[
+                    i] for i in j.regression_worker.parameter_indices]
             self.assertEqual(set(reg_params),
-                    self.expected_continuous_parameters.update(
-                    self.expected_discrete_parameters))
+                    self.expected_parameters_with_models)
             rej_params = [j.header[i] for i in j.parameter_indices]
             self.assertEqual(set(reg_params) - set(parameters), set())
             self.assertEqual(sorted(parameters), sorted(rej_params))
@@ -973,6 +1185,80 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
                     self.expected_continuous_parameters)
             self.assertEqual(set(disc_params),
                     self.expected_discrete_parameters)
+            rej_params = [j.header[i] for i in j.parameter_indices]
+            self.assertEqual(set(cont_params + disc_params) - set(parameters), set())
+            self.assertEqual(sorted(parameters), sorted(rej_params))
+            result_header = open(j.regression_worker.adjusted_path, 
+                    'rU').next().strip().split()
+            self.assertEqual(sorted(result_header), sorted(cont_params))
+            results = self.parse_python_config(j.regression_worker.summary_path)
+            expected_keys = cont_params + disc_params + ['settings']
+            self.assertEqual(sorted(results.keys()),
+                    sorted(expected_keys))
+            self.assertEqual(sorted(results['settings']['stats_used']),
+                    sorted(stats))
+            self.assertEqual(sorted(results['settings']['continuous_parameters']),
+                    sorted(cont_params))
+            if len(disc_params) > 1:
+                self.assertEqual(sorted(results['settings']['discrete_parameters']),
+                        sorted(disc_params))
+            else:
+                self.assertEqual(results['settings']['discrete_parameters'],
+                        disc_params[0])
+
+    def test_abctoolbox_llr_with_models(self):
+        prior_workers = []
+        for i in range(2):
+            prior_workers.append(self._get_prior(n=100, model_index=i,
+                schema='abctoolbox'))
+        prior_path = self.get_test_path()
+        header_path = self.get_test_path()
+        workers.merge_priors(prior_workers,
+                prior_path = prior_path,
+                header_path = header_path,
+                include_header = True)
+        prior_worker = prior_workers[0]
+        prior_worker.prior_path = prior_path
+        obs_worker = self._get_prior(n=2, model_index=1, schema='abctoolbox')
+        jobs = workers.assemble_rejection_workers(
+                temp_fs = self.temp_fs,
+                observed_sims_file = obs_worker.prior_path,
+                prior_path = prior_worker.prior_path,
+                num_prior_samples = 200,
+                num_posterior_samples = 100,
+                results_dir = self.results_dir,
+                posterior_prefix = self.posterior_prefix,
+                regress = True,
+                rejection_tool = 'abctoolbox',
+                regression_method = 'llr')
+        self.assertEqual(len(jobs), 2)
+        for j in jobs:
+            self.assertFalse(j.finished)
+            j.start()
+        for j in jobs:
+            self.assertTrue(j.finished)
+            self.assertTrue(os.path.isfile(j.posterior_path))
+            self.assertTrue(self.get_number_of_lines(j.posterior_path), 101)
+            self.assertTrue(os.path.isfile(j.regression_worker.summary_path))
+            self.assertTrue(os.path.isfile(j.regression_worker.adjusted_path))
+            self.assertEqual(self.get_number_of_lines(
+                    j.regression_worker.adjusted_path), 101)
+            self.assertTrue(self.get_number_of_lines(
+                    j.regression_worker.summary_path) > 10)
+        # check regression results
+        parameters = [prior_worker.header[
+                i] for i in prior_worker.parameter_indices]
+        stats = [prior_worker.header[
+                i] for i in prior_worker.stat_indices]
+        for j in jobs:
+            cont_params = [j.regression_worker.header[
+                    i] for i in j.regression_worker.continuous_parameter_indices]
+            disc_params = [j.regression_worker.header[
+                    i] for i in j.regression_worker.discrete_parameter_indices]
+            self.assertEqual(set(cont_params),
+                    self.expected_continuous_parameters)
+            self.assertEqual(set(disc_params),
+                    self.expected_discrete_parameters_with_models)
             rej_params = [j.header[i] for i in j.parameter_indices]
             self.assertEqual(set(cont_params + disc_params) - set(parameters), set())
             self.assertEqual(sorted(parameters), sorted(rej_params))
