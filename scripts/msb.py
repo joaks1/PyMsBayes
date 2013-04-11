@@ -201,6 +201,7 @@ def main_cli():
             action = 'store',
             type = int,
             help = 'Random number seed to use for the analysis.')
+    # TODO:
     # parser.add_argument('--dry-run',
     #         action = 'store_true',
     #         help = 'Report configuration of the analysis and exit.')
@@ -232,6 +233,7 @@ def main_cli():
     base_dir = mk_new_dir(os.path.join(args.output_dir, 'pymsbayes-output'))
     info = InfoLogger(os.path.join(base_dir, 'pymsbayes-info.txt'))
     info.write('[pymsbayes]\n'.format(base_dir))
+    info.write('\tversion = {version}\n'.format(**_program_info))
     info.write('\toutput_directory = {0}\n'.format(base_dir))
     base_temp_dir = mk_new_dir(os.path.join(base_dir, 'temp-files'))
     info.write('\ttemp_directory = {0}\n'.format(base_temp_dir))
@@ -265,6 +267,14 @@ def main_cli():
     GLOBAL_RNG.seed(args.seed)
     info.write('\tseed = {0}\n'.format(args.seed))
     info.write('\tnum_processors = {0}\n'.format(args.np))
+    info.write('\trejection_tool = {0}\n'.format(args.rejection_tool))
+    info.write('\tregression = {0}\n'.format(args.regression))
+    info.write('\tregression_method = {0}\n'.format(args.regression_method))
+    info.write('\tbandwidth = {0}\n'.format(args.bandwidth))
+    info.write('\tposterior_quantiles = {0}\n'.format(
+            args.num_posterior_quantiles))
+    info.write('\tposterior_sample_size = {0}\n'.format(
+            args.num_posterior_samples))
     info.write('\t[[column_prefixes]]\n')
     info.write('\t\tstat_patterns = {0}\n'.format(
             ', '.join([p.pattern for p in stat_patterns])))
