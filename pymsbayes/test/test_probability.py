@@ -48,7 +48,7 @@ class DiscreteUniformDistributionTestCase(PyMsBayesTestCase):
     def test_value_error_init(self):
         self.assertRaises(ValueError, DiscreteUniformDistribution, 2, 1)
 
-    def test_value_error_init(self):
+    def test_value_error_init_float(self):
         self.assertRaises(ValueError, DiscreteUniformDistribution, 1.0, 2.0)
 
     def test_standard(self):

@@ -29,7 +29,7 @@ class MkdrTestCase(PyMsBayesTestCase):
         self.assertTrue(os.path.exists(self.path))
         self.assertTrue(os.path.isdir(self.path))
 
-class MkNewDrTestCase(PyMsBayesTestCase):
+class MkNewDirTestCase(PyMsBayesTestCase):
     def setUp(self):
         self.set_up()
         p = ['mkdr', 'test', 'dir']
@@ -42,7 +42,7 @@ class MkNewDrTestCase(PyMsBayesTestCase):
     def tearDown(self):
         self.tear_down()
     
-    def test_mkdr(self):
+    def test_mk_new_dir(self):
         self.assertFalse(os.path.exists(self.path))
         functions.mk_new_dir(self.path)
         self.assertTrue(os.path.exists(self.path))
