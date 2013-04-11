@@ -401,9 +401,6 @@ def main_cli():
 
     # merged simulated observed data into one file
     observed_path = os.path.join(base_dir, 'observed.txt')
-    observed_stats_path = observed_path
-    if args.rejection_tool == 'abctoolbox':
-        observed_stats_path = os.path.join(base_dir, 'observed-stats.txt')
     info.write('\t[[observed_paths]]\n')
     info.write('\t\t{0} = {1}\n'.format(observed_model_idx, observed_path))
     if args.reps > 0:
@@ -419,15 +416,6 @@ def main_cli():
             raise Exception('The number of observed simulations ({0}) does '
                     'not match the number of reps ({1})'.format(lc,
                             args.reps))
-        if args.rejection_tool == 'abctoolbox':
-            merge_prior_files(
-                path = [w.prior_stats_path for w in msbayes_observed_workers],
-                dest_path = observed_stats_path)
-            lc = line_count(observed_stats_path, ignore_headers=True)
-            if lc != args.reps:
-                raise Exception('The number of observed stats ({0}) does '
-                        'not match the number of reps ({1})'.format(lc,
-                                args.reps))
     if not args.keep_temps:
         _LOG.debug('purging working observed...')
         working_observed_temp_fs.purge()
@@ -508,7 +496,7 @@ def main_cli():
     if args.merge_priors:
         reject_workers.extend(assemble_rejection_workers(
                 temp_fs = rejection_temp_fs,
-                observed_sims_file = observed_stats_path,
+                observed_sims_file = observed_path,
                 prior_path = prior_paths['merged'],
                 num_posterior_samples = args.num_posterior_samples,
                 num_prior_samples = ntotal,
@@ -527,7 +515,7 @@ def main_cli():
         for i in model_indices:
             reject_workers.extend(assemble_rejection_workers(
                     temp_fs = rejection_temp_fs,
-                    observed_sims_file = observed_stats_path,
+                    observed_sims_file = observed_path,
                     prior_path = prior_paths[i],
                     num_posterior_samples = args.num_posterior_samples,
                     num_prior_samples = args.num_prior_samples,
