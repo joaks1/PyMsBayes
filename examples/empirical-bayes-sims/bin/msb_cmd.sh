@@ -17,10 +17,10 @@ then
 fi
 
 nprocs=4
-nreps=10
-nprior=500
-npost=500
-seed=4849390
+nreps=1000
+nprior=1000000
+npost=1000
+seed=48492341
 
 msb.py --np $nprocs \
     -o ../configs/m5.cfg \
