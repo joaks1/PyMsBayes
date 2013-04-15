@@ -28,7 +28,7 @@ msb.py --np $nprocs \
     -r $nreps \
     -n $nprior \
     --num-posterior-samples $npost \
-    --rejection-tool abctoolbox \
+    --rejection-tool msreject \
     --regression-method glm \
     --output-dir ../results \
     --staging-dir $tmp_dir \
