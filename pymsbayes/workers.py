@@ -789,6 +789,10 @@ class ABCToolBoxRejectWorker(Worker):
 
     def _post_process(self):
         post_path = self.output_prefix + 'BestSimsParamStats_Obs0.txt'
+        if not os.path.exists(post_path):
+            raise Exception('{0} did not produce a posterior file.\n'
+                    'Here is the stderr from the subprocess:\n{1}'.format(
+                            self.name, self.get_stderr()))
         # remove extra two columns added by abctoolbox
         with open(self.posterior_path, 'w') as o:
             with open(post_path, 'rU') as i:
