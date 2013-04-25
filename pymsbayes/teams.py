@@ -6,7 +6,7 @@ import sys
 from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRejectWorker,
         ABCToolBoxRegressWorker, RegressionWorker)
 from pymsbayes.utils import GLOBAL_RNG
-from pymsbayes.utils.functions import long_division
+from pymsbayes.utils.functions import long_division, least_common_multiple
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -26,12 +26,19 @@ def assemble_abc_teams(
         msbayes_exe_path = None,
         abctoolbox_exe_path = None,
         keep_temps = False):
-    pass
+    if not rng:
+        rng = GLOBAL_RNG
+    num_teams = least_common_multiple([num_processors, len(prior_config_dict)])
+    num_teams_per_config, r = long_division(num_teams, len(prior_config_dict))
+    assert r == 0
+    num_samples_per_team, extra_samples = long_division(num_prior_samples,
+            num_teams_per_config)
 
 def assemble_final_rejection_workers_from_abc_teams(
         abc_teams,
         regress = True,
         regression_method = 'glm'):
+    # create rejection workers for final reject/regression
     pass
 
 class ABCTeam(object):
@@ -55,7 +62,6 @@ class ABCTeam(object):
         self.config_path = prior_config_path
         self.num_prior_samples = num_prior_samples
         self.num_posterior_samples = num_posterior_samples
-        self.batch_size = batch_size
         self.model_index = model_index
         self.sort_index = sort_index
         self.report_parameters = report_parameters
