@@ -136,3 +136,13 @@ def long_division(dividend, diviser):
 def get_tolerance(num_prior_samples, num_posterior_samples):
     return num_posterior_samples / float(num_prior_samples)
 
+def least_common_multiple(x):
+    y = [i for i in x]
+    while True:
+        print x
+        print y
+        if len(set(y)) == 1:
+            return y[0]
+        min_index = y.index(min(y))
+        y[min_index] += x[min_index]
+
