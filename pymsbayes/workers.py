@@ -164,7 +164,8 @@ class Worker(object):
     total = 0
     def __init__(self,
             stdout_path = None,
-            stderr_path = None):
+            stderr_path = None,
+            tag = ''):
         self.__class__.total += 1
         self.stdout_path = stdout_path
         self.stderr_path = stderr_path
@@ -174,6 +175,7 @@ class Worker(object):
         self.exit_code = None
         self.stdout = None
         self.stderr = None
+        self.tag = tag
 
     def get_stderr(self):
         if not self.stderr_path:
@@ -324,10 +326,12 @@ class MsBayesWorker(Worker):
             stdout_path = None,
             stderr_path = None,
             staging_dir = None,
-            write_stats_file = False):
+            write_stats_file = False,
+            tag = ''):
         Worker.__init__(self,
                 stdout_path = stdout_path,
-                stderr_path = stderr_path)
+                stderr_path = stderr_path,
+                tag = tag)
         self.__class__.count += 1
         self.name = 'MsBayesWorker-' + str(self.count)
         self.temp_fs = temp_fs
@@ -610,10 +614,12 @@ class MsRejectWorker(Worker):
             stat_indices = None,
             regression_worker = None,
             exe_path = None,
-            stderr_path = None):
+            stderr_path = None,
+            tag = ''):
         Worker.__init__(self,
                 stdout_path = None,
-                stderr_path = stderr_path)
+                stderr_path = stderr_path,
+                tag = tag)
         self.__class__.count += 1
         self.name = 'MsRejectWorker-' + str(self.count)
         if not exe_path:
@@ -674,10 +680,12 @@ class RegressionWorker(Worker):
             discrete_parameter_indices = None,
             exe_path = None,
             stdout_path = None,
-            stderr_path = None):
+            stderr_path = None,
+            tag = ''):
         Worker.__init__(self,
                 stdout_path = stdout_path,
-                stderr_path = stderr_path)
+                stderr_path = stderr_path,
+                tag = tag)
         self.__class__.count += 1
         self.name = 'RegressionWorker-' + str(self.count)
         if not exe_path:
@@ -746,10 +754,12 @@ class ABCToolBoxRejectWorker(Worker):
             stdout_path = None,
             stderr_path = None,
             keep_temps = False,
-            max_read_sims = 10000000):
+            max_read_sims = 10000000,
+            tag = ''):
         Worker.__init__(self,
                 stdout_path = stdout_path,
-                stderr_path = stderr_path)
+                stderr_path = stderr_path,
+                tag = tag)
         self.__class__.count += 1
         self.name = 'ABCToolBoxRejectWorker-' + str(self.count)
         self.temp_fs = temp_fs
@@ -838,10 +848,12 @@ class ABCToolBoxRegressWorker(Worker):
             bandwidth = None,
             num_posterior_samples = None,
             num_posterior_quantiles = None,
+            tag = '',
             ):
         Worker.__init__(self,
                 stdout_path = stdout_path,
-                stderr_path = stderr_path)
+                stderr_path = stderr_path,
+                tag = tag)
         self.__class__.count += 1
         self.name = 'ABCToolBoxRegressWorker-' + str(self.count)
         self.temp_fs = temp_fs
