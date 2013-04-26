@@ -44,8 +44,8 @@ def random_str(length=8,
         char_pool=string.ascii_letters + string.digits):
     return ''.join(random.choice(char_pool) for i in range(length))
 
-def get_random_int():
-    return GLOBAL_RNG.randint(1, 999999999)
+def get_random_int(rng = GLOBAL_RNG):
+    return rng.randint(1, 999999999)
 
 def get_indices_of_patterns(target_list, regex_list, sort=True):
     indices = []
