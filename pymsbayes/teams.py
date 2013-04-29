@@ -4,16 +4,14 @@ import os
 import sys
 
 from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRejectWorker,
-        ABCToolBoxRegressWorker, RegressionWorker)
+        ABCToolBoxRegressWorker, RegressionWorker, get_stat_indices,
+        parse_header)
+from pymsbayes.manager import Manager
+from pymsbayes.fileio import process_file_arg
 from pymsbayes.utils import GLOBAL_RNG
 from pymsbayes.utils.functions import (long_division, least_common_multiple,
-        get_random_int)
+        get_random_int, list_splitter)
 from pymsbayes.utils.messaging import get_logger
-process_file_arg
-parse_header
-get_stat_indices
-Manager
-list_splitter
 
 _LOG = get_logger(__name__)
 
@@ -68,6 +66,8 @@ class ABCTeam(object):
         self.keep_temps = keep_temps
         self.work_queue = work_queue
         self.result_queue = multiprocessing.Queue()
+        self._assemble_rejection_teams()
+        self._assemble_prior_workers()
 
     def _assemble_rejection_teams(self):
         obs_file, close = process_file_arg(self.observed_sims_path)
@@ -124,7 +124,6 @@ class ABCTeam(object):
                 self.num_processors))
 
     def run(self):
-        self._pre_process()
         for prior_worker_batch in self.prior_workers:
             for pw in prior_worker_batch:
                 self.work_queue.put(pw)
