@@ -242,6 +242,8 @@ class Worker(object):
 ## functions for managing msbayes workers
 
 def merge_priors(workers, prior_path, header_path=None, include_header=False):
+    if not workers:
+        raise Exception('no prior workers to merge.')
     out, close = process_file_arg(prior_path, 'w')
     h = None
     std = None
