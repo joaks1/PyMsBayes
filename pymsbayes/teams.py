@@ -5,10 +5,11 @@ import sys
 
 from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRejectWorker,
         ABCToolBoxRegressWorker, RegressionWorker, get_stat_indices,
-        parse_header)
+        parse_header, DEFAULT_STAT_PATTERNS, PARAMETER_PATTERNS,
+        merge_prior_files)
 from pymsbayes.manager import Manager
 from pymsbayes.fileio import process_file_arg
-from pymsbayes.utils import GLOBAL_RNG
+from pymsbayes.utils import GLOBAL_RNG, WORK_FORCE
 from pymsbayes.utils.functions import (long_division, least_common_multiple,
         get_random_int, list_splitter)
 from pymsbayes.utils.messaging import get_logger
@@ -179,7 +180,8 @@ class RejectionTeam(object):
     def start(self):
         self.num_calls += 1
         for i in range(len(self.prior_workers)):
-            pw = self.prior_workers.pop(0)
+            # pw = self.prior_workers.pop(0)
+            pw = self.prior_workers[i]
             merge_paths = [pw.prior_path]
             if self.posterior_path:
                 merge_paths.append(self.posterior_path)
@@ -188,7 +190,7 @@ class RejectionTeam(object):
                             self.num_calls, i+1),
                     create = False)
             merge_prior_files(
-                    paths = [pw.prior_path, self.posterior_path],
+                    paths = merge_paths,
                     dest_path = new_prior_path)
             new_posterior_path = self.temp_fs.get_file_path(
                     prefix = 'posterior-{0}-{1}-{2}-'.format(self.name, 
@@ -198,7 +200,7 @@ class RejectionTeam(object):
                 os.remove(self.posterior_path)
             self.posterior_path = new_posterior_path
             rw = ABCToolBoxRejectWorker(
-                    temp_fs = temp_fs,
+                    temp_fs = self.temp_fs,
                     observed_path = self.observed_path,
                     prior_path = new_prior_path,
                     num_posterior_samples = self.num_posterior_samples,
