@@ -336,6 +336,110 @@ class PyMsBayesTestCase(unittest.TestCase):
             _LOG.error('files are not equal:\n{0}\n'.format(diffs.getvalue()))
         self.assertTrue(all_equal)
 
+    def assertSameUnsortedFiles(self, files):
+        files = list(files)
+        all_equal = True
+        diffs = StringIO()
+        f1, close = process_file_arg(files.pop(0))
+        lines1 = sorted(f1.readlines())
+        for f in files:
+            f2, close2 = process_file_arg(f)
+            lines2 = sorted(f2.readlines())
+            if len(lines1) != len(lines2):
+                all_equal = False
+                diffs.write('{0} ({1}) and {2} ({3}) have different '
+                        'number of lines\n'.format(f1.name, len(lines1),
+                                f2.name, len(lines2)))
+            for i in range(min(len(lines1), len(lines2))):
+                if lines1[i].strip().split() != lines2[i].strip().split():
+                    all_equal = False
+                    diffs.write('{0} and {1} differ at sorted index '
+                            '{2}\n'.format(f1.name, f2.name, i))
+
+            if close2:
+                f2.close()
+        if not all_equal:
+            _LOG.error('files are not equal after sorting:\n{0}\n'.format(
+                    diffs.getvalue()))
+        self.assertTrue(all_equal)
+        if close:
+            f1.close()
+
+    def same_samples(self, sample1, sample2, places = 4, num_mismatches = 0):
+        if len(sample1) != len(sample2):
+            return False
+        for i in range(len(sample1)):
+            if round(float(sample1[i]) - float(sample2[i]), places) != 0:
+                if num_mismatches < 1:
+                    return False
+                num_mismatches -= 1
+        return True
+            
+    def assertSameSamples(self, files, columns_to_ignore = [], header = True,
+            places = 5, num_mismatches_per_sample = 0,
+            num_sample_mismatches = 0):
+        files = list(files)
+        all_equal = True
+        diffs = StringIO()
+        f1, close = process_file_arg(files.pop(0))
+        f1_lines = f1.readlines()
+        indices = [i for i in range(len(
+                f1_lines[0].strip().split())) if i not in columns_to_ignore]
+        h1 = []
+        if header:
+            head = f1_lines.pop(0).strip().split()
+            h1 = [head[i] for i in indices]
+        lines1 = sorted(f1_lines)
+        for f in files:
+            f2, close2 = process_file_arg(f)
+            f2_lines = f2.readlines()
+            h2 = []
+            if header:
+                head = f2_lines.pop(0).strip().split()
+                h2 = [head[i] for i in indices]
+                if h1 != h2:
+                    all_equal = False
+                    diffs.write('{0} and {1} have different headers; not '
+                            'comparing further\n'.format(
+                                    f1.name, f2.name))
+                    continue
+            lines2 = sorted(f2_lines)
+            if len(lines1) != len(lines2):
+                all_equal = False
+                diffs.write('{0} ({1}) and {2} ({3}) have different '
+                        'number of lines\n'.format(f1.name, len(lines1),
+                                f2.name, len(lines2)))
+            n_matches = 0
+            n_mismatches = 0
+            for l1 in lines1:
+                found = False
+                for l2 in lines2:
+                    values1 = l1.strip().split()
+                    values2 = l2.strip().split()
+                    v1 = [float(values1[x]) for x in indices]
+                    v2 = [float(values2[x]) for x in indices]
+                    if self.same_samples(v1, v2, places = places,
+                            num_mismatches = num_mismatches_per_sample):
+                        found = True
+                if found:
+                    n_matches += 1
+                else:
+                    n_mismatches += 1
+            if n_mismatches > 0:
+                if n_mismatches > num_sample_mismatches:
+                    all_equal = False
+                diffs.write('{0} and {1}\nhave {2} mismatching samples and '
+                        'share {3} samples\n'.format(
+                                f1.name, f1.name, n_mismatches, n_matches))
+            if close2:
+                f2.close()
+        if diffs.getvalue() != '':
+            _LOG.error('files are not equal after sorting:\n{0}\n'.format(
+                    diffs.getvalue()))
+        self.assertTrue(all_equal)
+        if close:
+            f1.close()
+    
     def assertSameDistributions(self, d1, d2):
         self.assertEqual(d1.name, d2.name)
         self.assertEqual(str(d1), str(d2))
