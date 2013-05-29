@@ -2,4 +2,6 @@
 *.pyc
 .DS_Store
 *.egg-info
+bin/*/old/msDQH
+bin/*/old/sumstatsvector
 
