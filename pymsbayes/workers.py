@@ -11,7 +11,7 @@ from cStringIO import StringIO
 
 from pymsbayes.fileio import expand_path, process_file_arg, FileStream, open
 from pymsbayes.utils.tempfs import TempFileSystem
-from pymsbayes.utils import BIN_DIR
+from pymsbayes.utils import get_tool_path
 from pymsbayes.utils.functions import (get_random_int, get_indices_of_patterns,
         reduce_columns, is_dir)
 from pymsbayes.utils.errors import WorkerExecutionError, PriorMergeError
@@ -341,7 +341,7 @@ class MsBayesWorker(Worker):
         self.config_path = expand_path(config_path)
         self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
         if not exe_path:
-            exe_path = os.path.join(BIN_DIR, 'msbayes.pl')
+            exe_path = get_tool_path('msbayes-old')
         self.exe_path = expand_path(exe_path)
         self.model_index = None
         if model_index != None:
@@ -625,7 +625,7 @@ class MsRejectWorker(Worker):
         self.__class__.count += 1
         self.name = 'MsRejectWorker-' + str(self.count)
         if not exe_path:
-            exe_path = os.path.join(BIN_DIR, 'msReject')
+            exe_path = get_tool_path('msreject')
         self.exe_path = expand_path(exe_path)
         self.observed_path = expand_path(observed_path)
         self.prior_path = expand_path(prior_path)
@@ -691,7 +691,7 @@ class RegressionWorker(Worker):
         self.__class__.count += 1
         self.name = 'RegressionWorker-' + str(self.count)
         if not exe_path:
-            exe_path = os.path.join(BIN_DIR, 'regress_cli.r')
+            exe_path = get_tool_path('regress_cli')
         self.exe_path = expand_path(exe_path)
         self.observed_path = expand_path(observed_path)
         self.posterior_path = expand_path(posterior_path)
@@ -766,7 +766,7 @@ class ABCToolBoxRejectWorker(Worker):
         self.name = 'ABCToolBoxRejectWorker-' + str(self.count)
         self.temp_fs = temp_fs
         if not exe_path:
-            exe_path = os.path.join(BIN_DIR, 'ABCestimator')
+            exe_path = get_tool_path('abcestimator')
         self.exe_path = expand_path(exe_path)
         self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
         self.output_prefix = os.path.join(self.output_dir, 
@@ -860,7 +860,7 @@ class ABCToolBoxRegressWorker(Worker):
         self.name = 'ABCToolBoxRegressWorker-' + str(self.count)
         self.temp_fs = temp_fs
         if not exe_path:
-            exe_path = os.path.join(BIN_DIR, 'ABCestimator')
+            exe_path = get_tool_path('abcestimator')
         self.exe_path = expand_path(exe_path)
         self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
         self.output_prefix = os.path.join(self.output_dir, 
