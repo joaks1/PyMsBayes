@@ -3,9 +3,19 @@
 import unittest
 import os
 
-from pymsbayes.utils import functions
+from pymsbayes.utils import functions, get_tool_path, TOOL_PATH_MAP
 from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
+
+class GetToolPathTestCase(unittest.TestCase):
+    def test_error(self):
+        self.assertRaises(Exception, get_tool_path, 'blah')
+
+    def test_get_tool_path(self):
+        for name, path in TOOL_PATH_MAP.iteritems():
+            p = get_tool_path(name)
+            self.assertEqual(p, path)
+            self.assertTrue(os.path.exists(p))
 
 class MkdrTestCase(PyMsBayesTestCase):
     def setUp(self):
@@ -86,7 +96,7 @@ class IsExecutableTestCase(unittest.TestCase):
     def setUp(self):
         self.file = package_paths.data_path("4pairs_1locus.cfg")
         self.bogus_file = package_paths.data_path("bogusdatafilename")
-        self.exe = package_paths.bin_path('msbayes.pl')
+        self.exe = get_tool_path('eureject')
     
     def test_is_executable(self):
         self.assertFalse(functions.is_executable(None))
