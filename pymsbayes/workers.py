@@ -743,6 +743,82 @@ class RegressionWorker(Worker):
                     [str(i+1) for i in self.stat_indices]),]
         self.cmd = cmd
 
+class EuRejectWorker(Worker):
+    count = 0
+    def __init__(self,
+            temp_fs,
+            observed_path,
+            prior_paths,
+            num_posterior_samples,
+            num_standardizing_samples = 10000,
+            summary_in_path = None,
+            summary_out_path = None,
+            posterior_path = None,
+            regression_worker = None,
+            exe_path = None,
+            stderr_path = None,
+            keep_temps = False,
+            tag = ''):
+        Worker.__init__(self,
+                stdout_path = None,
+                stderr_path = None,
+                tag = tag)
+        self.__class__.count += 1
+        self.name = 'EuRejectWorker-' + str(self.count)
+        self.temp_fs = temp_fs
+        if not exe_path:
+            exe_path = get_tool_path('eureject')
+        self.exe_path = expand_path(exe_path)
+        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
+        if not stderr_path:
+            stderr_path = self.temp_fs.get_file_path(
+                    parent = self.output_dir,
+                    prefix = self.name + '-stderr-',
+                    create = False)
+        self.stderr_path = expand_path(stderr_path)
+        if not summary_in_path:
+            self.summary_provided = False
+        else:
+            self.summary_provided = True
+            self.summary_in_path = expand_path(summary_in_path)
+        if not summary_out_path:
+            summary_out_path = self.temp_fs.get_file_path(
+                    parent = self.output_dir,
+                    prefix = self.name + '-summary-',
+                    create = False)
+        self.summary_out_path = expand_path(summary_out_path)
+        self.observed_path = expand_path(observed_path)
+        self.prior_paths = [expand_path(p) for p in prior_paths]
+        if not posterior_path:
+            posterior_path = observed_path + '.posterior'
+        self.posterior_path = expand_path(posterior_path)
+        self.stdout_path = posterior_path
+        self.num_posterior_samples = int(num_posterior_samples)
+        self.num_standardizing_samples = int(num_standardizing_samples)
+        self.regression_worker = regression_worker
+        self.keep_temps = keep_temps
+        self._update_cmd()
+
+    def _pre_process(self):
+        self._update_cmd()
+
+    def _post_process(self):
+        if not self.keep_temps:
+            self.temp_fs.remove_dir(self.output_dir)
+        if self.regression_worker:
+            self.regression_worker.start()
+
+    def _update_cmd(self):
+        cmd = [self.exe_path,
+               '-f', self.observed_path,
+               '-k', str(self.num_posterior_samples),
+               '-n', str(self.num_standardizing_samples),
+               '-o', self.summary_out_path]
+        if self.summary_provided:
+            cmd.extend(['-s', self.summary_in_path])
+        cmd.extend(self.prior_paths)
+        self.cmd = cmd
+        
 class ABCToolBoxRejectWorker(Worker):
     count = 0
     def __init__(self,

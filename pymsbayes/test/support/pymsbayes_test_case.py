@@ -430,7 +430,7 @@ class PyMsBayesTestCase(unittest.TestCase):
                     all_equal = False
                 diffs.write('{0} and {1}\nhave {2} mismatching samples and '
                         'share {3} samples\n'.format(
-                                f1.name, f1.name, n_mismatches, n_matches))
+                                f1.name, f2.name, n_mismatches, n_matches))
             if close2:
                 f2.close()
         if diffs.getvalue() != '':

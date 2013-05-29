@@ -463,6 +463,61 @@ class MsRejectWorkerTestCase(PyMsBayesTestCase):
         self.assertEqual(posterior1, expected_post)
         self.assertEqual(posterior2, expected_post)
 
+class EuRejectWorkerTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.cfg_path = package_paths.data_path('4pairs_1locus.cfg')
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_rejection_with_parameters(self):
+        prior_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 100,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                report_parameters = True)
+        prior_worker.start()
+        obs_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True,
+                report_parameters = True)
+        obs_worker.start()
+
+        post_path = self.get_test_path(prefix='test-posterior-')
+        sum_out_path = self.get_test_path(prefix='test-summary-out-')
+        reject_worker = workers.EuRejectWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                prior_paths = [prior_worker.prior_path],
+                num_posterior_samples = 10,
+                num_standardizing_samples = 100,
+                summary_in_path = None,
+                summary_out_path = sum_out_path,
+                posterior_path = post_path,
+                regression_worker = None,
+                exe_path = None,
+                stderr_path = None,
+                keep_temps = False,
+                tag = 'testcase')
+        self.assertFalse(reject_worker.finished)
+        reject_worker.start()
+        self.assertTrue(reject_worker.finished)
+        self.assertTrue(os.path.isfile(reject_worker.posterior_path))
+        self.assertEqual(self.get_number_of_lines(
+                reject_worker.posterior_path), 11)
+        self.assertEqual(self.get_number_of_header_lines(
+                reject_worker.posterior_path), 1)
+        self.assertTrue(os.path.isfile(reject_worker.summary_out_path))
+        self.assertEqual(self.get_number_of_lines(
+                reject_worker.summary_out_path), 3)
+        self.assertEqual(self.get_number_of_header_lines(
+                reject_worker.summary_out_path), 1)
+
 class ABCToolBoxRejectWorkerTestCase(PyMsBayesTestCase):
     def setUp(self):
         self.set_up()
@@ -546,6 +601,23 @@ class RejectWorkerComparisonTestCase(PyMsBayesTestCase):
 
         abc_post_path = self.get_test_path(prefix='abc-posterior-')
         ms_post_path = self.get_test_path(prefix='ms-posterior-')
+        eu_post_path = self.get_test_path(prefix='eu-posterior-')
+        eu_sum_out_path = self.get_test_path(prefix='eu-sum-out-')
+        eu_reject_worker = workers.EuRejectWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                prior_paths = [headed_prior_path],
+                num_posterior_samples = 10,
+                num_standardizing_samples = 100,
+                summary_in_path = None,
+                summary_out_path = eu_sum_out_path,
+                posterior_path = eu_post_path,
+                regression_worker = None,
+                exe_path = None,
+                stderr_path = None,
+                keep_temps = False,
+                tag = '')
+        eu_reject_worker.start()
         abc_reject_worker = workers.ABCToolBoxRejectWorker(
                 temp_fs = self.temp_fs,
                 observed_path = obs_worker.prior_stats_path,
@@ -567,12 +639,21 @@ class RejectWorkerComparisonTestCase(PyMsBayesTestCase):
                 posterior_path = ms_post_path)
         ms_reject_worker.start()
         self.assertSameSamples(files = [abc_reject_worker.posterior_path,
-                    ms_reject_worker.posterior_path],
+                    ms_reject_worker.posterior_path,
+                    eu_reject_worker.posterior_path],
                 columns_to_ignore = [0],
                 header = True,
                 places = 4,
                 num_mismatches_per_sample = 1,
                 num_sample_mismatches = 1)
+        self.assertSameSamples(files = [
+                    ms_reject_worker.posterior_path,
+                    eu_reject_worker.posterior_path],
+                columns_to_ignore = [0],
+                header = True,
+                places = 5,
+                num_mismatches_per_sample = 0,
+                num_sample_mismatches = 0)
 
     def test_compare_rejectors_1000(self):
         if test_enabled(
@@ -607,6 +688,23 @@ class RejectWorkerComparisonTestCase(PyMsBayesTestCase):
 
             abc_post_path = self.get_test_path(prefix='abc-posterior-')
             ms_post_path = self.get_test_path(prefix='ms-posterior-')
+            eu_post_path = self.get_test_path(prefix='eu-posterior-')
+            eu_sum_out_path = self.get_test_path(prefix='eu-sum-out-')
+            eu_reject_worker = workers.EuRejectWorker(
+                    temp_fs = self.temp_fs,
+                    observed_path = obs_worker.prior_stats_path,
+                    prior_paths = [headed_prior_path],
+                    num_posterior_samples = 100,
+                    num_standardizing_samples = 1000,
+                    summary_in_path = None,
+                    summary_out_path = eu_sum_out_path,
+                    posterior_path = eu_post_path,
+                    regression_worker = None,
+                    exe_path = None,
+                    stderr_path = None,
+                    keep_temps = False,
+                    tag = '')
+            eu_reject_worker.start()
             abc_reject_worker = workers.ABCToolBoxRejectWorker(
                     temp_fs = self.temp_fs,
                     observed_path = obs_worker.prior_stats_path,
@@ -628,12 +726,21 @@ class RejectWorkerComparisonTestCase(PyMsBayesTestCase):
                     posterior_path = ms_post_path)
             ms_reject_worker.start()
             self.assertSameSamples(files = [abc_reject_worker.posterior_path,
-                        ms_reject_worker.posterior_path],
+                        ms_reject_worker.posterior_path,
+                        eu_reject_worker.posterior_path],
                     columns_to_ignore = [0],
                     header = True,
                     places = 4,
                     num_mismatches_per_sample = 1,
                     num_sample_mismatches = 1)
+            self.assertSameSamples(files = [
+                        ms_reject_worker.posterior_path,
+                        eu_reject_worker.posterior_path],
+                    columns_to_ignore = [0],
+                    header = True,
+                    places = 5,
+                    num_mismatches_per_sample = 0,
+                    num_sample_mismatches = 0)
 
 class ABCToolBoxRegressWorkerTestCase(PyMsBayesTestCase):
     def setUp(self):
