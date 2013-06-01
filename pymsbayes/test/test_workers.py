@@ -471,7 +471,7 @@ class EuRejectWorkerTestCase(PyMsBayesTestCase):
     def tearDown(self):
         self.tear_down()
 
-    def test_rejection(self):
+    def test_summary_and_rejection(self):
         prior_worker = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 100,
@@ -518,7 +518,7 @@ class EuRejectWorkerTestCase(PyMsBayesTestCase):
         self.assertEqual(self.get_number_of_header_lines(
                 reject_worker.summary_out_path), 1)
 
-    def test_summarizing(self):
+    def test_summary_only(self):
         prior_worker = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 100,
@@ -555,13 +555,135 @@ class EuRejectWorkerTestCase(PyMsBayesTestCase):
         reject_worker.start()
         self.assertTrue(reject_worker.finished)
         self.assertTrue(os.path.isfile(reject_worker.posterior_path))
-        self.assertEqual(self.get_number_of_header_lines(
+        self.assertEqual(self.get_number_of_lines(
                 reject_worker.posterior_path), 0)
         self.assertTrue(os.path.isfile(reject_worker.summary_out_path))
         self.assertEqual(self.get_number_of_lines(
                 reject_worker.summary_out_path), 3)
         self.assertEqual(self.get_number_of_header_lines(
                 reject_worker.summary_out_path), 1)
+
+    def test_rejection_only(self):
+        prior_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 50,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                report_parameters = True)
+        prior_worker.start()
+        prior_worker2 = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 50,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                report_parameters = True)
+        prior_worker2.start()
+        obs_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True,
+                report_parameters = True)
+        obs_worker.start()
+
+        post_path = self.get_test_path(prefix='test-posterior-')
+        sum_out_path = self.get_test_path(prefix='test-summary-out-')
+        sum_rej_worker = workers.EuRejectWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                prior_paths = [prior_worker.prior_path],
+                num_posterior_samples = 10,
+                num_standardizing_samples = 40,
+                summary_in_path = None,
+                summary_out_path = sum_out_path,
+                posterior_path = post_path,
+                regression_worker = None,
+                exe_path = None,
+                stderr_path = None,
+                keep_temps = False,
+                tag = 'testcase')
+        self.assertFalse(sum_rej_worker.finished)
+        sum_rej_worker.start()
+        self.assertTrue(sum_rej_worker.finished)
+        self.assertTrue(os.path.isfile(sum_rej_worker.posterior_path))
+        self.assertEqual(self.get_number_of_lines(
+                sum_rej_worker.posterior_path), 11)
+        self.assertEqual(self.get_number_of_header_lines(
+                sum_rej_worker.posterior_path), 1)
+        self.assertTrue(os.path.isfile(sum_rej_worker.summary_out_path))
+        self.assertEqual(self.get_number_of_lines(
+                sum_rej_worker.summary_out_path), 3)
+        self.assertEqual(self.get_number_of_header_lines(
+                sum_rej_worker.summary_out_path), 1)
+
+        post_path2 = self.get_test_path(prefix='test-posterior-')
+        sum_out_path2 = self.get_test_path(prefix='test-summary-out-')
+        reject_worker = workers.EuRejectWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                prior_paths = [prior_worker2.prior_path],
+                num_posterior_samples = 5,
+                num_standardizing_samples = 0,
+                summary_in_path = sum_rej_worker.summary_out_path,
+                summary_out_path = sum_out_path2,
+                posterior_path = post_path2,
+                regression_worker = None,
+                exe_path = None,
+                stderr_path = None,
+                keep_temps = False,
+                tag = 'testcase')
+        self.assertFalse(reject_worker.finished)
+        reject_worker.start()
+        self.assertTrue(reject_worker.finished)
+        self.assertTrue(os.path.isfile(reject_worker.posterior_path))
+        self.assertEqual(self.get_number_of_header_lines(
+                reject_worker.posterior_path), 1)
+        self.assertEqual(self.get_number_of_lines(
+                reject_worker.posterior_path), 6)
+        self.assertTrue(os.path.isfile(reject_worker.summary_out_path))
+        self.assertEqual(self.get_number_of_lines(
+                reject_worker.summary_out_path), 3)
+        self.assertEqual(self.get_number_of_header_lines(
+                reject_worker.summary_out_path), 1)
+
+        self.assertSameFiles([reject_worker.summary_out_path,
+            sum_rej_worker.summary_out_path])
+
+        post_path3 = self.get_test_path(prefix='test-posterior-')
+        sum_out_path3 = self.get_test_path(prefix='test-summary-out-')
+        reject_worker2 = workers.EuRejectWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                prior_paths = [prior_worker.prior_path],
+                num_posterior_samples = 10,
+                num_standardizing_samples = 0,
+                summary_in_path = reject_worker.summary_out_path,
+                summary_out_path = sum_out_path3,
+                posterior_path = post_path3,
+                regression_worker = None,
+                exe_path = None,
+                stderr_path = None,
+                keep_temps = False,
+                tag = 'testcase')
+        self.assertFalse(reject_worker2.finished)
+        reject_worker2.start()
+        self.assertTrue(reject_worker2.finished)
+        self.assertTrue(os.path.isfile(reject_worker2.posterior_path))
+        self.assertEqual(self.get_number_of_header_lines(
+                reject_worker2.posterior_path), 1)
+        self.assertEqual(self.get_number_of_lines(
+                reject_worker2.posterior_path), 11)
+        self.assertTrue(os.path.isfile(reject_worker2.summary_out_path))
+        self.assertEqual(self.get_number_of_lines(
+                reject_worker2.summary_out_path), 3)
+        self.assertEqual(self.get_number_of_header_lines(
+                reject_worker2.summary_out_path), 1)
+
+        self.assertSameFiles([reject_worker2.posterior_path,
+            sum_rej_worker.posterior_path])
+        self.assertSameFiles([reject_worker2.summary_out_path,
+            sum_rej_worker.summary_out_path])
 
 class ABCToolBoxRejectWorkerTestCase(PyMsBayesTestCase):
     def setUp(self):
