@@ -81,6 +81,7 @@ class SampleSummaryTestCase(PyMsBayesTestCase):
         self.assertEqual(summary1.n, len(x))
         self.assertAlmostEqual(summary1.mean, mn)
         self.assertAlmostEqual(summary1.variance, v)
+        self.assertAlmostEqual(summary1.std_deviation, math.sqrt(v))
 
     def test_update_default_init(self):
         x = [0.1, -3.2, 3.5, 11.4, -2.3, 3.3, -5.6, 7.8, 2.9, -9.3]
@@ -109,6 +110,7 @@ class SampleSummaryTestCase(PyMsBayesTestCase):
         self.assertEqual(s.n, len(x))
         self.assertAlmostEqual(s.mean, mn)
         self.assertAlmostEqual(s.variance, v)
+        self.assertAlmostEqual(s.std_deviation, math.sqrt(v))
 
         s = SampleSummary(sample_size=0, mean=12.1, variance=33.5)
         s.update(summary1)
@@ -116,6 +118,7 @@ class SampleSummaryTestCase(PyMsBayesTestCase):
         self.assertEqual(s.n, len(x))
         self.assertAlmostEqual(s.mean, mn)
         self.assertAlmostEqual(s.variance, v)
+        self.assertAlmostEqual(s.std_deviation, math.sqrt(v))
 
     def test_update_iter(self):
         x1 = [0.1, -3.2, 3.5, 11.4, -2.3, 3.3, -5.6, 7.8, 2.9, -9.3]
@@ -147,6 +150,7 @@ class SampleSummaryTestCase(PyMsBayesTestCase):
         self.assertEqual(summary1.n, summarizer.n)
         self.assertAlmostEqual(summary1.mean, summarizer.mean)
         self.assertAlmostEqual(summary1.variance, summarizer.variance)
+        self.assertAlmostEqual(summary1.std_deviation, summarizer.std_deviation)
         
     def test_update_iter_with_summarizers(self):
         x1 = [0.1, -3.2, 3.5, 11.4, -2.3, 3.3, -5.6, 7.8, 2.9, -9.3]
@@ -170,6 +174,7 @@ class SampleSummaryTestCase(PyMsBayesTestCase):
         self.assertEqual(summary1.n, summarizer.n)
         self.assertAlmostEqual(summary1.mean, summarizer.mean)
         self.assertAlmostEqual(summary1.variance, summarizer.variance)
+        self.assertAlmostEqual(summary1.std_deviation, summarizer.std_deviation)
 
     def test_update_iter_default_init(self):
         x1 = [0.1, -3.2, 3.5, 11.4, -2.3, 3.3, -5.6, 7.8, 2.9, -9.3]
@@ -202,12 +207,14 @@ class SampleSummaryTestCase(PyMsBayesTestCase):
         self.assertEqual(s.n, summarizer.n)
         self.assertAlmostEqual(s.mean, summarizer.mean)
         self.assertAlmostEqual(s.variance, summarizer.variance)
+        self.assertAlmostEqual(s.std_deviation, summarizer.std_deviation)
 
         s = SampleSummary(sample_size=0, mean=22.1, variance=33.4)
         s.update_iter([summary1, summary2, summary3])
         self.assertEqual(s.n, summarizer.n)
         self.assertAlmostEqual(s.mean, summarizer.mean)
         self.assertAlmostEqual(s.variance, summarizer.variance)
+        self.assertAlmostEqual(s.std_deviation, summarizer.std_deviation)
 
 if __name__ == '__main__':
     unittest.main()

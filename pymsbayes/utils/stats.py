@@ -98,6 +98,12 @@ class SampleSummary(object):
             self.mean = 0.0
             self.variance = 0.0
 
+    def _get_std_dev(self):
+        if self.n < 1:
+            return None
+        return math.sqrt(self.variance)
+    std_deviation = property(_get_std_dev)
+
     def update(self, sample_summary):
         s1 = self
         s2 = sample_summary
