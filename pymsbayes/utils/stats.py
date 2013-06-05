@@ -88,4 +88,33 @@ class SampleSummarizer(object):
         s.write('pop variance = {0}\n'.format(self.pop_variance))
         return s.getvalue()
 
+class SampleSummary(object):
+    def __init__(self, sample_size = 0, mean = 0.0, variance = 0.0):
+        self.n = sample_size
+        self.mean = mean
+        self.variance = variance
+        if self.n < 1:
+            self.n = 0
+            self.mean = 0.0
+            self.variance = 0.0
+
+    def update(self, sample_summary):
+        s1 = self
+        s2 = sample_summary
+        n = s1.n + s2.n
+        mean = ((s1.n / float(n)) * s1.mean) + \
+               ((s2.n / float(n)) * s2.mean)
+        v = float(((s1.n**2) * s1.variance) + ((s2.n**2) * s2.variance) - \
+                (s1.n * s1.variance) - (s1.n * s2.variance) - \
+                (s2.n * s1.variance) - (s2.n * s2.variance) + \
+                (s1.n * s2.n * s1.variance) + (s1.n * s2.n * s2.variance) + \
+                (s1.n * s2.n * ((s1.mean - s2.mean)**2))) / \
+                ((s1.n + s2.n - 1) * (s1.n + s2.n))
+        self.n = n
+        self.mean = mean
+        self.variance = v
+
+    def update_iter(self, sample_summaries):
+        for ss in sample_summaries:
+            self.update(ss)
 
