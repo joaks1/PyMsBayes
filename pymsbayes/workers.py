@@ -14,7 +14,8 @@ from pymsbayes.utils.tempfs import TempFileSystem
 from pymsbayes.utils import get_tool_path
 from pymsbayes.utils.functions import (get_random_int, get_indices_of_patterns,
         reduce_columns, is_dir)
-from pymsbayes.utils.errors import WorkerExecutionError, PriorMergeError
+from pymsbayes.utils.errors import (WorkerExecutionError, PriorMergeError,
+        SummaryFileParsingError)
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -175,7 +176,7 @@ class Worker(object):
         self.exit_code = None
         self.stdout = None
         self.stderr = None
-        self.tag = tag
+        self.tag = str(tag)
 
     def get_stderr(self):
         if not self.stderr_path:
@@ -325,6 +326,8 @@ class MsBayesWorker(Worker):
             include_header = False,
             stat_patterns=DEFAULT_STAT_PATTERNS,
             parameter_patterns=PARAMETER_PATTERNS,
+            summary_worker = None,
+            rejection_worker = None,
             stdout_path = None,
             stderr_path = None,
             staging_dir = None,
@@ -391,6 +394,8 @@ class MsBayesWorker(Worker):
             if write_stats_file:
                 self.staging_prior_stats_path = self.staging_prior_path + \
                         '.stats.txt'
+        self.summary_worker = summary_worker
+        self.rejection_worker = rejection_worker
         self._update_cmd()
 
     def _update_cmd(self):
@@ -452,6 +457,10 @@ class MsBayesWorker(Worker):
             if self.prior_stats_path:
                 shutil.move(self.staging_prior_stats_path,
                         self.prior_stats_path)
+        if self.summary_worker:
+            self.summary_worker.start()
+        if self.rejection_worker:
+            self.rejection_worker.start()
 
     def _set_header(self, header):
         self.header = header
@@ -743,8 +752,49 @@ class RegressionWorker(Worker):
                     [str(i+1) for i in self.stat_indices]),]
         self.cmd = cmd
 
+def parse_summary_file(file_obj):
+    f, close = process_file_arg(file_obj)
+    lines = []
+    for l in f:
+        l = l.strip()
+        if l:
+            lines.append(l)
+    if len(lines) != 3:
+        raise SummaryFileParsingError('summary file {0} has {1} lines'.format(
+                f.name, len(lines)))
+    header = lines[0].split()
+    means = lines[1].split()
+    std_devs = lines[2].split()
+    if not len(header) == len(means) == len(std_devs):
+        raise SummaryFileParsingError('lines of summary file {0} have unequal '
+                'numbers of columns'.format(f.name))
+    d = {}
+    for i in range(len(header)):
+        d[header[i]] = (float(means[i]), float(std_devs[i]))
+    return d
+
+# class SummaryMerger(object):
+#     count = 0
+#     def __init__(self, summary_paths):
+#         self.summary_paths = summary_paths
+#         self.sample_sums = None
+
+#     def start(self);
+
 class EuRejectWorker(Worker):
     count = 0
+    stderr_pattern_string = (
+            "Files\s+used\s+for\s+calculating[^:]*:\s*"
+            "(?P<standardizing_files>[^\n]+)\n"
+            "Number\s+of\s+samples\s+used\s+for[^:]*:\s*"
+            "(?P<num_summarized>\d+)\s*\n"
+            "Files\s+processed[^:]*:\s*"
+            "(?P<rejection_files>[^\n]+)\n"
+            "Total\s+number\s+of\s+samples\s+processed[^:]*:\s*"
+            "(?P<num_processed>\d+)\s*\n"
+            "Number\s+of\s+samples\s+retained[^:]*:\s*"
+            "(?P<num_retained>\d+)\s*\n")
+    stderr_pattern = re.compile(stderr_pattern_string, re.IGNORECASE)
     def __init__(self,
             temp_fs,
             observed_path,
@@ -797,16 +847,41 @@ class EuRejectWorker(Worker):
         self.num_standardizing_samples = int(num_standardizing_samples)
         self.regression_worker = regression_worker
         self.keep_temps = keep_temps
+        self.num_retained = None
+        self.num_summarized = None
+        self.num_processed = None
+        self.standardizing_files = None
+        self.rejection_files = None
         self._update_cmd()
 
     def _pre_process(self):
         self._update_cmd()
 
     def _post_process(self):
+        self._parse_stderr()
         if not self.keep_temps:
             self.temp_fs.remove_dir(self.output_dir)
         if self.regression_worker:
             self.regression_worker.start()
+
+    def _parse_stderr(self):
+        se = self.get_stderr()
+        if not se:
+            raise WorkerExecutionError('unexpected std error from '
+                    '{0}: {1}'.format(self.name, se))
+        m = self.stderr_pattern.search(se)
+        if m is None:
+            raise WorkerExecutionError('unexpected std error from '
+                    '{0}: {1}'.format(self.name, se))
+        self.num_retained = int(m.group('num_retained'))
+        self.num_summarized = int(m.group('num_summarized'))
+        self.num_processed = int(m.group('num_processed'))
+        self.rejection_files = [x.strip() for x in m.group(
+                'rejection_files').split(',')]
+        self.standardizing_files = [x.strip() for x in m.group(
+                'standardizing_files').split(',')]
+        if hasattr(se, 'close'):
+            se.close()
 
     def _update_cmd(self):
         cmd = [self.exe_path,

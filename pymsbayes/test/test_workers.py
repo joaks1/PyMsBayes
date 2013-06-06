@@ -9,6 +9,7 @@ from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test import TestLevel, test_enabled
 from pymsbayes.utils.messaging import get_logger
+from pymsbayes.utils.errors import *
 
 _LOG = get_logger(__name__)
 
@@ -517,6 +518,13 @@ class EuRejectWorkerTestCase(PyMsBayesTestCase):
                 reject_worker.summary_out_path), 3)
         self.assertEqual(self.get_number_of_header_lines(
                 reject_worker.summary_out_path), 1)
+        self.assertEqual(reject_worker.num_processed, 100)
+        self.assertEqual(reject_worker.num_summarized, 100)
+        self.assertEqual(reject_worker.num_retained, 10)
+        self.assertEqual(reject_worker.prior_paths,
+                reject_worker.rejection_files)
+        self.assertEqual(reject_worker.prior_paths,
+                reject_worker.standardizing_files)
 
     def test_summary_only(self):
         prior_worker = workers.MsBayesWorker(
@@ -562,6 +570,12 @@ class EuRejectWorkerTestCase(PyMsBayesTestCase):
                 reject_worker.summary_out_path), 3)
         self.assertEqual(self.get_number_of_header_lines(
                 reject_worker.summary_out_path), 1)
+        self.assertEqual(reject_worker.num_processed, 0)
+        self.assertEqual(reject_worker.num_summarized, 100)
+        self.assertEqual(reject_worker.num_retained, 0)
+        self.assertEqual(reject_worker.rejection_files, ['None'])
+        self.assertEqual(reject_worker.prior_paths,
+                reject_worker.standardizing_files)
 
     def test_rejection_only(self):
         prior_worker = workers.MsBayesWorker(
@@ -616,6 +630,13 @@ class EuRejectWorkerTestCase(PyMsBayesTestCase):
                 sum_rej_worker.summary_out_path), 3)
         self.assertEqual(self.get_number_of_header_lines(
                 sum_rej_worker.summary_out_path), 1)
+        self.assertEqual(sum_rej_worker.num_processed, 50)
+        self.assertEqual(sum_rej_worker.num_summarized, 40)
+        self.assertEqual(sum_rej_worker.num_retained, 10)
+        self.assertEqual(sum_rej_worker.prior_paths,
+                sum_rej_worker.rejection_files)
+        self.assertEqual(sum_rej_worker.prior_paths,
+                sum_rej_worker.standardizing_files)
 
         post_path2 = self.get_test_path(prefix='test-posterior-')
         sum_out_path2 = self.get_test_path(prefix='test-summary-out-')
@@ -646,6 +667,12 @@ class EuRejectWorkerTestCase(PyMsBayesTestCase):
                 reject_worker.summary_out_path), 3)
         self.assertEqual(self.get_number_of_header_lines(
                 reject_worker.summary_out_path), 1)
+        self.assertEqual(reject_worker.num_processed, 50)
+        self.assertEqual(reject_worker.num_summarized, 0)
+        self.assertEqual(reject_worker.num_retained, 5)
+        self.assertEqual(reject_worker.prior_paths,
+                reject_worker.rejection_files)
+        self.assertEqual(reject_worker.standardizing_files, ['None'])
 
         self.assertSameFiles([reject_worker.summary_out_path,
             sum_rej_worker.summary_out_path])
@@ -679,11 +706,66 @@ class EuRejectWorkerTestCase(PyMsBayesTestCase):
                 reject_worker2.summary_out_path), 3)
         self.assertEqual(self.get_number_of_header_lines(
                 reject_worker2.summary_out_path), 1)
+        self.assertEqual(reject_worker2.num_processed, 50)
+        self.assertEqual(reject_worker2.num_summarized, 0)
+        self.assertEqual(reject_worker2.num_retained, 10)
+        self.assertEqual(reject_worker2.prior_paths,
+                reject_worker2.rejection_files)
+        self.assertEqual(reject_worker2.standardizing_files, ['None'])
 
         self.assertSameFiles([reject_worker2.posterior_path,
             sum_rej_worker.posterior_path])
         self.assertSameFiles([reject_worker2.summary_out_path,
             sum_rej_worker.summary_out_path])
+
+class ParseSummaryFileTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.summary_path = self.get_test_path(prefix='summary-')
+        self.lines = ['stat.1\tstat.2\tstat.3\n',
+                      '1.3\t4.78\t5.73\n',
+                      '5.6\t7.45\t6.78\n']
+        self.write_sum_file()
+        self.expected = {'stat.1': (1.3, 5.6),
+                         'stat.2': (4.78, 7.45),
+                         'stat.3': (5.73, 6.78)}
+
+    def tearDown(self):
+        self.tear_down()
+
+    def write_sum_file(self):
+        out = open(self.summary_path, 'w')
+        out.writelines(self.lines)
+        out.close()
+
+    def test_line_error(self):
+        self.lines = self.lines[:2]
+        self.write_sum_file()
+        self.assertRaises(SummaryFileParsingError, workers.parse_summary_file,
+                self.summary_path)
+        self.lines.append('5.6\t7.45\t6.78\n')
+        self.lines.append('5.6\t7.45\t6.78\n')
+        self.assertRaises(SummaryFileParsingError, workers.parse_summary_file,
+                self.summary_path)
+
+    def test_column_error(self):
+        self.lines[2] = '5.6\t7.45\t\n'
+        self.write_sum_file()
+        self.assertRaises(SummaryFileParsingError, workers.parse_summary_file,
+                self.summary_path)
+
+    def test_basic(self):
+        d = workers.parse_summary_file(self.summary_path)
+        self.assertEqual(self.expected, d)
+
+    def test_empty_lines(self):
+        self.lines.insert(0, '\n')
+        self.lines.insert(0, '\n')
+        self.lines.append('\n')
+        self.lines.append('\n')
+        d = workers.parse_summary_file(self.summary_path)
+        self.assertEqual(self.expected, d)
+
 
 class ABCToolBoxRejectWorkerTestCase(PyMsBayesTestCase):
     def setUp(self):
