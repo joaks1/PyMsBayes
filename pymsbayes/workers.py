@@ -16,6 +16,7 @@ from pymsbayes.utils.functions import (get_random_int, get_indices_of_patterns,
         reduce_columns, is_dir)
 from pymsbayes.utils.errors import (WorkerExecutionError, PriorMergeError,
         SummaryFileParsingError)
+from pymsbayes.utils.stats import SampleSummary
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -773,13 +774,70 @@ def parse_summary_file(file_obj):
         d[header[i]] = (float(means[i]), float(std_devs[i]))
     return d
 
-# class SummaryMerger(object):
-#     count = 0
-#     def __init__(self, summary_paths):
-#         self.summary_paths = summary_paths
-#         self.sample_sums = None
 
-#     def start(self);
+class EuRejectSummaryMerger(object):
+    count = 0
+    def __init__(self, eureject_workers):
+        self.eureject_workers = eureject_workers
+        self.header = None
+        self.sample_sums = None
+        self.finished = False
+
+    def _check_worker(self, eureject_worker):
+        if not eureject_worker.finished:
+            raise Exception('{0} has not finished running'.format(
+                    eureject_worker.name))
+        if eureject_worker.num_summarized < 1:
+            raise Exception('{0} did not summarize any samples'.format(
+                    eureject_worker.name))
+        if eureject_worker.num_summarized != \
+                eureject_worker.num_standardizing_samples:
+            raise Exception('{0} summarized {1} samples, but was expected '
+                    'to summarize {2}'.format(eureject_worker.name,
+                            eureject_worker.num_summarized,
+                            eureject_worker.num_standardizing_samples))
+
+    def _parse_summary(self, eureject_worker):
+        stat_moments = parse_summary_file(eureject_worker.summary_out_path)
+        sums = {}
+        for stat_name, mean_sd_tuple in stat_moments.iteritems():
+            sums[stat_name] = SampleSummary(
+                    sample_size = eureject_worker.num_summarized,
+                    mean = mean_sd_tuple[0],
+                    variance = mean_sd_tuple[1]**2)
+        return sums
+
+    def _update_sample_sums(self, sample_sums):
+        if sample_sums.keys() != self.sample_sums.keys():
+            raise Exception('EuRejectWorker summary files have '
+                            'mismatching headers')
+        for stat_name, s_sum in self.sample_sums.iteritems():
+            s_sum.update(sample_sums[stat_name])
+
+    def start(self):
+        for ew in self.eureject_workers:
+            self._check_worker(ew)
+            if not self.header:
+                self.header = parse_header(ew.summary_out_path)
+            sums = self._parse_summary(ew)
+            if not self.sample_sums:
+                self.sample_sums = sums
+            else:
+                self._update_sample_sums(sums)
+        self.finished = True
+    
+    def write_summary(self, path):
+        out, close = process_file_arg(path, 'w')
+        out.write('{0}\n'.format('\t'.join(self.header)))
+        out.write('{0}\n'.format('\t'.join(
+                ['{0:.12f}'.format(self.sample_sums[
+                        x].mean) for x in self.header])))
+        out.write('{0}\n'.format('\t'.join(
+                ['{0:.12f}'.format(self.sample_sums[
+                        x].std_deviation) for x in self.header])))
+        if close:
+            out.close()
+
 
 class EuRejectWorker(Worker):
     count = 0

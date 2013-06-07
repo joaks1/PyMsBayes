@@ -718,6 +718,221 @@ class EuRejectWorkerTestCase(PyMsBayesTestCase):
         self.assertSameFiles([reject_worker2.summary_out_path,
             sum_rej_worker.summary_out_path])
 
+class EuRejectSummaryMergerTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.cfg_path = package_paths.data_path('4pairs_1locus.cfg')
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_num_summarize_exception(self):
+        prior_workers = []
+        for i in range(2):
+            prior_worker = workers.MsBayesWorker(
+                    temp_fs = self.temp_fs,
+                    sample_size = 10,
+                    config_path = self.cfg_path,
+                    schema = 'abctoolbox',
+                    report_parameters = True)
+            prior_worker.start()
+            prior_workers.append(prior_worker)
+        obs_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True,
+                report_parameters = True)
+        obs_worker.start()
+
+        reject_workers = []
+        for pw in prior_workers:
+            post_path = self.get_test_path(prefix='test-posterior-')
+            sum_out_path = self.get_test_path(prefix='test-summary-out-')
+            reject_worker = workers.EuRejectWorker(
+                    temp_fs = self.temp_fs,
+                    observed_path = obs_worker.prior_stats_path,
+                    prior_paths = [pw.prior_path],
+                    num_posterior_samples = 0,
+                    num_standardizing_samples = 11,
+                    summary_in_path = None,
+                    summary_out_path = sum_out_path,
+                    posterior_path = post_path,
+                    regression_worker = None,
+                    exe_path = None,
+                    stderr_path = None,
+                    keep_temps = False,
+                    tag = 'testcase')
+            reject_worker.start()
+            reject_workers.append(reject_worker)
+
+        sum_out_path = self.get_test_path(prefix='test-summary-merged-')
+        merger = workers.EuRejectSummaryMerger(reject_workers)
+        self.assertRaises(Exception, merger.start)
+
+    def test_merge_equal_sample_sizes(self):
+        prior_workers = []
+        for i in range(3):
+            prior_worker = workers.MsBayesWorker(
+                    temp_fs = self.temp_fs,
+                    sample_size = 10,
+                    config_path = self.cfg_path,
+                    schema = 'abctoolbox',
+                    report_parameters = True)
+            prior_worker.start()
+            prior_workers.append(prior_worker)
+        obs_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True,
+                report_parameters = True)
+        obs_worker.start()
+
+        reject_workers = []
+        for pw in prior_workers:
+            post_path = self.get_test_path(prefix='test-posterior-')
+            sum_out_path = self.get_test_path(prefix='test-summary-out-')
+            reject_worker = workers.EuRejectWorker(
+                    temp_fs = self.temp_fs,
+                    observed_path = obs_worker.prior_stats_path,
+                    prior_paths = [pw.prior_path],
+                    num_posterior_samples = 0,
+                    num_standardizing_samples = 10,
+                    summary_in_path = None,
+                    summary_out_path = sum_out_path,
+                    posterior_path = post_path,
+                    regression_worker = None,
+                    exe_path = None,
+                    stderr_path = None,
+                    keep_temps = False,
+                    tag = 'testcase')
+            reject_worker.start()
+            reject_workers.append(reject_worker)
+
+        post_path = self.get_test_path(prefix='test-posterior-')
+        sum_out_path = self.get_test_path(prefix='test-summary-out-')
+        reject_worker = workers.EuRejectWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                prior_paths = [pw.prior_path for pw in prior_workers],
+                num_posterior_samples = 0,
+                num_standardizing_samples = 30,
+                summary_in_path = None,
+                summary_out_path = sum_out_path,
+                posterior_path = post_path,
+                regression_worker = None,
+                exe_path = None,
+                stderr_path = None,
+                keep_temps = False,
+                tag = 'testcase')
+        reject_worker.start()
+
+        sum_out_path = self.get_test_path(prefix='test-summary-merged-')
+        merger = workers.EuRejectSummaryMerger(reject_workers)
+        self.assertFalse(merger.finished)
+        merger.start()
+        self.assertTrue(merger.finished)
+        merger.write_summary(sum_out_path)
+        self.assertEqual(self.get_number_of_lines(
+                sum_out_path), 3)
+        self.assertEqual(self.get_number_of_header_lines(
+                sum_out_path), 1)
+        
+        result = workers.parse_summary_file(sum_out_path)
+        expected_result = workers.parse_summary_file(
+                reject_worker.summary_out_path)
+        self.assertEqual(result.keys(), expected_result.keys())
+        for stat_name in result.keys():
+            self.assertAlmostEqual(result[stat_name][0],
+                    expected_result[stat_name][0])
+            self.assertAlmostEqual(result[stat_name][1],
+                    expected_result[stat_name][1])
+
+    def test_merge_unequal_sample_sizes(self):
+        prior_workers = []
+        sizes = [20, 15, 7]
+        for i in sizes:
+            prior_worker = workers.MsBayesWorker(
+                    temp_fs = self.temp_fs,
+                    sample_size = i,
+                    config_path = self.cfg_path,
+                    schema = 'abctoolbox',
+                    report_parameters = True)
+            prior_worker.start()
+            prior_workers.append(prior_worker)
+        obs_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True,
+                report_parameters = True)
+        obs_worker.start()
+
+        reject_workers = []
+        for pw in prior_workers:
+            post_path = self.get_test_path(prefix='test-posterior-')
+            sum_out_path = self.get_test_path(prefix='test-summary-out-')
+            reject_worker = workers.EuRejectWorker(
+                    temp_fs = self.temp_fs,
+                    observed_path = obs_worker.prior_stats_path,
+                    prior_paths = [pw.prior_path],
+                    num_posterior_samples = 0,
+                    num_standardizing_samples = pw.sample_size,
+                    summary_in_path = None,
+                    summary_out_path = sum_out_path,
+                    posterior_path = post_path,
+                    regression_worker = None,
+                    exe_path = None,
+                    stderr_path = None,
+                    keep_temps = False,
+                    tag = 'testcase')
+            reject_worker.start()
+            reject_workers.append(reject_worker)
+
+        post_path = self.get_test_path(prefix='test-posterior-')
+        sum_out_path = self.get_test_path(prefix='test-summary-out-')
+        reject_worker = workers.EuRejectWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                prior_paths = [pw.prior_path for pw in prior_workers],
+                num_posterior_samples = 0,
+                num_standardizing_samples = sum(sizes),
+                summary_in_path = None,
+                summary_out_path = sum_out_path,
+                posterior_path = post_path,
+                regression_worker = None,
+                exe_path = None,
+                stderr_path = None,
+                keep_temps = False,
+                tag = 'testcase')
+        reject_worker.start()
+
+        sum_out_path = self.get_test_path(prefix='test-summary-merged-')
+        merger = workers.EuRejectSummaryMerger(reject_workers)
+        self.assertFalse(merger.finished)
+        merger.start()
+        self.assertTrue(merger.finished)
+        merger.write_summary(sum_out_path)
+        self.assertEqual(self.get_number_of_lines(
+                sum_out_path), 3)
+        self.assertEqual(self.get_number_of_header_lines(
+                sum_out_path), 1)
+        
+        result = workers.parse_summary_file(sum_out_path)
+        expected_result = workers.parse_summary_file(
+                reject_worker.summary_out_path)
+        self.assertEqual(result.keys(), expected_result.keys())
+        for stat_name in result.keys():
+            self.assertAlmostEqual(result[stat_name][0],
+                    expected_result[stat_name][0])
+            self.assertAlmostEqual(result[stat_name][1],
+                    expected_result[stat_name][1])
+
+
 class ParseSummaryFileTestCase(PyMsBayesTestCase):
     def setUp(self):
         self.set_up()
