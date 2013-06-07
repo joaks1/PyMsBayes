@@ -4,7 +4,8 @@ import unittest
 import os
 import math
 
-from pymsbayes.utils.stats import SampleSummarizer, SampleSummary
+from pymsbayes.utils.stats import (SampleSummarizer, SampleSummary,
+        merge_sample_summary_mappings)
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.utils.messaging import get_logger
 
@@ -215,6 +216,73 @@ class SampleSummaryTestCase(PyMsBayesTestCase):
         self.assertAlmostEqual(s.mean, summarizer.mean)
         self.assertAlmostEqual(s.variance, summarizer.variance)
         self.assertAlmostEqual(s.std_deviation, summarizer.std_deviation)
+
+class MergeSampleSummaryMappingsTestCase(PyMsBayesTestCase):
+
+    def test_merge(self):
+        samples1 = {'s1': [12.5, 64.3, 345.12],
+                    's2': [3.53, 45.324, -23.455, 0.77],
+                    's3': [2.234, -343.2, 23.21, 34.56, 33.2]}
+        samples2 = {'s1': [122.5, 0.3, -345.12, 34.54, 0.001],
+                    's2': [-0.5, 46.21, 23.4, 0.7799, 23.4],
+                    's3': [23.021, 56.56, 33.2002]}
+        samples3 = {'s1': [-0.99, 64.3335, 0.79, -12.3, 67.09, 56.4],
+                    's2': [87.5, 99.65],
+                    's3': [2.45, -4.5, 3.56, 33.2, 45.6, 67.8, 11.334]}
+        samples = [samples1, samples2, samples3]
+        summarizers_all = {'s1': SampleSummarizer(),
+                           's2': SampleSummarizer(),
+                           's3': SampleSummarizer()}
+        summarizers1 = {'s1': SampleSummarizer(),
+                        's2': SampleSummarizer(),
+                        's3': SampleSummarizer()}
+        summarizers2 = {'s1': SampleSummarizer(),
+                        's2': SampleSummarizer(),
+                        's3': SampleSummarizer()}
+        summarizers3 = {'s1': SampleSummarizer(),
+                        's2': SampleSummarizer(),
+                        's3': SampleSummarizer()}
+        for k, ss in summarizers_all.iteritems():
+            samps = []
+            for s in samples:
+                samps += s[k]
+            ss.update_samples(samps)
+        for k, ss in summarizers1.iteritems():
+            ss.update_samples(samples1[k])
+        for k, ss in summarizers2.iteritems():
+            ss.update_samples(samples2[k])
+        for k, ss in summarizers3.iteritems():
+            ss.update_samples(samples3[k])
+
+        summaries1 = dict(zip(samples1.keys(), [None for i in range(len(samples1.keys()))]))
+        for k in summaries1.iterkeys():
+            summaries1[k] = SampleSummary(
+                    sample_size = summarizers1[k].n,
+                    mean = summarizers1[k].mean,
+                    variance = summarizers1[k].variance)
+        summaries2 = dict(zip(samples2.keys(), [None for i in range(len(samples2.keys()))]))
+        for k in summaries2.iterkeys():
+            summaries2[k] = SampleSummary(
+                    sample_size = summarizers2[k].n,
+                    mean = summarizers2[k].mean,
+                    variance = summarizers2[k].variance)
+        summaries3 = dict(zip(samples3.keys(), [None for i in range(len(samples3.keys()))]))
+        for k in summaries3.iterkeys():
+            summaries3[k] = SampleSummary(
+                    sample_size = summarizers3[k].n,
+                    mean = summarizers3[k].mean,
+                    variance = summarizers3[k].variance)
+        summaries_all = merge_sample_summary_mappings([summaries1,
+                summaries2, summaries3])
+
+        for k, ss in summaries_all.iteritems():
+            self.assertEqual(ss.n, summarizers_all[k].n)
+            self.assertAlmostEqual(ss.mean, summarizers_all[k].mean)
+            self.assertAlmostEqual(ss.variance, summarizers_all[k].variance)
+            self.assertAlmostEqual(ss.std_deviation, summarizers_all[k].std_deviation)
+        self.assertNotEqual(summaries_all['s1'].n, summaries1['s1'].n)
+        self.assertNotEqual(summaries_all['s1'].n, summaries2['s1'].n)
+        self.assertNotEqual(summaries_all['s1'].n, summaries3['s1'].n)
 
 if __name__ == '__main__':
     unittest.main()

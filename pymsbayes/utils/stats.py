@@ -3,6 +3,7 @@
 import sys
 import os
 import math
+import copy
 from cStringIO import StringIO
 
 from pymsbayes.utils.messaging import get_logger
@@ -87,6 +88,19 @@ class SampleSummarizer(object):
         s.write('variance = {0}\n'.format(self.variance))
         s.write('pop variance = {0}\n'.format(self.pop_variance))
         return s.getvalue()
+
+def merge_sample_summary_mappings(sample_sum_mappings):
+    sums = None
+    for ssm in sample_sum_mappings:
+        if sums is None:
+            sums = copy.deepcopy(ssm)
+        else:
+            if sums.keys() != ssm.keys():
+                raise Exception('sample summary mappings have different keys')
+            for stat_name, s_sum in sums.iteritems():
+                s_sum.update(ssm[stat_name])
+    return sums
+
 
 class SampleSummary(object):
     def __init__(self, sample_size = 0, mean = 0.0, variance = 0.0):
