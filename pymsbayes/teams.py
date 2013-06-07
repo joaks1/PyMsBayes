@@ -8,7 +8,7 @@ from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRejectWorker,
         parse_header, DEFAULT_STAT_PATTERNS, PARAMETER_PATTERNS,
         merge_prior_files, MsRejectWorker)
 from pymsbayes.manager import Manager
-from pymsbayes.fileio import process_file_arg
+from pymsbayes.fileio import process_file_arg, expand_path
 from pymsbayes.utils import GLOBAL_RNG, WORK_FORCE
 from pymsbayes.utils.functions import (long_division, least_common_multiple,
         get_random_int, list_splitter)
@@ -24,15 +24,17 @@ class ABCTeam(object):
             model_indices_to_config_paths,
             num_prior_samples,
             num_processors,
+            num_standardizing_samples = 10000,
             num_posterior_samples = 1000,
             batch_size = 10000,
+            output_dir = None,
             rng = None,
             sort_index = None,
             report_parameters = True,
             stat_patterns = DEFAULT_STAT_PATTERNS,
             parameter_patterns = PARAMETER_PATTERNS,
             msbayes_exe_path = None,
-            abctoolbox_exe_path = None,
+            eureject_exe_path = None,
             keep_temps = False,
             work_queue = WORK_FORCE):
         if not rng:
@@ -43,10 +45,16 @@ class ABCTeam(object):
         self.temp_fs = temp_fs
         self.observed_temp_dir = temp_fs.create_subdir(
                 prefix = 'observed-files-')
-        self.observed_sims_path = observed_sims_path
+        self.summary_temp_dir = temp_fs.create_subdir(
+                prefix = 'summary-files-')
+        if not output_dir:
+            output_dir = os.path.dirname(observed_sims_file)
+        self.output_dir = expand_path(output_dir)
+        self.observed_sims_path = expand_path(observed_sims_path)
         self.models = model_indices_to_config_paths
         self.num_prior_samples = num_prior_samples
         self.num_processors = num_processors
+        self.num_standardizing_samples = num_standardizing_samples
         self.num_posterior_samples = num_posterior_samples
         self.batch_size = batch_size
         self.total_samples = self.num_prior_samples * len(self.models)
@@ -63,12 +71,107 @@ class ABCTeam(object):
         self.msbayes_exe_path = msbayes_exe_path
         self.abctoolbox_exe_path = abctoolbox_exe_path
         self.rejection_teams = []
+        self.prior_summary_workers = []
         self.prior_workers = []
+        self.summary_path = temp_fs.get_file_path(
+                parent = self.summary_temp_dir,
+                prefix = 'summary-all-',
+                create = False)
         self.keep_temps = keep_temps
         self.work_queue = work_queue
         self.result_queue = multiprocessing.Queue()
         self._assemble_rejection_teams()
         self._assemble_prior_workers()
+
+    def _assemble_prior_workers(self):
+        prior_workers = []
+        sum_workers = []
+        for model_index, config_path in self.models:
+            to_summarize = self.num_standardizing_samples
+            for i in range(self.num_batches):
+                sum_worker = None
+                if to_summarize > 0:
+                    if (to_summarize - self.batch) >= 0:
+                        nsum = self.batch_size
+                    else:
+                        nsum = to_summarize
+                    to_summarize -= nsum
+                    sum_path = temp_fs.get_file_path(
+                            parent = self.summary_temp_dir,
+                            prefix = 'summary-{0}-{1}-'.format(model_index,
+                                    i+1),
+                            create = False)
+                    sum_worker = EuRejectWorker(
+                            temp_fs = self.temp_fs,
+                            observed_path = self.observed_sims_path,
+                            prior_paths = [worker.prior_path],
+                            num_posterior_samples = 0,
+                            num_standardizing_samples = nsum,
+                            summary_out_path = sum_path,
+                            exe_path = self.eureject_exe_path,
+                            keep_temps = self.keep_temps,
+                            tag = str(model_index))
+                seed = get_random_int(self.rng)
+                worker = MsBayesWorker(
+                        temp_fs = self.temp_fs,
+                        sample_size = self.batch_size,
+                        config_path = config_path,
+                        exe_path = self.msbayes_exe_path,
+                        model_index = model_index,
+                        report_parameters = self.report_parameters,
+                        seed = seed,
+                        schema = 'abctoolbox',
+                        stat_patterns = self.stat_patterns,
+                        summary_worker = sum_worker
+                        tag = str(model_index))
+                if sum_worker:
+                    sum_workers.append(worker)
+                else:
+                    prior_workers.append(worker)
+            if self.extra_samples > 0:
+                sum_worker = None
+                if to_summarize > 0:
+                    if (to_summarize - self.extra_samples) >= 0:
+                        nsum = self.extra_samples
+                    else:
+                        nsum = to_summarize
+                    to_summarize -= nsum
+                    sum_path = temp_fs.get_file_path(
+                            parent = self.summary_temp_dir,
+                            prefix = 'summary-{0}-{1}-'.format(model_index,
+                                    i+1),
+                            create = False)
+                    sum_worker = EuRejectWorker(
+                            temp_fs = self.temp_fs,
+                            observed_path = self.observed_sims_path,
+                            prior_paths = [worker.prior_path],
+                            num_posterior_samples = 0,
+                            num_standardizing_samples = nsum,
+                            summary_out_path = sum_path,
+                            exe_path = self.eureject_exe_path,
+                            keep_temps = self.keep_temps,
+                            tag = str(model_index))
+                    self.summary_workers.append(sum_worker)
+                worker = MsBayesWorker(
+                        temp_fs = self.temp_fs,
+                        sample_size = self.extra_samples,
+                        config_path = config_path,
+                        exe_path = self.msbayes_exe_path,
+                        model_index = model_index,
+                        report_parameters = self.report_parameters,
+                        seed = seed,
+                        schema = 'abctoolbox',
+                        stat_patterns = self.stat_patterns,
+                        summary_worker = sum_worker
+                        tag = str(model_index))
+                if sum_worker:
+                    sum_workers.append(worker)
+                else:
+                    prior_workers.append(worker)
+        self.prior_summary_workers = list(list_splitter(sum_workers,
+                self.num_processors))
+        self.prior_workers = list(list_splitter(prior_workers,
+                self.num_processors))
 
     def _assemble_rejection_teams(self):
         obs_file, close = process_file_arg(self.observed_sims_path)
@@ -95,36 +198,24 @@ class ABCTeam(object):
         if close:
             obs_file.close()
     
-    def _assemble_prior_workers(self):
-        prior_workers = []
-        for model_index, config_path in self.models:
-            for i in range(self.num_batches):
-                seed = get_random_int(self.rng)
-                worker = MsBayesWorker(
-                        temp_fs = self.temp_fs,
-                        sample_size = self.batch_size,
-                        config_path = config_path,
-                        model_index = model_index,
-                        report_parameters = self.report_parameters,
-                        seed = seed,
-                        schema = 'abctoolbox',
-                        stat_patterns = self.stat_patterns)
-                prior_workers.append(worker)
-            if self.extra_samples > 0:
-                worker = MsBayesWorker(
-                        temp_fs = self.temp_fs,
-                        sample_size = self.extra_samples,
-                        config_path = config_path,
-                        model_index = model_index,
-                        report_parameters = self.report_parameters,
-                        seed = seed,
-                        schema = 'abctoolbox',
-                        stat_patterns = self.stat_patterns)
-                prior_workers.append(worker)
-        self.prior_workers = list(list_splitter(prior_workers,
-                self.num_processors))
-
     def run(self):
+        for prior_worker_batch in self.prior_summary_workers:
+            for pw in prior_worker_batch:
+                self.work_queue.put(pw)
+            managers = []
+            for i in range(self.num_processors):
+                m = Manager(work_queue = self.work_queue,
+                        result_queue = self.result_queue)
+                m.start()
+                managers.append(m)
+            for i in range(len(prior_worker_batch)):
+                prior_worker_batch[i] = self.result_queue.get()
+            for m in managers:
+                m.join()
+            assert self.work_queue.empty()
+            assert self.result_queue.empty()
+            # merge summaries
+            # run these priors through rejection teams
         for prior_worker_batch in self.prior_workers:
             for pw in prior_worker_batch:
                 self.work_queue.put(pw)
@@ -156,6 +247,42 @@ class ABCTeam(object):
             assert self.work_queue.empty()
             assert self.result_queue.empty()
 
+
+# class EuRejectWorker(Worker):
+#     count = 0
+#     def __init__(self,
+#             temp_fs,
+#             observed_path,
+#             prior_paths,
+#             num_posterior_samples,
+#             num_standardizing_samples = 10000,
+#             summary_in_path = None,
+#             summary_out_path = None,
+#             posterior_path = None,
+#             regression_worker = None,
+#             exe_path = None,
+#             stderr_path = None,
+#             keep_temps = False,
+#             tag = ''):
+class EuRejectSummaryTeam(object):
+    count = 0
+    def __init__(self,
+            temp_fs,
+            prior_workers,
+            observed_path,
+            num_standardizing_samples = 10000,
+            eureject_exe_path = None,
+            keep_temps = False):
+        self.__class__.count += 1
+        self.name = 'EuRejectSummaryTeam-' + str(self.count)
+        self.temp_fs = temp_fs
+        self.observed_path = observed_path
+        self.num_standardizing_samples = num_standardizing_samples
+        self.eureject_exe_path = eureject_exe_path
+        self.prior_workers = prior_workers
+        self.keep_temps = keep_temps
+        self.posterior_path = None
+        self.num_calls = 0
 
 class RejectionTeam(object):
     count = 0
