@@ -3,9 +3,11 @@
 import unittest
 import os
 import math
+from cStringIO import StringIO
 
+from pymsbayes.fileio import process_file_arg
 from pymsbayes.utils.stats import (SampleSummarizer, SampleSummary,
-        merge_sample_summary_mappings)
+        SampleSummaryCollection)
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.utils.messaging import get_logger
 
@@ -217,72 +219,153 @@ class SampleSummaryTestCase(PyMsBayesTestCase):
         self.assertAlmostEqual(s.variance, summarizer.variance)
         self.assertAlmostEqual(s.std_deviation, summarizer.std_deviation)
 
-class MergeSampleSummaryMappingsTestCase(PyMsBayesTestCase):
+class SampleSummaryCollectionTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.summary_paths = []
+        self.samples = [
+                {'s1': [12.5, 64.3, 345.12, 23.42],
+                 's2': [3.53, 45.324, -23.455, 0.77],
+                 's3': [2.234, -343.2, 23.21, 33.2]},
+                {'s1': [122.5, 0.3, -345.12, 34.54, 0.001],
+                 's2': [-0.5, 46.21, 23.4, 0.7799, 23.4],
+                 's3': [23.021, 56.56, 33.2002, 2.534, 4.22]},
+                {'s1': [-0.99, 64.3335],
+                 's2': [87.5, 99.65],
+                 's3': [2.45, -4.5]},
+                ]
+        self.header = sorted(self.samples[0].keys())
+        self.summarizers = [
+                {'s1': SampleSummarizer(),
+                 's2': SampleSummarizer(),
+                 's3': SampleSummarizer()},
+                {'s1': SampleSummarizer(),
+                 's2': SampleSummarizer(),
+                 's3': SampleSummarizer()},
+                {'s1': SampleSummarizer(),
+                 's2': SampleSummarizer(),
+                 's3': SampleSummarizer()},
+                ]
+        for i in range(len(self.samples)):
+            self.summary_paths.append(self.get_test_path(
+                    prefix = 'summary-{0}-'.format(i)))
+            for k, ss in self.summarizers[i].iteritems():
+                ss.update_samples(self.samples[i][k])
+        for i in range(len(self.samples)):
+            out, close = process_file_arg(self.summary_paths[i], 'w')
+            out.write('{0}\n'.format('\t'.join(self.header)))
+            out.write('{0}\n'.format('\t'.join(['{0:.12}'.format(
+                    self.summarizers[i][k].mean) for k in self.header])))
+            out.write('{0}\n'.format('\t'.join(['{0:.12}'.format(
+                    self.summarizers[i][k].std_deviation) for k in self.header])))
+            out.write('{0}\n'.format('\t'.join(['{0}'.format(
+                    self.summarizers[i][k].n) for k in self.header])))
+            if close:
+                out.close()
 
-    def test_merge(self):
-        samples1 = {'s1': [12.5, 64.3, 345.12],
-                    's2': [3.53, 45.324, -23.455, 0.77],
-                    's3': [2.234, -343.2, 23.21, 34.56, 33.2]}
-        samples2 = {'s1': [122.5, 0.3, -345.12, 34.54, 0.001],
-                    's2': [-0.5, 46.21, 23.4, 0.7799, 23.4],
-                    's3': [23.021, 56.56, 33.2002]}
-        samples3 = {'s1': [-0.99, 64.3335, 0.79, -12.3, 67.09, 56.4],
-                    's2': [87.5, 99.65],
-                    's3': [2.45, -4.5, 3.56, 33.2, 45.6, 67.8, 11.334]}
-        samples = [samples1, samples2, samples3]
-        summarizers_all = {'s1': SampleSummarizer(),
-                           's2': SampleSummarizer(),
-                           's3': SampleSummarizer()}
-        summarizers1 = {'s1': SampleSummarizer(),
-                        's2': SampleSummarizer(),
-                        's3': SampleSummarizer()}
-        summarizers2 = {'s1': SampleSummarizer(),
-                        's2': SampleSummarizer(),
-                        's3': SampleSummarizer()}
-        summarizers3 = {'s1': SampleSummarizer(),
-                        's2': SampleSummarizer(),
-                        's3': SampleSummarizer()}
-        for k, ss in summarizers_all.iteritems():
+        self.summarizers_all = {'s1': SampleSummarizer(),
+                                's2': SampleSummarizer(),
+                                's3': SampleSummarizer()}
+        for k, ss in self.summarizers_all.iteritems():
             samps = []
-            for s in samples:
+            for s in self.samples:
                 samps += s[k]
             ss.update_samples(samps)
-        for k, ss in summarizers1.iteritems():
-            ss.update_samples(samples1[k])
-        for k, ss in summarizers2.iteritems():
-            ss.update_samples(samples2[k])
-        for k, ss in summarizers3.iteritems():
-            ss.update_samples(samples3[k])
 
-        summaries1 = dict(zip(samples1.keys(), [None for i in range(len(samples1.keys()))]))
-        for k in summaries1.iterkeys():
-            summaries1[k] = SampleSummary(
-                    sample_size = summarizers1[k].n,
-                    mean = summarizers1[k].mean,
-                    variance = summarizers1[k].variance)
-        summaries2 = dict(zip(samples2.keys(), [None for i in range(len(samples2.keys()))]))
-        for k in summaries2.iterkeys():
-            summaries2[k] = SampleSummary(
-                    sample_size = summarizers2[k].n,
-                    mean = summarizers2[k].mean,
-                    variance = summarizers2[k].variance)
-        summaries3 = dict(zip(samples3.keys(), [None for i in range(len(samples3.keys()))]))
-        for k in summaries3.iterkeys():
-            summaries3[k] = SampleSummary(
-                    sample_size = summarizers3[k].n,
-                    mean = summarizers3[k].mean,
-                    variance = summarizers3[k].variance)
-        summaries_all = merge_sample_summary_mappings([summaries1,
-                summaries2, summaries3])
+    def test_get_from_summary_file(self):
+        ssc = SampleSummaryCollection.get_from_summary_file(self.summary_paths[0])
+        self.assertEqual(sorted(ssc.keys), sorted(self.summarizers[0].keys()))
+        self.assertEqual(sorted(ssc.sample_sums.keys()), sorted(self.summarizers[0].keys()))
+        for k, ss in self.summarizers[0].iteritems():
+            self.assertEqual(ss.n, ssc.sample_sums[k].n)
+            self.assertAlmostEqual(ss.mean, ssc.sample_sums[k].mean)
+            self.assertAlmostEqual(ss.std_deviation, ssc.sample_sums[k].std_deviation)
 
-        for k, ss in summaries_all.iteritems():
-            self.assertEqual(ss.n, summarizers_all[k].n)
-            self.assertAlmostEqual(ss.mean, summarizers_all[k].mean)
-            self.assertAlmostEqual(ss.variance, summarizers_all[k].variance)
-            self.assertAlmostEqual(ss.std_deviation, summarizers_all[k].std_deviation)
-        self.assertNotEqual(summaries_all['s1'].n, summaries1['s1'].n)
-        self.assertNotEqual(summaries_all['s1'].n, summaries2['s1'].n)
-        self.assertNotEqual(summaries_all['s1'].n, summaries3['s1'].n)
+    def test_get_from_summary_stream(self):
+        stream, close = process_file_arg(self.summary_paths[0])
+        ssc = SampleSummaryCollection.get_from_summary_file(stream)
+        if close:
+            stream.close()
+        self.assertEqual(sorted(ssc.keys), sorted(self.summarizers[0].keys()))
+        self.assertEqual(sorted(ssc.sample_sums.keys()), sorted(self.summarizers[0].keys()))
+        for k, ss in self.summarizers[0].iteritems():
+            self.assertEqual(ss.n, ssc.sample_sums[k].n)
+            self.assertAlmostEqual(ss.mean, ssc.sample_sums[k].mean)
+            self.assertAlmostEqual(ss.std_deviation, ssc.sample_sums[k].std_deviation)
+
+    def test_get_from_cstring(self):
+        stream, close = process_file_arg(self.summary_paths[0])
+        cs = StringIO()
+        cs.write(stream.read())
+        cs.seek(0)
+        if close:
+            stream.close()
+        ssc = SampleSummaryCollection.get_from_summary_file(cs)
+        self.assertEqual(sorted(ssc.keys), sorted(self.summarizers[0].keys()))
+        self.assertEqual(sorted(ssc.sample_sums.keys()), sorted(self.summarizers[0].keys()))
+        for k, ss in self.summarizers[0].iteritems():
+            self.assertEqual(ss.n, ssc.sample_sums[k].n)
+            self.assertAlmostEqual(ss.mean, ssc.sample_sums[k].mean)
+            self.assertAlmostEqual(ss.std_deviation, ssc.sample_sums[k].std_deviation)
+
+    def test_init_update(self):
+        ssc = SampleSummaryCollection(self.header)
+        ssc2 = SampleSummaryCollection.get_from_summary_file(self.summary_paths[0])
+        ssc.update(ssc2)
+        self.assertEqual(sorted(ssc.keys), sorted(self.summarizers[0].keys()))
+        self.assertEqual(sorted(ssc.sample_sums.keys()), sorted(self.summarizers[0].keys()))
+        for k, ss in self.summarizers[0].iteritems():
+            self.assertEqual(ss.n, ssc.sample_sums[k].n)
+            self.assertAlmostEqual(ss.mean, ssc.sample_sums[k].mean)
+            self.assertAlmostEqual(ss.std_deviation, ssc.sample_sums[k].std_deviation)
+
+    def test_init_update_iter(self):
+        ssc = SampleSummaryCollection(self.header)
+        ssc_list = []
+        for i in range(len(self.summary_paths)):
+            ssc_list.append(SampleSummaryCollection.get_from_summary_file(
+                    self.summary_paths[i]))
+        ssc.update_iter(ssc_list)
+        self.assertEqual(sorted(ssc.keys), sorted(self.summarizers_all.keys()))
+        self.assertEqual(sorted(ssc.sample_sums.keys()), sorted(self.summarizers_all.keys()))
+        for k, ss in self.summarizers_all.iteritems():
+            self.assertEqual(ss.n, ssc.sample_sums[k].n)
+            self.assertAlmostEqual(ss.mean, ssc.sample_sums[k].mean)
+            self.assertAlmostEqual(ss.std_deviation, ssc.sample_sums[k].std_deviation)
+
+    def test_merge(self):
+        ssc_list = []
+        for i in range(len(self.summary_paths)):
+            ssc_list.append(SampleSummaryCollection.get_from_summary_file(
+                    self.summary_paths[i]))
+        ssc = SampleSummaryCollection.merge(ssc_list)
+        self.assertEqual(sorted(ssc.keys), sorted(self.summarizers_all.keys()))
+        self.assertEqual(sorted(ssc.sample_sums.keys()), sorted(self.summarizers_all.keys()))
+        for k, ss in self.summarizers_all.iteritems():
+            self.assertEqual(ss.n, ssc.sample_sums[k].n)
+            self.assertAlmostEqual(ss.mean, ssc.sample_sums[k].mean)
+            self.assertAlmostEqual(ss.std_deviation, ssc.sample_sums[k].std_deviation)
+        for ssc2 in ssc_list:
+            for k, ss in ssc2.sample_sums.iteritems():
+                self.assertNotEqual(ss.n, ssc.sample_sums[k].n)
+
+    def test_write(self):
+        ssc_list = []
+        for i in range(len(self.summary_paths)):
+            ssc_list.append(SampleSummaryCollection.get_from_summary_file(
+                    self.summary_paths[i]))
+        ssc2 = SampleSummaryCollection.merge(ssc_list)
+        ssc2.write(self.summary_paths[0])
+        ssc = SampleSummaryCollection.get_from_summary_file(self.summary_paths[0])
+        self.assertEqual(sorted(ssc.keys), sorted(self.summarizers_all.keys()))
+        self.assertEqual(sorted(ssc.sample_sums.keys()), sorted(self.summarizers_all.keys()))
+        for k, ss in self.summarizers_all.iteritems():
+            self.assertEqual(ss.n, ssc.sample_sums[k].n)
+            self.assertAlmostEqual(ss.mean, ssc.sample_sums[k].mean)
+            self.assertAlmostEqual(ss.std_deviation, ssc.sample_sums[k].std_deviation)
+        for ssc2 in ssc_list:
+            for k, ss in ssc2.sample_sums.iteritems():
+                self.assertNotEqual(ss.n, ssc.sample_sums[k].n)
 
 if __name__ == '__main__':
     unittest.main()
