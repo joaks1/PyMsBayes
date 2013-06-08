@@ -705,7 +705,7 @@ class EuRejectWorkerTestCase(PyMsBayesTestCase):
                 reject_worker2.posterior_path), 11)
         self.assertTrue(os.path.isfile(reject_worker2.summary_out_path))
         self.assertEqual(self.get_number_of_lines(
-                reject_worker2.summary_out_path), 3)
+                reject_worker2.summary_out_path), 4)
         self.assertEqual(self.get_number_of_header_lines(
                 reject_worker2.summary_out_path), 1)
         self.assertEqual(reject_worker2.num_processed, 50)
