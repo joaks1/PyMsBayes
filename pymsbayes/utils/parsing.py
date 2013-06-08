@@ -181,6 +181,8 @@ def parse_summary_file(file_obj):
         l = l.strip()
         if l:
             lines.append(l)
+    if close:
+        f.close()
     if len(lines) != 4:
         raise SummaryFileParsingError('summary file {0} has {1} lines'.format(
                 f.name, len(lines)))
