@@ -14,150 +14,19 @@ from pymsbayes.utils.tempfs import TempFileSystem
 from pymsbayes.utils import get_tool_path
 from pymsbayes.utils.functions import (get_random_int, get_indices_of_patterns,
         reduce_columns, is_dir)
-from pymsbayes.utils.errors import (WorkerExecutionError, PriorMergeError,
-        SummaryFileParsingError)
-from pymsbayes.utils.stats import SampleSummary
+from pymsbayes.utils.errors import WorkerExecutionError, PriorMergeError
+from pymsbayes.utils.stats import SampleSummary, SampleSummaryCollection
+from pymsbayes.utils.parsing import *
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
 
 
 ##############################################################################
-## msBayes prior header patterns
-
-HEADER_PATTERN = re.compile(r'^\s*\D.+')
-PARAMETER_PATTERNS = [
-        re.compile(r'\s*PRI\.(?!numTauClass)\S+\s*$'),
-        ]
-DEFAULT_STAT_PATTERNS = [
-        re.compile(r'\s*pi\.\d+\s*'),
-        re.compile(r'\s*wattTheta\.\d+\s*'),
-        re.compile(r'\s*pi\.net\.\d+\s*'),
-        re.compile(r'\s*tajD\.denom\.\d+\s*'),
-        ]
-ALL_STAT_PATTERNS = [
-        re.compile(r'\s*(?!PRI)\S+\s*$'),
-        ]
-DUMMY_PATTERNS = [
-        re.compile(r'\s*PRI\.numTauClass\s*')
-        ]
-MODEL_PATTERNS = [
-        re.compile(r'\s*PRI\.model\s*'),
-        ]
-TAU_PATTERNS = [
-        re.compile(r'\s*PRI\.t\.\d+\s*'),
-        ]
-D_THETA_PATTERNS = [
-        re.compile(r'\s*PRI\.d[12]Theta\.\d+\s*'),
-        ]
-A_THETA_PATTERNS = [
-        re.compile(r'\s*PRI\.aTheta\.\d+\s*'),
-        ]
-PSI_PATTERNS = [
-        re.compile(r'\s*PRI\.Psi\s*'),
-        ]
-MEAN_TAU_PATTERNS = [
-        re.compile(r'\s*PRI\.E\.t\s*'),
-        ]
-OMEGA_PATTERNS = [
-        re.compile(r'\s*PRI\.omega\s*'),
-        ]
-
-##############################################################################
-## other globals
+## globals
 
 VALID_REJECTION_TOOLS = ['msreject', 'abctoolbox']
 VALID_REGRESSION_METHODS = ['llr', 'glm']
-
-##############################################################################
-## functions for manipulating prior files
-
-def line_count(file_obj, ignore_headers=False):
-    f, close = process_file_arg(file_obj)
-    count = 0
-    for line in f:
-        if ignore_headers:
-            if HEADER_PATTERN.match(line):
-                continue
-        count += 1
-    if close:
-        f.close()
-    return count
-
-def get_patterns_from_prefixes(prefixes, ignore_case=True):
-    patterns = []
-    for prefix in prefixes:
-        pattern_str = r'\s*{0}.*\s*'.format(prefix.replace('.', '\.'))
-        if ignore_case:
-            patterns.append(re.compile(pattern_str, re.IGNORECASE))
-        else:
-            patterns.append(re.compile(pattern_str))
-    return patterns
-
-def parse_header(file_obj, sep='\t'):
-    file_stream, close = process_file_arg(file_obj, 'rU')
-    header_line = file_stream.next()
-    if not HEADER_PATTERN.match(header_line):
-        raise Exception('did not find header in {0}'.format(file_stream.name))
-    header = header_line.strip().split(sep)
-    if close:
-        file_stream.close()
-    else:
-        file_stream.seek(0)
-    return header
-
-def get_parameter_indices(header_list, parameter_patterns=PARAMETER_PATTERNS):
-    return get_indices_of_patterns(header_list, parameter_patterns)
-
-def get_stat_indices(header_list, stat_patterns=DEFAULT_STAT_PATTERNS):
-    return get_indices_of_patterns(header_list, stat_patterns)
-
-def get_dummy_indices(header_list, dummy_patterns=DUMMY_PATTERNS):
-    return get_indices_of_patterns(header_list, dummy_patterns)
-    
-def observed_stats_for_abctoolbox(in_file, out_file,
-        stat_patterns=DEFAULT_STAT_PATTERNS):
-    header = parse_header(in_file)
-    indices = get_stat_indices(header, stat_patterns=stat_patterns)
-    reduce_columns(in_file, out_file, indices)
-    return [header[i] for i in sorted(indices)]
-
-def observed_parameters_for_abctoolbox(in_file, out_file,
-        parameter_patterns=PARAMETER_PATTERNS):
-    header = parse_header(in_file)
-    indices = get_parameter_indices(header,
-            parameter_patterns=parameter_patterns)
-    reduce_columns(in_file, out_file, indices)
-    return [header[i] for i in sorted(indices)]
-
-def prior_for_abctoolbox(in_file, out_file,
-        stat_patterns=DEFAULT_STAT_PATTERNS,
-        parameter_patterns=PARAMETER_PATTERNS):
-    header = parse_header(in_file)
-    indices = get_parameter_indices(header,
-            parameter_patterns=parameter_patterns)
-    indices.extend(get_stat_indices(header, stat_patterns=stat_patterns))
-    reduce_columns(in_file, out_file, sorted(indices), extra_tab=False)
-    return [header[i] for i in sorted(indices)]
-
-def prior_for_msreject(in_file, out_file,
-        stat_patterns=DEFAULT_STAT_PATTERNS,
-        parameter_patterns=PARAMETER_PATTERNS,
-        dummy_patterns=DUMMY_PATTERNS,
-        include_header=False):
-    header = parse_header(in_file)
-    in_file, close = process_file_arg(in_file)
-    indices = get_parameter_indices(header,
-            parameter_patterns=parameter_patterns)
-    indices.extend(get_stat_indices(header, stat_patterns=stat_patterns))
-    indices.extend(get_dummy_indices(header, dummy_patterns=DUMMY_PATTERNS))
-    if not include_header:
-        in_file.next()
-    reduce_columns(in_file, out_file, sorted(indices), extra_tab=False)
-    if close:
-        in_file.close()
-    return [header[i] for i in sorted(indices)]
-
 
 ##############################################################################
 ## Base class for all workers
@@ -753,34 +622,12 @@ class RegressionWorker(Worker):
                     [str(i+1) for i in self.stat_indices]),]
         self.cmd = cmd
 
-def parse_summary_file(file_obj):
-    f, close = process_file_arg(file_obj)
-    lines = []
-    for l in f:
-        l = l.strip()
-        if l:
-            lines.append(l)
-    if len(lines) != 3:
-        raise SummaryFileParsingError('summary file {0} has {1} lines'.format(
-                f.name, len(lines)))
-    header = lines[0].split()
-    means = lines[1].split()
-    std_devs = lines[2].split()
-    if not len(header) == len(means) == len(std_devs):
-        raise SummaryFileParsingError('lines of summary file {0} have unequal '
-                'numbers of columns'.format(f.name))
-    d = {}
-    for i in range(len(header)):
-        d[header[i]] = (float(means[i]), float(std_devs[i]))
-    return d
-
 
 class EuRejectSummaryMerger(object):
     count = 0
     def __init__(self, eureject_workers):
         self.eureject_workers = eureject_workers
-        self.header = None
-        self.sample_sums = None
+        self.sample_sum_collection = None
         self.finished = False
 
     def _check_worker(self, eureject_worker):
@@ -797,46 +644,19 @@ class EuRejectSummaryMerger(object):
                             eureject_worker.num_summarized,
                             eureject_worker.num_standardizing_samples))
 
-    def _parse_summary(self, eureject_worker):
-        stat_moments = parse_summary_file(eureject_worker.summary_out_path)
-        sums = {}
-        for stat_name, mean_sd_tuple in stat_moments.iteritems():
-            sums[stat_name] = SampleSummary(
-                    sample_size = eureject_worker.num_summarized,
-                    mean = mean_sd_tuple[0],
-                    variance = mean_sd_tuple[1]**2)
-        return sums
-
-    def _update_sample_sums(self, sample_sums):
-        if sample_sums.keys() != self.sample_sums.keys():
-            raise Exception('EuRejectWorker summary files have '
-                            'mismatching headers')
-        for stat_name, s_sum in self.sample_sums.iteritems():
-            s_sum.update(sample_sums[stat_name])
-
     def start(self):
         for ew in self.eureject_workers:
             self._check_worker(ew)
-            if not self.header:
-                self.header = parse_header(ew.summary_out_path)
-            sums = self._parse_summary(ew)
-            if not self.sample_sums:
-                self.sample_sums = sums
+            ssc = SampleSummaryCollection.get_from_summary_file(
+                    ew.summary_out_path)
+            if not self.sample_sum_collection:
+                self.sample_sum_collection = ssc
             else:
-                self._update_sample_sums(sums)
+                self.sample_sum_collection.update(ssc)
         self.finished = True
     
     def write_summary(self, path):
-        out, close = process_file_arg(path, 'w')
-        out.write('{0}\n'.format('\t'.join(self.header)))
-        out.write('{0}\n'.format('\t'.join(
-                ['{0:.12f}'.format(self.sample_sums[
-                        x].mean) for x in self.header])))
-        out.write('{0}\n'.format('\t'.join(
-                ['{0:.12f}'.format(self.sample_sums[
-                        x].std_deviation) for x in self.header])))
-        if close:
-            out.close()
+        self.sample_sum_collection.write(path)
 
 
 class EuRejectWorker(Worker):

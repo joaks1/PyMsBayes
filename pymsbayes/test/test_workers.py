@@ -8,8 +8,10 @@ from pymsbayes import workers
 from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test import TestLevel, test_enabled
-from pymsbayes.utils.messaging import get_logger
 from pymsbayes.utils.errors import *
+from pymsbayes.utils.parsing import *
+from pymsbayes.utils.stats import SampleSummaryCollection
+from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
 
@@ -515,7 +517,7 @@ class EuRejectWorkerTestCase(PyMsBayesTestCase):
                 reject_worker.posterior_path), 1)
         self.assertTrue(os.path.isfile(reject_worker.summary_out_path))
         self.assertEqual(self.get_number_of_lines(
-                reject_worker.summary_out_path), 3)
+                reject_worker.summary_out_path), 4)
         self.assertEqual(self.get_number_of_header_lines(
                 reject_worker.summary_out_path), 1)
         self.assertEqual(reject_worker.num_processed, 100)
@@ -567,7 +569,7 @@ class EuRejectWorkerTestCase(PyMsBayesTestCase):
                 reject_worker.posterior_path), 0)
         self.assertTrue(os.path.isfile(reject_worker.summary_out_path))
         self.assertEqual(self.get_number_of_lines(
-                reject_worker.summary_out_path), 3)
+                reject_worker.summary_out_path), 4)
         self.assertEqual(self.get_number_of_header_lines(
                 reject_worker.summary_out_path), 1)
         self.assertEqual(reject_worker.num_processed, 0)
@@ -627,7 +629,7 @@ class EuRejectWorkerTestCase(PyMsBayesTestCase):
                 sum_rej_worker.posterior_path), 1)
         self.assertTrue(os.path.isfile(sum_rej_worker.summary_out_path))
         self.assertEqual(self.get_number_of_lines(
-                sum_rej_worker.summary_out_path), 3)
+                sum_rej_worker.summary_out_path), 4)
         self.assertEqual(self.get_number_of_header_lines(
                 sum_rej_worker.summary_out_path), 1)
         self.assertEqual(sum_rej_worker.num_processed, 50)
@@ -664,7 +666,7 @@ class EuRejectWorkerTestCase(PyMsBayesTestCase):
                 reject_worker.posterior_path), 6)
         self.assertTrue(os.path.isfile(reject_worker.summary_out_path))
         self.assertEqual(self.get_number_of_lines(
-                reject_worker.summary_out_path), 3)
+                reject_worker.summary_out_path), 4)
         self.assertEqual(self.get_number_of_header_lines(
                 reject_worker.summary_out_path), 1)
         self.assertEqual(reject_worker.num_processed, 50)
@@ -837,19 +839,22 @@ class EuRejectSummaryMergerTestCase(PyMsBayesTestCase):
         self.assertTrue(merger.finished)
         merger.write_summary(sum_out_path)
         self.assertEqual(self.get_number_of_lines(
-                sum_out_path), 3)
+                sum_out_path), 4)
         self.assertEqual(self.get_number_of_header_lines(
                 sum_out_path), 1)
         
-        result = workers.parse_summary_file(sum_out_path)
-        expected_result = workers.parse_summary_file(
+        result, header = parse_summary_file(sum_out_path)
+        expected_result, expected_header = parse_summary_file(
                 reject_worker.summary_out_path)
-        self.assertEqual(result.keys(), expected_result.keys())
+        self.assertEqual(header, expected_header)
+        self.assertEqual(sorted(result.keys()), sorted(expected_result.keys()))
         for stat_name in result.keys():
-            self.assertAlmostEqual(result[stat_name][0],
-                    expected_result[stat_name][0])
-            self.assertAlmostEqual(result[stat_name][1],
-                    expected_result[stat_name][1])
+            self.assertAlmostEqual(result[stat_name]['mean'],
+                    expected_result[stat_name]['mean'])
+            self.assertAlmostEqual(result[stat_name]['std_deviation'],
+                    expected_result[stat_name]['std_deviation'])
+            self.assertEqual(result[stat_name]['n'],
+                    expected_result[stat_name]['n'])
 
     def test_merge_unequal_sample_sizes(self):
         prior_workers = []
@@ -918,68 +923,22 @@ class EuRejectSummaryMergerTestCase(PyMsBayesTestCase):
         self.assertTrue(merger.finished)
         merger.write_summary(sum_out_path)
         self.assertEqual(self.get_number_of_lines(
-                sum_out_path), 3)
+                sum_out_path), 4)
         self.assertEqual(self.get_number_of_header_lines(
                 sum_out_path), 1)
         
-        result = workers.parse_summary_file(sum_out_path)
-        expected_result = workers.parse_summary_file(
+        result, header = parse_summary_file(sum_out_path)
+        expected_result, expected_header = parse_summary_file(
                 reject_worker.summary_out_path)
-        self.assertEqual(result.keys(), expected_result.keys())
+        self.assertEqual(header, expected_header)
+        self.assertEqual(sorted(result.keys()), sorted(expected_result.keys()))
         for stat_name in result.keys():
-            self.assertAlmostEqual(result[stat_name][0],
-                    expected_result[stat_name][0])
-            self.assertAlmostEqual(result[stat_name][1],
-                    expected_result[stat_name][1])
-
-
-class ParseSummaryFileTestCase(PyMsBayesTestCase):
-    def setUp(self):
-        self.set_up()
-        self.summary_path = self.get_test_path(prefix='summary-')
-        self.lines = ['stat.1\tstat.2\tstat.3\n',
-                      '1.3\t4.78\t5.73\n',
-                      '5.6\t7.45\t6.78\n']
-        self.write_sum_file()
-        self.expected = {'stat.1': (1.3, 5.6),
-                         'stat.2': (4.78, 7.45),
-                         'stat.3': (5.73, 6.78)}
-
-    def tearDown(self):
-        self.tear_down()
-
-    def write_sum_file(self):
-        out = open(self.summary_path, 'w')
-        out.writelines(self.lines)
-        out.close()
-
-    def test_line_error(self):
-        self.lines = self.lines[:2]
-        self.write_sum_file()
-        self.assertRaises(SummaryFileParsingError, workers.parse_summary_file,
-                self.summary_path)
-        self.lines.append('5.6\t7.45\t6.78\n')
-        self.lines.append('5.6\t7.45\t6.78\n')
-        self.assertRaises(SummaryFileParsingError, workers.parse_summary_file,
-                self.summary_path)
-
-    def test_column_error(self):
-        self.lines[2] = '5.6\t7.45\t\n'
-        self.write_sum_file()
-        self.assertRaises(SummaryFileParsingError, workers.parse_summary_file,
-                self.summary_path)
-
-    def test_basic(self):
-        d = workers.parse_summary_file(self.summary_path)
-        self.assertEqual(self.expected, d)
-
-    def test_empty_lines(self):
-        self.lines.insert(0, '\n')
-        self.lines.insert(0, '\n')
-        self.lines.append('\n')
-        self.lines.append('\n')
-        d = workers.parse_summary_file(self.summary_path)
-        self.assertEqual(self.expected, d)
+            self.assertAlmostEqual(result[stat_name]['mean'],
+                    expected_result[stat_name]['mean'])
+            self.assertAlmostEqual(result[stat_name]['std_deviation'],
+                    expected_result[stat_name]['std_deviation'])
+            self.assertEqual(result[stat_name]['n'],
+                    expected_result[stat_name]['n'])
 
 
 class ABCToolBoxRejectWorkerTestCase(PyMsBayesTestCase):
