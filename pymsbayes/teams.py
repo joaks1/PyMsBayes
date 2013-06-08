@@ -6,12 +6,14 @@ import sys
 from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRejectWorker,
         ABCToolBoxRegressWorker, RegressionWorker, get_stat_indices,
         parse_header, DEFAULT_STAT_PATTERNS, PARAMETER_PATTERNS,
-        merge_prior_files, MsRejectWorker)
+        merge_prior_files, MsRejectWorker, EuRejectSummaryMerger,
+        EuRejectWorker)
 from pymsbayes.manager import Manager
 from pymsbayes.fileio import process_file_arg, expand_path
 from pymsbayes.utils import GLOBAL_RNG, WORK_FORCE
 from pymsbayes.utils.functions import (long_division, least_common_multiple,
         get_random_int, list_splitter)
+from pymsbayes.utils.stats import (merge_sample_summary_mappings
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -47,10 +49,11 @@ class ABCTeam(object):
                 prefix = 'observed-files-')
         self.summary_temp_dir = temp_fs.create_subdir(
                 prefix = 'summary-files-')
-        if not output_dir:
-            output_dir = os.path.dirname(observed_sims_file)
-        self.output_dir = expand_path(output_dir)
         self.observed_sims_path = expand_path(observed_sims_path)
+        if not output_dir:
+            output_dir = os.path.dirname(self.observed_sims_file)
+        self.output_dir = mk_new_dir(os.path.join(expand_path(output_dir),
+                'pymsbayes-output'))
         self.models = model_indices_to_config_paths
         self.num_prior_samples = num_prior_samples
         self.num_processors = num_processors
@@ -73,6 +76,16 @@ class ABCTeam(object):
         self.rejection_teams = []
         self.prior_summary_workers = []
         self.prior_workers = []
+        self.model_dirs = dict(zip(self.models.keys(),
+                [mk_new_dir(os.path.join(self.output_dir,
+                        'm' + k)) for k in self.models.keys()]))
+        self.model_dirs.update({'all': mk_new_dir(os.path.join(self.output_dir,
+                'm' + ''.join([i for i in sorted(self.models.keys())])))})
+
+        self.summary_paths = {}
+        for k, d in self.model_dirs.iteritems():
+            self.summary_paths[k] = os.path.join(d,
+                    os.path.basename(d) + '-stat-means-and-std-devs.txt')
         self.summary_path = temp_fs.get_file_path(
                 parent = self.summary_temp_dir,
                 prefix = 'summary-all-',
@@ -85,7 +98,6 @@ class ABCTeam(object):
 
     def _assemble_prior_workers(self):
         prior_workers = []
-        sum_workers = []
         for model_index, config_path in self.models:
             to_summarize = self.num_standardizing_samples
             for i in range(self.num_batches):
@@ -125,7 +137,7 @@ class ABCTeam(object):
                         summary_worker = sum_worker
                         tag = str(model_index))
                 if sum_worker:
-                    sum_workers.append(worker)
+                    self.prior_summary_workers.append(worker)
                 else:
                     prior_workers.append(worker)
             if self.extra_samples > 0:
@@ -165,11 +177,9 @@ class ABCTeam(object):
                         summary_worker = sum_worker
                         tag = str(model_index))
                 if sum_worker:
-                    sum_workers.append(worker)
+                    self.prior_summary_workers.append(worker)
                 else:
                     prior_workers.append(worker)
-        self.prior_summary_workers = list(list_splitter(sum_workers,
-                self.num_processors))
         self.prior_workers = list(list_splitter(prior_workers,
                 self.num_processors))
 
@@ -198,22 +208,42 @@ class ABCTeam(object):
         if close:
             obs_file.close()
     
+    def _run_workers(self, workers):
+        assert self.work_queue.empty()
+        assert self.result_queue.empty()
+        for w in workers:
+            self.work_queue.put(w)
+        managers = []
+        for i in range(self.num_processors):
+            m = Manager(work_queue = self.work_queue,
+                    result_queue = self.result_queue)
+            m.start()
+            managers.append(m)
+        for i in range(len(workers)):
+            workers[i] = self.result_queue.get()
+        for m in managers:
+            m.join()
+        assert self.work_queue.empty()
+        assert self.result_queue.empty()
+
+    def _run_summary_workers(self):
+        self._run_workers(self.prior_summary_workers)
+
+    def _merge_summaries(self):
+        summary_workers = dict(zip(self.models.keys(),
+                [[] for i in range(len(self.models.keys()))]))
+        sum_mergers = []
+        for pw in self.prior_summary_workers:
+            assert pw.tag == pw.summary_worker.tag
+            summary_workers[pw.tag] = pw.summary_worker
+        for model_idx, sum_workers in summary_workers.iteritems():
+            summary_merger = EuRejectSummaryMerger(sum_workers)
+            sum_mergers.append(summary_merger)
+        self._run_workers(sum_mergers)
+
     def run(self):
-        for prior_worker_batch in self.prior_summary_workers:
-            for pw in prior_worker_batch:
-                self.work_queue.put(pw)
-            managers = []
-            for i in range(self.num_processors):
-                m = Manager(work_queue = self.work_queue,
-                        result_queue = self.result_queue)
-                m.start()
-                managers.append(m)
-            for i in range(len(prior_worker_batch)):
-                prior_worker_batch[i] = self.result_queue.get()
-            for m in managers:
-                m.join()
-            assert self.work_queue.empty()
-            assert self.result_queue.empty()
+        self._run_summary_workers()
+        self._merge_summaries()
             # merge summaries
             # run these priors through rejection teams
         for prior_worker_batch in self.prior_workers:
