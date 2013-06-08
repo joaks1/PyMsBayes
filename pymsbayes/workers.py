@@ -649,6 +649,7 @@ class EuRejectSummaryMerger(object):
             self._check_worker(ew)
             ssc = SampleSummaryCollection.get_from_summary_file(
                     ew.summary_out_path)
+            assert(ssc.sample_sums[ssc.keys[0]].n == ew.num_summarized)
             if not self.sample_sum_collection:
                 self.sample_sum_collection = ssc
             else:
