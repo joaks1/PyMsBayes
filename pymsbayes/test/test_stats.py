@@ -272,6 +272,9 @@ class SampleSummaryCollectionTestCase(PyMsBayesTestCase):
                 samps += s[k]
             ss.update_samples(samps)
 
+    def tearDown(self):
+        self.tear_down()
+
     def test_get_from_summary_file(self):
         ssc = SampleSummaryCollection.get_from_summary_file(self.summary_paths[0])
         self.assertEqual(sorted(ssc.keys), sorted(self.summarizers[0].keys()))
