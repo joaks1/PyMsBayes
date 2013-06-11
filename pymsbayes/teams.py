@@ -45,7 +45,7 @@ class ABCTeam(object):
             rng = GLOBAL_RNG
         self.rng = rng
         self.__class__.count += 1
-        self.name = 'RejectionTeam-' + str(self.count)
+        self.name = self.__class__.__name__ + '-' + str(self.count)
         self.temp_fs = temp_fs
         self.observed_temp_dir = temp_fs.create_subdir(
                 prefix = 'observed-files-')
@@ -311,7 +311,7 @@ class EuRejectTeam(object):
             index = 1,
             tag = ''):
         self.__class__.count += 1
-        self.name = 'EuRejectTeam-' + str(self.count)
+        self.name = self.__class__.__name__ + '-' + str(self.count)
         self.temp_fs = temp_fs
         self.observed_path = expand_path(observed_path)
         self.output_dir = expand_path(output_dir)
@@ -414,7 +414,7 @@ class RejectionTeam(object):
             abctoolbox_exe_path = None,
             keep_temps = False):
         self.__class__.count += 1
-        self.name = 'RejectionTeam-' + str(self.count)
+        self.name = self.__class__.__name__ + '-' + str(self.count)
         self.temp_fs = temp_fs
         self.observed_path = observed_path
         self.num_posterior_samples = num_posterior_samples
@@ -523,7 +523,7 @@ class MsRejectionTeam(object):
             msreject_exe_path = None,
             keep_temps = False):
         self.__class__.count += 1
-        self.name = 'MsRejectionTeam-' + str(self.count)
+        self.name = self.__class__.__name__ + '-' + str(self.count)
         self.temp_fs = temp_fs
         self.observed_path = observed_path
         self.num_posterior_samples = num_posterior_samples
