@@ -208,7 +208,7 @@ class MsBayesWorker(Worker):
                 stderr_path = stderr_path,
                 tag = tag)
         self.__class__.count += 1
-        self.name = 'MsBayesWorker-' + str(self.count)
+        self.name = self.__class__.__name__ + '-' + str(self.count)
         self.temp_fs = temp_fs
         self.sample_size = int(sample_size)
         self.config_path = expand_path(config_path)
@@ -502,7 +502,7 @@ class MsRejectWorker(Worker):
                 stderr_path = stderr_path,
                 tag = tag)
         self.__class__.count += 1
-        self.name = 'MsRejectWorker-' + str(self.count)
+        self.name = self.__class__.__name__ + '-' + str(self.count)
         if not exe_path:
             exe_path = get_tool_path('msreject')
         self.exe_path = expand_path(exe_path)
@@ -568,7 +568,7 @@ class RegressionWorker(Worker):
                 stderr_path = stderr_path,
                 tag = tag)
         self.__class__.count += 1
-        self.name = 'RegressionWorker-' + str(self.count)
+        self.name = self.__class__.__name__ + '-' + str(self.count)
         if not exe_path:
             exe_path = get_tool_path('regress_cli')
         self.exe_path = expand_path(exe_path)
@@ -626,6 +626,8 @@ class RegressionWorker(Worker):
 class EuRejectSummaryMerger(object):
     count = 0
     def __init__(self, eureject_workers, tag = ''):
+        self.__class__.count += 1
+        self.name = self.__class__.__name__ + '-' + str(self.count)
         self.eureject_workers = eureject_workers
         self.sample_sum_collection = None
         self.finished = False
@@ -694,7 +696,7 @@ class EuRejectWorker(Worker):
                 stderr_path = None,
                 tag = tag)
         self.__class__.count += 1
-        self.name = 'EuRejectWorker-' + str(self.count)
+        self.name = self.__class__.__name__ + '-' + str(self.count)
         self.temp_fs = temp_fs
         if not exe_path:
             exe_path = get_tool_path('eureject')
@@ -794,7 +796,7 @@ class ABCToolBoxRejectWorker(Worker):
                 stderr_path = stderr_path,
                 tag = tag)
         self.__class__.count += 1
-        self.name = 'ABCToolBoxRejectWorker-' + str(self.count)
+        self.name = self.__class__.__name__ + '-' + str(self.count)
         self.temp_fs = temp_fs
         if not exe_path:
             exe_path = get_tool_path('abcestimator')
@@ -888,7 +890,7 @@ class ABCToolBoxRegressWorker(Worker):
                 stderr_path = stderr_path,
                 tag = tag)
         self.__class__.count += 1
-        self.name = 'ABCToolBoxRegressWorker-' + str(self.count)
+        self.name = self.__class__.__name__ + '-' + str(self.count)
         self.temp_fs = temp_fs
         if not exe_path:
             exe_path = get_tool_path('abcestimator')
@@ -969,4 +971,22 @@ class ABCToolBoxRegressWorker(Worker):
         cfg.write('maxReadSims {0}\n'.format(self.num_posterior_samples + 100))
         cfg.write('outputPrefix {0}\n'.format(self.output_prefix))
         return cfg
+
+class PosteriorWorker(object):
+    count = 0
+    def __init__(self,
+            temp_fs,
+            posterior_path,
+            tag = ''):
+        self.__class__.count += 1
+        self.name = self.__class__.__name__ + '-' + str(self.count)
+        self.temp_fs = temp_fs
+        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
+        self.posterior_path = expand_path(posterior_path)
+        self.header = parse_header(self.posterior_path)
+        self.finished = False
+        self.tag = str(tag)
+
+    def summarize_posterior_sample(self):
+        post = parse_parameters(self.posterior_path)
 
