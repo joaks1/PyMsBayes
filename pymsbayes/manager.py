@@ -20,7 +20,7 @@ class Manager(multiprocessing.Process):
             lock = None):
         multiprocessing.Process.__init__(self)
         self.__class__.count += 1
-        self.name = 'Manager-' + str(self.count)
+        self.name = self.__class__.__name__ + '-' + str(self.count)
         if not work_queue:
             work_queue = WORK_FORCE
         if not result_queue:
