@@ -5,7 +5,8 @@ import os
 import re
 
 from pymsbayes.fileio import process_file_arg
-from pymsbayes.utils.errors import SummaryFileParsingError
+from pymsbayes.utils.errors import (SummaryFileParsingError,
+        ParameterParsingError)
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -170,6 +171,65 @@ def prior_for_msreject(in_file, out_file,
         in_file.close()
     return [header[i] for i in sorted(indices)]
 
+def parse_parameters(file_obj):
+    samples = {}
+    indices = {}
+    post_file, close = process_file_arg(file_obj)
+    header = parse_header(post_file)
+    mean_t_indices = get_indices_of_patterns(header, MEAN_TAU_PATTERNS)
+    if len(mean_t_indices) > 1:
+        raise ParameterParsingError('posterior file {0} has {1} mean '
+                'tau columns'.format(post_file.name, len(mean_t_indices)))
+    if mean_t_indices:
+        samples['mean_tau'] = []
+        indices['mean_tau'] = mean_t_indices
+    omega_indices = get_indices_of_patterns(header, OMEGA_PATTERNS)
+    if len(omega_indices) > 1:
+        raise ParameterParsingError('posterior file {0} has {1} omega '
+                'columns'.format(post_file.name, len(omega_indices)))
+    if omega_indices:
+        samples['omega'] = []
+        indices['omega'] = omega_indices
+    t_indices = get_indices_of_patterns(header, TAU_PATTERNS)
+    if t_indices:
+        samples['taus'] = []
+        indices['taus'] = t_indices
+    psi_indices = get_indices_of_patterns(header, PSI_PATTERNS)
+    if len(psi_indices) > 1:
+        raise ParameterParsingError('posterior file {0} has {1} psi '
+                'columns'.format(post_file.name, len(psi_indices)))
+    if psi_indices:
+        samples['psi'] = []
+        indices['psi'] = psi_indices
+    model_indices = get_indices_of_patterns(header, MODEL_PATTERNS)
+    if len(model_indices) > 1:
+        raise ParameterParsingError('posterior file {0} has {1} model '
+                'columns'.format(post_file.name, len(model_indices)))
+    if model_indices:
+        samples['model'] = []
+        indices['model'] = model_indices
+    post_file.next() # header
+    for i, line in enumerate(post_file):
+        l = line.strip().split()
+        if l:
+            if len(l) != len(header):
+                raise ParameterParsingError('posterior file {0} has '
+                        '{1} columns at line {2}; expecting {3}'.format(
+                                post_file.name, len(l), i + 2, len(header)))
+            for k, idx_list in indices.iteritems():
+                if k in ['mean_tau', 'omega']:
+                    samples[k].extend([float(l[i]) for i in idx_list])
+                elif k in ['psi', 'model']:
+                    samples[k].extend([int(l[i]) for i in idx_list])
+                elif k == 'taus':
+                    samples[k].append([float(l[i]) for i in idx_list])
+                else:
+                    raise ParameterParsingError('unexpected key {0!r}; '
+                            'posterior file {1}, line {2}'.format(
+                                k, post_file.name, i+2))
+    if close:
+        post_file.close()
+    return samples
 
 ##############################################################################
 ## ABACUS output parsers
