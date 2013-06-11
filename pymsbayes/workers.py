@@ -625,10 +625,11 @@ class RegressionWorker(Worker):
 
 class EuRejectSummaryMerger(object):
     count = 0
-    def __init__(self, eureject_workers):
+    def __init__(self, eureject_workers, tag = ''):
         self.eureject_workers = eureject_workers
         self.sample_sum_collection = None
         self.finished = False
+        self.tag = str(tag)
 
     def _check_worker(self, eureject_worker):
         if not eureject_worker.finished:
@@ -738,10 +739,10 @@ class EuRejectWorker(Worker):
 
     def _post_process(self):
         self._parse_stderr()
-        if not self.keep_temps:
-            self.temp_fs.remove_dir(self.output_dir)
         if self.regression_worker:
             self.regression_worker.start()
+        if not self.keep_temps:
+            self.temp_fs.remove_dir(self.output_dir)
 
     def _parse_stderr(self):
         se = self.get_stderr()
