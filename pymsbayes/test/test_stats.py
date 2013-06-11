@@ -6,8 +6,8 @@ import math
 from cStringIO import StringIO
 
 from pymsbayes.fileio import process_file_arg
-from pymsbayes.utils.stats import (SampleSummarizer, SampleSummary,
-        SampleSummaryCollection)
+from pymsbayes.utils import GLOBAL_RNG
+from pymsbayes.utils.stats import *
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.utils.messaging import get_logger
 
@@ -369,6 +369,110 @@ class SampleSummaryCollectionTestCase(PyMsBayesTestCase):
         for ssc2 in ssc_list:
             for k, ss in ssc2.sample_sums.iteritems():
                 self.assertNotEqual(ss.n, ssc.sample_sums[k].n)
+
+class MedianTestCase(unittest.TestCase):
+    def test_empty(self):
+        samples = []
+        self.assertRaises(ValueError, median, samples)
+    
+    def test_sample_size_1(self):
+        samples = [1.3]
+        med = median(samples)
+        self.assertEqual(samples[0], med)
+
+    def test_sample_size_even(self):
+        samples = [1.1, 1.2, 1.3, 1.4]
+        med = median(samples)
+        self.assertAlmostEqual(med, 1.25)
+
+    def test_sample_size_odd(self):
+        samples = [1.1, 1.2, 1.3, 1.4, 1.5]
+        med = median(samples)
+        self.assertAlmostEqual(med, 1.3)
+
+class ModeListTestCase(unittest.TestCase):
+    def test_empty(self):
+        samples = []
+        self.assertRaises(ValueError, mode_list, samples)
+
+    def test_ints(self):
+        samples = [1,2,3,4,5]
+        md = mode_list(samples)
+        self.assertEqual(md, samples)
+
+        samples = [1,2,2,3,4,5]
+        md = mode_list(samples)
+        self.assertEqual(md, [2])
+
+        samples = [1,2,2,3,4,5,5]
+        md = mode_list(samples)
+        self.assertEqual(sorted(md), sorted([2, 5]))
+
+    def test_strings(self):
+        samples = ['a', 'b', 'b', 'c', 'd']
+        md = mode_list(samples)
+        self.assertEqual(md, ['b'])
+
+    def test_floats_no_binning(self):
+        samples = [1.1,2.1,2.1,3.1,4.1,5.1]
+        md = mode_list(samples)
+        self.assertEqual(md, [2.1])
+
+    def test_floats(self):
+        samples = [1.111, 1.112, 1.115, 1.16, 1.121]
+        md = mode_list(samples, bin_width = 0.01)
+        self.assertEqual(sorted(md), sorted([1.11, 1.12]))
+
+class IntervalTestCase(unittest.TestCase):
+    def setUp(self):
+        self.samples = [GLOBAL_RNG.normalvariate(0, 1) for i in range(100000)]
+        self.exp_samples = [GLOBAL_RNG.expovariate(1) for i in range(100000)]
+
+    def test_standard_normal_hpd(self):
+        hpdi = get_hpd_interval(self.samples, 0.95)
+        self.assertAlmostEqual(hpdi[0], -1.96, places=1)
+        self.assertAlmostEqual(hpdi[1], 1.96, places=1)
+
+    def test_standard_normal_quantile(self):
+        quants = quantile_95(self.samples)
+        q025 = quantile(self.samples, p=0.025)
+        q975 = quantile(self.samples, p=0.975)
+        self.assertAlmostEqual(q025, quants[0])
+        self.assertAlmostEqual(q975, quants[1])
+        self.assertAlmostEqual(quants[0], -1.96, places=1)
+        self.assertAlmostEqual(quants[1], 1.96, places=1)
+
+    def test_exp_hpd(self):
+        hpdi = get_hpd_interval(self.exp_samples, 0.95)
+        self.assertAlmostEqual(hpdi[0], 0.0, places=1)
+        self.assertAlmostEqual(hpdi[1], 2.9957, places=1)
+
+    def test_exp_quantile(self):
+        quants = quantile_95(self.exp_samples)
+        q025 = quantile(self.exp_samples, p=0.025)
+        q975 = quantile(self.exp_samples, p=0.975)
+        self.assertAlmostEqual(q025, quants[0])
+        self.assertAlmostEqual(q975, quants[1])
+        self.assertAlmostEqual(quants[0], 0.0253, places=1)
+        self.assertAlmostEqual(quants[1], 3.6889, places=1)
+
+class GetSummaryTestCase(unittest.TestCase):
+    def setUp(self):
+        self.samples = [GLOBAL_RNG.normalvariate(0, 1) for i in range(100000)]
+
+    def test_standard_normal(self):
+        d = get_summary(self.samples, bin_width=0.5)
+        self.assertEqual(d['n'], len(self.samples))
+        self.assertAlmostEqual(d['mean'], 0.0, places=1)
+        self.assertAlmostEqual(d['median'], 0.0, places=1)
+        for md in d['mode']:
+            self.assertAlmostEqual(md, 0.0, places=1)
+        self.assertAlmostEqual(d['variance'], 1.0, places=1)
+        self.assertAlmostEqual(d['95_qi'][0], -1.96, places=1)
+        self.assertAlmostEqual(d['95_qi'][1], 1.96, places=1)
+        self.assertAlmostEqual(d['95_hpdi'][0], -1.96, places=1)
+        self.assertAlmostEqual(d['95_hpdi'][1], 1.96, places=1)
+        
 
 if __name__ == '__main__':
     unittest.main()

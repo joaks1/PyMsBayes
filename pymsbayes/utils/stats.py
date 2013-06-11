@@ -4,6 +4,7 @@ import sys
 import os
 import math
 import copy
+import operator
 from cStringIO import StringIO
 
 from pymsbayes.fileio import process_file_arg
@@ -11,6 +12,117 @@ from pymsbayes.utils.parsing import parse_summary_file
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
+
+def median(samples):
+    """
+    Return the median value from a list of samples.
+    """
+    s = sorted(samples)
+    n = len(s)
+    if n < 1:
+        raise ValueError('empty samples')
+    mdn = None
+    if n % 2 == 0:
+        mdn = (s[((n / 2) - 1)] + s[(n / 2)]) / 2
+    else:
+        mdn = s[((n - 1) / 2)]
+    return mdn
+
+
+def mode_list(samples, bin_width = None):
+    """
+    Return a list of modes from a list of values.
+
+    If `bin_width` is None or zero, the mode will be calculated as if the
+    samples are discrete (e.g., ints or strings). If a `bin_width` is provided,
+    the samples are treated like floats and are binned into categories of width
+    `bin_width`.
+
+    Modified from DendroPy (Copyright Jeet Sukumaran and Mark T. Holder;
+    licensed under BSD License; http://pythonhosted.org/DendroPy/):
+
+    Sukumaran, J. and M. T. Holder. 2010. DendroPy: a Python library
+    for phylogenetic computing. Bioinformatics 26: 1569-1571.
+    """
+    if not samples:
+        raise ValueError('empty samples')
+    counts = {}
+    for s in samples:
+        if bin_width:
+            index = int(round(s / bin_width))
+        else:
+            index = s
+        counts[index] = counts.get(index, 0) + 1
+    count_tups = sorted(counts.iteritems(), key = operator.itemgetter(1),
+            reverse = True)
+    max_count = count_tups[0][1]
+    if bin_width:
+        return [(val * bin_width) for val, cnt in count_tups if cnt >= max_count]
+    return [val for val, cnt in count_tups if cnt >= max_count]
+
+def get_hpd_interval(samples, interval_prob = 0.95):
+    """
+    Return tuple of highest posterior density (HPD).
+
+    The interval is estimated via a sliding window to find the narrowest
+    interval that contains the specified proportion of samples.
+    """
+    if not samples:
+        raise ValueError('empty samples')
+    samples = sorted(samples)
+    tail_prob = 1 - interval_prob
+    n = len(samples)
+    num_exclude = int(round(n * tail_prob))
+    widths = []
+    # sliding window to find possible interval widths
+    for i in range(num_exclude):
+        lower = samples[i]
+        upper = samples[n - num_exclude + i]
+        widths.append(upper - lower)
+    min_width = min(widths)
+    min_index = widths.index(min_width)
+    return(samples[min_index], samples[n - num_exclude + min_index])
+
+def quantile(samples, p): 
+    """
+    Return quantile associated with probability `p`.
+    """
+    if not samples:
+        raise ValueError('empty samples')
+    s = sorted(samples)
+    i = int(round(len(s) * p)) - 1
+    return s[i]
+
+def quantile_95(samples):
+    """
+    Return tuple of interval of 2.5% and 97.5% quantiles.
+    """
+    return (quantile(samples, 0.025), quantile(samples, 0.975))
+
+def get_summary(samples, bin_width = None):
+    """
+    Return a dict of summaries calculated from the samples.
+
+    The dict has the following items:
+        'mean': mean
+        'n': sample_size
+        'variance': variance
+        'mode': list of most common values (if `bin_width` is None or zero, the
+                samples are treated as discrete, otherwise they are treated as
+                floats and binned into categories of width `bin_width`)
+        '95_hpdi': tuple of 95% highest posterior density interval
+        '95_qi': tuple of 2.5% to 97.5% quantile interval
+    """
+    ss = SampleSummarizer()
+    ss.update_samples(samples)
+    return {'mean': ss.mean,
+            'n': ss.n,
+            'variance': ss.variance,
+            'median': median(samples),
+            'mode': mode_list(samples, bin_width),
+            '95_hpdi': get_hpd_interval(samples, 0.95),
+            '95_qi': quantile_95(samples)}
+         
 
 class SampleSummarizer(object):
     def __init__(self, name='sample summarizer'):
