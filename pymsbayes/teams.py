@@ -36,8 +36,10 @@ class ABCTeam(object):
             stat_patterns = DEFAULT_STAT_PATTERNS,
             parameter_patterns = PARAMETER_PATTERNS,
             msbayes_exe_path = None,
+            abctoolbox_exe_path = None,
             eureject_exe_path = None,
             keep_temps = False,
+            global_estimate_only = False,
             work_queue = WORK_FORCE):
         if not rng:
             rng = GLOBAL_RNG
@@ -54,6 +56,7 @@ class ABCTeam(object):
             output_dir = os.path.dirname(self.observed_sims_file)
         self.output_dir = mk_new_dir(os.path.join(expand_path(output_dir),
                 'pymsbayes-output'))
+        self.global_estimate_only = global_estimate_only
         self.models = model_indices_to_config_paths
         self.num_prior_samples = num_prior_samples
         self.num_processors = num_processors
@@ -73,23 +76,25 @@ class ABCTeam(object):
         self.report_parameters = report_parameters
         self.msbayes_exe_path = msbayes_exe_path
         self.abctoolbox_exe_path = abctoolbox_exe_path
-        self.rejection_teams = []
-        self.prior_summary_workers = []
-        self.prior_workers = []
+        self.eureject_exe_path = eureject_exe_path
         self.model_dirs = dict(zip(self.models.keys(),
                 [mk_new_dir(os.path.join(self.output_dir,
-                        'm' + k)) for k in self.models.keys()]))
-        self.model_dirs.update({'all': mk_new_dir(os.path.join(self.output_dir,
+                        'm' + str(k))) for k in self.models.keys()]))
+        self.model_dirs.update({'combined': mk_new_dir(os.path.join(
+                self.output_dir,
                 'm' + ''.join([i for i in sorted(self.models.keys())])))})
-
         self.summary_paths = {}
         for k, d in self.model_dirs.iteritems():
             self.summary_paths[k] = os.path.join(d,
                     os.path.basename(d) + '-stat-means-and-std-devs.txt')
-        self.summary_path = temp_fs.get_file_path(
-                parent = self.summary_temp_dir,
-                prefix = 'summary-all-',
-                create = False)
+        self.rejection_teams = {}
+        if not self.global_estimate_only:
+            self.rejection_teams = dict(zip(self.models.keys(),
+                    [[] for i in range(len(self.models.keys()))]))
+        self.rejection_teams.update({'combined': []})
+        self.prior_summary_workers = []
+        self.prior_workers = []
+        self.num_observed = 0
         self.keep_temps = keep_temps
         self.work_queue = work_queue
         self.result_queue = multiprocessing.Queue()
@@ -190,21 +195,30 @@ class ABCTeam(object):
                 stat_patterns=ALL_STAT_PATTERNS)
         obs_file.next() # header line
         for i, line in enumerate(obs_file):
-            obs_path = temp_fs.get_file_path(parent = self.observed_temp_dir,
-                    prefix = 'observed-{0}-'.format(i+1),
+            self.num_observed += 1
+            index = i + 1
+            tmp_obs_path = temp_fs.get_file_path(
+                    parent = self.observed_temp_dir,
+                    prefix = 'observed-{0}-'.format(index),
                     create = False)
             l = line.strip().split()
-            with open(obs_path, 'w') as out:
+            with open(tmp_obs_path, 'w') as out:
                 out.write('{0}\n{1}\n'.format(
                         '\t'.join([header[idx] for idx in all_stat_indices]),
                         '\t'.join([str(l[idx]) for idx in all_stat_indices])))
-            self.rejection_teams.append(RejectionTeam(
-                    temp_fs = self.temp_fs,
-                    prior_workers = [],
-                    observed_path = obs_path,
-                    num_posterior_samples = self.num_posterior_samples,
-                    abctoolbox_exe_path = self.abctoolbox_exe_path,
-                    keep_temps = self.keep_temps))
+            for model_idx, rejection_team_list in self.rejection_teams.iteritems():
+                rejection_team_list.append(EuRejectTeam(
+                        temp_fs = self.temp_fs,
+                        observed_path = tmp_obs_path,
+                        output_dir = self.model_dirs[model_idx],
+                        prior_paths = [],
+                        summary_in_path = self.summary_paths[model_idx],
+                        num_posterior_samples = self.num_posterior_samples,
+                        run_regression = False,
+                        exe_path = self.eureject_exe_path,
+                        keep_temps = self.keep_temps,
+                        index = index,
+                        tag = str(model_idx)))
         if close:
             obs_file.close()
     
@@ -226,8 +240,8 @@ class ABCTeam(object):
         assert self.work_queue.empty()
         assert self.result_queue.empty()
 
-    def _run_summary_workers(self):
-        self._run_workers(self.prior_summary_workers)
+    def _run_prior_workers(self, prior_worker_batch):
+        self._run_workers(prior_worker_batch)
 
     def _merge_summaries(self):
         summary_workers = dict(zip(self.models.keys(),
@@ -237,82 +251,158 @@ class ABCTeam(object):
             assert pw.tag == pw.summary_worker.tag
             summary_workers[pw.tag] = pw.summary_worker
         for model_idx, sum_workers in summary_workers.iteritems():
-            summary_merger = EuRejectSummaryMerger(sum_workers)
+            summary_merger = EuRejectSummaryMerger(sum_workers,
+                    tag = str(model_idx))
             sum_mergers.append(summary_merger)
         self._run_workers(sum_mergers)
+        for sm in sum_mergers:
+            self.summaries[sm.tag] = sm.sample_sum_collection
+        self.summaries['combined'] = SampleSummaryCollection.merge(
+                self.summaries.itervalues())
+        for k, summary in self.summaries.iteritems():
+            summary.write(self.summary_paths[k])
+
+    def _load_rejection_teams(self, prior_worker_batch):
+        teams_to_run = []
+        if self.global_estimate_only:
+            for rt in self.rejection_teams['combined']:
+                rt.prior_paths.extend(
+                        [pw.prior_path for pw in prior_worker_batch])
+                teams_to_run.append(rt)
+            return teams_to_run
+        model_indices = set(pw.tag for pw in prior_worker_batch)
+        prior_workers = dict(zip(model_indices,
+                [[] for i in range(len(model_indices))]))
+        for pw in prior_worker_batch:
+            prior_workers[pw.tag].append(pw)
+        for model_idx, pw_list in prior_workers.iteritems():
+            for rt in self.rejection_teams[model_idx]:
+                rt.prior_paths.extend([pw.prior_path for pw in pw_list])
+                teams_to_run.append(rt)
+        return teams_to_run
+        
+    def _run_rejection_teams(self, prior_worker_batch):
+        teams_to_run = self._load_rejection_teams(prior_worker_batch)
+        self._run_workers(teams_to_run)
 
     def run(self):
-        self._run_summary_workers()
+        self._run_prior_workers(self.prior_summary_workers)
         self._merge_summaries()
-            # merge summaries
-            # run these priors through rejection teams
+        self._run_rejection_teams(self.prior_summary_workers)
         for prior_worker_batch in self.prior_workers:
-            for pw in prior_worker_batch:
-                self.work_queue.put(pw)
-            managers = []
-            for i in range(self.num_processors):
-                m = Manager(work_queue = self.work_queue,
-                        result_queue = self.result_queue)
-                m.start()
-                managers.append(m)
-            for i in range(len(prior_worker_batch)):
-                prior_worker_batch[i] = self.result_queue.get()
-            for m in managers:
-                m.join()
-            assert self.work_queue.empty()
-            assert self.result_queue.empty()
-            for rt in self.rejection_teams:
-                rt.prior_workers = prior_worker_batch
-                self.work_queue.put(rt)
-            managers = []
-            for i in range(self.num_processors):
-                m = Manager(work_queue = self.work_queue,
-                        result_queue = self.result_queue)
-                m.start()
-                managers.append(m)
-            for i in range(len(self.rejection_teams)):
-                self.rejection_teams[i] = self.result_queue.get()
-            for m in managers:
-                m.join()
-            assert self.work_queue.empty()
-            assert self.result_queue.empty()
+            self._run_prior_workers(prior_worker_batch)
+            self._run_rejection_teams(prior_worker_batch)
+        # run final rejections if not global only
+        # run regressions
 
 
-# class EuRejectWorker(Worker):
-#     count = 0
-#     def __init__(self,
-#             temp_fs,
-#             observed_path,
-#             prior_paths,
-#             num_posterior_samples,
-#             num_standardizing_samples = 10000,
-#             summary_in_path = None,
-#             summary_out_path = None,
-#             posterior_path = None,
-#             regression_worker = None,
-#             exe_path = None,
-#             stderr_path = None,
-#             keep_temps = False,
-#             tag = ''):
-class EuRejectSummaryTeam(object):
+class EuRejectTeam(object):
     count = 0
     def __init__(self,
             temp_fs,
-            prior_workers,
             observed_path,
-            num_standardizing_samples = 10000,
-            eureject_exe_path = None,
-            keep_temps = False):
+            output_dir,
+            prior_paths = [],
+            summary_in_path = None,
+            num_posterior_samples = 1000,
+            run_regression = False,
+            exe_path = None,
+            keep_temps = False,
+            index = 1,
+            tag = ''):
         self.__class__.count += 1
-        self.name = 'EuRejectSummaryTeam-' + str(self.count)
+        self.name = 'EuRejectTeam-' + str(self.count)
         self.temp_fs = temp_fs
-        self.observed_path = observed_path
-        self.num_standardizing_samples = num_standardizing_samples
-        self.eureject_exe_path = eureject_exe_path
-        self.prior_workers = prior_workers
-        self.keep_temps = keep_temps
+        self.observed_path = expand_path(observed_path)
+        self.output_dir = expand_path(output_dir)
+        self.num_posterior_samples = num_posterior_samples
+        if exe_path:
+            exe_path = expand_path(exe_path)
+        self.exe_path = exe_path
+        self.prior_paths = [p for p in prior_paths]
+        if summary_in_path:
+            summary_in_path = expand_path(summary_in_path)
+        self.summary_in_path = summary_in_path
+        self.keep_temps = bool(keep_temps)
         self.posterior_path = None
+        self.run_regression = run_regression
+        self.index = int(index)
         self.num_calls = 0
+
+    def _check_rejection_ready(self):
+        if not summary_in_path or not os.path.exists(summary_in_path):
+            raise Exception('{0} started without a summary path'.format(
+                    self.name))
+        if len(prior_paths) < 1:
+            raise Exception('{0} started without priors'.format(
+                    self.name))
+
+    def _check_rejection_ready(self):
+        if not self.posterior_path:
+            raise Exception('regression called for {0}, but there is no '
+                    'posterior yet'.format(self.name))
+
+    def start(self):
+        if self.run_regression:
+            self._run_regression_workers()
+        else:
+            self._run_rejection_workers()
+
+    def _run_rejection_workers(self):
+        self._check_rejection_ready():
+        self.num_calls += 1
+        p_paths = []
+        for i in range(len(self.prior_paths)):
+            path = self.prior_paths.pop(0)
+            p_paths.append(path)
+        if self.posterior_path:
+            p_paths.append(str(self.posterior_path))
+        self.posterior_path = self.temp_fs.get_file_path(
+                prefix = 'posterior-{0}-{1}-{2}-'.format(self.name, 
+                        self.num_calls, i+1),
+                create = False)
+        rw = EuRejectWorker(
+                temp_fs = self.temp_fs,
+                observed_path = self.observed_path,
+                prior_paths = p_paths,
+                num_posterior_samples = self.num_posterior_samples,
+                num_standardizing_samples = 0,
+                summary_in_path = self.summary_in_path,
+                summary_out_path = None,
+                posterior_path = new_posterior_path,
+                regression_worker = None,
+                exe_path = self.exe_path,
+                keep_temps = self.keep_temps,
+                tag = self.tag)
+        rw.start()
+        if not self.keep_temps:
+            for pp in p_paths:
+                os.remove(pp)
+        assert len(self.prior_paths) == 0
+    def _run_regression_workers(self):
+        self._check_regression_ready(self)
+        post_path = os.path.join(self.output_dir,
+                '{0}-posterior-unadjusted.txt'.format(self.index))
+        # reformat posterior for div models here?
+        # create class:
+        #   takes in posterior file
+        #   summarizes div model probs and median times (can output this)
+        #   creates mapping of div models to indices
+        #   creates new posterior with model indices and does regression
+        shutil.move(self.posterior_path, post_path)
+        self.posterior_path = post_path
+
+            # regression_worker = ABCToolBoxRegressWorker(
+            #         temp_fs = self.temp_fs,
+            #         observed_path = obs_path,
+            #         posterior_path = posterior_path,
+            #         parameter_indices = sorted(parameter_indices),
+            #         exe_path = regress_path,
+            #         keep_temps = keep_temps,
+            #         num_posterior_samples = num_posterior_samples,
+            #         bandwidth = bandwidth,
+            #         num_posterior_quantiles = num_posterior_quantiles)
+
 
 class RejectionTeam(object):
     count = 0
