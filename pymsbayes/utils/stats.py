@@ -28,7 +28,6 @@ def median(samples):
         mdn = s[((n - 1) / 2)]
     return mdn
 
-
 def mode_list(samples, bin_width = None):
     """
     Return a list of modes from a list of values.
@@ -107,19 +106,16 @@ def get_summary(samples, bin_width = None):
         'mean': mean
         'n': sample_size
         'variance': variance
-        'mode': list of most common values (if `bin_width` is None or zero, the
-                samples are treated as discrete, otherwise they are treated as
-                floats and binned into categories of width `bin_width`)
         '95_hpdi': tuple of 95% highest posterior density interval
         '95_qi': tuple of 2.5% to 97.5% quantile interval
     """
     ss = SampleSummarizer()
     ss.update_samples(samples)
-    return {'mean': ss.mean,
-            'n': ss.n,
-            'variance': ss.variance,
+    return {'n': ss.n,
+            'mean': ss.mean,
             'median': median(samples),
-            'mode': mode_list(samples, bin_width),
+            'variance': ss.variance,
+            'range': (min(samples), max(samples)),
             '95_hpdi': get_hpd_interval(samples, 0.95),
             '95_qi': quantile_95(samples)}
          

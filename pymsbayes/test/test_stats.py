@@ -463,10 +463,10 @@ class GetSummaryTestCase(unittest.TestCase):
     def test_standard_normal(self):
         d = get_summary(self.samples, bin_width=0.5)
         self.assertEqual(d['n'], len(self.samples))
+        self.assertEqual(d['range'][0], min(self.samples))
+        self.assertEqual(d['range'][1], max(self.samples))
         self.assertAlmostEqual(d['mean'], 0.0, places=1)
         self.assertAlmostEqual(d['median'], 0.0, places=1)
-        for md in d['mode']:
-            self.assertAlmostEqual(md, 0.0, places=1)
         self.assertAlmostEqual(d['variance'], 1.0, places=1)
         self.assertAlmostEqual(d['95_qi'][0], -1.96, places=1)
         self.assertAlmostEqual(d['95_qi'][1], 1.96, places=1)
