@@ -20,3 +20,7 @@ class SummaryFileParsingError(PyMsBayesError):
     def __init__(self, *args, **kwargs):
         PyMsBayesError.__init__(self, *args, **kwargs)
 
+class ParameterParsingError(PyMsBayesError):
+    def __init__(self, *args, **kwargs):
+        PyMsBayesError.__init__(self, *args, **kwargs)
+
