@@ -13,6 +13,41 @@ from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
 
+def get_counts(elements):
+    keys = sorted(set(elements))
+    counts = dict(zip(keys, [0 for i in range(len(keys))]))
+    for el in elements:
+        counts[el] += 1
+    return counts
+
+def get_integer_partition(elements):
+    counts = get_counts(elements)
+    return sorted([(v, k) for k, v in counts.iteritems()],
+            reverse = True)
+
+def count_integer_partitions(samples):
+    int_parts = {}
+    counts = {}
+    num_elements = None
+    for i, elements in enumerate(samples):
+        if not num_elements:
+            num_elements = len(elements)
+        else:
+            if num_elements != len(elements):
+                raise ValueError('vector {0} has {1} elements, expecting '
+                        '{2}'.format((i + 1), len(elements), num_elements))
+        ip = get_integer_partition(elements)
+        key = ','.join([str(k) for k, v in ip])
+        if int_parts.has_key(key):
+            counts[key] += 1
+            for i in range(len(ip)):
+                int_parts[key][i][1].append(ip[i][1])
+        else:
+            counts[key] = 1
+            int_parts[key] = [(k, [v]) for k, v in ip]
+    return sorted([(v, (k, int_parts[k])) for k, v in counts.iteritems()],
+                reverse = True)
+
 def median(samples):
     """
     Return the median value from a list of samples.
@@ -68,29 +103,43 @@ def get_hpd_interval(samples, interval_prob = 0.95):
     """
     if not samples:
         raise ValueError('empty samples')
+    if interval_prob <= 0.0:
+        raise ValueError('hpd probability interval is zero')
     samples = sorted(samples)
     tail_prob = 1 - interval_prob
     n = len(samples)
-    num_exclude = int(round(n * tail_prob))
+    num_exclude = int(round((n * tail_prob) - 0.5))
+    if num_exclude < 1:
+        num_exclude = 0
     widths = []
     # sliding window to find possible interval widths
-    for i in range(num_exclude):
+    for i in range(num_exclude+1):
         lower = samples[i]
-        upper = samples[n - num_exclude + i]
+        upper = samples[(n - 1) - num_exclude + i]
         widths.append(upper - lower)
     min_width = min(widths)
     min_index = widths.index(min_width)
-    return(samples[min_index], samples[n - num_exclude + min_index])
+    return(samples[min_index], samples[(n - 1) - num_exclude + min_index])
 
 def quantile(samples, p): 
     """
     Return quantile associated with probability `p`.
+
+    Modified from code by Wai Yip Tung, licensed under PSF license and available
+    here:
+    http://code.activestate.com/recipes/511478-finding-the-percentile-of-the-values/
     """
     if not samples:
         raise ValueError('empty samples')
     s = sorted(samples)
-    i = int(round(len(s) * p)) - 1
-    return s[i]
+    k = (len(s) - 1) * p
+    f = math.floor(k)
+    c = math.ceil(k)
+    if f == c:
+        return s[int(k)]
+    d0 = s[int(f)] * (c - k)
+    d1 = s[int(c)] * (k - f)
+    return d0 + d1
 
 def quantile_95(samples):
     """
