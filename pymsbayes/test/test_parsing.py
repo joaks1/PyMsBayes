@@ -108,6 +108,8 @@ class ParseParametersTestCase(PyMsBayesTestCase):
             self.expected['psi'] = cols['PRI.Psi']
         if cols.has_key('PRI.model'):
             self.expected['model'] = cols['PRI.model']
+        if cols.has_key('PRI.div.model'):
+            self.expected['div_model'] = cols['PRI.div.model']
         tau_keys = [k for k in cols.keys() if k.startswith('PRI.t.')]
         if tau_keys:
             self.expected['taus'] = []
@@ -141,6 +143,17 @@ class ParseParametersTestCase(PyMsBayesTestCase):
         self.update_expected()
         self.write_posterior_file()
         samples = parse_parameters(self.posterior_path)
+        self.assertEqual(samples, self.expected)
+
+    def test_add_div_model_column(self):
+        div_model_path = self.get_test_path(prefix = 'posterior-div-models-')
+        div_models_to_indices = {'2': 1, '1,1': 2}
+        expected_div_model_col = ('PRI.div.model', [2, 1, 2])
+        add_div_model_column(self.posterior_path, div_model_path,
+                div_models_to_indices)
+        self.columns.insert(0, expected_div_model_col)
+        self.update_expected()
+        samples = parse_parameters(div_model_path)
         self.assertEqual(samples, self.expected)
 
 if __name__ == '__main__':

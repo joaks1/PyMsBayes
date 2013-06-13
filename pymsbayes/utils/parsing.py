@@ -4,6 +4,7 @@ import sys
 import os
 import re
 
+import pymsbayes
 from pymsbayes.fileio import process_file_arg
 from pymsbayes.utils.errors import (SummaryFileParsingError,
         ParameterParsingError)
@@ -84,6 +85,9 @@ MEAN_TAU_PATTERNS = [
 OMEGA_PATTERNS = [
         re.compile(r'\s*PRI\.omega\s*'),
         ]
+DIV_MODEL_PATTERNS = [
+        re.compile(r'\s*PRI\.div\.model\s*'),
+        ]
 
 def line_count(file_obj, ignore_headers=False):
     f, close = process_file_arg(file_obj)
@@ -107,7 +111,7 @@ def get_patterns_from_prefixes(prefixes, ignore_case=True):
             patterns.append(re.compile(pattern_str))
     return patterns
 
-def parse_header(file_obj, sep='\t'):
+def parse_header(file_obj, sep='\t', seek=True):
     file_stream, close = process_file_arg(file_obj, 'rU')
     header_line = file_stream.next()
     if not HEADER_PATTERN.match(header_line):
@@ -116,7 +120,8 @@ def parse_header(file_obj, sep='\t'):
     if close:
         file_stream.close()
     else:
-        file_stream.seek(0)
+        if seek:
+            file_stream.seek(0)
     return header
 
 def get_parameter_indices(header_list, parameter_patterns=PARAMETER_PATTERNS):
@@ -171,47 +176,49 @@ def prior_for_msreject(in_file, out_file,
         in_file.close()
     return [header[i] for i in sorted(indices)]
 
-def parse_parameters(file_obj):
-    samples = {}
+def parameter_iter(file_obj, include_line = False):
     indices = {}
     post_file, close = process_file_arg(file_obj)
-    header = parse_header(post_file)
+    header = parse_header(post_file, seek = False)
     mean_t_indices = get_indices_of_patterns(header, MEAN_TAU_PATTERNS)
     if len(mean_t_indices) > 1:
         raise ParameterParsingError('posterior file {0} has {1} mean '
                 'tau columns'.format(post_file.name, len(mean_t_indices)))
     if mean_t_indices:
-        samples['mean_tau'] = []
         indices['mean_tau'] = mean_t_indices
     omega_indices = get_indices_of_patterns(header, OMEGA_PATTERNS)
     if len(omega_indices) > 1:
         raise ParameterParsingError('posterior file {0} has {1} omega '
                 'columns'.format(post_file.name, len(omega_indices)))
     if omega_indices:
-        samples['omega'] = []
         indices['omega'] = omega_indices
     t_indices = get_indices_of_patterns(header, TAU_PATTERNS)
     if t_indices:
-        samples['taus'] = []
         indices['taus'] = t_indices
     psi_indices = get_indices_of_patterns(header, PSI_PATTERNS)
     if len(psi_indices) > 1:
         raise ParameterParsingError('posterior file {0} has {1} psi '
                 'columns'.format(post_file.name, len(psi_indices)))
     if psi_indices:
-        samples['psi'] = []
         indices['psi'] = psi_indices
     model_indices = get_indices_of_patterns(header, MODEL_PATTERNS)
     if len(model_indices) > 1:
         raise ParameterParsingError('posterior file {0} has {1} model '
                 'columns'.format(post_file.name, len(model_indices)))
     if model_indices:
-        samples['model'] = []
         indices['model'] = model_indices
-    post_file.next() # header
+    div_model_indices = get_indices_of_patterns(header, DIV_MODEL_PATTERNS)
+    if len(div_model_indices) > 1:
+        raise ParameterParsingError('posterior file {0} has {1} div model '
+                'columns'.format(post_file.name, len(div_model_indices)))
+    if div_model_indices:
+        indices['div_model'] = div_model_indices
+    samples = dict(zip(indices.keys(), [[] for i in range(len(indices))]))
     for i, line in enumerate(post_file):
         l = line.strip().split()
         if l:
+            for k in samples.iterkeys():
+                samples[k] = []
             if len(l) != len(header):
                 raise ParameterParsingError('posterior file {0} has '
                         '{1} columns at line {2}; expecting {3}'.format(
@@ -219,7 +226,7 @@ def parse_parameters(file_obj):
             for k, idx_list in indices.iteritems():
                 if k in ['mean_tau', 'omega']:
                     samples[k].extend([float(l[i]) for i in idx_list])
-                elif k in ['psi', 'model']:
+                elif k in ['psi', 'model', 'div_model']:
                     samples[k].extend([int(l[i]) for i in idx_list])
                 elif k == 'taus':
                     samples[k].append([float(l[i]) for i in idx_list])
@@ -227,9 +234,43 @@ def parse_parameters(file_obj):
                     raise ParameterParsingError('unexpected key {0!r}; '
                             'posterior file {1}, line {2}'.format(
                                 k, post_file.name, i+2))
+            if include_line:
+                yield samples, l
+            else:
+                yield samples
     if close:
         post_file.close()
+
+def parse_parameters(file_obj):
+    samples = None
+    for s in parameter_iter(file_obj):
+        if not samples:
+            samples = dict(zip(s.keys(), [[] for i in range(len(s))]))
+        for k, v in s.iteritems():
+            samples[k].extend(v)
     return samples
+
+def add_div_model_column(in_file, out_file, div_models_to_indices):
+    header = parse_header(in_file)
+    if get_indices_of_patterns(header, DIV_MODEL_PATTERNS) != []:
+        raise ParameterParsingError('posterior file {0} already has a '
+                'divergence model column'.format(
+                getattr(file_obj, 'name', file_obj)))
+    header.insert(0, 'PRI.div.model')
+    out, close = process_file_arg(out_file, 'w')
+    out.write('{0}\n'.format('\t'.join(header)))
+    other_index = max(div_models_to_indices.itervalues()) + 1
+    for parameters, line in parameter_iter(in_file, include_line = True):
+        if not parameters.has_key('taus'):
+            raise ParameterParsingError('posterior file {0} does not contain '
+                    'divergence time vector'.format(
+                    getattr(file_obj, 'name', file_obj)))
+        ip = pymsbayes.utils.stats.IntegerPartition(parameters['taus'][0])
+        idx = div_models_to_indices.get(ip.key, other_index)
+        line.insert(0, str(idx))
+        out.write('{0}\n'.format('\t'.join(line)))
+    if close:
+        out.close()
 
 ##############################################################################
 ## ABACUS output parsers
