@@ -20,34 +20,6 @@ def get_counts(elements):
         counts[el] += 1
     return counts
 
-def get_integer_partition(elements):
-    counts = get_counts(elements)
-    return sorted([(v, k) for k, v in counts.iteritems()],
-            reverse = True)
-
-def count_integer_partitions(samples):
-    int_parts = {}
-    counts = {}
-    num_elements = None
-    for i, elements in enumerate(samples):
-        if not num_elements:
-            num_elements = len(elements)
-        else:
-            if num_elements != len(elements):
-                raise ValueError('vector {0} has {1} elements, expecting '
-                        '{2}'.format((i + 1), len(elements), num_elements))
-        ip = get_integer_partition(elements)
-        key = ','.join([str(k) for k, v in ip])
-        if int_parts.has_key(key):
-            counts[key] += 1
-            for i in range(len(ip)):
-                int_parts[key][i][1].append(ip[i][1])
-        else:
-            counts[key] = 1
-            int_parts[key] = [(k, [v]) for k, v in ip]
-    return sorted([(v, (k, int_parts[k])) for k, v in counts.iteritems()],
-                reverse = True)
-
 def median(samples):
     """
     Return the median value from a list of samples.
@@ -152,11 +124,13 @@ def get_summary(samples, bin_width = None):
     Return a dict of summaries calculated from the samples.
 
     The dict has the following items:
-        'mean': mean
         'n': sample_size
+        'mean': mean
+        'median': median
         'variance': variance
-        '95_hpdi': tuple of 95% highest posterior density interval
-        '95_qi': tuple of 2.5% to 97.5% quantile interval
+        'range': range
+        'hpdi_95': tuple of 95% highest posterior density interval
+        'qi_95': tuple of 2.5% to 97.5% quantile interval
     """
     ss = SampleSummarizer()
     ss.update_samples(samples)
@@ -165,8 +139,8 @@ def get_summary(samples, bin_width = None):
             'median': median(samples),
             'variance': ss.variance,
             'range': (min(samples), max(samples)),
-            '95_hpdi': get_hpd_interval(samples, 0.95),
-            '95_qi': quantile_95(samples)}
+            'hpdi_95': get_hpd_interval(samples, 0.95),
+            'qi_95': quantile_95(samples)}
          
 
 class SampleSummarizer(object):
@@ -334,6 +308,145 @@ class SampleSummaryCollection(object):
         out.write('{0}\n'.format('\t'.join(
                 ['{0}'.format(self.sample_sums[
                         k].n) for k in self.keys])))
+        if close:
+            out.close()
+
+class IntegerPartition(object):
+    def __init__(self, element_vector = None):
+        self._initialized = False
+        self._items = []
+        self.integer_partition = []
+        self.key = None
+        self.n = 0
+        if element_vector:
+            self._initialize(element_vector)
+
+    def iteritems(self):
+        return ((k, v) for k, v in self._items)
+
+    def iter_item_summaries(self):
+        return ((k, get_summary(v)) for k, v in self._items)
+
+    def to_string(self):
+        elements = []
+        for k, v in self.iter_item_summaries():
+            int_age = ':'.join([str(k), str(v['median'])])
+            comments = [('age_median', v['median']),
+                        ('age_mean', v['mean']),
+                        ('age_n', v['n']),
+                        ('age_range', '{{{0},{1}}}'.format(*v['range'])),
+                        ('age_hpdi_95', '{{{0},{1}}}'.format(*v['hpdi_95'])),
+                        ('age_qi_95', '{{{0},{1}}}'.format(*v['qi_95']))]
+            comment_str = ','.join(['='.join([x, str(y)]) for x, y in comments])
+            elements.append('{0}[&{1}]'.format(int_age, comment_str))
+        return ','.join(elements)
+
+    def __str__(self):
+        return self.to_string()
+
+    def _initialize(self, element_vector):
+        if self._initialized:
+            raise Exception('cannot re-initialize IntegerPartition instance')
+        if isinstance(element_vector, IntegerPartition):
+            self._items = copy.deepcopy(element_vector._items)
+            self.integer_partition = copy.deepcopy(
+                    element_vector.integer_partition)
+            self.key = copy.deepcopy(element_vector.key)
+            self.n = element_vector.n
+        else:
+            counts = get_counts(element_vector)
+            self._items = sorted([(v, [k]) for k, v in counts.iteritems()],
+                    reverse = True)
+            self.integer_partition = [k for k, v in self._items]
+            self.key = ','.join([str(x) for x in self.integer_partition])
+            self.n = 1
+        self._initialized = True
+    
+    def update(self, integer_partition):
+        if not self._initialized:
+            self._initialize(integer_partition)
+            return
+        if isinstance(integer_partition, IntegerPartition):
+            ip = integer_partition
+        else:
+            ip = IntegerPartition(integer_partition)
+        if ip.key != self.key:
+            raise ValueError('integer partition passed to update method '
+                    '({0}) does not match partition of current instance '
+                    '({1})'.format(ip.key, self.key))
+        for i in range(len(ip._items)):
+            assert ip.n == len(ip._items[i][1])
+            self._items[i][1].extend(ip._items[i][1])
+        self.n += ip.n
+
+class IntegerPartitionCollection(object):
+    def __init__(self, integer_partitions = None):
+        self.integer_partitions = {}
+        self.n = 0
+        if integer_partitions:
+            self.add_iter(integer_partitions)
+
+    def add(self, integer_partition):
+        if isinstance(integer_partition, IntegerPartition):
+            ip = integer_partition
+        else:
+            ip = IntegerPartition(integer_partition)
+        if self.integer_partitions.has_key(ip.key):
+            self.integer_partitions[ip.key].update(ip)
+        else:
+            self.integer_partitions[ip.key] = ip
+        self.n += ip.n
+
+    def add_iter(self, integer_partitions):
+        for ip in integer_partitions:
+            self.update(ip)
+
+    def keys(self):
+        return [k for k, v in self.iteritems()]
+
+    def iterkeys(self):
+        return (k for k in self.keys())
+
+    def values(self):
+        return sorted(self.integer_partitions.values(),
+                key = lambda x : x.n,
+                reverse = True)
+
+    def itervalues(self):
+        return (v for v in self.values())
+
+    def items(self):
+        return sorted(self.integer_partitions.iteritems(),
+                key = lambda x : x[1].n,
+                reverse = True)
+
+    def iteritems(self):
+        return ((k, v) for k, v in self.items())
+
+    def has_key(self, k):
+        return self.integer_partitions.has_key(k)
+
+    def get(self, k, d = None):
+        return self.integer_partitions.get(k, d)
+
+    def get_count(self, key):
+        if self.has_key(key):
+            return self.get(key).n
+        else:
+            return 0
+
+    def get_frequency(self, key):
+        return self.get_count(key) / float(self.n)
+
+    def write_summary(self, file_obj):
+        out, close = process_file_arg(file_obj)
+        out.write('count\tfrequency\tdivergence_model\tdiv_model_with_age_info\n')
+        for k, v in self.iteritems():
+            out.write('{0}\t{1}\t{2}\t{3}\n'.format(
+                    v.n,
+                    self.get_frequency(v.key),
+                    v.key,
+                    v.to_string()))
         if close:
             out.close()
 
