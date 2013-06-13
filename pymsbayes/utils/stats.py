@@ -394,12 +394,12 @@ class IntegerPartitionCollection(object):
         if self.integer_partitions.has_key(ip.key):
             self.integer_partitions[ip.key].update(ip)
         else:
-            self.integer_partitions[ip.key] = ip
+            self.integer_partitions[ip.key] = copy.deepcopy(ip)
         self.n += ip.n
 
     def add_iter(self, integer_partitions):
         for ip in integer_partitions:
-            self.update(ip)
+            self.add(ip)
 
     def keys(self):
         return [k for k, v in self.iteritems()]

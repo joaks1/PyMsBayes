@@ -448,3 +448,13 @@ class PyMsBayesTestCase(unittest.TestCase):
         self.assertEqual(d1.mean, d2.mean)
         self.assertEqual(d1.variance, d2.variance)
 
+    def assertSameIntegerPartitions(self, integer_partitions):
+        ips = list(integer_partitions)
+        ip1 = ips.pop(0)
+        for ip2 in ips:
+            self.assertEqual(ip1._initialized, ip2._initialized)
+            self.assertEqual(ip1.n, ip2.n)
+            self.assertEqual(ip1.key, ip2.key)
+            self.assertEqual(ip1.integer_partition, ip2.integer_partition)
+            self.assertEqual(ip1._items, ip2._items)
+
