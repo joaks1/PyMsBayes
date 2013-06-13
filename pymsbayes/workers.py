@@ -15,7 +15,8 @@ from pymsbayes.utils import get_tool_path
 from pymsbayes.utils.functions import (get_random_int, get_indices_of_patterns,
         reduce_columns, is_dir)
 from pymsbayes.utils.errors import WorkerExecutionError, PriorMergeError
-from pymsbayes.utils.stats import SampleSummary, SampleSummaryCollection
+from pymsbayes.utils.stats import (SampleSummary, SampleSummaryCollection,
+        IntegerPartitionCollection)
 from pymsbayes.utils.parsing import *
 from pymsbayes.utils.messaging import get_logger
 
@@ -600,11 +601,12 @@ class RegressionWorker(Worker):
         if not self.continuous_parameter_indices:
             self.continuous_parameter_indices = get_parameter_indices(
                     self.header,
-                    parameter_patterns=(MEAN_TAU_PATTERNS+OMEGA_PATTERNS))
+                    parameter_patterns=(MEAN_TAU_PATTERNS + OMEGA_PATTERNS))
         if not self.discrete_parameter_indices:
             self.discrete_parameter_indices = get_parameter_indices(
                     self.header,
-                    parameter_patterns=(MODEL_PATTERNS+PSI_PATTERNS))
+                    parameter_patterns=(MODEL_PATTERNS + PSI_PATTERNS + \
+                            DIV_MODEL_PATTERNS))
         self._update_cmd()
 
     def _update_cmd(self):
@@ -933,7 +935,8 @@ class ABCToolBoxRegressWorker(Worker):
                     parameter_patterns=(MEAN_TAU_PATTERNS + \
                             OMEGA_PATTERNS + \
                             MODEL_PATTERNS + \
-                            PSI_PATTERNS)))
+                            PSI_PATTERNS + \
+                            DIV_MODEL_PATTERNS)))
         if len(set.intersection(set(potential_stat_indices),
                 set(self.parameter_indices))) > 0:
             raise ValueError('parameter indices are not valid. '
@@ -976,17 +979,97 @@ class PosteriorWorker(object):
     count = 0
     def __init__(self,
             temp_fs,
+            observed_path,
             posterior_path,
+            posterior_out_path = None,
+            output_prefix = None,
+            keep_temps = False,
+            abctoolbox_exe_path = None,
+            abctoolbox_summary_path = None,
+            abctoolbox_adjusted_path = None,
+            abctoolbox_stdout_path = None,
+            abctoolbox_stderr_path = None,
+            abctoolbox_bandwidth = None,
+            abctoolbox_num_posterior_quantiles = None,
+            num_top_models = 10,
             tag = ''):
         self.__class__.count += 1
         self.name = self.__class__.__name__ + '-' + str(self.count)
         self.temp_fs = temp_fs
-        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
+        self.temp_output_dir = self.temp_fs.create_subdir(
+                prefix = self.name + '-')
+        self.temp_posterior_path = self.temp_fs.get_file_path(
+                parent = self.temp_output_dir,
+                prefix = 'temp-posterior-')
         self.posterior_path = expand_path(posterior_path)
-        self.header = parse_header(self.posterior_path)
+        self.observed_path = expand_path(observed_path)
+        if not posterior_out_path:
+            posterior_out_path = self.posterior_path
+        self.posterior_out_path = expand_path(posterior_out_path)
+        if not output_prefix:
+            output_prefix = self.posterior_out_path + '-'
+        self.output_prefix = output_prefix
+        self.unadjusted_div_model_summary_path = self.output_prefix + \
+                'unadjusted-summary.txt'
         self.finished = False
         self.tag = str(tag)
+        self.top_div_models_to_indices = {}
+        self.num_top_models = int(num_top_models)
+        self.num_posterior_samples = None
+        self.regression_worker = None
+        self.keep_temps = bool(keep_temps)
+        self.abctoolbox_exe_path = abctoolbox_exe_path
+        self.abctoolbox_summary_path = abctoolbox_summary_path
+        self.abctoolbox_adjusted_path = abctoolbox_adjusted_path
+        self.abctoolbox_stdout_path = abctoolbox_stdout_path
+        self.abctoolbox_stderr_path = abctoolbox_stderr_path
+        self.abctoolbox_bandwidth = abctoolbox_bandwidth
+        self.abctoolbox_num_posterior_quantiles = \
+                abctoolbox_num_posterior_quantiles
 
-    def summarize_posterior_sample(self):
+    def _process_div_models_from_posterior_sample(self):
         post = parse_parameters(self.posterior_path)
+        if not post.has_key('taus'):
+            raise Exception('posterior sample in {0} does not contain a '
+                    'divergence time vector'.format(self.posterior_path))
+        div_models = IntegerPartitionCollection(post['taus'])
+        self.num_posterior_samples = div_models.n
+        div_models.write(self.unadjusted_div_model_summary_path)
+        self._map_top_div_models(div_models)
+        add_div_model_column(self.posterior_path, self.temp_posterior_path,
+                self.top_div_models_to_indices)
+        shutil.move(self.temp_posterior_path, self.posterior_out_path)
+
+    def _map_top_div_models(self, div_models):
+        for i, k in enumerate(div_models.iterkeys()):
+            if i >= self.num_top_models:
+                break
+            self.top_div_models_to_indices[k] = i + 1
+
+    def _prep_regression_worker(self):
+        self.regression_worker = ABCToolBoxRegressWorker(
+                temp_fs = self.temp_fs,
+                observed_path = self.observed_path,
+                posterior_path = self.posterior_out_path,
+                parameter_indices = None,
+                summary_path = self.abctoolbox_summary_path,
+                adjusted_path = self.abctoolbox_adjusted_path,
+                exe_path = self.abctoolbox_exe_path,
+                stdout_path = self.abctoolbox_stdout_path,
+                stderr_path = self.abctoolbox_stderr_path,
+                keep_temps = self.keep_temps,
+                bandwidth = self.abctoolbox_bandwidth,
+                num_posterior_samples = self.num_posterior_samples,
+                num_posterior_quantiles = \
+                        self.abctoolbox_num_posterior_quantiles)
+
+    def _post_process(self):
+        if not self.keep_temps:
+            self.temp_fs.remove_dir(self.temp_output_dir)
+
+    def start(self):
+        self._process_div_models_from_posterior_sample()
+        self._prep_regression_worker()
+        self.regression_worker.start()
+        self._post_process()
 
