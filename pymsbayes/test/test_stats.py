@@ -468,11 +468,142 @@ class GetSummaryTestCase(unittest.TestCase):
         self.assertAlmostEqual(d['mean'], 0.0, places=1)
         self.assertAlmostEqual(d['median'], 0.0, places=1)
         self.assertAlmostEqual(d['variance'], 1.0, places=1)
-        self.assertAlmostEqual(d['95_qi'][0], -1.96, places=1)
-        self.assertAlmostEqual(d['95_qi'][1], 1.96, places=1)
-        self.assertAlmostEqual(d['95_hpdi'][0], -1.96, places=1)
-        self.assertAlmostEqual(d['95_hpdi'][1], 1.96, places=1)
+        self.assertAlmostEqual(d['qi_95'][0], -1.96, places=1)
+        self.assertAlmostEqual(d['qi_95'][1], 1.96, places=1)
+        self.assertAlmostEqual(d['hpdi_95'][0], -1.96, places=1)
+        self.assertAlmostEqual(d['hpdi_95'][1], 1.96, places=1)
         
+class IntegerPartitionTestCase(unittest.TestCase):
+
+    def test_default_init_and_update(self):
+        ip = IntegerPartition()
+        self.assertFalse(ip._initialized)
+        self.assertEqual(ip.n, 0)
+        ip.update([0.1, 0.2, 0.2, 0.1, 0.2, 0.3])
+        self.assertTrue(ip._initialized)
+        self.assertEqual(ip.n, 1)
+        self.assertEqual(ip.key, '3,2,1')
+        self.assertEqual(ip.integer_partition, [3,2,1])
+        self.assertEqual(ip._items, [(3, [0.2]), (2, [0.1]), (1, [0.3])])
+        self.assertEqual(list(ip.iteritems()),
+                [(3, [0.2]), (2, [0.1]), (1, [0.3])])
+        self.assertEqual(list(ip.iter_item_summaries()),
+                [(3, get_summary([0.2])),
+                 (2, get_summary([0.1])),
+                 (1, get_summary([0.3]))])
+        self.assertEqual(ip.to_string(),
+                ('3:0.2[&age_median=0.2,age_mean=0.2,age_n=1,'
+                 'age_range={0.2,0.2},age_hpdi_95={0.2,0.2},'
+                 'age_qi_95={0.2,0.2}],'
+                 '2:0.1[&age_median=0.1,age_mean=0.1,age_n=1,'
+                 'age_range={0.1,0.1},age_hpdi_95={0.1,0.1},'
+                 'age_qi_95={0.1,0.1}],'
+                 '1:0.3[&age_median=0.3,age_mean=0.3,age_n=1,'
+                 'age_range={0.3,0.3},age_hpdi_95={0.3,0.3},'
+                 'age_qi_95={0.3,0.3}]'))
+        self.assertRaises(Exception, ip._initialize,
+                [0.1, 0.2, 0.2, 0.1, 0.2, 0.3])
+
+    def test_init_with_element_vector(self):
+        ip = IntegerPartition([0.1, 0.2, 0.2, 0.1, 0.2, 0.3, 0.2])
+        self.assertTrue(ip._initialized)
+        self.assertEqual(ip.n, 1)
+        self.assertEqual(ip.key, '4,2,1')
+        self.assertEqual(ip.integer_partition, [4,2,1])
+        self.assertEqual(ip._items, [(4, [0.2]), (2, [0.1]), (1, [0.3])])
+        self.assertEqual(list(ip.iteritems()),
+                [(4, [0.2]), (2, [0.1]), (1, [0.3])])
+        self.assertEqual(list(ip.iter_item_summaries()),
+                [(4, get_summary([0.2])),
+                 (2, get_summary([0.1])),
+                 (1, get_summary([0.3]))])
+        self.assertEqual(ip.to_string(),
+                ('4:0.2[&age_median=0.2,age_mean=0.2,age_n=1,'
+                 'age_range={0.2,0.2},age_hpdi_95={0.2,0.2},'
+                 'age_qi_95={0.2,0.2}],'
+                 '2:0.1[&age_median=0.1,age_mean=0.1,age_n=1,'
+                 'age_range={0.1,0.1},age_hpdi_95={0.1,0.1},'
+                 'age_qi_95={0.1,0.1}],'
+                 '1:0.3[&age_median=0.3,age_mean=0.3,age_n=1,'
+                 'age_range={0.3,0.3},age_hpdi_95={0.3,0.3},'
+                 'age_qi_95={0.3,0.3}]'))
+        self.assertRaises(Exception, ip._initialize,
+                [0.1, 0.2, 0.2, 0.1, 0.2, 0.3])
+
+    def test_update_with_element_vectors(self):
+        ip = IntegerPartition([0.1, 0.2, 0.2, 0.1, 0.2, 0.3, 0.2])
+        self.assertEqual(ip.n, 1)
+        ip.update([0.5, 0.4, 0.4, 0.1, 0.1, 0.1, 0.1])
+        self.assertEqual(ip.n, 2)
+        self.assertEqual(ip.key, '4,2,1')
+        self.assertEqual(ip.integer_partition, [4,2,1])
+        self.assertEqual(ip._items,
+                [(4, [0.2, 0.1]), (2, [0.1, 0.4]), (1, [0.3, 0.5])])
+        self.assertEqual(list(ip.iteritems()),
+                [(4, [0.2, 0.1]), (2, [0.1, 0.4]), (1, [0.3, 0.5])])
+        self.assertEqual(list(ip.iter_item_summaries()),
+                [(4, get_summary([0.2, 0.1])),
+                 (2, get_summary([0.1, 0.4])),
+                 (1, get_summary([0.3, 0.5]))])
+        self.assertEqual(ip.to_string(),
+                ('4:0.15[&age_median=0.15,age_mean=0.15,age_n=2,'
+                 'age_range={0.1,0.2},age_hpdi_95={0.1,0.2},'
+                 'age_qi_95={0.1025,0.1975}],'
+                 '2:0.25[&age_median=0.25,age_mean=0.25,age_n=2,'
+                 'age_range={0.1,0.4},age_hpdi_95={0.1,0.4},'
+                 'age_qi_95={0.1075,0.3925}],'
+                 '1:0.4[&age_median=0.4,age_mean=0.4,age_n=2,'
+                 'age_range={0.3,0.5},age_hpdi_95={0.3,0.5},'
+                 'age_qi_95={0.305,0.495}]'))
+        self.assertRaises(ValueError, ip.update,
+                [0.4, 0.4, 0.4, 0.1, 0.1, 0.1, 0.1])
+
+    def test_update_with_instance(self):
+        ip = IntegerPartition([0.1, 0.2, 0.2, 0.1, 0.2, 0.3, 0.2])
+        self.assertEqual(ip.n, 1)
+        ip2 = IntegerPartition([0.5, 0.4, 0.4, 0.1, 0.1, 0.1, 0.1])
+        ip.update(ip2)
+        self.assertEqual(ip.n, 2)
+        self.assertEqual(ip.key, '4,2,1')
+        self.assertEqual(ip.integer_partition, [4,2,1])
+        self.assertEqual(ip._items,
+                [(4, [0.2, 0.1]), (2, [0.1, 0.4]), (1, [0.3, 0.5])])
+        self.assertEqual(list(ip.iteritems()),
+                [(4, [0.2, 0.1]), (2, [0.1, 0.4]), (1, [0.3, 0.5])])
+        self.assertEqual(list(ip.iter_item_summaries()),
+                [(4, get_summary([0.2, 0.1])),
+                 (2, get_summary([0.1, 0.4])),
+                 (1, get_summary([0.3, 0.5]))])
+        self.assertEqual(ip.to_string(),
+                ('4:0.15[&age_median=0.15,age_mean=0.15,age_n=2,'
+                 'age_range={0.1,0.2},age_hpdi_95={0.1,0.2},'
+                 'age_qi_95={0.1025,0.1975}],'
+                 '2:0.25[&age_median=0.25,age_mean=0.25,age_n=2,'
+                 'age_range={0.1,0.4},age_hpdi_95={0.1,0.4},'
+                 'age_qi_95={0.1075,0.3925}],'
+                 '1:0.4[&age_median=0.4,age_mean=0.4,age_n=2,'
+                 'age_range={0.3,0.5},age_hpdi_95={0.3,0.5},'
+                 'age_qi_95={0.305,0.495}]'))
+        ip3 = IntegerPartition([0.4, 0.4, 0.4, 0.1, 0.1, 0.1, 0.1])
+        self.assertRaises(ValueError, ip.update, ip3)
+
+class IntegerPartitionCollectionTestCase(unittest.TestCase):
+
+    def test_default_init_and_add_element_vector(self):
+        ipc = IntegerPartitionCollection()
+        self.assertEqual(ipc.n, 0)
+        self.assertEqual(ipc.integer_partitions, {})
+        ipc.add([0.5, 0.4, 0.4, 0.1, 0.1, 0.1, 0.1])
+        self.assertEqual(ipc.n, 1)
+        self.assertEqual(ipc.keys(), ['4,2,1'])
+        self.assertEqual(list(ipc.iterkeys()), ['4,2,1'])
+        self.assertIsInstance(ipc.get('4,2,1'), IntegerPartition)
+        self.assertEqual(ipc.get_count('4,2,1'), 1)
+        self.assertEqual(ipc.get_frequency('4,2,1'), 1.0)
+        s = StringIO()
+        ipc.write_summary(s)
+        _LOG.warning('{0}\n'.format(s.getvalue()))
+
 
 if __name__ == '__main__':
     unittest.main()
