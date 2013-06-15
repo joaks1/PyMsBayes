@@ -991,7 +991,7 @@ class PosteriorWorker(object):
             abctoolbox_stderr_path = None,
             abctoolbox_bandwidth = None,
             abctoolbox_num_posterior_quantiles = None,
-            num_top_models = 10,
+            num_top_models = None,
             tag = ''):
         self.__class__.count += 1
         self.name = self.__class__.__name__ + '-' + str(self.count)
@@ -1014,7 +1014,7 @@ class PosteriorWorker(object):
         self.finished = False
         self.tag = str(tag)
         self.top_div_models_to_indices = {}
-        self.num_top_models = int(num_top_models)
+        self.num_top_models = num_top_models
         self.num_posterior_samples = None
         self.regression_worker = None
         self.keep_temps = bool(keep_temps)
@@ -1034,6 +1034,8 @@ class PosteriorWorker(object):
                     'divergence time vector'.format(self.posterior_path))
         div_models = IntegerPartitionCollection(post['taus'])
         self.num_posterior_samples = div_models.n
+        if not self.num_top_models:
+            self.num_top_models = len(div_models.keys())
         div_models.write(self.unadjusted_div_model_summary_path)
         self._map_top_div_models(div_models)
         add_div_model_column(self.posterior_path, self.temp_posterior_path,
