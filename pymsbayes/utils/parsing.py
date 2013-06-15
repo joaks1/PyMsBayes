@@ -176,6 +176,40 @@ def prior_for_msreject(in_file, out_file,
         in_file.close()
     return [header[i] for i in sorted(indices)]
 
+def parameter_density_iter(parameter_density_file,
+        parameter_patterns = DIV_MODEL_PATTERNS + MODEL_PATTERNS + \
+                PSI_PATTERNS + MEAN_TAU_PATTERNS + OMEGA_PATTERNS):
+    dens_file, close = process_file_arg(parameter_density_file)
+    header = parse_header(dens_file, seek = False)
+    parameter_indices = get_indices_of_patterns(header, parameter_patterns)
+    indices_to_heads = dict(zip(parameter_indices,
+            [header[i] for i in parameter_indices]))
+    heads_to_dens_tups = dict(zip([header[i] for i in parameter_indices],
+            [None for i in range(len(parameter_indices))]))
+    if not len(parameter_indices) == len(set(indices_to_heads.itervalues())):
+        raise ParameterParsingError('some parameters were found in multiple '
+                'columns in density file {0!r}'.format(dens_file.name))
+    for i, line in enumerate(dens_file):
+        l = line.strip().split()
+        if l:
+            for idx in parameter_indices:
+                heads_to_dens_tups[indices_to_heads[idx]] = (float(l[idx]),
+                        float(l[idx + 1]))
+            yield heads_to_dens_tups
+    if close:
+        dens_file.close()
+
+def parse_parameter_density_file(parameter_density_file,
+        parameter_patterns = DIV_MODEL_PATTERNS + MODEL_PATTERNS + \
+                PSI_PATTERNS + MEAN_TAU_PATTERNS + OMEGA_PATTERNS):
+    val_dens_tups = None
+    for pd in parameter_density_iter(parameter_density_file):
+        if not val_dens_tups:
+            val_dens_tups = dict(zip(pd.keys(), [[] for i in range(len(pd))]))
+        for k, vd_tup in pd.iteritems():
+            val_dens_tups[k].append(vd_tup)
+    return val_dens_tups
+
 def parameter_iter(file_obj, include_line = False):
     indices = {}
     post_file, close = process_file_arg(file_obj)
@@ -213,23 +247,21 @@ def parameter_iter(file_obj, include_line = False):
                 'columns'.format(post_file.name, len(div_model_indices)))
     if div_model_indices:
         indices['div_model'] = div_model_indices
-    samples = dict(zip(indices.keys(), [[] for i in range(len(indices))]))
+    samples = dict(zip(indices.keys(), [None for i in range(len(indices))]))
     for i, line in enumerate(post_file):
         l = line.strip().split()
         if l:
-            for k in samples.iterkeys():
-                samples[k] = []
             if len(l) != len(header):
                 raise ParameterParsingError('posterior file {0} has '
                         '{1} columns at line {2}; expecting {3}'.format(
                                 post_file.name, len(l), i + 2, len(header)))
             for k, idx_list in indices.iteritems():
                 if k in ['mean_tau', 'omega']:
-                    samples[k].extend([float(l[i]) for i in idx_list])
+                    samples[k] = [float(l[i]) for i in idx_list]
                 elif k in ['psi', 'model', 'div_model']:
-                    samples[k].extend([int(l[i]) for i in idx_list])
+                    samples[k] = [int(l[i]) for i in idx_list]
                 elif k == 'taus':
-                    samples[k].append([float(l[i]) for i in idx_list])
+                    samples[k] = [[float(l[i]) for i in idx_list]]
                 else:
                     raise ParameterParsingError('unexpected key {0!r}; '
                             'posterior file {1}, line {2}'.format(

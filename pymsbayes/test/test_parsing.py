@@ -5,6 +5,7 @@ import os
 import sys
 
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
+from pymsbayes.test.support import package_paths
 from pymsbayes.utils.parsing import *
 from pymsbayes.utils.errors import *
 from pymsbayes.utils.messaging import get_logger
@@ -155,6 +156,50 @@ class ParseParametersTestCase(PyMsBayesTestCase):
         self.update_expected()
         samples = parse_parameters(div_model_path)
         self.assertEqual(samples, self.expected)
+
+class ParameterDensityIterTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.pdf_path = package_paths.data_path(
+                'abctoolbox_posterior_density_file.txt')
+
+    def test_density_iter(self):
+        sums = None
+        for i, pd in enumerate(parameter_density_iter(self.pdf_path)):
+            if not sums:
+                sums = dict(zip([k for k in pd.iterkeys()],
+                        [[0.0, 0.0] for k in pd.iterkeys()]))
+            for k, val_dens_tup in pd.iteritems():
+                sums[k][0] += val_dens_tup[0]
+                sums[k][1] += val_dens_tup[1]
+        self.assertEqual(i + 1, 10000)
+        self.assertAlmostEqual(sums['PRI.Psi'][0], 15000.0000299999)
+        self.assertAlmostEqual(sums['PRI.Psi'][1], 10012.60148833639)
+        self.assertAlmostEqual(sums['PRI.E.t'][0], 1224.374986974999)
+        self.assertAlmostEqual(sums['PRI.E.t'][1], 40869.46144650221)
+        self.assertAlmostEqual(sums['PRI.omega'][0], 107.598966652539)
+        self.assertAlmostEqual(sums['PRI.omega'][1], 465232.29790955799)
+
+class ParseParameterDensityFileTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.pdf_path = package_paths.data_path(
+                'abctoolbox_posterior_density_file.txt')
+
+    def test_parse_parameter_density_file(self):
+        pd = parse_parameter_density_file(self.pdf_path)
+        sums = dict(zip([k for k in pd.iterkeys()],
+                        [[0.0, 0.0] for k in pd.iterkeys()]))
+        for k, val_dens_tups in pd.iteritems():
+            self.assertEqual(len(val_dens_tups), 10000)
+            sums[k][0] += sum([x for x, y in val_dens_tups])
+            sums[k][1] += sum([y for x, y in val_dens_tups])
+        self.assertAlmostEqual(sums['PRI.Psi'][0], 15000.0000299999)
+        self.assertAlmostEqual(sums['PRI.Psi'][1], 10012.60148833639)
+        self.assertAlmostEqual(sums['PRI.E.t'][0], 1224.374986974999)
+        self.assertAlmostEqual(sums['PRI.E.t'][1], 40869.46144650221)
+        self.assertAlmostEqual(sums['PRI.omega'][0], 107.598966652539)
+        self.assertAlmostEqual(sums['PRI.omega'][1], 465232.29790955799)
 
 if __name__ == '__main__':
     unittest.main()
