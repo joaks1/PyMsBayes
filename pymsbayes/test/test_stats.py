@@ -17,8 +17,8 @@ _LOG = get_logger(__name__)
 class SampleSummarizerTestCase(PyMsBayesTestCase):
 
     def test_init(self):
-        ss = SampleSummarizer('test')
-        self.assertEqual(ss.name, 'test')
+        ss = SampleSummarizer(tag='test')
+        self.assertEqual(ss.tag, 'test')
         self.assertEqual(ss.minimum, None)
         self.assertEqual(ss.maximum, None)
         self.assertEqual(ss.mean, None)
@@ -27,9 +27,9 @@ class SampleSummarizerTestCase(PyMsBayesTestCase):
         self.assertEqual(ss.pop_variance, None)
 
     def test_add_one_sample(self):
-        ss = SampleSummarizer('test')
+        ss = SampleSummarizer(tag='test')
         ss.add_sample(1)
-        self.assertEqual(ss.name, 'test')
+        self.assertEqual(ss.tag, 'test')
         self.assertEqual(ss.minimum, 1)
         self.assertEqual(ss.maximum, 1)
         self.assertApproxEqual(ss.mean, 1.0, 1e-9)
@@ -37,9 +37,9 @@ class SampleSummarizerTestCase(PyMsBayesTestCase):
         self.assertEqual(ss.std_deviation, float('inf'))
         self.assertEqual(ss.pop_variance, 0)
 
-        ss = SampleSummarizer('test')
+        ss = SampleSummarizer(tag='test')
         ss.add_sample(3.45)
-        self.assertEqual(ss.name, 'test')
+        self.assertEqual(ss.tag, 'test')
         self.assertEqual(ss.minimum, 3.45)
         self.assertEqual(ss.maximum, 3.45)
         self.assertApproxEqual(ss.mean, 3.45, 1e-9)
@@ -48,9 +48,18 @@ class SampleSummarizerTestCase(PyMsBayesTestCase):
         self.assertEqual(ss.pop_variance, 0)
 
     def test_update_samples(self):
-        ss = SampleSummarizer('test')
+        ss = SampleSummarizer(tag='test')
         ss.update_samples([1.0, 2.0, 3.0])
-        self.assertEqual(ss.name, 'test')
+        self.assertEqual(ss.tag, 'test')
+        self.assertEqual(ss.minimum, 1.0)
+        self.assertEqual(ss.maximum, 3.0)
+        self.assertApproxEqual(ss.mean, 2.0, 1e-9)
+        self.assertApproxEqual(ss.variance, 1.0, 1e-9)
+        self.assertEqual(ss.std_deviation, math.sqrt(1.0), 1e-9)
+        self.assertApproxEqual(ss.pop_variance, 2/float(3), 1e-9)
+
+    def test_init_with_samples(self):
+        ss = SampleSummarizer([1.0, 2.0, 3.0])
         self.assertEqual(ss.minimum, 1.0)
         self.assertEqual(ss.maximum, 3.0)
         self.assertApproxEqual(ss.mean, 2.0, 1e-9)
@@ -404,6 +413,10 @@ class ModeListTestCase(unittest.TestCase):
         samples = [1,2,2,3,4,5]
         md = mode_list(samples)
         self.assertEqual(md, [2])
+        md = mode_list(samples, bin_width=None)
+        self.assertEqual(md, [2])
+        md = mode_list(samples, bin_width='a')
+        self.assertEqual(md, [2])
 
         samples = [1,2,2,3,4,5,5]
         md = mode_list(samples)
@@ -416,13 +429,15 @@ class ModeListTestCase(unittest.TestCase):
 
     def test_floats_no_binning(self):
         samples = [1.1,2.1,2.1,3.1,4.1,5.1]
-        md = mode_list(samples)
+        md = mode_list(samples, bin_width=None)
         self.assertEqual(md, [2.1])
+        md = mode_list(samples, bin_width='auto')
+        self.assertNotEqual(md, [2.1])
 
     def test_floats(self):
         samples = [1.111, 1.112, 1.115, 1.16, 1.121]
-        md = mode_list(samples, bin_width = 0.01)
-        self.assertEqual(sorted(md), sorted([1.11, 1.12]))
+        md = mode_list(samples, bin_width = 0.01, zero_value = 'b')
+        self.assertEqual(sorted(md), sorted([(1.11, 1.12)]))
 
 class IntervalTestCase(unittest.TestCase):
     def setUp(self):
@@ -462,12 +477,15 @@ class GetSummaryTestCase(unittest.TestCase):
         self.samples = [GLOBAL_RNG.normalvariate(0, 1) for i in range(100000)]
 
     def test_standard_normal(self):
-        d = get_summary(self.samples, bin_width=0.5)
+        d = get_summary(self.samples)
         self.assertEqual(d['n'], len(self.samples))
         self.assertEqual(d['range'][0], min(self.samples))
         self.assertEqual(d['range'][1], max(self.samples))
         self.assertAlmostEqual(d['mean'], 0.0, places=1)
         self.assertAlmostEqual(d['median'], 0.0, places=1)
+        self.assertEqual(len(d['mode'][0]), 2)
+        self.assertAlmostEqual(d['mode'][0][0], 0.0, places=0)
+        self.assertAlmostEqual(d['mode'][0][1], 0.0, places=0)
         self.assertAlmostEqual(d['variance'], 1.0, places=1)
         self.assertAlmostEqual(d['qi_95'][0], -1.96, places=1)
         self.assertAlmostEqual(d['qi_95'][1], 1.96, places=1)
