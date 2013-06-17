@@ -981,6 +981,7 @@ class PosteriorWorker(object):
             temp_fs,
             observed_path,
             posterior_path,
+            num_taxon_pairs,
             posterior_out_path = None,
             output_prefix = None,
             keep_temps = False,
@@ -992,6 +993,7 @@ class PosteriorWorker(object):
             abctoolbox_bandwidth = None,
             abctoolbox_num_posterior_quantiles = None,
             num_top_models = None,
+            omega_threshold = 0.01,
             tag = ''):
         self.__class__.count += 1
         self.name = self.__class__.__name__ + '-' + str(self.count)
@@ -1003,6 +1005,7 @@ class PosteriorWorker(object):
                 prefix = 'temp-posterior-')
         self.posterior_path = expand_path(posterior_path)
         self.observed_path = expand_path(observed_path)
+        self.num_taxon_pairs = int(num_taxon_pairs)
         if not posterior_out_path:
             posterior_out_path = self.posterior_path
         self.posterior_out_path = expand_path(posterior_out_path)
@@ -1026,8 +1029,20 @@ class PosteriorWorker(object):
         self.abctoolbox_bandwidth = abctoolbox_bandwidth
         self.abctoolbox_num_posterior_quantiles = \
                 abctoolbox_num_posterior_quantiles
+        self.omega_threshold = float(omega_threshold)
+        self.psi_probs = dict(zip(
+                [i+1 for i in range(num_taxon_pairs)],
+                [None for i in range(num_taxon_pairs)]))
+        self.adjusted_psi_probs = dict(zip(
+                [i+1 for i in range(num_taxon_pairs)],
+                [None for i in range(num_taxon_pairs)]))
+        self.prob_omega_zero = None
+        self.adjusted_prob_omega_zero = None
+        self.div_model_summary = None
+        self.omega_summary = None
+        self.mean_tau_summary = None
 
-    def _process_div_models_from_posterior_sample(self):
+    def _process_posterior_sample(self):
         post = parse_parameters(self.posterior_path)
         if not post.has_key('taus'):
             raise Exception('posterior sample in {0} does not contain a '
@@ -1036,17 +1051,33 @@ class PosteriorWorker(object):
         self.num_posterior_samples = div_models.n
         if not self.num_top_models:
             self.num_top_models = len(div_models.keys())
-        div_models.write(self.unadjusted_div_model_summary_path)
+        self.div_model_summary = div_models.get_summary()
+        # div_models.write(self.unadjusted_div_model_summary_path)
         self._map_top_div_models(div_models)
-        add_div_model_column(self.posterior_path, self.temp_posterior_path,
-                self.top_div_models_to_indices)
-        shutil.move(self.temp_posterior_path, self.posterior_out_path)
+        psi_freqs = get_freqs(post['psi'])
+        if max(psi_freqs.iterkeys()) > self.num_taxon_pairs:
+            raise ValueError('number of taxon pairs is {0}, but found '
+                    'psi estimates of {1} in posterior {2}'.format(
+                        self.num_taxon_pairs,
+                        max(psi_freqs.iterkeys()),
+                        self.posterior_path))
+        for i in range(num_taxon_pairs):
+            self.psi_probs[i+1] = psi_freqs.get(i+1, 0.0)
+        self.prob_omega_zero = freq_less_than(post['omega'],
+                self.omega_threshold)
+        self.omega_summary = get_summary(post['omega'])
+        self.mean_tau_summary = get_summary(post['mean_tau'])
 
     def _map_top_div_models(self, div_models):
         for i, k in enumerate(div_models.iterkeys()):
             if i >= self.num_top_models:
                 break
             self.top_div_models_to_indices[k] = i + 1
+
+    def _add_div_model_column_to_posterior(self):
+        add_div_model_column(self.posterior_path, self.temp_posterior_path,
+                self.top_div_models_to_indices)
+        shutil.move(self.temp_posterior_path, self.posterior_out_path)
 
     def _prep_regression_worker(self):
         self.regression_worker = ABCToolBoxRegressWorker(
@@ -1065,13 +1096,30 @@ class PosteriorWorker(object):
                 num_posterior_quantiles = \
                         self.abctoolbox_num_posterior_quantiles)
 
+    def _process_regression_results(self):
+        discrete_probs = summarize_discrete_parameters_from_densities(
+                self.regression_worker.adjusted_path)
+        if max(discrete_probs['PRI.Psi'].iterkeys()) > self.num_taxon_pairs:
+            raise ValueError('number of taxon pairs is {0}, but found '
+                    'psi estimates of {1} in posterior {2}'.format(
+                        self.num_taxon_pairs,
+                        max(discrete_probs['PRI.Psi'].iterkeys()),
+                        self.regression_worker.adjusted_path))
+        for i in range(num_taxon_pairs):
+            self.adjusted_psi_probs[i+1] = discrete_probs['PRI.Psi'].get(i+1, 0.0)
+        for k, s in self.div_model_summary.iteritems():
+            s['adjusted_frequency'] = discrete_probs['PRI.div.model'].get(
+                    self.top_div_models_to_indices[k], 0.0)
+
     def _post_process(self):
         if not self.keep_temps:
             self.temp_fs.remove_dir(self.temp_output_dir)
 
     def start(self):
-        self._process_div_models_from_posterior_sample()
+        self._process_posterior_sample()
+        self._add_div_model_column_to_posterior()
         self._prep_regression_worker()
         self.regression_worker.start()
+        self._process_regression_results()
         self._post_process()
 
