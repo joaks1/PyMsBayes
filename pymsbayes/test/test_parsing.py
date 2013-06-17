@@ -163,6 +163,9 @@ class ParameterDensityIterTestCase(PyMsBayesTestCase):
         self.pdf_path = package_paths.data_path(
                 'abctoolbox_posterior_density_file.txt')
 
+    def tearDown(self):
+        self.tear_down()
+
     def test_density_iter(self):
         sums = None
         for i, pd in enumerate(parameter_density_iter(self.pdf_path)):
@@ -185,6 +188,9 @@ class ParseParameterDensityFileTestCase(PyMsBayesTestCase):
         self.set_up()
         self.pdf_path = package_paths.data_path(
                 'abctoolbox_posterior_density_file.txt')
+
+    def tearDown(self):
+        self.tear_down()
 
     def test_parse_parameter_density_file(self):
         pd = parse_parameter_density_file(self.pdf_path)
