@@ -10,10 +10,22 @@ import fractions
 from cStringIO import StringIO
 
 from pymsbayes.fileio import process_file_arg
-from pymsbayes.utils.parsing import parse_summary_file
+from pymsbayes.utils.parsing import (parse_summary_file, MODEL_PATTERNS,
+        PSI_PATTERNS, DIV_MODEL_PATTERNS, parameter_density_iter)
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
+
+def freq_less_than(values, zero_threshold = 0.01):
+    count = 0
+    total = 0
+    for v in values:
+        if v < zero_threshold:
+            count += 1
+        total += 1
+    if total < 1:
+        return None
+    return count / float(total)
 
 def get_counts(elements):
     keys = sorted(set(elements))
@@ -21,6 +33,14 @@ def get_counts(elements):
     for el in elements:
         counts[el] += 1
     return counts
+
+def get_freqs(elements):
+    counts = get_counts(elements)
+    total = float(sum(counts.itervalues()))
+    freqs = {}
+    for k, v in counts.iteritems():
+        freqs[k] = v / total
+    return freqs
 
 def median(samples):
     """
@@ -341,6 +361,26 @@ def get_summary(samples, bin_width = 'auto'):
             'hpdi_95': get_hpd_interval(samples, 0.95),
             'qi_95': quantile_95(samples)}
          
+def summarize_discrete_parameters_from_densities(
+        parameter_density_file,
+        discrete_parameter_patterns = MODEL_PATTERNS + PSI_PATTERNS + \
+                DIV_MODEL_PATTERNS):
+    densities = None
+    for i, pd in enumerate(parameter_density_iter(parameter_density_file,
+            discrete_parameter_patterns)):
+        if not densities:
+            densities = dict(zip(pd.keys(), [{} for i in range(len(pd))]))
+        for k, val_dens_tup in pd.iteritems():
+            idx = int(round(val_dens_tup[0]))
+            densities[k][idx] = densities[k].get(idx, 0.0) + val_dens_tup[1]
+    probs = dict(zip(densities.keys(),
+            [{} for i in range(len(densities))]))
+    for pname, pdensities in densities.iteritems():
+        total_dens = sum(pdensities.itervalues())
+        for idx, density in pdensities.iteritems():
+            probs[pname][idx] = density / total_dens
+    return probs
+
 
 class SampleSummarizer(object):
     count = 0
@@ -662,8 +702,29 @@ class IntegerPartitionCollection(object):
         else:
             return 0
 
+    def get_counts(self):
+        counts = {}
+        for k in self.iterkeys():
+            counts[k] = self.get_count[k]
+        return counts
+
     def get_frequency(self, key):
         return self.get_count(key) / float(self.n)
+
+    def get_frequencies(self):
+        freqs = {}
+        for k in self.iterkeys():
+            freqs[k] = self.get_frequency(k)
+        return freqs
+    
+    def get_summary(self):
+        stats = {}
+        for k in self.iterkeys():
+            stats[k] = {
+                    'count': self.get_count[k],
+                    'frequency': self.get_frequency[k],
+                    'string': self.get(k).to_string()}
+        return stats
 
     def write_summary(self, file_obj):
         out, close = process_file_arg(file_obj)

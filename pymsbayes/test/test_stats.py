@@ -10,6 +10,7 @@ from pymsbayes.fileio import process_file_arg
 from pymsbayes.utils import GLOBAL_RNG
 from pymsbayes.utils.stats import *
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
+from pymsbayes.test.support import package_paths
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -745,6 +746,50 @@ class IntegerPartitionCollectionTestCase(PyMsBayesTestCase):
         self.assertEqual(items[0][0], ip1.key)
         self.assertSameIntegerPartitions([items[0][1], ip1])
         self.assertEqual(items[1][0], ip3.key)
+
+class GetCountsTestCase(unittest.TestCase):
+
+    def test_get_counts(self):
+        x = [0,0,0,1,1,1,1,2,3,4]
+        expected = {0: 3, 1: 4, 2: 1, 3: 1, 4: 1}
+        counts = get_counts(x)
+        self.assertEqual(counts, expected)
+
+class GetFreqsTestCase(unittest.TestCase):
+
+    def test_get_counts(self):
+        x = [0,0,0,1,1,1,1,2,3,4]
+        expected = {0: 0.3, 1: 0.4, 2: 0.1, 3: 0.1, 4: 0.1}
+        freqs = get_freqs(x)
+        self.assertAlmostEqual(sum(freqs.values()), 1.0)
+        for k, v in freqs.iteritems():
+            self.assertAlmostEqual(v, expected[k])
+
+class FreqLessThanTestCase(unittest.TestCase):
+
+    def test_estimate_prob_zero(self):
+        x = [0.0045, 0.00021, 0.00012, 0.009999, 0.001, 0.01, 0.010001, 0.9,
+                0.09, 1.3]
+        self.assertAlmostEqual(freq_less_than(x, 0.01), 0.5)
+        self.assertAlmostEqual(freq_less_than(x, 2.0), 1.0)
+        self.assertAlmostEqual(freq_less_than(x, 1.3), 0.9)
+
+class SummarizeDiscreteParametersFromDensitiesTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.pdf_path = package_paths.data_path(
+                'abctoolbox_posterior_density_file.txt')
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_discrete_probs(self):
+        probs = summarize_discrete_parameters_from_densities(self.pdf_path)
+        self.assertEqual(len(probs), 1)
+        self.assertEqual(probs.keys(), ['PRI.Psi'])
+        self.assertEqual(sorted(probs['PRI.Psi'].keys()), sorted([1, 2]))
+        self.assertAlmostEqual(probs['PRI.Psi'][1], 0.9999999950161, places=12)
+        self.assertAlmostEqual(probs['PRI.Psi'][2], 4.9838793092e-09, places=12)
 
 if __name__ == '__main__':
     unittest.main()
