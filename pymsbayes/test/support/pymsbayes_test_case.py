@@ -8,7 +8,7 @@ import random
 from configobj import ConfigObj
 
 from pymsbayes.fileio import process_file_arg, open
-from pymsbayes.workers import (TAU_PATTERNS,
+from pymsbayes.utils.parsing import (TAU_PATTERNS,
         MODEL_PATTERNS,
         D_THETA_PATTERNS,
         A_THETA_PATTERNS,
