@@ -11,7 +11,8 @@ from cStringIO import StringIO
 
 from pymsbayes.fileio import process_file_arg
 from pymsbayes.utils.parsing import (parse_summary_file, MODEL_PATTERNS,
-        PSI_PATTERNS, DIV_MODEL_PATTERNS, parameter_density_iter)
+        PSI_PATTERNS, DIV_MODEL_PATTERNS, OMEGA_PATTERNS,
+        parameter_density_iter)
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -364,15 +365,25 @@ def get_summary(samples, bin_width = 'auto'):
 def summarize_discrete_parameters_from_densities(
         parameter_density_file,
         discrete_parameter_patterns = MODEL_PATTERNS + PSI_PATTERNS + \
-                DIV_MODEL_PATTERNS):
+                DIV_MODEL_PATTERNS,
+        include_omega_summary = False,
+        omega_threshold = 0.01):
+    if include_omega_summary:
+        discrete_parameter_patterns += OMEGA_PATTERNS
     densities = None
     for i, pd in enumerate(parameter_density_iter(parameter_density_file,
             discrete_parameter_patterns)):
         if not densities:
             densities = dict(zip(pd.keys(), [{} for i in range(len(pd))]))
         for k, val_dens_tup in pd.iteritems():
-            idx = int(round(val_dens_tup[0]))
-            densities[k][idx] = densities[k].get(idx, 0.0) + val_dens_tup[1]
+            if k == 'PRI.omega':
+                if val_dens_tup[0] < omega_threshold:
+                    densities[k][0] = densities[k].get(0, 0.0) + val_dens_tup[1]
+                else:
+                    densities[k][1] = densities[k].get(1, 0.0) + val_dens_tup[1]
+            else:
+                idx = int(round(val_dens_tup[0]))
+                densities[k][idx] = densities[k].get(idx, 0.0) + val_dens_tup[1]
     probs = dict(zip(densities.keys(),
             [{} for i in range(len(densities))]))
     for pname, pdensities in densities.iteritems():
@@ -718,12 +729,12 @@ class IntegerPartitionCollection(object):
         return freqs
     
     def get_summary(self):
-        stats = {}
+        stats = []
         for k in self.iterkeys():
-            stats[k] = {
+            stats.append((k, {
                     'count': self.get_count[k],
                     'frequency': self.get_frequency[k],
-                    'string': self.get(k).to_string()}
+                    'string': self.get(k).to_string()}))
         return stats
 
     def write_summary(self, file_obj):
