@@ -8,6 +8,7 @@ import time
 import shutil
 import traceback
 from cStringIO import StringIO
+from configobj import ConfigObj
 
 from pymsbayes.fileio import expand_path, process_file_arg, FileStream, open
 from pymsbayes.utils.tempfs import TempFileSystem
@@ -15,8 +16,7 @@ from pymsbayes.utils import get_tool_path
 from pymsbayes.utils.functions import (get_random_int, get_indices_of_patterns,
         reduce_columns, is_dir)
 from pymsbayes.utils.errors import WorkerExecutionError, PriorMergeError
-from pymsbayes.utils.stats import (SampleSummary, SampleSummaryCollection,
-        IntegerPartitionCollection)
+from pymsbayes.utils.stats import *
 from pymsbayes.utils.parsing import *
 from pymsbayes.utils.messaging import get_logger
 
@@ -1016,6 +1016,7 @@ class PosteriorWorker(object):
                 'div-model-results.txt'
         self.psi_results_path = self.output_prefix + 'psi-results.txt'
         self.model_results_path = self.output_prefix + 'model-results.txt'
+        self.omega_results_path = self.output_prefix + 'omega-results.txt'
         self.summary_path = self.output_prefix + \
                 'unadjusted-posterior-summary.txt'
         self.adjusted_summary_path = self.output_prefix + \
@@ -1042,19 +1043,17 @@ class PosteriorWorker(object):
                 abctoolbox_num_posterior_quantiles
         self.omega_threshold = float(omega_threshold)
         self.psi_probs = dict(zip(
-                [i+1 for i in range(num_taxon_pairs)],
-                [None for i in range(num_taxon_pairs)]))
+                [i+1 for i in range(self.num_taxon_pairs)],
+                [None for i in range(self.num_taxon_pairs)]))
         self.adjusted_psi_probs = dict(zip(
-                [i+1 for i in range(num_taxon_pairs)],
-                [None for i in range(num_taxon_pairs)]))
+                [i+1 for i in range(self.num_taxon_pairs)],
+                [None for i in range(self.num_taxon_pairs)]))
         self.model_probs = None
         self.adjusted_model_probs = None
         self.prob_omega_zero = None
         self.adjusted_prob_omega_zero = None
         self.div_model_summary = None
-        self.unadjusted_summaries = None
-        self.omega_summary = None
-        self.mean_tau_summary = None
+        self.unadjusted_summaries = {}
 
     def _process_posterior_sample(self):
         post = parse_parameters(self.posterior_path)
@@ -1063,10 +1062,17 @@ class PosteriorWorker(object):
                     'divergence time vector'.format(self.posterior_path))
         div_models = IntegerPartitionCollection(post['taus'])
         self.num_posterior_samples = div_models.n
+        _LOG.warn('{0}\n'.format(self.num_top_models))
         if not self.num_top_models:
             self.num_top_models = len(div_models.keys())
+        _LOG.warn('{0}\n'.format(self.num_top_models))
         self.div_model_summary = div_models.get_summary()
         self._map_top_div_models(div_models)
+        _LOG.warn('{0},{1}\n'.format(self.num_top_models, self.top_div_models_to_indices))
+        dmodels = []
+        for k, dm in div_models.iteritems():
+            dmodels.extend([self.top_div_models_to_indices[k]] * dm.n)
+        post['div_model'] = dmodels
         psi_freqs = get_freqs(post['psi'])
         if max(psi_freqs.iterkeys()) > self.num_taxon_pairs:
             raise ValueError('number of taxon pairs is {0}, but found '
@@ -1074,7 +1080,7 @@ class PosteriorWorker(object):
                         self.num_taxon_pairs,
                         max(psi_freqs.iterkeys()),
                         self.posterior_path))
-        for i in range(num_taxon_pairs):
+        for i in range(self.num_taxon_pairs):
             self.psi_probs[i+1] = psi_freqs.get(i+1, 0.0)
         if post.has_key('model'):
             model_freqs = get_freqs(post['model'])
@@ -1091,8 +1097,6 @@ class PosteriorWorker(object):
                 self.model_probs = model_freqs
         self.prob_omega_zero = freq_less_than(post['omega'],
                 self.omega_threshold)
-        self.omega_summary = get_summary(post['omega'])
-        self.mean_tau_summary = get_summary(post['mean_tau'])
         self.unadjusted_summaries['PRI.omega'] = get_summary(post['omega'])
         self.unadjusted_summaries['PRI.E.t'] = get_summary(post['mean_tau'])
         self.unadjusted_summaries['PRI.Psi'] = get_summary(post['psi'])
@@ -1142,7 +1146,7 @@ class PosteriorWorker(object):
                         self.num_taxon_pairs,
                         max(discrete_probs['PRI.Psi'].iterkeys()),
                         self.regression_worker.adjusted_path))
-        for i in range(num_taxon_pairs):
+        for i in range(self.num_taxon_pairs):
             self.adjusted_psi_probs[i+1] = discrete_probs['PRI.Psi'].get(i+1, 0.0)
         for k, s in self.div_model_summary:
             s['adjusted_frequency'] = discrete_probs['PRI.div.model'].get(
@@ -1154,7 +1158,7 @@ class PosteriorWorker(object):
                         i, 0.0)
 
     def _write_div_model_results(self):
-        out, close = process_file_arg(self.div_model_results_path)
+        out, close = process_file_arg(self.div_model_results_path, 'w')
         out.write('divergence_model\testimated_prob\tglm_adjusted_prob\t'
                 'div_model_with_conditional_age_estimates\n')
         for div_model, summary in self.div_model_summary:
@@ -1167,7 +1171,7 @@ class PosteriorWorker(object):
             out.close()
 
     def _write_psi_results(self):
-        out, close = process_file_arg(self.psi_results_path)
+        out, close = process_file_arg(self.psi_results_path, 'w')
         out.write('num_of_divergence_events\testimated_prob\t'
                 'glm_adjusted_prob\n')
         assert sorted(self.psi_probs.keys()) == sorted(
@@ -1181,7 +1185,7 @@ class PosteriorWorker(object):
     def _write_model_results(self):
         if not self.model_probs:
             return
-        out, close = process_file_arg(self.psi_results_path)
+        out, close = process_file_arg(self.psi_results_path, 'w')
         out.write('model\testimated_prob\t'
                 'glm_adjusted_prob\n')
         for k in self.model_probs.iterkeys():
@@ -1190,38 +1194,41 @@ class PosteriorWorker(object):
         if close:
             out.close()
 
-    def _write_summary(self):
-        row_keys = ['mode_lower_bound',
-                    'mode_upper_bound',
-                    'median',
-                    'mean',
-                    'quantile_95_lower_bound',
-                    'quantile_95_upper_bound',
-                    'HPD_95_lower_bound',
-                    'HPD_95_upper_bound']
-        stat_to_params = dict(zip(row_keys,
-                [{} for i in range(len(row_keys))]))
-        for param, summary in self.unadjusted_summaries.keys()
-            stats_to_params['mode_lower_bound']['param'] = summary['mode'][0]
-            stats_to_params['mode_upper_bound']['param'] = summary['mode'][1]
-            stats_to_params['median']['param'] = summary['median']
-            stats_to_params['mean']['param'] = summary['mean']
-            stats_to_params['HPD_95_lower_bound']['param'] = \
-                    summary['hpdi_95'][0]
-            stats_to_params['HPD_95_upper_bound']['param'] = \
-                    summary['hpdi_95'][1]
-            stats_to_params['quantile_95_lower_bound']['param'] = \
-                    summary['qi_95'][0]
-            stats_to_params['quantile_95_upper_bound']['param'] = \
-                    summary['qi_95'][1]
-        out, close = process_file_arg(self.summary_path)
-        col_keys = sorted(self.unadjusted_summaries.keys())
-        out.write('statistic\t{0}\n'.format('\t'.join(col_keys)))
-        for stat, parameters in stat_to_params:
-            out.write('{0}\t{1}\n'.format(stat,
-                    '\t'.join([parameters[k] for k in col_keys])))
+    def _write_omega_results(self):
+        out, close = process_file_arg(self.omega_results_path, 'w')
+        out.write('threshold\tprob_less_than_threshold\t'
+                'glm_prob_less_than_threshold\n')
+        out.write('{0}\t{1}\t{2}\n'.format(
+                self.omega_threshold,
+                self.prob_omega_zero,
+                self.adjusted_prob_omega_zero))
         if close:
             out.close()
+
+    def _write_summary(self):
+        out, close = process_file_arg(self.summary_path, 'w')
+        for param, summary in self.unadjusted_summaries.iteritems():
+            out.write('[{0}]\n'.format(param))
+            if isinstance(summary['modes'][0], tuple):
+                out.write('    modes = {0}\n'.format(', '.join([
+                    '({0}, {1})'.format(x, y) for x, y in summary['modes']])))
+            else:
+                out.write('    modes = {0}\n'.format(', '.join(
+                    [str(x) for x in summary['modes']])))
+            out.write('    median = {0}\n'.format(summary['median']))
+            out.write('    mean = {0}\n'.format(summary['mean']))
+            out.write('    n = {0}\n'.format(summary['n']))
+            out.write('    range = {0}, {1}\n'.format(summary['range'][0],
+                    summary['range'][1]))
+            out.write('    HPD_95_interval = {0}, {1}\n'.format(
+                    summary['hpdi_95'][0],
+                    summary['hpdi_95'][1]))
+            out.write('    quantile_95_interval = {0}, {1}\n'.format(
+                    summary['qi_95'][0],
+                    summary['qi_95'][1]))
+        if close:
+            out.close()
+        _LOG.warning('{0}\n'.format(open(self.summary_path, 'rU').read()))
 
     def _post_process(self):
         if not self.keep_temps:
@@ -1236,6 +1243,8 @@ class PosteriorWorker(object):
         self._write_div_model_results()
         self._write_psi_results()
         self._write_model_results()
+        self._write_omega_results()
         self._write_summary()
         self._post_process()
+        self.finished = True
 
