@@ -783,13 +783,26 @@ class SummarizeDiscreteParametersFromDensitiesTestCase(PyMsBayesTestCase):
     def tearDown(self):
         self.tear_down()
 
-    def test_discrete_probs(self):
+    def test_no_omega(self):
         probs = summarize_discrete_parameters_from_densities(self.pdf_path)
         self.assertEqual(len(probs), 1)
         self.assertEqual(probs.keys(), ['PRI.Psi'])
         self.assertEqual(sorted(probs['PRI.Psi'].keys()), sorted([1, 2]))
         self.assertAlmostEqual(probs['PRI.Psi'][1], 0.9999999950161, places=12)
         self.assertAlmostEqual(probs['PRI.Psi'][2], 4.9838793092e-09, places=12)
+
+    def test_with_omega(self):
+        probs = summarize_discrete_parameters_from_densities(self.pdf_path,
+                include_omega_summary = True, omega_threshold = 0.01)
+        self.assertEqual(len(probs), 2)
+        self.assertEqual(sorted(probs.keys()), sorted(['PRI.Psi', 'PRI.omega']))
+        self.assertEqual(sorted(probs['PRI.Psi'].keys()), sorted([1, 2]))
+        self.assertAlmostEqual(probs['PRI.Psi'][1], 0.9999999950161, places=12)
+        self.assertAlmostEqual(probs['PRI.Psi'][2], 4.9838793092e-09, places=12)
+        self.assertAlmostEqual(probs['PRI.omega'][0], 0.9999999999996313,
+                places=14)
+        self.assertAlmostEqual(probs['PRI.omega'][1], 3.687050664780145e-13,
+                places=14)
 
 if __name__ == '__main__':
     unittest.main()
