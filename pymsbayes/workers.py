@@ -984,9 +984,9 @@ class PosteriorWorker(object):
             num_taxon_pairs,
             posterior_out_path = None,
             output_prefix = None,
+            model_indices = None,
             keep_temps = False,
             abctoolbox_exe_path = None,
-            abctoolbox_summary_path = None,
             abctoolbox_adjusted_path = None,
             abctoolbox_stdout_path = None,
             abctoolbox_stderr_path = None,
@@ -1012,8 +1012,21 @@ class PosteriorWorker(object):
         if not output_prefix:
             output_prefix = self.posterior_out_path + '-'
         self.output_prefix = output_prefix
-        self.unadjusted_div_model_summary_path = self.output_prefix + \
-                'unadjusted-summary.txt'
+        self.div_model_results_path = self.output_prefix + \
+                'div-model-results.txt'
+        self.psi_results_path = self.output_prefix + 'psi-results.txt'
+        self.model_results_path = self.output_prefix + 'model-results.txt'
+        self.summary_path = self.output_prefix + \
+                'unadjusted-posterior-summary.txt'
+        self.adjusted_summary_path = self.output_prefix + \
+                'glm-posterior-summary.txt'
+        if not abctoolbox_adjusted_path:
+            abctoolbox_adjusted_path = self.output_prefix + \
+                    'glm-posterior-density-estimates.txt'
+        self.adjusted_path = abctoolbox_adjusted_path
+        if model_indices is not None:
+            model_indices = set(model_indices)
+        self.model_indices = model_indices
         self.finished = False
         self.tag = str(tag)
         self.top_div_models_to_indices = {}
@@ -1022,8 +1035,6 @@ class PosteriorWorker(object):
         self.regression_worker = None
         self.keep_temps = bool(keep_temps)
         self.abctoolbox_exe_path = abctoolbox_exe_path
-        self.abctoolbox_summary_path = abctoolbox_summary_path
-        self.abctoolbox_adjusted_path = abctoolbox_adjusted_path
         self.abctoolbox_stdout_path = abctoolbox_stdout_path
         self.abctoolbox_stderr_path = abctoolbox_stderr_path
         self.abctoolbox_bandwidth = abctoolbox_bandwidth
@@ -1036,9 +1047,12 @@ class PosteriorWorker(object):
         self.adjusted_psi_probs = dict(zip(
                 [i+1 for i in range(num_taxon_pairs)],
                 [None for i in range(num_taxon_pairs)]))
+        self.model_probs = None
+        self.adjusted_model_probs = None
         self.prob_omega_zero = None
         self.adjusted_prob_omega_zero = None
         self.div_model_summary = None
+        self.unadjusted_summaries = None
         self.omega_summary = None
         self.mean_tau_summary = None
 
@@ -1052,7 +1066,6 @@ class PosteriorWorker(object):
         if not self.num_top_models:
             self.num_top_models = len(div_models.keys())
         self.div_model_summary = div_models.get_summary()
-        # div_models.write(self.unadjusted_div_model_summary_path)
         self._map_top_div_models(div_models)
         psi_freqs = get_freqs(post['psi'])
         if max(psi_freqs.iterkeys()) > self.num_taxon_pairs:
@@ -1063,10 +1076,30 @@ class PosteriorWorker(object):
                         self.posterior_path))
         for i in range(num_taxon_pairs):
             self.psi_probs[i+1] = psi_freqs.get(i+1, 0.0)
+        if post.has_key('model'):
+            model_freqs = get_freqs(post['model'])
+            if self.model_indices:
+                self.model_probs = {}
+                if not set(model_freqs.keys()).issubset(self.model_indices):
+                    raise ValueError('model indices in posterior ({0}) are not '
+                            'a subset of indices provided ({1})'.format(
+                                ','.join([str(i) for i in model_freqs.keys()]),
+                                ','.join([str(i) for i in self.model_indices])))
+                for i in self.model_indices:
+                    self.model_probs[i] = model_freqs.get(i, 0.0)
+            else:
+                self.model_probs = model_freqs
         self.prob_omega_zero = freq_less_than(post['omega'],
                 self.omega_threshold)
         self.omega_summary = get_summary(post['omega'])
         self.mean_tau_summary = get_summary(post['mean_tau'])
+        self.unadjusted_summaries['PRI.omega'] = get_summary(post['omega'])
+        self.unadjusted_summaries['PRI.E.t'] = get_summary(post['mean_tau'])
+        self.unadjusted_summaries['PRI.Psi'] = get_summary(post['psi'])
+        if post.has_key('model'):
+            self.unadjusted_summaries['PRI.model'] = get_summary(post['model'])
+        self.unadjusted_summaries['PRI.div.model'] = get_summary(
+                post['div_model'])
 
     def _map_top_div_models(self, div_models):
         for i, k in enumerate(div_models.iterkeys()):
@@ -1085,8 +1118,8 @@ class PosteriorWorker(object):
                 observed_path = self.observed_path,
                 posterior_path = self.posterior_out_path,
                 parameter_indices = None,
-                summary_path = self.abctoolbox_summary_path,
-                adjusted_path = self.abctoolbox_adjusted_path,
+                summary_path = self.adjusted_summary_path,
+                adjusted_path = self.adjusted_path,
                 exe_path = self.abctoolbox_exe_path,
                 stdout_path = self.abctoolbox_stdout_path,
                 stderr_path = self.abctoolbox_stderr_path,
@@ -1098,7 +1131,11 @@ class PosteriorWorker(object):
 
     def _process_regression_results(self):
         discrete_probs = summarize_discrete_parameters_from_densities(
-                self.regression_worker.adjusted_path)
+                self.regression_worker.adjusted_path,
+                discrete_parameter_patterns = PSI_PATTERNS + MODEL_PATTERNS + \
+                        DIV_MODEL_PATTERNS,
+                include_omega_summary = True,
+                omega_threshold = self.omega_threshold)
         if max(discrete_probs['PRI.Psi'].iterkeys()) > self.num_taxon_pairs:
             raise ValueError('number of taxon pairs is {0}, but found '
                     'psi estimates of {1} in posterior {2}'.format(
@@ -1107,9 +1144,84 @@ class PosteriorWorker(object):
                         self.regression_worker.adjusted_path))
         for i in range(num_taxon_pairs):
             self.adjusted_psi_probs[i+1] = discrete_probs['PRI.Psi'].get(i+1, 0.0)
-        for k, s in self.div_model_summary.iteritems():
+        for k, s in self.div_model_summary:
             s['adjusted_frequency'] = discrete_probs['PRI.div.model'].get(
                     self.top_div_models_to_indices[k], 0.0)
+        self.adjusted_prob_omega_zero = discrete_probs['PRI.omega'].get(0, 0.0)
+        if self.model_probs:
+            for i in self.model_probs.iterkeys():
+                self.adjusted_model_probs[i] = discrete_probs['PRI.model'].get(
+                        i, 0.0)
+
+    def _write_div_model_results(self):
+        out, close = process_file_arg(self.div_model_results_path)
+        out.write('divergence_model\testimated_prob\tglm_adjusted_prob\t'
+                'div_model_with_conditional_age_estimates\n')
+        for div_model, summary in self.div_model_summary:
+            out.write('{0}\t{1}\t{2}\t{3}\n'.format(
+                    div_model,
+                    summary['frequency'],
+                    summary['adjusted_frequency'],
+                    summary['string']))
+        if close:
+            out.close()
+
+    def _write_psi_results(self):
+        out, close = process_file_arg(self.psi_results_path)
+        out.write('num_of_divergence_events\testimated_prob\t'
+                'glm_adjusted_prob\n')
+        assert sorted(self.psi_probs.keys()) == sorted(
+                self.adjusted_psi_probs.keys())
+        for k in self.psi_probs.iterkeys():
+            out.write('{0}\t{1}\t{2}\n'.format(k, self.psi_probs[k],
+                    self.adjusted_psi_probs[k]))
+        if close:
+            out.close()
+
+    def _write_model_results(self):
+        if not self.model_probs:
+            return
+        out, close = process_file_arg(self.psi_results_path)
+        out.write('model\testimated_prob\t'
+                'glm_adjusted_prob\n')
+        for k in self.model_probs.iterkeys():
+            out.write('{0}\t{1}\t{2}\n'.format(k, self.model_probs[k],
+                    self.adjusted_model_probs[k]))
+        if close:
+            out.close()
+
+    def _write_summary(self):
+        row_keys = ['mode_lower_bound',
+                    'mode_upper_bound',
+                    'median',
+                    'mean',
+                    'quantile_95_lower_bound',
+                    'quantile_95_upper_bound',
+                    'HPD_95_lower_bound',
+                    'HPD_95_upper_bound']
+        stat_to_params = dict(zip(row_keys,
+                [{} for i in range(len(row_keys))]))
+        for param, summary in self.unadjusted_summaries.keys()
+            stats_to_params['mode_lower_bound']['param'] = summary['mode'][0]
+            stats_to_params['mode_upper_bound']['param'] = summary['mode'][1]
+            stats_to_params['median']['param'] = summary['median']
+            stats_to_params['mean']['param'] = summary['mean']
+            stats_to_params['HPD_95_lower_bound']['param'] = \
+                    summary['hpdi_95'][0]
+            stats_to_params['HPD_95_upper_bound']['param'] = \
+                    summary['hpdi_95'][1]
+            stats_to_params['quantile_95_lower_bound']['param'] = \
+                    summary['qi_95'][0]
+            stats_to_params['quantile_95_upper_bound']['param'] = \
+                    summary['qi_95'][1]
+        out, close = process_file_arg(self.summary_path)
+        col_keys = sorted(self.unadjusted_summaries.keys())
+        out.write('statistic\t{0}\n'.format('\t'.join(col_keys)))
+        for stat, parameters in stat_to_params:
+            out.write('{0}\t{1}\n'.format(stat,
+                    '\t'.join([parameters[k] for k in col_keys])))
+        if close:
+            out.close()
 
     def _post_process(self):
         if not self.keep_temps:
@@ -1121,5 +1233,9 @@ class PosteriorWorker(object):
         self._prep_regression_worker()
         self.regression_worker.start()
         self._process_regression_results()
+        self._write_div_model_results()
+        self._write_psi_results()
+        self._write_model_results()
+        self._write_summary()
         self._post_process()
 
