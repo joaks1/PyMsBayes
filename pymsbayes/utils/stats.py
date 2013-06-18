@@ -345,7 +345,7 @@ def get_summary(samples, bin_width = 'auto'):
         'n': sample_size
         'mean': mean
         'median': median
-        'mode': mode (tuple if binning)
+        'modes': mode (tuple if binning)
         'variance': variance
         'range': range
         'hpdi_95': tuple of 95% highest posterior density interval
@@ -356,7 +356,7 @@ def get_summary(samples, bin_width = 'auto'):
     return {'n': ss.n,
             'mean': ss.mean,
             'median': median(samples),
-            'mode': mode_list(samples, bin_width),
+            'modes': mode_list(samples, bin_width),
             'variance': ss.variance,
             'range': (min(samples), max(samples)),
             'hpdi_95': get_hpd_interval(samples, 0.95),
@@ -732,8 +732,8 @@ class IntegerPartitionCollection(object):
         stats = []
         for k in self.iterkeys():
             stats.append((k, {
-                    'count': self.get_count[k],
-                    'frequency': self.get_frequency[k],
+                    'count': self.get_count(k),
+                    'frequency': self.get_frequency(k),
                     'string': self.get(k).to_string()}))
         return stats
 
