@@ -489,8 +489,6 @@ class SampleSummarizer(object):
         s = StringIO()
         s.write('name = {0}\n'.format(self.name))
         s.write('sample size = {0}\n'.format(self._n))
-        s.write('sum = {0}\n'.format(self._sum))
-        s.write('sum of squares = {0}\n'.format(self._sum_of_squares))
         s.write('min = {0}\nmax = {1}\n'.format(self._min, self._max))
         s.write('mean = {0}\n'.format(self.mean))
         s.write('variance = {0}\n'.format(self.variance))
