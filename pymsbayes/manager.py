@@ -60,7 +60,7 @@ class Manager(multiprocessing.Process):
     def run(self):
         while not self.killed:
             try:
-                worker = self.work_queue.get(block=True, timeout=1)
+                worker = self.work_queue.get(block=True, timeout=0.1)
                 # without blocking processes were stopping when the queue
                 # was not empty, and without timeout, the processes would
                 # hang waiting for jobs.
