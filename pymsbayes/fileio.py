@@ -32,10 +32,13 @@ def process_file_arg(file_arg, mode='rU', compresslevel = None):
     return file_arg, False
 
 def is_gzipped(file_path):
-    with open(expand_path(file_path)) as fs:
+    try:
+        fs = open(expand_path(file_path))
         l = fs.next()
         if l.startswith("\x1f\x8b"):
             return True
+        return False
+    except:
         return False
 
 class FileStream(file):
