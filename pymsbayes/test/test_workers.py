@@ -5,6 +5,7 @@ import os
 import sys
 
 from pymsbayes import workers
+from pymsbayes.fileio import is_gzipped
 from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test import TestLevel, test_enabled
@@ -2078,10 +2079,10 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
     def tearDown(self):
         self.tear_down()
 
-    def test_summary_and_rejection(self):
+    def test_without_compression(self):
         prior_worker = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
-                sample_size = 1000,
+                sample_size = 100,
                 config_path = self.cfg_path,
                 schema = 'abctoolbox',
                 report_parameters = True)
@@ -2095,61 +2096,232 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
                 report_parameters = True)
         obs_worker.start()
 
-        post_path = self.get_test_path(prefix='test-posterior-')
-        sum_out_path = self.get_test_path(prefix='test-summary-out-')
-        reject_worker = workers.EuRejectWorker(
-                temp_fs = self.temp_fs,
-                observed_path = obs_worker.prior_stats_path,
-                prior_paths = [prior_worker.prior_path],
-                num_posterior_samples = 100,
-                num_standardizing_samples = 1000,
-                summary_in_path = None,
-                summary_out_path = sum_out_path,
-                posterior_path = post_path,
-                regression_worker = None,
-                exe_path = None,
-                stderr_path = None,
-                keep_temps = False,
-                tag = 'testcase')
-        reject_worker.start()
-
         post_out = self.get_test_path(parent = self.output_dir,
                 prefix = self.test_id + '-posterior-sample-')
         density_path = self.get_test_path(parent = self.output_dir,
-                prefix = self.test_id + '-posterior_density-')
-        post_worker = PosteriorWorker(
+                prefix = self.test_id + '-posterior-density-')
+        post_worker = workers.PosteriorWorker(
                 temp_fs = self.temp_fs,
                 observed_path = obs_worker.prior_stats_path,
-                posterior_path = reject_worker.posterior_path,
+                posterior_path = prior_worker.prior_path,
+                num_taxon_pairs = 4,
                 posterior_out_path = post_out,
                 output_prefix = self.output_prefix,
                 model_indices = None,
                 keep_temps = False,
-                abctoolbox_adjusted_path = self.density_path,
-                num_top_models = 0.01,
+                abctoolbox_adjusted_path = density_path,
+                num_top_models = None,
+                omega_threshold = 0.01,
+                abctoolbox_num_posterior_quantiles = 1000,
+                compress = False,
                 tag = 'test')
+
         self.assertFalse(post_worker.finished)
         post_worker.start()
         self.assertTrue(post_worker.finished)
+        self.assertTrue(os.path.isfile(post_worker.posterior_out_path))
+        self.assertTrue(is_gzipped(post_worker.posterior_out_path))
+        self.assertTrue(os.path.isfile(post_worker.adjusted_path))
+        self.assertFalse(is_gzipped(post_worker.adjusted_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.adjusted_path),
+                1001)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.adjusted_path),
+                1)
+        self.assertTrue(os.path.isfile(post_worker.abctoolbox_summary_path))
+        self.assertFalse(is_gzipped(post_worker.abctoolbox_summary_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.abctoolbox_summary_path),
+                20)
+        self.assertTrue(os.path.isfile(post_worker.summary_path))
+        self.assertTrue(os.path.isfile(post_worker.div_model_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.div_model_results_path),
+                6)
+        self.assertTrue(os.path.isfile(post_worker.psi_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.psi_results_path),
+                5)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.psi_results_path),
+                1)
+        self.assertTrue(os.path.isfile(post_worker.omega_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.omega_results_path),
+                2)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.omega_results_path),
+                1)
+        self.assertFalse(os.path.isfile(post_worker.model_results_path))
 
-        # self.assertTrue(reject_worker.finished)
-        # self.assertTrue(os.path.isfile(reject_worker.posterior_path))
-        # self.assertEqual(self.get_number_of_lines(
-        #         reject_worker.posterior_path), 11)
-        # self.assertEqual(self.get_number_of_header_lines(
-        #         reject_worker.posterior_path), 1)
-        # self.assertTrue(os.path.isfile(reject_worker.summary_out_path))
-        # self.assertEqual(self.get_number_of_lines(
-        #         reject_worker.summary_out_path), 4)
-        # self.assertEqual(self.get_number_of_header_lines(
-        #         reject_worker.summary_out_path), 1)
-        # self.assertEqual(reject_worker.num_processed, 100)
-        # self.assertEqual(reject_worker.num_summarized, 100)
-        # self.assertEqual(reject_worker.num_retained, 10)
-        # self.assertEqual(reject_worker.prior_paths,
-        #         reject_worker.rejection_files)
-        # self.assertEqual(reject_worker.prior_paths,
-        #         reject_worker.standardizing_files)
+    def test_without_compression_with_models(self):
+        prior_workers = []
+        for i in range(4):
+            prior_worker = workers.MsBayesWorker(
+                    temp_fs = self.temp_fs,
+                    sample_size = 25,
+                    config_path = self.cfg_path,
+                    schema = 'abctoolbox',
+                    model_index = i+1,
+                    report_parameters = True)
+            prior_worker.start()
+            prior_workers.append(prior_worker)
+        prior_path = self.get_test_path()
+        workers.merge_prior_files(
+                paths = [pw.prior_path for pw in prior_workers],
+                dest_path = prior_path)
+        obs_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                model_index = 1,
+                write_stats_file = True,
+                report_parameters = True)
+        obs_worker.start()
+
+        post_out = self.get_test_path(parent = self.output_dir,
+                prefix = self.test_id + '-posterior-sample-')
+        density_path = self.get_test_path(parent = self.output_dir,
+                prefix = self.test_id + '-posterior-density-')
+        post_worker = workers.PosteriorWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                posterior_path = prior_path,
+                num_taxon_pairs = 4,
+                posterior_out_path = post_out,
+                output_prefix = self.output_prefix,
+                model_indices = [1,2,3,4],
+                keep_temps = False,
+                abctoolbox_adjusted_path = density_path,
+                num_top_models = None,
+                omega_threshold = 0.01,
+                abctoolbox_num_posterior_quantiles = 1000,
+                compress = False,
+                tag = 'test')
+
+        self.assertFalse(post_worker.finished)
+        post_worker.start()
+        self.assertTrue(post_worker.finished)
+        self.assertTrue(os.path.isfile(post_worker.posterior_out_path))
+        self.assertTrue(is_gzipped(post_worker.posterior_out_path))
+        self.assertTrue(os.path.isfile(post_worker.adjusted_path))
+        self.assertFalse(is_gzipped(post_worker.adjusted_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.adjusted_path),
+                1001)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.adjusted_path),
+                1)
+        self.assertTrue(os.path.isfile(post_worker.abctoolbox_summary_path))
+        self.assertFalse(is_gzipped(post_worker.abctoolbox_summary_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.abctoolbox_summary_path),
+                20)
+        self.assertTrue(os.path.isfile(post_worker.summary_path))
+        self.assertTrue(os.path.isfile(post_worker.div_model_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.div_model_results_path),
+                6)
+        self.assertTrue(os.path.isfile(post_worker.psi_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.psi_results_path),
+                5)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.psi_results_path),
+                1)
+        self.assertTrue(os.path.isfile(post_worker.omega_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.omega_results_path),
+                2)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.omega_results_path),
+                1)
+        self.assertTrue(os.path.isfile(post_worker.model_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.model_results_path),
+                5)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.model_results_path),
+                1)
+
+    def test_with_compression(self):
+        prior_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 100,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                report_parameters = True)
+        prior_worker.start()
+        obs_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True,
+                report_parameters = True)
+        obs_worker.start()
+
+        post_out = self.get_test_path(parent = self.output_dir,
+                prefix = self.test_id + '-posterior-sample-')
+        density_path = self.get_test_path(parent = self.output_dir,
+                prefix = self.test_id + '-posterior-density-')
+        post_worker = workers.PosteriorWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                posterior_path = prior_worker.prior_path,
+                num_taxon_pairs = 4,
+                posterior_out_path = post_out,
+                output_prefix = self.output_prefix,
+                model_indices = None,
+                keep_temps = False,
+                abctoolbox_adjusted_path = density_path,
+                num_top_models = None,
+                omega_threshold = 0.01,
+                abctoolbox_num_posterior_quantiles = 1000,
+                compress = True,
+                tag = 'test')
+
+        self.assertFalse(post_worker.finished)
+        post_worker.start()
+        self.assertTrue(post_worker.finished)
+        self.assertTrue(os.path.isfile(post_worker.posterior_out_path))
+        self.assertTrue(is_gzipped(post_worker.posterior_out_path))
+        self.assertTrue(os.path.isfile(post_worker.adjusted_path))
+        self.assertTrue(is_gzipped(post_worker.adjusted_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.adjusted_path),
+                1001)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.adjusted_path),
+                1)
+        self.assertTrue(os.path.isfile(post_worker.abctoolbox_summary_path))
+        self.assertTrue(is_gzipped(post_worker.abctoolbox_summary_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.abctoolbox_summary_path),
+                20)
+        self.assertTrue(os.path.isfile(post_worker.summary_path))
+        self.assertTrue(os.path.isfile(post_worker.div_model_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.div_model_results_path),
+                6)
+        self.assertTrue(os.path.isfile(post_worker.psi_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.psi_results_path),
+                5)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.psi_results_path),
+                1)
+        self.assertTrue(os.path.isfile(post_worker.omega_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.omega_results_path),
+                2)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.omega_results_path),
+                1)
+        self.assertFalse(os.path.isfile(post_worker.model_results_path))
+
 if __name__ == '__main__':
     unittest.main()
 

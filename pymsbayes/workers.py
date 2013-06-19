@@ -10,7 +10,8 @@ import traceback
 from cStringIO import StringIO
 from configobj import ConfigObj
 
-from pymsbayes.fileio import expand_path, process_file_arg, FileStream, open
+from pymsbayes.fileio import (expand_path, process_file_arg, FileStream, open,
+        GzipFileStream)
 from pymsbayes.utils.tempfs import TempFileSystem
 from pymsbayes.utils import get_tool_path
 from pymsbayes.utils.functions import (get_random_int, get_indices_of_patterns,
@@ -885,6 +886,7 @@ class ABCToolBoxRegressWorker(Worker):
             bandwidth = None,
             num_posterior_samples = None,
             num_posterior_quantiles = None,
+            compress = False,
             tag = '',
             ):
         Worker.__init__(self,
@@ -918,6 +920,7 @@ class ABCToolBoxRegressWorker(Worker):
         if not adjusted_path:
             adjusted_path = self.posterior_path + '.regression-adjusted.txt'
         self.adjusted_path = adjusted_path
+        self.compress = bool(compress)
 
     def _pre_process(self):
         self.header = parse_header(self.posterior_path)
@@ -951,8 +954,22 @@ class ABCToolBoxRegressWorker(Worker):
     def _post_process(self):
         summary_path = self.output_prefix + 'PosteriorCharacteristics_Obs0.txt'
         adjusted_path = self.output_prefix + 'PosteriorEstimates_Obs0.txt'
-        shutil.move(summary_path, self.summary_path)
-        shutil.move(adjusted_path, self.adjusted_path)
+        if self.compress:
+            summary_stream = open(summary_path, 'rU')
+            out = GzipFileStream(self.summary_path, 'w', compresslevel = 9)
+            for line in summary_stream:
+                out.write(line)
+            summary_stream.close()
+            out.close()
+            adjusted_stream = open(adjusted_path, 'rU')
+            out = GzipFileStream(self.adjusted_path, 'w', compresslevel = 9)
+            for line in adjusted_stream:
+                out.write(line)
+            adjusted_stream.close()
+            out.close()
+        else:
+            shutil.move(summary_path, self.summary_path)
+            shutil.move(adjusted_path, self.adjusted_path)
         self.temp_fs.remove_dir(self.output_dir)
 
     def _update_cmd(self):
@@ -994,6 +1011,7 @@ class PosteriorWorker(object):
             abctoolbox_num_posterior_quantiles = None,
             num_top_models = None,
             omega_threshold = 0.01,
+            compress = False,
             tag = ''):
         self.__class__.count += 1
         self.name = self.__class__.__name__ + '-' + str(self.count)
@@ -1007,24 +1025,28 @@ class PosteriorWorker(object):
         self.observed_path = expand_path(observed_path)
         self.num_taxon_pairs = int(num_taxon_pairs)
         if not posterior_out_path:
-            posterior_out_path = self.posterior_path
+            posterior_out_path = self.posterior_path + '.gz'
         self.posterior_out_path = expand_path(posterior_out_path)
         if not output_prefix:
-            output_prefix = self.posterior_out_path + '-'
+            output_prefix = self.posterior_out_path
         self.output_prefix = output_prefix
         self.div_model_results_path = self.output_prefix + \
-                'div-model-results.txt'
-        self.psi_results_path = self.output_prefix + 'psi-results.txt'
-        self.model_results_path = self.output_prefix + 'model-results.txt'
-        self.omega_results_path = self.output_prefix + 'omega-results.txt'
+                '-div-model-results.txt'
+        self.psi_results_path = self.output_prefix + '-psi-results.txt'
+        self.model_results_path = self.output_prefix + '-model-results.txt'
+        self.omega_results_path = self.output_prefix + '-omega-results.txt'
         self.summary_path = self.output_prefix + \
-                'unadjusted-posterior-summary.txt'
-        self.adjusted_summary_path = self.output_prefix + \
-                'glm-posterior-summary.txt'
+                '-posterior-summary.txt'
+        self.abctoolbox_summary_path = self.output_prefix + \
+                '-glm-posterior-summary.txt'
         if not abctoolbox_adjusted_path:
             abctoolbox_adjusted_path = self.output_prefix + \
-                    'glm-posterior-density-estimates.txt'
+                    '-glm-posterior-density-estimates.txt'
         self.adjusted_path = abctoolbox_adjusted_path
+        self.compress = bool(compress)
+        if self.compress:
+            self.abctoolbox_summary_path += '.gz'
+            self.adjusted_path += '.gz'
         if model_indices is not None:
             model_indices = set(model_indices)
         self.model_indices = model_indices
@@ -1062,13 +1084,10 @@ class PosteriorWorker(object):
                     'divergence time vector'.format(self.posterior_path))
         div_models = IntegerPartitionCollection(post['taus'])
         self.num_posterior_samples = div_models.n
-        _LOG.warn('{0}\n'.format(self.num_top_models))
         if not self.num_top_models:
             self.num_top_models = len(div_models.keys())
-        _LOG.warn('{0}\n'.format(self.num_top_models))
         self.div_model_summary = div_models.get_summary()
         self._map_top_div_models(div_models)
-        _LOG.warn('{0},{1}\n'.format(self.num_top_models, self.top_div_models_to_indices))
         dmodels = []
         for k, dm in div_models.iteritems():
             dmodels.extend([self.top_div_models_to_indices[k]] * dm.n)
@@ -1113,16 +1132,25 @@ class PosteriorWorker(object):
 
     def _add_div_model_column_to_posterior(self):
         add_div_model_column(self.posterior_path, self.temp_posterior_path,
-                self.top_div_models_to_indices)
-        shutil.move(self.temp_posterior_path, self.posterior_out_path)
+                self.top_div_models_to_indices,
+                compresslevel = None)
+        post_stream = open(self.posterior_path, 'rU')
+        out = GzipFileStream(self.posterior_out_path, 'w',
+                compresslevel = 9)
+        for line in post_stream:
+            out.write(line)
+        out.close()
+        post_stream.close()
+        if self.posterior_out_path == self.posterior_path + '.gz':
+            shutil.remove(self.posterior_path)
 
     def _prep_regression_worker(self):
         self.regression_worker = ABCToolBoxRegressWorker(
                 temp_fs = self.temp_fs,
                 observed_path = self.observed_path,
-                posterior_path = self.posterior_out_path,
+                posterior_path = self.temp_posterior_path,
                 parameter_indices = None,
-                summary_path = self.adjusted_summary_path,
+                summary_path = self.abctoolbox_summary_path,
                 adjusted_path = self.adjusted_path,
                 exe_path = self.abctoolbox_exe_path,
                 stdout_path = self.abctoolbox_stdout_path,
@@ -1131,7 +1159,8 @@ class PosteriorWorker(object):
                 bandwidth = self.abctoolbox_bandwidth,
                 num_posterior_samples = self.num_posterior_samples,
                 num_posterior_quantiles = \
-                        self.abctoolbox_num_posterior_quantiles)
+                        self.abctoolbox_num_posterior_quantiles,
+                compress = self.compress)
 
     def _process_regression_results(self):
         discrete_probs = summarize_discrete_parameters_from_densities(
@@ -1153,6 +1182,7 @@ class PosteriorWorker(object):
                     self.top_div_models_to_indices[k], 0.0)
         self.adjusted_prob_omega_zero = discrete_probs['PRI.omega'].get(0, 0.0)
         if self.model_probs:
+            self.adjusted_model_probs = {}
             for i in self.model_probs.iterkeys():
                 self.adjusted_model_probs[i] = discrete_probs['PRI.model'].get(
                         i, 0.0)
@@ -1172,7 +1202,7 @@ class PosteriorWorker(object):
 
     def _write_psi_results(self):
         out, close = process_file_arg(self.psi_results_path, 'w')
-        out.write('num_of_divergence_events\testimated_prob\t'
+        out.write('num_of_div_events\testimated_prob\t'
                 'glm_adjusted_prob\n')
         assert sorted(self.psi_probs.keys()) == sorted(
                 self.adjusted_psi_probs.keys())
@@ -1185,7 +1215,7 @@ class PosteriorWorker(object):
     def _write_model_results(self):
         if not self.model_probs:
             return
-        out, close = process_file_arg(self.psi_results_path, 'w')
+        out, close = process_file_arg(self.model_results_path, 'w')
         out.write('model\testimated_prob\t'
                 'glm_adjusted_prob\n')
         for k in self.model_probs.iterkeys():
@@ -1196,8 +1226,8 @@ class PosteriorWorker(object):
 
     def _write_omega_results(self):
         out, close = process_file_arg(self.omega_results_path, 'w')
-        out.write('threshold\tprob_less_than_threshold\t'
-                'glm_prob_less_than_threshold\n')
+        out.write('omega_thresh\tprob_less_than\t'
+                'glm_prob_less_than\n')
         out.write('{0}\t{1}\t{2}\n'.format(
                 self.omega_threshold,
                 self.prob_omega_zero,
@@ -1206,6 +1236,7 @@ class PosteriorWorker(object):
             out.close()
 
     def _write_summary(self):
+        glm = parse_abctoolbox_summary_file(self.abctoolbox_summary_path)
         out, close = process_file_arg(self.summary_path, 'w')
         for param, summary in self.unadjusted_summaries.iteritems():
             out.write('[{0}]\n'.format(param))
@@ -1215,20 +1246,28 @@ class PosteriorWorker(object):
             else:
                 out.write('    modes = {0}\n'.format(', '.join(
                     [str(x) for x in summary['modes']])))
+            out.write('    mode_glm = {0}\n'.format(glm[param]['mode']))
             out.write('    median = {0}\n'.format(summary['median']))
+            out.write('    median_glm = {0}\n'.format(glm[param]['median']))
             out.write('    mean = {0}\n'.format(summary['mean']))
+            out.write('    mean_glm = {0}\n'.format(glm[param]['mean']))
             out.write('    n = {0}\n'.format(summary['n']))
             out.write('    range = {0}, {1}\n'.format(summary['range'][0],
                     summary['range'][1]))
             out.write('    HPD_95_interval = {0}, {1}\n'.format(
                     summary['hpdi_95'][0],
                     summary['hpdi_95'][1]))
+            out.write('    HPD_95_interval_glm = {0}, {1}\n'.format(
+                    glm[param]['HPD_95_lower_bound'],
+                    glm[param]['HPD_95_upper_bound']))
             out.write('    quantile_95_interval = {0}, {1}\n'.format(
                     summary['qi_95'][0],
                     summary['qi_95'][1]))
+            out.write('    quantile_95_interval_glm = {0}, {1}\n'.format(
+                    glm[param]['quantile_95_lower_bound'],
+                    glm[param]['quantile_95_upper_bound']))
         if close:
             out.close()
-        _LOG.warning('{0}\n'.format(open(self.summary_path, 'rU').read()))
 
     def _post_process(self):
         if not self.keep_temps:
