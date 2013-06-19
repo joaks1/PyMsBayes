@@ -35,6 +35,7 @@ def is_gzipped(file_path):
     try:
         fs = open(expand_path(file_path))
         l = fs.next()
+        fs.close()
         if l.startswith("\x1f\x8b"):
             return True
         return False
