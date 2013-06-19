@@ -20,9 +20,17 @@ _LOG = get_logger(__name__)
 
 class ABCTeam(object):
     count = 0
+                        # num_taxon_pairs = self.num_taxon_pairs,
+                        # num_posterior_density_quantiles = \
+                        #         self.num_posterior_density_quantiles,
+                        # abctoolbox_exe_path = self.abctoolbox_exe_path,
+                        # abctoolbox_bandwidth = self.abctoolbox_bandwidth,
+                        # omega_threshold = self.omega_threshold,
+                        # compress = self.compress,
     def __init__(self,
             temp_fs,
             observed_sims_file,
+            num_taxon_pairs,
             model_indices_to_config_paths,
             num_prior_samples,
             num_processors,
@@ -207,15 +215,27 @@ class ABCTeam(object):
                         '\t'.join([header[idx] for idx in all_stat_indices]),
                         '\t'.join([str(l[idx]) for idx in all_stat_indices])))
             for model_idx, rejection_team_list in self.rejection_teams.iteritems():
+                if model_idx == 'combined':
+                    m_indices = models.keys()
+                else:
+                    m_indices = [model_idx]
                 rejection_team_list.append(EuRejectTeam(
                         temp_fs = self.temp_fs,
                         observed_path = tmp_obs_path,
                         output_dir = self.model_dirs[model_idx],
+                        num_taxon_pairs = self.num_taxon_pairs,
                         prior_paths = [],
+                        model_indices = m_indices,
                         summary_in_path = self.summary_paths[model_idx],
                         num_posterior_samples = self.num_posterior_samples,
+                        num_posterior_density_quantiles = \
+                                self.num_posterior_density_quantiles,
                         run_regression = False,
-                        exe_path = self.eureject_exe_path,
+                        eureject_exe_path = self.eureject_exe_path,
+                        abctoolbox_exe_path = self.abctoolbox_exe_path,
+                        abctoolbox_bandwidth = self.abctoolbox_bandwidth,
+                        omega_threshold = self.omega_threshold,
+                        compress = self.compress,
                         keep_temps = self.keep_temps,
                         index = index,
                         tag = str(model_idx)))
@@ -285,6 +305,28 @@ class ABCTeam(object):
         teams_to_run = self._load_rejection_teams(prior_worker_batch)
         self._run_workers(teams_to_run)
 
+    def _run_final_rejections(self):
+        if self.global_estimate_only:
+            return
+        rej_teams = {}
+        rt_length = length(self.rejection_teams['combined'])
+        for k in self.models_keys():
+            assert len(self.rejection_teams[k]) == rt_length
+            for i in range(len(self.rejection_teams[k])):
+                assert self.rejection_teams[k][i].observed_path == \
+                       self.rejection_teams['combined'][i].observed_path
+                self.rejection_teams['combined'][i].prior_paths.append(
+                        self.rejection_teams[k][i].posterior_path)
+        self._run_workers(self.rejection_teams['combined'])
+
+    def _run_regressions(self):
+        to_run = []
+        for model_idx, rt_list in self.rejection_teams.iteritems():
+            for rt in rt_list:
+                rt.run_regression = True
+                to_run.append(rt)
+        self._run_workers(to_run)
+
     def run(self):
         self._run_prior_workers(self.prior_summary_workers)
         self._merge_summaries()
@@ -292,8 +334,8 @@ class ABCTeam(object):
         for prior_worker_batch in self.prior_workers:
             self._run_prior_workers(prior_worker_batch)
             self._run_rejection_teams(prior_worker_batch)
-        # run final rejections if not global only
-        # run regressions
+        self._run_final_rejections()
+        self._run_regressions()
 
 
 class EuRejectTeam(object):
@@ -302,11 +344,18 @@ class EuRejectTeam(object):
             temp_fs,
             observed_path,
             output_dir,
+            num_taxon_pairs,
             prior_paths = [],
+            model_indices = None
             summary_in_path = None,
             num_posterior_samples = 1000,
+            num_posterior_density_quantiles = 1000,
             run_regression = False,
-            exe_path = None,
+            eureject_exe_path = None,
+            abctoolbox_exe_path = None,
+            abctoolbox_bandwidth = None,
+            omega_threshold = 0.01,
+            compress = True,
             keep_temps = False,
             index = 1,
             tag = ''):
@@ -315,10 +364,20 @@ class EuRejectTeam(object):
         self.temp_fs = temp_fs
         self.observed_path = expand_path(observed_path)
         self.output_dir = expand_path(output_dir)
-        self.num_posterior_samples = num_posterior_samples
-        if exe_path:
-            exe_path = expand_path(exe_path)
-        self.exe_path = exe_path
+        self.num_taxon_pairs = int(num_taxon_pairs)
+        if model_indices:
+            model_indices = list(set(model_indices))
+        self.model_indices = model_indices
+        self.num_posterior_samples = int(num_posterior_samples)
+        self.num_posterior_density_quantiles = int(
+                num_posterior_density_quantiles)
+        if eureject_exe_path:
+            eureject_exe_path = expand_path(eureject_exe_path)
+        self.eureject_exe_path = eureject_exe_path
+        self.abctoolbox_exe_path = abctoolbox_exe_path
+        self.abctoolbox_bandwidth = abctoolbox_bandwidth
+        self.omega_threshold = omega_threshold
+        self.compress = compress
         self.prior_paths = [p for p in prior_paths]
         if summary_in_path:
             summary_in_path = expand_path(summary_in_path)
@@ -327,6 +386,7 @@ class EuRejectTeam(object):
         self.posterior_path = None
         self.run_regression = run_regression
         self.index = int(index)
+        self.output_prefix = os.path.join(self.output_dir, str(self.index))
         self.num_calls = 0
 
     def _check_rejection_ready(self):
@@ -337,7 +397,7 @@ class EuRejectTeam(object):
             raise Exception('{0} started without priors'.format(
                     self.name))
 
-    def _check_rejection_ready(self):
+    def _check_regression_ready(self):
         if not self.posterior_path:
             raise Exception('regression called for {0}, but there is no '
                     'posterior yet'.format(self.name))
@@ -371,7 +431,7 @@ class EuRejectTeam(object):
                 summary_out_path = None,
                 posterior_path = new_posterior_path,
                 regression_worker = None,
-                exe_path = self.exe_path,
+                exe_path = self.eureject_exe_path,
                 keep_temps = self.keep_temps,
                 tag = self.tag)
         rw.start()
@@ -379,29 +439,29 @@ class EuRejectTeam(object):
             for pp in p_paths:
                 os.remove(pp)
         assert len(self.prior_paths) == 0
+
     def _run_regression_workers(self):
         self._check_regression_ready(self)
-        post_path = os.path.join(self.output_dir,
-                '{0}-posterior-unadjusted.txt'.format(self.index))
-        # reformat posterior for div models here?
-        # create class:
-        #   takes in posterior file
-        #   summarizes div model probs and median times (can output this)
-        #   creates mapping of div models to indices
-        #   creates new posterior with model indices and does regression
-        shutil.move(self.posterior_path, post_path)
+        post_path = self.output_prefix + '-posterior-sample.txt.gz'
+        pw = PosteriorWorker(
+                temp_fs = self.temp_fs,
+                observed_path = self.observed_path,
+                posterior_path = self.posterior_path,
+                num_taxon_pairs = self.num_taxon_pairs,
+                posterior_out_path = post_path,
+                output_prefix = out_prefix,
+                model_indices = self.model_indices,
+                abctoolbox_exe_path = self.abctoolbox_exe_path,
+                abctoolbox_bandwidth = self.abctoolbox_bandwidth,
+                abctoolbox_num_posterior_quantiles = \
+                        self.num_posterior_density_quantiles
+                omega_threshold = self.omega_threshold,
+                compress = self.compress,
+                keep_temps = self.keep_temps,
+                tag = self.tag)
+        pw.start()
+        shutil.remove(self.posterior_path)
         self.posterior_path = post_path
-
-            # regression_worker = ABCToolBoxRegressWorker(
-            #         temp_fs = self.temp_fs,
-            #         observed_path = obs_path,
-            #         posterior_path = posterior_path,
-            #         parameter_indices = sorted(parameter_indices),
-            #         exe_path = regress_path,
-            #         keep_temps = keep_temps,
-            #         num_posterior_samples = num_posterior_samples,
-            #         bandwidth = bandwidth,
-            #         num_posterior_quantiles = num_posterior_quantiles)
 
 
 class RejectionTeam(object):
