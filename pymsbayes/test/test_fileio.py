@@ -3,9 +3,13 @@
 import unittest
 import os
 
-from pymsbayes.fileio import open, fopen, process_file_arg, FileStream
+from pymsbayes.fileio import (open, fopen, process_file_arg, FileStream,
+        is_gzipped, GzipFileStream)
 from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
+from pymsbayes.utils.messaging import get_logger
+
+_LOG = get_logger(__name__)
 
 class OpenTestCase(PyMsBayesTestCase):
     def setUp(self):
@@ -38,11 +42,29 @@ class OpenTestCase(PyMsBayesTestCase):
         fs.close()
         self.assertEqual(FileStream.open_files, set())
 
+class IsGzippedTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.cfg_path = package_paths.data_path('4pairs_1locus.cfg')
+        self.gz_path = package_paths.data_path(
+                'abctoolbox_posterior_density_file.txt.gz')
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_simple(self):
+        self.assertFalse(is_gzipped(self.cfg_path))
+        self.assertTrue(is_gzipped(self.gz_path))
+
 class ProcessFileArgTestCase(PyMsBayesTestCase):
     def setUp(self):
         self.set_up()
         self.test_path = self.get_test_path()
         self.cfg_path = package_paths.data_path('4pairs_1locus.cfg')
+        self.gz_path = package_paths.data_path(
+                'abctoolbox_posterior_density_file.txt.gz')
+        self.ungz_path = package_paths.data_path(
+                'abctoolbox_posterior_density_file.txt')
 
     def tearDown(self):
         self.tear_down()
@@ -70,6 +92,59 @@ class ProcessFileArgTestCase(PyMsBayesTestCase):
         f.close()
         self.assertTrue(f2.closed)
         self.assertTrue(f.closed)
+
+    def test_compressed_file(self):
+        gzfs, close = process_file_arg(self.gz_path, 'rU')
+        out, close_out = process_file_arg(self.test_path, 'w')
+        for line in gzfs:
+            out.write(line)
+        if close_out:
+            out.close()
+        if close:
+            gzfs.close()
+        self.assertSameFiles([self.ungz_path, self.test_path])
+
+
+class GzipFileStreamTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.test_path = self.get_test_path()
+        self.cfg_path = package_paths.data_path('4pairs_1locus.cfg')
+        self.gz_path = package_paths.data_path(
+                'abctoolbox_posterior_density_file.txt.gz')
+        self.ungz_path = package_paths.data_path(
+                'abctoolbox_posterior_density_file.txt')
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_read(self):
+        gzfs = GzipFileStream(self.gz_path, 'rU')
+        gzfs_str = gzfs.read()
+        with open(self.ungz_path, 'rU') as fs:
+            self.assertEqual(gzfs_str, fs.read())
+        gzfs.close()
+
+    def test_read_compressed_read_uncompressed(self):
+        gzfs = GzipFileStream(self.gz_path, 'rU')
+        out = open(self.test_path, 'w')
+        for line in gzfs:
+            out.write(line)
+        out.close()
+        gzfs.close()
+        self.assertSameFiles([self.ungz_path, self.test_path])
+
+    def test_read_compressed_write_compressed(self):
+        gzfs = GzipFileStream(self.gz_path, 'rU')
+        out = GzipFileStream(self.test_path, 'w')
+        for line in gzfs:
+            out.write(line)
+        out.close()
+        gzfs.close()
+        self.assertTrue(is_gzipped(self.test_path))
+        self.assertSameFiles([self.gz_path, self.test_path])
+
+
 
 if __name__ == '__main__':
     unittest.main()

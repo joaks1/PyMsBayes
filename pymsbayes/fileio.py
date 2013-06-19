@@ -15,30 +15,28 @@ def expand_path(path):
     return os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
 
 def open(*args, **kwargs):
-    if kwargs.has_key('name'):
-        kwargs['name'] = expand_path(kwargs['name'])
-        return FileStream(*args, **kwargs)
-    path = expand_path(args[0])
-    return FileStream(path, *args[1:], **kwargs)
+    return FileStream(*args, **kwargs)
 
 def process_file_arg(file_arg, mode='rU', compresslevel = None):
-    close = False
-    file_stream = file_arg
     if isinstance(file_arg, str):
+        fp = expand_path(file_arg)
+        gzipped = False
+        if os.path.isfile(fp):
+            gzipped = is_gzipped(fp)
         if compresslevel:
-            file_stream = GzipFileStream(expand_path(file_arg), mode,
-                    compresslevel)
+            return GzipFileStream(fp, mode, compresslevel), True
+        elif gzipped:
+            return GzipFileStream(fp, mode), True
         else:
-            file_stream = open(file_arg, mode)
-        close = True
-    return file_stream, close
+            return open(fp, mode), True
+    return file_arg, False
 
-def is_gzip(file_arg):
-    fs, close = process_file_arg(file_arg)
-    l = fs.next()
-    if l.startswith("\x1f\x8b"):
-        return True
-    return False
+def is_gzipped(file_path):
+    with open(expand_path(file_path)) as fs:
+        l = fs.next()
+        if l.startswith("\x1f\x8b"):
+            return True
+        return False
 
 class FileStream(file):
     open_files = set()
