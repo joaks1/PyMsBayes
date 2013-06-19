@@ -12,6 +12,8 @@ from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
 
+GZIP_FILE_PATTERN = re.compile(r'.*\.gz$', re.IGNORECASE)
+
 def get_indices_of_patterns(target_list, regex_list, sort=True):
     indices = []
     for regex in regex_list:
