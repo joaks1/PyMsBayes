@@ -150,7 +150,7 @@ class PyMsBayesTestCase(unittest.TestCase):
         s = dict(zip(
             [i for i in msbayes_workers[0].parameter_indices],
             [SampleSummarizer(
-                name=msbayes_workers[0].header[i]) for i in msbayes_workers[
+                tag=msbayes_workers[0].header[i]) for i in msbayes_workers[
                     0].parameter_indices]))
         ncols = None
         header = msbayes_workers[0].header
