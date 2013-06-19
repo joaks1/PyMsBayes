@@ -93,7 +93,7 @@ class ProcessFileArgTestCase(PyMsBayesTestCase):
         self.assertTrue(f2.closed)
         self.assertTrue(f.closed)
 
-    def test_compressed_file(self):
+    def test_read_compressed_file(self):
         gzfs, close = process_file_arg(self.gz_path, 'rU')
         out, close_out = process_file_arg(self.test_path, 'w')
         for line in gzfs:
@@ -103,6 +103,18 @@ class ProcessFileArgTestCase(PyMsBayesTestCase):
         if close:
             gzfs.close()
         self.assertSameFiles([self.ungz_path, self.test_path])
+
+    def test_write_compressed_file(self):
+        fs, close = process_file_arg(self.ungz_path, 'rU')
+        out, close_out = process_file_arg(self.test_path, 'w', compresslevel=9)
+        for line in fs:
+            out.write(line)
+        if close_out:
+            out.close()
+        if close:
+            fs.close()
+        self.assertTrue(is_gzipped(self.test_path))
+        self.assertSameFiles([self.gz_path, self.test_path])
 
 
 class GzipFileStreamTestCase(PyMsBayesTestCase):
@@ -143,8 +155,6 @@ class GzipFileStreamTestCase(PyMsBayesTestCase):
         gzfs.close()
         self.assertTrue(is_gzipped(self.test_path))
         self.assertSameFiles([self.gz_path, self.test_path])
-
-
 
 if __name__ == '__main__':
     unittest.main()
