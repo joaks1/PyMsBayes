@@ -885,7 +885,7 @@ class ABCToolBoxRegressWorker(Worker):
             keep_temps = False,
             bandwidth = None,
             num_posterior_samples = None,
-            num_posterior_quantiles = None,
+            num_posterior_quantiles = 1000,
             compress = False,
             tag = '',
             ):
@@ -909,8 +909,6 @@ class ABCToolBoxRegressWorker(Worker):
         self.parameter_indices = parameter_indices
         self.header = None
         self.stats_header = None
-        if not num_posterior_quantiles:
-            num_posterior_quantiles = 1000
         self.num_posterior_quantiles = int(num_posterior_quantiles)
         self.num_posterior_samples = num_posterior_samples
         self.bandwidth = bandwidth
@@ -1002,16 +1000,15 @@ class PosteriorWorker(object):
             posterior_out_path = None,
             output_prefix = None,
             model_indices = None,
-            keep_temps = False,
             abctoolbox_exe_path = None,
             abctoolbox_adjusted_path = None,
             abctoolbox_stdout_path = None,
             abctoolbox_stderr_path = None,
             abctoolbox_bandwidth = None,
             abctoolbox_num_posterior_quantiles = None,
-            num_top_models = None,
             omega_threshold = 0.01,
             compress = False,
+            keep_temps = False,
             tag = ''):
         self.__class__.count += 1
         self.name = self.__class__.__name__ + '-' + str(self.count)
@@ -1027,6 +1024,8 @@ class PosteriorWorker(object):
         if not posterior_out_path:
             posterior_out_path = self.posterior_path + '.gz'
         self.posterior_out_path = expand_path(posterior_out_path)
+        if not GZIP_FILE_PATTERN.match(self.posterior_out_path):
+            self.posterior_out_path += '.gz'
         if not output_prefix:
             output_prefix = self.posterior_out_path
         self.output_prefix = output_prefix
@@ -1053,7 +1052,6 @@ class PosteriorWorker(object):
         self.finished = False
         self.tag = str(tag)
         self.top_div_models_to_indices = {}
-        self.num_top_models = num_top_models
         self.num_posterior_samples = None
         self.regression_worker = None
         self.keep_temps = bool(keep_temps)
@@ -1084,8 +1082,6 @@ class PosteriorWorker(object):
                     'divergence time vector'.format(self.posterior_path))
         div_models = IntegerPartitionCollection(post['taus'])
         self.num_posterior_samples = div_models.n
-        if not self.num_top_models:
-            self.num_top_models = len(div_models.keys())
         self.div_model_summary = div_models.get_summary()
         self._map_top_div_models(div_models)
         dmodels = []
@@ -1126,8 +1122,6 @@ class PosteriorWorker(object):
 
     def _map_top_div_models(self, div_models):
         for i, k in enumerate(div_models.iterkeys()):
-            if i >= self.num_top_models:
-                break
             self.top_div_models_to_indices[k] = i + 1
 
     def _add_div_model_column_to_posterior(self):
