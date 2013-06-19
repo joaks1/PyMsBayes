@@ -4,6 +4,7 @@ import unittest
 import os
 
 from pymsbayes.utils import tempfs
+from pymsbayes.utils.functions import mkdr
 from pymsbayes.test.support import package_paths
 from pymsbayes.utils.messaging import get_logger
 
@@ -12,7 +13,7 @@ _LOG = get_logger(__name__)
 class TempFileSystemTestCase(unittest.TestCase):
     def setUp(self):
         self.parent = package_paths.output_path()
-        os.mkdir(self.parent)
+        mkdr(self.parent)
         self.prefix = 'test-temp'
 
     def tearDown(self):
