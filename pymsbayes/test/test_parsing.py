@@ -207,6 +207,27 @@ class ParseParameterDensityFileTestCase(PyMsBayesTestCase):
         self.assertAlmostEqual(sums['PRI.omega'][0], 107.598966652539)
         self.assertAlmostEqual(sums['PRI.omega'][1], 465232.29790955799)
 
+class ParseAbctoolboxSummaryFileTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.psf_path = package_paths.data_path(
+                'abctoolbox_posterior_summary_file.txt')
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_parse(self):
+        summaries = parse_abctoolbox_summary_file(self.psf_path)
+        self.assertEqual(len(summaries), 4)
+        self.assertAlmostEqual(summaries['PRI.Psi']['mode'], 1.0)
+        self.assertAlmostEqual(summaries['PRI.omega']['mode'], 0.000129132)
+        self.assertAlmostEqual(summaries['PRI.Psi']['HPD_99_upper_bound'],
+                1.07843)
+        self.assertAlmostEqual(summaries['PRI.omega']['HPD_99_upper_bound'],
+                0.00152915)
+        self.assertAlmostEqual(summaries['PRI.E.t']['quantile_99_lower_bound'],
+                0.0317952)
+
 if __name__ == '__main__':
     unittest.main()
 

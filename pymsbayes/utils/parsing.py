@@ -282,14 +282,15 @@ def parse_parameters(file_obj):
             samples[k].extend(v)
     return samples
 
-def add_div_model_column(in_file, out_file, div_models_to_indices):
+def add_div_model_column(in_file, out_file, div_models_to_indices,
+        compresslevel = None):
     header = parse_header(in_file)
     if get_indices_of_patterns(header, DIV_MODEL_PATTERNS) != []:
         raise ParameterParsingError('posterior file {0} already has a '
                 'divergence model column'.format(
                 getattr(file_obj, 'name', file_obj)))
     header.insert(0, 'PRI.div.model')
-    out, close = process_file_arg(out_file, 'w')
+    out, close = process_file_arg(out_file, 'w', compresslevel=compresslevel)
     out.write('{0}\n'.format('\t'.join(header)))
     other_index = max(div_models_to_indices.itervalues()) + 1
     for parameters, line in parameter_iter(in_file, include_line = True):
@@ -303,6 +304,22 @@ def add_div_model_column(in_file, out_file, div_models_to_indices):
         out.write('{0}\n'.format('\t'.join(line)))
     if close:
         out.close()
+
+def parse_abctoolbox_summary_file(file_obj):
+    sum_file, close = process_file_arg(file_obj, 'rU')
+    header = sum_file.next().strip().split()
+    param_names = header[1:]
+    params_to_indices = dict(zip(param_names,
+            [i for i in range(len(param_names))]))
+    summaries = dict(zip(param_names, [{} for i in range(len(param_names))]))
+    for line in sum_file:
+        l = line.strip().split()
+        stat_name = l.pop(0)
+        for k, d in summaries.iteritems():
+            d[stat_name] = float(l[params_to_indices[k]])
+    if close:
+        sum_file.close()
+    return summaries
 
 ##############################################################################
 ## ABACUS output parsers
