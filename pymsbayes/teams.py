@@ -3,17 +3,16 @@
 import os
 import sys
 
-from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRejectWorker,
-        ABCToolBoxRegressWorker, RegressionWorker, get_stat_indices,
-        parse_header, DEFAULT_STAT_PATTERNS, PARAMETER_PATTERNS,
-        merge_prior_files, MsRejectWorker, EuRejectSummaryMerger,
-        EuRejectWorker)
+from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRegressWorker,
+        EuRejectSummaryMerger, EuRejectWorker, PosteriorWorker)
+from pymsbayes.utils.parsing import (get_stat_indices, parse_header,
+        DEFAULT_STAT_PATTERNS, PARAMETER_PATTERNS)
 from pymsbayes.manager import Manager
 from pymsbayes.fileio import process_file_arg, expand_path
 from pymsbayes.utils import GLOBAL_RNG, WORK_FORCE
 from pymsbayes.utils.functions import (long_division, least_common_multiple,
         get_random_int, list_splitter)
-from pymsbayes.utils.stats import (merge_sample_summary_mappings
+# from pymsbayes.utils.stats import merge_sample_summary_mappings
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -147,7 +146,7 @@ class ABCTeam(object):
                         seed = seed,
                         schema = 'abctoolbox',
                         stat_patterns = self.stat_patterns,
-                        summary_worker = sum_worker
+                        summary_worker = sum_worker,
                         tag = str(model_index))
                 if sum_worker:
                     self.prior_summary_workers.append(worker)
@@ -187,7 +186,7 @@ class ABCTeam(object):
                         seed = seed,
                         schema = 'abctoolbox',
                         stat_patterns = self.stat_patterns,
-                        summary_worker = sum_worker
+                        summary_worker = sum_worker,
                         tag = str(model_index))
                 if sum_worker:
                     self.prior_summary_workers.append(worker)
@@ -342,11 +341,12 @@ class RejectionTeam(object):
     count = 0
     def __init__(self,
             temp_fs,
+            num_taxon_pairs,
             observed_path,
             output_dir,
-            num_taxon_pairs,
+            output_prefix = '',
             prior_paths = [],
-            model_indices = None
+            model_indices = None,
             summary_in_path = None,
             num_posterior_samples = 1000,
             num_posterior_density_quantiles = 1000,
@@ -386,14 +386,23 @@ class RejectionTeam(object):
         self.posterior_path = None
         self.run_regression = run_regression
         self.index = int(index)
-        self.output_prefix = os.path.join(self.output_dir, str(self.index))
+        self.output_prefix = os.path.join(self.output_dir,
+                str(output_prefix) + str(self.index))
+        self.tag = str(tag)
+        self.div_model_results_path = None
+        self.model_results_path = None
+        self.psi_results_path = None
+        self.omega_results_path = None
+        self.posterior_summary_path = None
+        self.regress_summary_path = None
+        self.regress_posterior_path = None
         self.num_calls = 0
 
     def _check_rejection_ready(self):
-        if not summary_in_path or not os.path.exists(summary_in_path):
+        if not self.summary_in_path or not os.path.exists(self.summary_in_path):
             raise Exception('{0} started without a summary path'.format(
                     self.name))
-        if len(prior_paths) < 1:
+        if len(self.prior_paths) < 1:
             raise Exception('{0} started without priors'.format(
                     self.name))
 
@@ -409,7 +418,7 @@ class RejectionTeam(object):
             self._run_rejection_workers()
 
     def _run_rejection_workers(self):
-        self._check_rejection_ready():
+        self._check_rejection_ready()
         self.num_calls += 1
         p_paths = []
         for i in range(len(self.prior_paths)):
@@ -429,7 +438,7 @@ class RejectionTeam(object):
                 num_standardizing_samples = 0,
                 summary_in_path = self.summary_in_path,
                 summary_out_path = None,
-                posterior_path = new_posterior_path,
+                posterior_path = self.posterior_path,
                 regression_worker = None,
                 exe_path = self.eureject_exe_path,
                 keep_temps = self.keep_temps,
@@ -441,7 +450,7 @@ class RejectionTeam(object):
         assert len(self.prior_paths) == 0
 
     def _run_regression_workers(self):
-        self._check_regression_ready(self)
+        self._check_regression_ready()
         post_path = self.output_prefix + '-posterior-sample.txt.gz'
         pw = PosteriorWorker(
                 temp_fs = self.temp_fs,
@@ -449,17 +458,24 @@ class RejectionTeam(object):
                 posterior_path = self.posterior_path,
                 num_taxon_pairs = self.num_taxon_pairs,
                 posterior_out_path = post_path,
-                output_prefix = out_prefix,
+                output_prefix = self.output_prefix,
                 model_indices = self.model_indices,
                 abctoolbox_exe_path = self.abctoolbox_exe_path,
                 abctoolbox_bandwidth = self.abctoolbox_bandwidth,
                 abctoolbox_num_posterior_quantiles = \
-                        self.num_posterior_density_quantiles
+                        self.num_posterior_density_quantiles,
                 omega_threshold = self.omega_threshold,
                 compress = self.compress,
                 keep_temps = self.keep_temps,
                 tag = self.tag)
         pw.start()
-        shutil.remove(self.posterior_path)
+        os.remove(self.posterior_path)
         self.posterior_path = post_path
+        self.div_model_results_path = pw.div_model_results_path
+        self.model_results_path = pw.model_results_path
+        self.psi_results_path = pw.psi_results_path
+        self.omega_results_path = pw.omega_results_path
+        self.posterior_summary_path = pw.posterior_summary_path
+        self.regress_summary_path = pw.regress_summary_path
+        self.regress_posterior_path = pw.regress_posterior_path
 
