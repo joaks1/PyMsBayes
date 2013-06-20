@@ -555,8 +555,8 @@ class RegressionWorker(Worker):
     def __init__(self,
             observed_path,
             posterior_path,
-            summary_path = None,
-            adjusted_path = None,
+            regress_summary_path = None,
+            regress_posterior_path = None,
             tolerance = 1.0,
             stat_indices = None,
             continuous_parameter_indices = None,
@@ -581,12 +581,14 @@ class RegressionWorker(Worker):
         self.stat_indices = stat_indices
         self.continuous_parameter_indices = continuous_parameter_indices
         self.discrete_parameter_indices = discrete_parameter_indices
-        if not summary_path:
-            summary_path = self.posterior_path + '.regression-summary.txt'
-        self.summary_path = summary_path
-        if not adjusted_path:
-            adjusted_path = self.posterior_path + '.regression-adjusted.txt'
-        self.adjusted_path = adjusted_path
+        if not regress_summary_path:
+            regress_summary_path = self.posterior_path + \
+                    '.regression-summary.txt'
+        self.regress_summary_path = regress_summary_path
+        if not regress_posterior_path:
+            regress_posterior_path = self.posterior_path + \
+                    '.regression-adjusted.txt'
+        self.regress_posterior_path = regress_posterior_path
 
     def _pre_process(self):
         self.header = parse_header(self.posterior_path)
@@ -615,8 +617,8 @@ class RegressionWorker(Worker):
                '-t', str(self.tolerance),
                '--observed-path={0}'.format(self.observed_path),
                '--posterior-path={0}'.format(self.posterior_path),
-               '--summary-path={0}'.format(self.summary_path),
-               '--adjusted-path={0}'.format(self.adjusted_path),
+               '--summary-path={0}'.format(self.regress_summary_path),
+               '--adjusted-path={0}'.format(self.regress_posterior_path),
                '-c', ','.join(
                     [str(i+1) for i in self.continuous_parameter_indices]),
                '-d', ','.join(
@@ -877,8 +879,8 @@ class ABCToolBoxRegressWorker(Worker):
             observed_path,
             posterior_path,
             parameter_indices = None,
-            summary_path = None,
-            adjusted_path = None,
+            regress_summary_path = None,
+            regress_posterior_path = None,
             exe_path = None,
             stdout_path = None,
             stderr_path = None,
@@ -912,12 +914,14 @@ class ABCToolBoxRegressWorker(Worker):
         self.num_posterior_quantiles = int(num_posterior_quantiles)
         self.num_posterior_samples = num_posterior_samples
         self.bandwidth = bandwidth
-        if not summary_path:
-            summary_path = self.posterior_path + '.regression-summary.txt'
-        self.summary_path = summary_path
-        if not adjusted_path:
-            adjusted_path = self.posterior_path + '.regression-adjusted.txt'
-        self.adjusted_path = adjusted_path
+        if not regress_summary_path:
+            regress_summary_path = self.posterior_path + \
+                    '.regression-summary.txt'
+        self.regress_summary_path = regress_summary_path
+        if not regress_posterior_path:
+            regress_posterior_path = self.posterior_path + \
+                    '.regression-adjusted.txt'
+        self.regress_posterior_path = regress_posterior_path
         self.compress = bool(compress)
 
     def _pre_process(self):
@@ -950,24 +954,28 @@ class ABCToolBoxRegressWorker(Worker):
         self._update_cmd()
 
     def _post_process(self):
-        summary_path = self.output_prefix + 'PosteriorCharacteristics_Obs0.txt'
-        adjusted_path = self.output_prefix + 'PosteriorEstimates_Obs0.txt'
+        regress_summary_path = self.output_prefix + \
+                'PosteriorCharacteristics_Obs0.txt'
+        regress_posterior_path = self.output_prefix + \
+                'PosteriorEstimates_Obs0.txt'
         if self.compress:
-            summary_stream = open(summary_path, 'rU')
-            out = GzipFileStream(self.summary_path, 'w', compresslevel = 9)
+            summary_stream = open(regress_summary_path, 'rU')
+            out = GzipFileStream(self.regress_summary_path, 'w',
+                    compresslevel = 9)
             for line in summary_stream:
                 out.write(line)
             summary_stream.close()
             out.close()
-            adjusted_stream = open(adjusted_path, 'rU')
-            out = GzipFileStream(self.adjusted_path, 'w', compresslevel = 9)
+            adjusted_stream = open(regress_posterior_path, 'rU')
+            out = GzipFileStream(self.regress_posterior_path, 'w',
+                    compresslevel = 9)
             for line in adjusted_stream:
                 out.write(line)
             adjusted_stream.close()
             out.close()
         else:
-            shutil.move(summary_path, self.summary_path)
-            shutil.move(adjusted_path, self.adjusted_path)
+            shutil.move(regress_summary_path, self.regress_summary_path)
+            shutil.move(regress_posterior_path, self.regress_posterior_path)
         self.temp_fs.remove_dir(self.output_dir)
 
     def _update_cmd(self):
@@ -1000,8 +1008,8 @@ class PosteriorWorker(object):
             posterior_out_path = None,
             output_prefix = None,
             model_indices = None,
+            regress_posterior_path = None,
             abctoolbox_exe_path = None,
-            abctoolbox_adjusted_path = None,
             abctoolbox_stdout_path = None,
             abctoolbox_stderr_path = None,
             abctoolbox_bandwidth = None,
@@ -1022,10 +1030,8 @@ class PosteriorWorker(object):
         self.observed_path = expand_path(observed_path)
         self.num_taxon_pairs = int(num_taxon_pairs)
         if not posterior_out_path:
-            posterior_out_path = self.posterior_path + '.gz'
+            posterior_out_path = self.posterior_path
         self.posterior_out_path = expand_path(posterior_out_path)
-        if not GZIP_FILE_PATTERN.match(self.posterior_out_path):
-            self.posterior_out_path += '.gz'
         if not output_prefix:
             output_prefix = self.posterior_out_path
         self.output_prefix = output_prefix
@@ -1034,18 +1040,19 @@ class PosteriorWorker(object):
         self.psi_results_path = self.output_prefix + '-psi-results.txt'
         self.model_results_path = self.output_prefix + '-model-results.txt'
         self.omega_results_path = self.output_prefix + '-omega-results.txt'
-        self.summary_path = self.output_prefix + \
+        self.posterior_summary_path = self.output_prefix + \
                 '-posterior-summary.txt'
-        self.abctoolbox_summary_path = self.output_prefix + \
+        self.regress_summary_path = self.output_prefix + \
                 '-glm-posterior-summary.txt'
-        if not abctoolbox_adjusted_path:
-            abctoolbox_adjusted_path = self.output_prefix + \
+        if not regress_posterior_path:
+            regress_posterior_path = self.output_prefix + \
                     '-glm-posterior-density-estimates.txt'
-        self.adjusted_path = abctoolbox_adjusted_path
+        self.regress_posterior_path = regress_posterior_path
         self.compress = bool(compress)
         if self.compress:
-            self.abctoolbox_summary_path += '.gz'
-            self.adjusted_path += '.gz'
+            self.regress_summary_path += '.gz'
+            self.regress_posterior_path += '.gz'
+            self.posterior_out_path += '.gz'
         if model_indices is not None:
             model_indices = set(model_indices)
         self.model_indices = model_indices
@@ -1128,15 +1135,20 @@ class PosteriorWorker(object):
         add_div_model_column(self.posterior_path, self.temp_posterior_path,
                 self.top_div_models_to_indices,
                 compresslevel = None)
-        post_stream = open(self.posterior_path, 'rU')
-        out = GzipFileStream(self.posterior_out_path, 'w',
-                compresslevel = 9)
-        for line in post_stream:
-            out.write(line)
-        out.close()
-        post_stream.close()
-        if self.posterior_out_path == self.posterior_path + '.gz':
-            shutil.remove(self.posterior_path)
+
+    def _return_posterior_sample(self):
+        if self.compress:
+            post_stream = open(self.temp_posterior_path, 'rU')
+            out = GzipFileStream(self.posterior_out_path, 'w',
+                    compresslevel = 9)
+            for line in post_stream:
+                out.write(line)
+            out.close()
+            post_stream.close()
+            if self.posterior_out_path == self.posterior_path + '.gz':
+                os.remove(self.posterior_path)
+        else:
+            shutil.move(self.temp_posterior_path, self.posterior_out_path)
 
     def _prep_regression_worker(self):
         self.regression_worker = ABCToolBoxRegressWorker(
@@ -1144,8 +1156,8 @@ class PosteriorWorker(object):
                 observed_path = self.observed_path,
                 posterior_path = self.temp_posterior_path,
                 parameter_indices = None,
-                summary_path = self.abctoolbox_summary_path,
-                adjusted_path = self.adjusted_path,
+                regress_summary_path = self.regress_summary_path,
+                regress_posterior_path = self.regress_posterior_path,
                 exe_path = self.abctoolbox_exe_path,
                 stdout_path = self.abctoolbox_stdout_path,
                 stderr_path = self.abctoolbox_stderr_path,
@@ -1158,7 +1170,7 @@ class PosteriorWorker(object):
 
     def _process_regression_results(self):
         discrete_probs = summarize_discrete_parameters_from_densities(
-                self.regression_worker.adjusted_path,
+                self.regress_posterior_path,
                 discrete_parameter_patterns = PSI_PATTERNS + MODEL_PATTERNS + \
                         DIV_MODEL_PATTERNS,
                 include_omega_summary = True,
@@ -1168,7 +1180,7 @@ class PosteriorWorker(object):
                     'psi estimates of {1} in posterior {2}'.format(
                         self.num_taxon_pairs,
                         max(discrete_probs['PRI.Psi'].iterkeys()),
-                        self.regression_worker.adjusted_path))
+                        self.regress_posterior_path))
         for i in range(self.num_taxon_pairs):
             self.adjusted_psi_probs[i+1] = discrete_probs['PRI.Psi'].get(i+1, 0.0)
         for k, s in self.div_model_summary:
@@ -1230,8 +1242,8 @@ class PosteriorWorker(object):
             out.close()
 
     def _write_summary(self):
-        glm = parse_abctoolbox_summary_file(self.abctoolbox_summary_path)
-        out, close = process_file_arg(self.summary_path, 'w')
+        glm = parse_abctoolbox_summary_file(self.regress_summary_path)
+        out, close = process_file_arg(self.posterior_summary_path, 'w')
         for param, summary in self.unadjusted_summaries.iteritems():
             out.write('[{0}]\n'.format(param))
             if isinstance(summary['modes'][0], tuple):
@@ -1272,6 +1284,7 @@ class PosteriorWorker(object):
         self._add_div_model_column_to_posterior()
         self._prep_regression_worker()
         self.regression_worker.start()
+        self._return_posterior_sample()
         self._process_regression_results()
         self._write_div_model_results()
         self._write_psi_results()
