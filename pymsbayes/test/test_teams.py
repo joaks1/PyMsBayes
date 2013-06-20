@@ -3,13 +3,14 @@
 import unittest
 import os
 import sys
+import random
 
 from pymsbayes.teams import *
 from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRejectWorker,
         MsRejectWorker, merge_priors)
 from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
-from pymsbayes.test import TestLevel, test_enabled
+from pymsbayes.test import TestLevel, test_enabled, GLOBAL_RNG
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -219,7 +220,6 @@ class RejectionTeamTestCase(PyMsBayesTestCase):
         self.assertSameFiles([rt.regress_summary_path, exp_reg_summary_path])
         self.assertSameFiles([rt.regress_posterior_path, exp_reg_post_path])
 
-
     def test_mult_prior_paths_and_models(self):
         obs_worker = MsBayesWorker(
                 temp_fs = self.temp_fs,
@@ -321,112 +321,48 @@ class RejectionTeamTestCase(PyMsBayesTestCase):
         self.assertSameFiles([rt.regress_summary_path, exp_reg_summary_path])
         self.assertSameFiles([rt.regress_posterior_path, exp_reg_post_path])
 
-    # def test_multiple_prior_workers(self):
-    #     obs_worker = MsBayesWorker(
-    #             temp_fs = self.temp_fs,
-    #             sample_size = 1,
-    #             config_path = self.cfg_path,
-    #             schema = 'abctoolbox',
-    #             write_stats_file = True)
-    #     obs_worker.start()
-    #     prior_workers = []
-    #     for i in range(2):
-    #         prior_worker = MsBayesWorker(
-    #                 temp_fs = self.temp_fs,
-    #                 sample_size = 100,
-    #                 config_path = self.cfg_path,
-    #                 schema = 'abctoolbox',
-    #                 write_stats_file = False)
-    #         prior_worker.start()
-    #         prior_workers.append(prior_worker)
-    #     prior_path = self.get_test_path(prefix='prior-')
-    #     header_path = self.get_test_path(prefix='prior-header-')
-    #     merge_priors(prior_workers,
-    #             prior_path = prior_path,
-    #             header_path = header_path,
-    #             include_header = True)
-    #     rt = RejectionTeam(
-    #             temp_fs = self.temp_fs,
-    #             prior_workers = prior_workers,
-    #             observed_path = obs_worker.prior_stats_path,
-    #             num_posterior_samples = 10,
-    #             keep_temps = True)
-    #     rt.start()
-    #     self.assertTrue(os.path.exists(rt.posterior_path))
-    #     self.assertEqual(self.get_number_of_lines(rt.posterior_path), 11)
-    #     self.assertEqual(self.get_number_of_header_lines(rt.posterior_path), 1)
-    #     post_path = self.get_test_path(prefix='post-')
-    #     rw = ABCToolBoxRejectWorker(
-    #             temp_fs = self.temp_fs,
-    #             observed_path = obs_worker.prior_stats_path,
-    #             prior_path = prior_path,
-    #             num_posterior_samples = 10,
-    #             posterior_path = post_path,
-    #             regression_worker = None,
-    #             max_read_sims = 10000)
-    #     rw.start()
-    #     self.assertSameSamples(files = [rt.posterior_path, rw.posterior_path],
-    #             columns_to_ignore = [],
-    #             header = True,
-    #             places = 4,
-    #             num_mismatches_per_sample = 0,
-    #             num_sample_mismatches = 2)
+class ABCTeamTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.cfg_path = package_paths.data_path('4pairs_1locus.cfg')
+        self.seed = GLOBAL_RNG.randint(1, 999999999)
+        self.rng = random.Random()
+        self.rng.seed(self.seed)
+        self.output_dir = self.get_test_subdir(prefix='abc-team-test-')
 
-    # def test_multiple_prior_workers_large(self):
-    #     if test_enabled(
-    #             level = TestLevel.EXHAUSTIVE,
-    #             log = _LOG,
-    #             module_name = '.'.join([self.__class__.__name__,
-    #                     sys._getframe().f_code.co_name])):
-    #         obs_worker = MsBayesWorker(
-    #                 temp_fs = self.temp_fs,
-    #                 sample_size = 1,
-    #                 config_path = self.cfg_path,
-    #                 schema = 'abctoolbox',
-    #                 write_stats_file = True)
-    #         obs_worker.start()
-    #         prior_workers = []
-    #         for i in range(2):
-    #             prior_worker = MsBayesWorker(
-    #                     temp_fs = self.temp_fs,
-    #                     sample_size = 2000,
-    #                     config_path = self.cfg_path,
-    #                     schema = 'abctoolbox',
-    #                     write_stats_file = False)
-    #             prior_worker.start()
-    #             prior_workers.append(prior_worker)
-    #         prior_path = self.get_test_path(prefix='prior-')
-    #         header_path = self.get_test_path(prefix='prior-header-')
-    #         merge_priors(prior_workers,
-    #                 prior_path = prior_path,
-    #                 header_path = header_path,
-    #                 include_header = True)
-    #         rt = RejectionTeam(
-    #                 temp_fs = self.temp_fs,
-    #                 prior_workers = prior_workers,
-    #                 observed_path = obs_worker.prior_stats_path,
-    #                 num_posterior_samples = 10,
-    #                 keep_temps = True)
-    #         rt.start()
-    #         self.assertTrue(os.path.exists(rt.posterior_path))
-    #         self.assertEqual(self.get_number_of_lines(rt.posterior_path), 11)
-    #         self.assertEqual(self.get_number_of_header_lines(rt.posterior_path), 1)
-    #         post_path = self.get_test_path(prefix='post-')
-    #         rw = ABCToolBoxRejectWorker(
-    #                 temp_fs = self.temp_fs,
-    #                 observed_path = obs_worker.prior_stats_path,
-    #                 prior_path = prior_path,
-    #                 num_posterior_samples = 10,
-    #                 posterior_path = post_path,
-    #                 regression_worker = None,
-    #                 max_read_sims = 10000)
-    #         rw.start()
-    #         self.assertSameSamples(files = [rt.posterior_path, rw.posterior_path],
-    #                 columns_to_ignore = [],
-    #                 header = True,
-    #                 places = 4,
-    #                 num_mismatches_per_sample = 0,
-    #                 num_sample_mismatches = 2)
+    def tearDown(self):
+        self.tear_down()
+    def test_abc_team(self):
+        obs_worker = MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True)
+        obs_worker.start()
+
+        abct = ABCTeam(
+                temp_fs = self.temp_fs,
+                observed_sims_file = obs_worker.prior_stats_path,
+                num_taxon_pairs = 4,
+                model_indices_to_config_paths = {1: self.cfg_path}
+                num_prior_samples = 10000,
+                num_processors = 4,
+                num_standardizing_samples = 1000,
+                num_posterior_samples = 100,
+                num_posterior_density_quantiles = 100,
+                batch_size = 1000,
+                output_dir = self.output_dir,
+                output_prefix = self.test_id,
+                rng = self.rng,
+                abctoolbox_bandwidth = None,
+                omega_threshold = 0.01,
+                compress = False,
+                keep_temps = True,
+                global_estimate_only = False)
+        self.assertFalse(abct.finished)
+        abct.run()
+        self.assertTrue(abct.finished)
 
 
 if __name__ == '__main__':
