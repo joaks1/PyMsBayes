@@ -6,6 +6,7 @@ import errno
 import random
 import string
 import stat
+import math
 
 from pymsbayes.utils import GLOBAL_RNG
 from pymsbayes.fileio import process_file_arg
@@ -85,12 +86,18 @@ def list_splitter(l, n, by_size=False):
     Returns generator that yields list `l` as `n` sublists, or as `n`-sized
     sublists if `by_size` is True.
     """
-    if by_size:
+    if n < 1:
+        raise StopIteration
+    elif by_size:
         for i in range(0, len(l), n):
             yield l[i:i+n]
     else:
-        for i in range(0, len(l), (len(l)/int(n))):
-            yield l[i:i+(len(l)/int(n))]
+        # step_size = len(l)/int(n)
+        step_size = int(math.ceil(len(l)/float(n)))
+        if step_size < 1:
+            step_size = 1
+        for i in range(0, len(l), step_size):
+            yield l[i:i+step_size]
 
 def whereis(file_name):
     """
