@@ -92,12 +92,17 @@ def list_splitter(l, n, by_size=False):
         for i in range(0, len(l), n):
             yield l[i:i+n]
     else:
-        # step_size = len(l)/int(n)
-        step_size = int(math.ceil(len(l)/float(n)))
+        if n > len(l):
+            n = len(l)
+        step_size = len(l)/int(n)
         if step_size < 1:
             step_size = 1
-        for i in range(0, len(l), step_size):
+        # for i in range(0, len(l), step_size):
+        #     yield l[i:i+step_size]
+        i = -step_size
+        for i in range(0, ((n-1)*step_size), step_size):
             yield l[i:i+step_size]
+        yield l[i+step_size:]
 
 def whereis(file_name):
     """
