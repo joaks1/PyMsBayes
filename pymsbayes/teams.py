@@ -20,13 +20,6 @@ _LOG = get_logger(__name__)
 
 class ABCTeam(object):
     count = 0
-                        # num_taxon_pairs = self.num_taxon_pairs,
-                        # num_posterior_density_quantiles = \
-                        #         self.num_posterior_density_quantiles,
-                        # abctoolbox_exe_path = self.abctoolbox_exe_path,
-                        # abctoolbox_bandwidth = self.abctoolbox_bandwidth,
-                        # omega_threshold = self.omega_threshold,
-                        # compress = self.compress,
     def __init__(self,
             temp_fs,
             observed_sims_file,
@@ -36,6 +29,7 @@ class ABCTeam(object):
             num_processors,
             num_standardizing_samples = 10000,
             num_posterior_samples = 1000,
+            num_posterior_density_quantiles = 1000,
             batch_size = 10000,
             output_dir = None,
             rng = None,
@@ -43,9 +37,11 @@ class ABCTeam(object):
             report_parameters = True,
             stat_patterns = DEFAULT_STAT_PATTERNS,
             parameter_patterns = PARAMETER_PATTERNS,
-            msbayes_exe_path = None,
-            abctoolbox_exe_path = None,
             eureject_exe_path = None,
+            abctoolbox_exe_path = None,
+            abctoolbox_bandwidth = None,
+            omega_threshold = 0.01,
+            compress = True,
             keep_temps = False,
             global_estimate_only = False,
             work_queue = WORK_FORCE):
@@ -65,11 +61,13 @@ class ABCTeam(object):
         self.output_dir = mk_new_dir(os.path.join(expand_path(output_dir),
                 'pymsbayes-output'))
         self.global_estimate_only = global_estimate_only
+        self.num_taxon_pairs = num_taxon_pairs
         self.models = model_indices_to_config_paths
         self.num_prior_samples = num_prior_samples
         self.num_processors = num_processors
         self.num_standardizing_samples = num_standardizing_samples
         self.num_posterior_samples = num_posterior_samples
+        self.num_posterior_density_quantiles = num_posterior_density_quantiles
         self.batch_size = batch_size
         self.total_samples = self.num_prior_samples * len(self.models)
         max_samples_per_process = self.total_samples / self.num_processors
@@ -82,9 +80,11 @@ class ABCTeam(object):
                 self.batch_size)
         self.sort_index = sort_index
         self.report_parameters = report_parameters
-        self.msbayes_exe_path = msbayes_exe_path
-        self.abctoolbox_exe_path = abctoolbox_exe_path
         self.eureject_exe_path = eureject_exe_path
+        self.abctoolbox_exe_path = abctoolbox_exe_path
+        self.abctoolbox_bandwidth = abctoolbox_bandwidth
+        self.omega_threshold = omega_threshold
+        self.compress = compresss
         self.model_dirs = dict(zip(self.models.keys(),
                 [mk_new_dir(os.path.join(self.output_dir,
                         'm' + str(k))) for k in self.models.keys()]))
@@ -219,7 +219,7 @@ class ABCTeam(object):
                     m_indices = models.keys()
                 else:
                     m_indices = [model_idx]
-                rejection_team_list.append(EuRejectTeam(
+                rejection_team_list.append(RejectionTeam(
                         temp_fs = self.temp_fs,
                         observed_path = tmp_obs_path,
                         output_dir = self.model_dirs[model_idx],
@@ -338,7 +338,7 @@ class ABCTeam(object):
         self._run_regressions()
 
 
-class EuRejectTeam(object):
+class RejectionTeam(object):
     count = 0
     def __init__(self,
             temp_fs,
@@ -462,220 +462,4 @@ class EuRejectTeam(object):
         pw.start()
         shutil.remove(self.posterior_path)
         self.posterior_path = post_path
-
-
-class RejectionTeam(object):
-    count = 0
-    def __init__(self,
-            temp_fs,
-            prior_workers,
-            observed_path,
-            num_posterior_samples = 1000,
-            abctoolbox_exe_path = None,
-            keep_temps = False):
-        self.__class__.count += 1
-        self.name = self.__class__.__name__ + '-' + str(self.count)
-        self.temp_fs = temp_fs
-        self.observed_path = observed_path
-        self.num_posterior_samples = num_posterior_samples
-        self.abctoolbox_exe_path = abctoolbox_exe_path
-        self.prior_workers = prior_workers
-        self.keep_temps = keep_temps
-        self.posterior_path = None
-        self.num_calls = 0
-
-    # 2/10
-    # def start(self):
-    #     self.num_calls += 1
-    #     for i in range(len(self.prior_workers)):
-    #         # pw = self.prior_workers.pop(0)
-    #         pw = self.prior_workers[i]
-    #         temp_posterior_path = self.temp_fs.get_file_path(
-    #                 prefix = 'temp-posterior-{0}-{1}-{2}-'.format(self.name, 
-    #                         self.num_calls, i+1),
-    #                 create = False)
-    #         rw = ABCToolBoxRejectWorker(
-    #                 temp_fs = self.temp_fs,
-    #                 observed_path = self.observed_path,
-    #                 prior_path = pw.prior_path,
-    #                 num_posterior_samples = self.num_posterior_samples,
-    #                 posterior_path = temp_posterior_path,
-    #                 regression_worker = None,
-    #                 exe_path = self.abctoolbox_exe_path,
-    #                 keep_temps = self.keep_temps,
-    #                 max_read_sims = pw.sample_size + 10)
-    #         rw.start()
-    #         if self.posterior_path:
-    #             new_prior_path = self.temp_fs.get_file_path(
-    #                     prefix = 'prior-{0}-{1}-{2}-'.format(self.name, 
-    #                             self.num_calls, i+1),
-    #                     create = False)
-    #             merge_prior_files(
-    #                     paths = [self.posterior_path, temp_posterior_path],
-    #                     dest_path = new_prior_path)
-    #             new_posterior_path = self.temp_fs.get_file_path(
-    #                     prefix = 'posterior-{0}-{1}-{2}-'.format(self.name, 
-    #                             self.num_calls, i+1),
-    #                     create = False)
-    #             if not self.keep_temps:
-    #                 os.remove(temp_posterior_path)
-    #                 os.remove(self.posterior_path)
-    #                 os.remove(rw.prior_path)
-    #             rw = ABCToolBoxRejectWorker(
-    #                     temp_fs = self.temp_fs,
-    #                     observed_path = self.observed_path,
-    #                     prior_path = new_prior_path,
-    #                     num_posterior_samples = self.num_posterior_samples,
-    #                     posterior_path = new_posterior_path,
-    #                     regression_worker = None,
-    #                     exe_path = self.abctoolbox_exe_path,
-    #                     keep_temps = self.keep_temps,
-    #                     max_read_sims = (2 * self.num_posterior_samples) + 10)
-    #             rw.start()
-    #             self.posterior_path = new_posterior_path
-    #         else:
-    #             self.posterior_path = temp_posterior_path
-    #0/10
-    def start(self):
-        self.num_calls += 1
-        for i in range(len(self.prior_workers)):
-            # pw = self.prior_workers.pop(0)
-            pw = self.prior_workers[i]
-            merge_paths = [pw.prior_path]
-            if self.posterior_path:
-                merge_paths.append(self.posterior_path)
-            new_prior_path = self.temp_fs.get_file_path(
-                    prefix = 'prior-{0}-{1}-{2}-'.format(self.name, 
-                            self.num_calls, i+1),
-                    create = False)
-            merge_prior_files(
-                    paths = merge_paths,
-                    dest_path = new_prior_path)
-            new_posterior_path = self.temp_fs.get_file_path(
-                    prefix = 'posterior-{0}-{1}-{2}-'.format(self.name, 
-                            self.num_calls, i+1),
-                    create = False)
-            if self.posterior_path and not self.keep_temps:
-                os.remove(self.posterior_path)
-            self.posterior_path = new_posterior_path
-            rw = ABCToolBoxRejectWorker(
-                    temp_fs = self.temp_fs,
-                    observed_path = self.observed_path,
-                    prior_path = new_prior_path,
-                    num_posterior_samples = self.num_posterior_samples,
-                    posterior_path = new_posterior_path,
-                    regression_worker = None,
-                    exe_path = self.abctoolbox_exe_path,
-                    keep_temps = self.keep_temps,
-                    max_read_sims = pw.sample_size + \
-                            self.num_posterior_samples + 10)
-            rw.start()
-            if not self.keep_temps:
-                os.remove(rw.prior_path)
-
-class MsRejectionTeam(object):
-    count = 0
-    def __init__(self,
-            temp_fs,
-            prior_workers,
-            observed_path,
-            num_posterior_samples = 1000,
-            msreject_exe_path = None,
-            keep_temps = False):
-        self.__class__.count += 1
-        self.name = self.__class__.__name__ + '-' + str(self.count)
-        self.temp_fs = temp_fs
-        self.observed_path = observed_path
-        self.num_posterior_samples = num_posterior_samples
-        self.msreject_exe_path = msreject_exe_path
-        self.prior_workers = prior_workers
-        self.keep_temps = keep_temps
-        self.posterior_path = None
-        self.num_calls = 0
-
-    #6/10
-    def start(self):
-        self.num_calls += 1
-        for i in range(len(self.prior_workers)):
-            # pw = self.prior_workers.pop(0)
-            pw = self.prior_workers[i]
-            nsamples = pw.sample_size
-            merge_paths = [pw.prior_path]
-            if self.posterior_path:
-                nsamples += self.num_posterior_samples
-                merge_paths.append(self.posterior_path)
-            new_prior_path = self.temp_fs.get_file_path(
-                    prefix = 'prior-{0}-{1}-{2}-'.format(self.name, 
-                            self.num_calls, i+1),
-                    create = False)
-            merge_prior_files(
-                    paths = merge_paths,
-                    dest_path = new_prior_path)
-            new_posterior_path = self.temp_fs.get_file_path(
-                    prefix = 'posterior-{0}-{1}-{2}-'.format(self.name, 
-                            self.num_calls, i+1),
-                    create = False)
-            if self.posterior_path and not self.keep_temps:
-                os.remove(self.posterior_path)
-            self.posterior_path = new_posterior_path
-            tolerance = self.num_posterior_samples / float(nsamples)
-            rw = MsRejectWorker(
-                    header = pw.header,
-                    observed_path = self.observed_path,
-                    prior_path = new_prior_path,
-                    tolerance = tolerance,
-                    posterior_path = new_posterior_path,
-                    regression_worker = None,
-                    exe_path = self.msreject_exe_path)
-            rw.start()
-            if not self.keep_temps:
-                os.remove(rw.prior_path)
-    #1/10
-    # def start(self):
-    #     self.num_calls += 1
-    #     for i in range(len(self.prior_workers)):
-    #         # pw = self.prior_workers.pop(0)
-    #         pw = self.prior_workers[i]
-    #         temp_posterior_path = self.temp_fs.get_file_path(
-    #                 prefix = 'temp-posterior-{0}-{1}-{2}-'.format(self.name, 
-    #                         self.num_calls, i+1),
-    #                 create = False)
-    #         tolerance = self.num_posterior_samples /float(pw.sample_size)
-    #         rw = MsRejectWorker(
-    #                 header = pw.header,
-    #                 observed_path = self.observed_path,
-    #                 prior_path = pw.prior_path,
-    #                 tolerance = tolerance,
-    #                 posterior_path = temp_posterior_path,
-    #                 regression_worker = None,
-    #                 exe_path = self.msreject_exe_path)
-    #         rw.start()
-    #         if self.posterior_path:
-    #             new_prior_path = self.temp_fs.get_file_path(
-    #                     prefix = 'prior-{0}-{1}-{2}-'.format(self.name, 
-    #                             self.num_calls, i+1),
-    #                     create = False)
-    #             merge_prior_files(
-    #                     paths = [self.posterior_path, temp_posterior_path],
-    #                     dest_path = new_prior_path)
-    #             new_posterior_path = self.temp_fs.get_file_path(
-    #                     prefix = 'posterior-{0}-{1}-{2}-'.format(self.name, 
-    #                             self.num_calls, i+1),
-    #                     create = False)
-    #             if not self.keep_temps:
-    #                 os.remove(temp_posterior_path)
-    #                 os.remove(self.posterior_path)
-    #                 os.remove(rw.prior_path)
-    #             rw = MsRejectWorker(
-    #                     header = pw.header,
-    #                     observed_path = self.observed_path,
-    #                     prior_path = new_prior_path,
-    #                     tolerance = 0.5,
-    #                     posterior_path = new_posterior_path,
-    #                     regression_worker = None,
-    #                     exe_path = self.msreject_exe_path)
-    #             rw.start()
-    #             self.posterior_path = new_posterior_path
-    #         else:
-    #             self.posterior_path = temp_posterior_path
 
