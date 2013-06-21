@@ -2,6 +2,7 @@
 
 import os
 import sys
+import copy
 import multiprocessing
 
 from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRegressWorker,
@@ -52,9 +53,13 @@ class ABCTeam(object):
         self.__class__.count += 1
         self.name = self.__class__.__name__ + '-' + str(self.count)
         self.temp_fs = temp_fs
+        self.temp_output_dir = temp_fs.create_subdir(
+                prefix = self.name + '-temp-output-')
         self.observed_temp_dir = temp_fs.create_subdir(
+                parent = self.temp_output_dir,
                 prefix = 'observed-files-')
         self.summary_temp_dir = temp_fs.create_subdir(
+                parent = self.temp_output_dir,
                 prefix = 'summary-files-')
         self.observed_stats_path = expand_path(observed_stats_file)
         if not output_dir:
@@ -378,17 +383,26 @@ class ABCTeam(object):
         for rt in reject_teams:
             rteams[rt.tag].append(rt)
         self.rejection_teams = rteams
+
+    def _purge_priors(self, prior_workers):
+        for pw in prior_workers:
+            os.remove(pw.prior_path)
             
     def _merge_rejection_teams(self):
         if self.num_observed > 1:
             return
+        paths_to_purge = []
         for model_idx, rt_list in self.rejection_teams.iteritems():
             for i in range(len(rt_list)-1):
                 rt = rt_list.pop(-1)
                 if rt.posterior_path:
                     rt_list[0].prior_paths.append(rt.posterior_path)
+                    paths_to_purge.append(rt.posterior_path)
             assert len(rt_list) == 1
         self._run_rejection_teams()
+        if paths_to_purge:
+            for p in paths_to_purge:
+                os.remove(p)
 
     def _sort_rejection_teams(self):
         for k in self.rejection_teams.iterkeys():
@@ -424,11 +438,13 @@ class ABCTeam(object):
         self._merge_summaries()
         self._load_rejection_teams(self.prior_summary_workers)
         self._run_rejection_teams()
+        self._purge_priors(self.prior_summary_workers)
         for i in range(len(self.prior_workers)):
             self.prior_workers[i] = self._run_prior_workers(
                     self.prior_workers[i])
             self._load_rejection_teams(self.prior_workers[i])
             self._run_rejection_teams()
+            self._purge_priors(self.prior_workers[i])
         self._merge_rejection_teams()
         self._run_final_rejections()
         self._run_regressions()
@@ -481,6 +497,7 @@ class RejectionTeam(object):
             summary_in_path = expand_path(summary_in_path)
         self.summary_in_path = summary_in_path
         self.keep_temps = bool(keep_temps)
+        self.keep_priors = True
         self.posterior_path = None
         self.run_regression = run_regression
         self.index = int(index)
@@ -504,6 +521,8 @@ class RejectionTeam(object):
         return True
 
     def regression_ready(self):
+        if self.prior_paths:
+            return False
         if not self.posterior_path:
             return False
         return True
@@ -521,11 +540,14 @@ class RejectionTeam(object):
     def _run_rejection_workers(self):
         self.num_calls += 1
         p_paths = []
+        old_posterior_path = None
+        prior_paths = copy.deepcopy(self.prior_paths)
         for i in range(len(self.prior_paths)):
             path = self.prior_paths.pop(0)
             p_paths.append(path)
         if self.posterior_path:
-            p_paths.append(str(self.posterior_path))
+            old_posterior_path = str(self.posterior_path)
+            p_paths.append(old_posterior_path)
         self.posterior_path = self.temp_fs.get_file_path(
                 prefix = 'posterior-{0}-{1}-{2}-'.format(self.name, 
                         self.num_calls, i+1),
@@ -545,7 +567,10 @@ class RejectionTeam(object):
                 tag = self.tag)
         rw.start()
         if not self.keep_temps:
-            for pp in p_paths:
+            if old_posterior_path:
+                os.remove(old_posterior_path)
+        if not self.keep_priors:
+            for pp in prior_paths:
                 os.remove(pp)
         assert len(self.prior_paths) == 0
 

@@ -7,7 +7,7 @@ import random
 
 from pymsbayes.teams import *
 from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRejectWorker,
-        MsRejectWorker, merge_priors)
+        MsRejectWorker, merge_priors, merge_prior_files)
 from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test import TestLevel, test_enabled
@@ -328,18 +328,26 @@ class ABCTeamTestCase(PyMsBayesTestCase):
     def setUp(self):
         self.set_up()
         self.cfg_path = package_paths.data_path('4pairs_1locus.cfg')
+        self.cfg_path2 = package_paths.data_path('4pairs_1locus_maxt5.cfg')
         self.seed = GLOBAL_RNG.randint(1, 999999999)
         self.rng = random.Random()
         self.rng.seed(self.seed)
         self.output_dir = self.get_test_subdir(prefix='abc-team-test-')
         self.base_dir = os.path.join(self.output_dir, 'pymsbayes-output')
+        self.base_dir2 = self.base_dir + '-0'
         self.temp_fs._register_dir(self.base_dir)
+        self.temp_fs._register_dir(self.base_dir2)
 
     def tearDown(self):
         for p in os.listdir(self.base_dir):
             p = os.path.join(self.base_dir, p)
             if os.path.isdir(p):
                 self.temp_fs._register_dir(p)
+        if os.path.exists(self.base_dir2):
+            for p in os.listdir(self.base_dir2):
+                p = os.path.join(self.base_dir2, p)
+                if os.path.isdir(p):
+                    self.temp_fs._register_dir(p)
         self.tear_down()
 
     def test_abc_team(self):
@@ -383,6 +391,37 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         abct.run()
         self.assertTrue(abct.finished)
 
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][0].posterior_path),
+                num_posterior_samples + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].div_model_results_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].psi_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][0].psi_results_path),
+                num_taxon_pairs + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].omega_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][0].omega_results_path),
+                2)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].posterior_summary_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].regress_posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][0].regress_posterior_path),
+                num_posterior_density_quantiles)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].regress_summary_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][0].regress_summary_path),
+                20)
+
+        MsBayesWorker.count = 1
         self.rng.seed(self.seed)
         work_q = multiprocessing.Queue()
         result_q = multiprocessing.Queue()
@@ -441,7 +480,574 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                 compresslevel = None)
         
         self.assertSameFiles([abct.rejection_teams[1][0].posterior_path,
-                post_path])
+                new_post_path])
+
+        post_out_path = self.get_test_path(prefix='pw-post-out')
+        o_prefix = os.path.join(self.temp_fs.base_dir, self.test_id)
+        pw = PosteriorWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                posterior_path = post_path,
+                num_taxon_pairs = num_taxon_pairs,
+                posterior_out_path = post_out_path,
+                output_prefix = o_prefix,
+                model_indices = [1],
+                abctoolbox_bandwidth = None,
+                abctoolbox_num_posterior_quantiles = \
+                        num_posterior_density_quantiles,
+                omega_threshold = 0.01,
+                compress = False,
+                keep_temps = False,
+                tag = 1)
+        pw.start()
+
+        self.assertSameFiles([pw.posterior_out_path, new_post_path,
+                abct.rejection_teams[1][0].posterior_path])
+        self.assertSameFiles([
+                abct.rejection_teams[1][0].regress_posterior_path,
+                pw.regress_posterior_path])
+        self.assertSameFiles([
+                abct.rejection_teams[1][0].regress_summary_path,
+                pw.regress_summary_path])
+        self.assertSameFiles([
+                abct.rejection_teams[1][0].div_model_results_path,
+                pw.div_model_results_path])
+        self.assertSameFiles([
+                abct.rejection_teams[1][0].psi_results_path,
+                pw.psi_results_path])
+        self.assertSameFiles([
+                abct.rejection_teams[1][0].omega_results_path,
+                pw.omega_results_path])
+        self.assertSameFiles([
+                abct.rejection_teams[1][0].posterior_summary_path,
+                pw.posterior_summary_path])
+
+    def test_abc_team_repeatability(self):
+        obs_worker = MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True)
+        obs_worker.start()
+
+        num_taxon_pairs = 4
+        num_prior_samples = 2000
+        num_processors = 4
+        batch_size = 200
+        num_standardizing_samples = 800
+        num_posterior_samples = 100
+        num_posterior_density_quantiles = 100
+        num_batches = num_prior_samples / batch_size
+
+        abct1 = ABCTeam(
+                temp_fs = self.temp_fs,
+                observed_stats_file = obs_worker.prior_stats_path,
+                num_taxon_pairs = num_taxon_pairs,
+                model_indices_to_config_paths = {1: self.cfg_path},
+                num_prior_samples = num_prior_samples,
+                num_processors = num_processors,
+                num_standardizing_samples = num_standardizing_samples,
+                num_posterior_samples = num_posterior_samples,
+                num_posterior_density_quantiles = num_posterior_density_quantiles,
+                batch_size = batch_size,
+                output_dir = self.output_dir,
+                output_prefix = self.test_id,
+                rng = self.rng,
+                abctoolbox_bandwidth = None,
+                omega_threshold = 0.01,
+                compress = False,
+                keep_temps = False,
+                global_estimate_only = False)
+        self.assertFalse(abct1.finished)
+        abct1.run()
+        self.assertTrue(abct1.finished)
+
+        self.rng.seed(self.seed)
+
+        abct2 = ABCTeam(
+                temp_fs = self.temp_fs,
+                observed_stats_file = obs_worker.prior_stats_path,
+                num_taxon_pairs = num_taxon_pairs,
+                model_indices_to_config_paths = {1: self.cfg_path},
+                num_prior_samples = num_prior_samples,
+                num_processors = num_processors,
+                num_standardizing_samples = num_standardizing_samples,
+                num_posterior_samples = num_posterior_samples,
+                num_posterior_density_quantiles = num_posterior_density_quantiles,
+                batch_size = batch_size,
+                output_dir = self.output_dir,
+                output_prefix = self.test_id,
+                rng = self.rng,
+                abctoolbox_bandwidth = None,
+                omega_threshold = 0.01,
+                compress = False,
+                keep_temps = False,
+                global_estimate_only = False)
+        self.assertFalse(abct2.finished)
+        abct2.run()
+        self.assertTrue(abct2.finished)
+
+        self.assertSameFiles([
+                abct1.rejection_teams[1][0].regress_posterior_path,
+                abct2.rejection_teams[1][0].regress_posterior_path])
+        self.assertSameFiles([
+                abct1.rejection_teams[1][0].regress_summary_path,
+                abct2.rejection_teams[1][0].regress_summary_path])
+        self.assertSameFiles([
+                abct1.rejection_teams[1][0].div_model_results_path,
+                abct2.rejection_teams[1][0].div_model_results_path])
+        self.assertSameFiles([
+                abct1.rejection_teams[1][0].psi_results_path,
+                abct2.rejection_teams[1][0].psi_results_path])
+        self.assertSameFiles([
+                abct1.rejection_teams[1][0].omega_results_path,
+                abct2.rejection_teams[1][0].omega_results_path])
+        self.assertSameFiles([
+                abct1.rejection_teams[1][0].posterior_summary_path,
+                abct2.rejection_teams[1][0].posterior_summary_path])
+
+    def test_abc_team_multiple_models(self):
+        obs_worker = MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True)
+        obs_worker.start()
+
+        num_taxon_pairs = 4
+        num_prior_samples = 2000
+        num_processors = 4
+        batch_size = 200
+        num_standardizing_samples = 800
+        num_posterior_samples = 100
+        num_posterior_density_quantiles = 100
+        num_batches = num_prior_samples / batch_size
+
+        abct = ABCTeam(
+                temp_fs = self.temp_fs,
+                observed_stats_file = obs_worker.prior_stats_path,
+                num_taxon_pairs = num_taxon_pairs,
+                model_indices_to_config_paths = {1: self.cfg_path,
+                        2: self.cfg_path2},
+                num_prior_samples = num_prior_samples,
+                num_processors = num_processors,
+                num_standardizing_samples = num_standardizing_samples,
+                num_posterior_samples = num_posterior_samples,
+                num_posterior_density_quantiles = num_posterior_density_quantiles,
+                batch_size = batch_size,
+                output_dir = self.output_dir,
+                output_prefix = self.test_id,
+                rng = self.rng,
+                abctoolbox_bandwidth = None,
+                omega_threshold = 0.01,
+                compress = False,
+                keep_temps = False,
+                global_estimate_only = False)
+        self.assertFalse(abct.finished)
+        abct.run()
+        self.assertTrue(abct.finished)
+
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][0].posterior_path),
+                num_posterior_samples + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].div_model_results_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].psi_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][0].psi_results_path),
+                num_taxon_pairs + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].omega_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][0].omega_results_path),
+                2)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].posterior_summary_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].regress_posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][0].regress_posterior_path),
+                num_posterior_density_quantiles)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].regress_summary_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][0].regress_summary_path),
+                20)
+
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][0].posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[2][0].posterior_path),
+                num_posterior_samples + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][0].div_model_results_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][0].psi_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[2][0].psi_results_path),
+                num_taxon_pairs + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][0].omega_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[2][0].omega_results_path),
+                2)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][0].posterior_summary_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][0].regress_posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[2][0].regress_posterior_path),
+                num_posterior_density_quantiles)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][0].regress_summary_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[2][0].regress_summary_path),
+                20)
+
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][0].posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams['combined'][0].posterior_path),
+                num_posterior_samples + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][0].div_model_results_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][0].psi_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams['combined'][0].psi_results_path),
+                num_taxon_pairs + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][0].omega_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams['combined'][0].omega_results_path),
+                2)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][0].posterior_summary_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][0].regress_posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams['combined'][0].regress_posterior_path),
+                num_posterior_density_quantiles)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][0].regress_summary_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams['combined'][0].regress_summary_path),
+                20)
+
+    def test_abc_team_multiple_models_global_vs_model_wise(self):
+        obs_worker = MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True)
+        obs_worker.start()
+
+        num_taxon_pairs = 4
+        num_prior_samples = 2000
+        num_processors = 4
+        batch_size = 200
+        num_standardizing_samples = 800
+        num_posterior_samples = 100
+        num_posterior_density_quantiles = 100
+        num_batches = num_prior_samples / batch_size
+
+        abct1 = ABCTeam(
+                temp_fs = self.temp_fs,
+                observed_stats_file = obs_worker.prior_stats_path,
+                num_taxon_pairs = num_taxon_pairs,
+                model_indices_to_config_paths = {1: self.cfg_path,
+                        2: self.cfg_path2},
+                num_prior_samples = num_prior_samples,
+                num_processors = num_processors,
+                num_standardizing_samples = num_standardizing_samples,
+                num_posterior_samples = num_posterior_samples,
+                num_posterior_density_quantiles = num_posterior_density_quantiles,
+                batch_size = batch_size,
+                output_dir = self.output_dir,
+                output_prefix = self.test_id,
+                rng = self.rng,
+                abctoolbox_bandwidth = None,
+                omega_threshold = 0.01,
+                compress = False,
+                keep_temps = False,
+                global_estimate_only = False)
+        self.assertFalse(abct1.finished)
+        abct1.run()
+        self.assertTrue(abct1.finished)
+
+        self.rng.seed(self.seed)
+
+        abct2 = ABCTeam(
+                temp_fs = self.temp_fs,
+                observed_stats_file = obs_worker.prior_stats_path,
+                num_taxon_pairs = num_taxon_pairs,
+                model_indices_to_config_paths = {1: self.cfg_path,
+                        2: self.cfg_path2},
+                num_prior_samples = num_prior_samples,
+                num_processors = num_processors,
+                num_standardizing_samples = num_standardizing_samples,
+                num_posterior_samples = num_posterior_samples,
+                num_posterior_density_quantiles = num_posterior_density_quantiles,
+                batch_size = batch_size,
+                output_dir = self.output_dir,
+                output_prefix = self.test_id,
+                rng = self.rng,
+                abctoolbox_bandwidth = None,
+                omega_threshold = 0.01,
+                compress = False,
+                keep_temps = False,
+                global_estimate_only = True)
+        self.assertFalse(abct2.finished)
+        abct2.run()
+        self.assertTrue(abct2.finished)
+
+        self.assertSameSamples(files = [
+                abct1.rejection_teams['combined'][0].posterior_path,
+                abct2.rejection_teams['combined'][0].posterior_path],
+                columns_to_ignore = [0],
+                header = True,
+                places = 5,
+                num_mismatches_per_sample = 40,
+                num_sample_mismatches = 40)
+
+    def test_abc_team_multiple_models_multiple_obs(self):
+        obs_worker1 = MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True)
+        obs_worker1.start()
+        obs_worker2 = MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True)
+        obs_worker2.start()
+
+        obs_path = self.get_test_path(prefix='obs-sims')
+        merge_prior_files([obs_worker1.prior_stats_path,
+                obs_worker2.prior_stats_path], obs_path)
+
+        num_taxon_pairs = 4
+        num_prior_samples = 2000
+        num_processors = 4
+        batch_size = 200
+        num_standardizing_samples = 800
+        num_posterior_samples = 100
+        num_posterior_density_quantiles = 100
+        num_batches = num_prior_samples / batch_size
+
+        abct = ABCTeam(
+                temp_fs = self.temp_fs,
+                observed_stats_file = obs_path,
+                num_taxon_pairs = num_taxon_pairs,
+                model_indices_to_config_paths = {1: self.cfg_path,
+                        2: self.cfg_path2},
+                num_prior_samples = num_prior_samples,
+                num_processors = num_processors,
+                num_standardizing_samples = num_standardizing_samples,
+                num_posterior_samples = num_posterior_samples,
+                num_posterior_density_quantiles = num_posterior_density_quantiles,
+                batch_size = batch_size,
+                output_dir = self.output_dir,
+                output_prefix = self.test_id,
+                rng = self.rng,
+                abctoolbox_bandwidth = None,
+                omega_threshold = 0.01,
+                compress = False,
+                keep_temps = False,
+                global_estimate_only = False)
+        self.assertFalse(abct.finished)
+        abct.run()
+        self.assertTrue(abct.finished)
+
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][0].posterior_path),
+                num_posterior_samples + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].div_model_results_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].psi_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][0].psi_results_path),
+                num_taxon_pairs + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].omega_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][0].omega_results_path),
+                2)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].posterior_summary_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].regress_posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][0].regress_posterior_path),
+                num_posterior_density_quantiles)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][0].regress_summary_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][0].regress_summary_path),
+                20)
+
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][0].posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[2][0].posterior_path),
+                num_posterior_samples + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][0].div_model_results_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][0].psi_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[2][0].psi_results_path),
+                num_taxon_pairs + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][0].omega_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[2][0].omega_results_path),
+                2)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][0].posterior_summary_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][0].regress_posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[2][0].regress_posterior_path),
+                num_posterior_density_quantiles)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][0].regress_summary_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[2][0].regress_summary_path),
+                20)
+
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][0].posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams['combined'][0].posterior_path),
+                num_posterior_samples + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][0].div_model_results_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][0].psi_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams['combined'][0].psi_results_path),
+                num_taxon_pairs + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][0].omega_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams['combined'][0].omega_results_path),
+                2)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][0].posterior_summary_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][0].regress_posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams['combined'][0].regress_posterior_path),
+                num_posterior_density_quantiles)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][0].regress_summary_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams['combined'][0].regress_summary_path),
+                20)
+
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][1].posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][1].posterior_path),
+                num_posterior_samples + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][1].div_model_results_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][1].psi_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][1].psi_results_path),
+                num_taxon_pairs + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][1].omega_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][1].omega_results_path),
+                2)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][1].posterior_summary_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][1].regress_posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][1].regress_posterior_path),
+                num_posterior_density_quantiles)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[1][1].regress_summary_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[1][1].regress_summary_path),
+                20)
+
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][1].posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[2][1].posterior_path),
+                num_posterior_samples + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][1].div_model_results_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][1].psi_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[2][1].psi_results_path),
+                num_taxon_pairs + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][1].omega_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[2][1].omega_results_path),
+                2)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][1].posterior_summary_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][1].regress_posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[2][1].regress_posterior_path),
+                num_posterior_density_quantiles)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams[2][1].regress_summary_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams[2][1].regress_summary_path),
+                20)
+
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][1].posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams['combined'][1].posterior_path),
+                num_posterior_samples + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][1].div_model_results_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][1].psi_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams['combined'][1].psi_results_path),
+                num_taxon_pairs + 1)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][1].omega_results_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams['combined'][1].omega_results_path),
+                2)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][1].posterior_summary_path))
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][1].regress_posterior_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams['combined'][1].regress_posterior_path),
+                num_posterior_density_quantiles)
+        self.assertTrue(os.path.isfile(
+                abct.rejection_teams['combined'][1].regress_summary_path))
+        self.assertTrue(self.get_number_of_lines(
+                abct.rejection_teams['combined'][1].regress_summary_path),
+                20)
 
 if __name__ == '__main__':
     unittest.main()
