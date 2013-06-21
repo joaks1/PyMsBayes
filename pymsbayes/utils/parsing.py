@@ -290,7 +290,7 @@ def add_div_model_column(in_file, out_file, div_models_to_indices,
     if get_indices_of_patterns(header, DIV_MODEL_PATTERNS) != []:
         raise ParameterParsingError('posterior file {0} already has a '
                 'divergence model column'.format(
-                getattr(file_obj, 'name', file_obj)))
+                getattr(in_file, 'name', in_file)))
     header.insert(0, 'PRI.div.model')
     out, close = process_file_arg(out_file, 'w', compresslevel=compresslevel)
     out.write('{0}\n'.format('\t'.join(header)))
