@@ -2265,6 +2265,88 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
                 self.get_number_of_header_lines(post_worker.model_results_path),
                 1)
 
+    def test_without_compression_with_one_model(self):
+        prior_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 100,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                model_index = 1,
+                report_parameters = True)
+        prior_worker.start()
+        obs_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True,
+                report_parameters = True)
+        obs_worker.start()
+
+        post_out = self.get_test_path(parent = self.output_dir,
+                prefix = self.test_id + '-posterior-sample-')
+        density_path = self.get_test_path(parent = self.output_dir,
+                prefix = self.test_id + '-posterior-density-')
+        post_worker = workers.PosteriorWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                posterior_path = prior_worker.prior_path,
+                num_taxon_pairs = 4,
+                posterior_out_path = post_out,
+                output_prefix = self.output_prefix,
+                model_indices = None,
+                keep_temps = False,
+                regress_posterior_path = density_path,
+                omega_threshold = 0.01,
+                abctoolbox_num_posterior_quantiles = 1000,
+                compress = False,
+                tag = 'test')
+
+        self.assertFalse(post_worker.finished)
+        post_worker.start()
+        self.assertTrue(post_worker.finished)
+        self.assertTrue(os.path.isfile(post_worker.posterior_out_path))
+        self.assertFalse(is_gzipped(post_worker.posterior_out_path))
+        self.assertTrue(os.path.isfile(post_worker.regress_posterior_path))
+        self.assertFalse(is_gzipped(post_worker.regress_posterior_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.regress_posterior_path),
+                1001)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.regress_posterior_path),
+                1)
+        self.assertTrue(os.path.isfile(post_worker.regress_summary_path))
+        self.assertFalse(is_gzipped(post_worker.regress_summary_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.regress_summary_path),
+                20)
+        self.assertTrue(os.path.isfile(post_worker.posterior_summary_path))
+        self.assertTrue(os.path.isfile(post_worker.div_model_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.div_model_results_path),
+                6)
+        self.assertTrue(os.path.isfile(post_worker.psi_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.psi_results_path),
+                5)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.psi_results_path),
+                1)
+        self.assertTrue(os.path.isfile(post_worker.omega_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.omega_results_path),
+                2)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.omega_results_path),
+                1)
+        self.assertTrue(os.path.isfile(post_worker.model_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.model_results_path),
+                2)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.model_results_path),
+                1)
+
     def test_with_compression(self):
         prior_worker = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
