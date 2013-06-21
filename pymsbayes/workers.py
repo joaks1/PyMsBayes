@@ -38,7 +38,7 @@ class Worker(object):
     def __init__(self,
             stdout_path = None,
             stderr_path = None,
-            tag = ''):
+            tag = None):
         self.__class__.total += 1
         self.stdout_path = stdout_path
         self.stderr_path = stderr_path
@@ -48,7 +48,7 @@ class Worker(object):
         self.exit_code = None
         self.stdout = None
         self.stderr = None
-        self.tag = str(tag)
+        self.tag = tag
 
     def get_stderr(self):
         if not self.stderr_path:
@@ -204,7 +204,7 @@ class MsBayesWorker(Worker):
             stderr_path = None,
             staging_dir = None,
             write_stats_file = False,
-            tag = ''):
+            tag = None):
         Worker.__init__(self,
                 stdout_path = stdout_path,
                 stderr_path = stderr_path,
@@ -498,7 +498,7 @@ class MsRejectWorker(Worker):
             regression_worker = None,
             exe_path = None,
             stderr_path = None,
-            tag = ''):
+            tag = None):
         Worker.__init__(self,
                 stdout_path = None,
                 stderr_path = stderr_path,
@@ -564,7 +564,7 @@ class RegressionWorker(Worker):
             exe_path = None,
             stdout_path = None,
             stderr_path = None,
-            tag = ''):
+            tag = None):
         Worker.__init__(self,
                 stdout_path = stdout_path,
                 stderr_path = stderr_path,
@@ -630,13 +630,13 @@ class RegressionWorker(Worker):
 
 class EuRejectSummaryMerger(object):
     count = 0
-    def __init__(self, eureject_workers, tag = ''):
+    def __init__(self, eureject_workers, tag = None):
         self.__class__.count += 1
         self.name = self.__class__.__name__ + '-' + str(self.count)
         self.eureject_workers = eureject_workers
         self.sample_sum_collection = None
         self.finished = False
-        self.tag = str(tag)
+        self.tag = tag
 
     def _check_worker(self, eureject_worker):
         if not eureject_worker.finished:
@@ -695,7 +695,7 @@ class EuRejectWorker(Worker):
             exe_path = None,
             stderr_path = None,
             keep_temps = False,
-            tag = ''):
+            tag = None):
         Worker.__init__(self,
                 stdout_path = None,
                 stderr_path = None,
@@ -795,7 +795,7 @@ class ABCToolBoxRejectWorker(Worker):
             stderr_path = None,
             keep_temps = False,
             max_read_sims = 10000000,
-            tag = ''):
+            tag = None):
         Worker.__init__(self,
                 stdout_path = stdout_path,
                 stderr_path = stderr_path,
@@ -823,6 +823,7 @@ class ABCToolBoxRejectWorker(Worker):
         self.num_posterior_samples = int(num_posterior_samples)
         self.regression_worker = regression_worker
         self.max_read_sims = int(max_read_sims)
+        self.keep_temps = keep_temps
 
     def _pre_process(self):
         self.header = parse_header(self.prior_path)
@@ -848,9 +849,10 @@ class ABCToolBoxRejectWorker(Worker):
             with open(post_path, 'rU') as i:
                 for l in i:
                     o.write('{0}\n'.format('\t'.join(l.strip().split()[2:])))
-        self.temp_fs.remove_dir(self.output_dir)
         if self.regression_worker:
             self.regression_worker.start()
+        if not self.keep_temps:
+            self.temp_fs.remove_dir(self.output_dir)
 
     def _update_cmd(self):
         cmd = [self.exe_path, self.cfg_path]
@@ -889,7 +891,7 @@ class ABCToolBoxRegressWorker(Worker):
             num_posterior_samples = None,
             num_posterior_quantiles = 1000,
             compress = False,
-            tag = '',
+            tag = None,
             ):
         Worker.__init__(self,
                 stdout_path = stdout_path,
@@ -904,7 +906,8 @@ class ABCToolBoxRegressWorker(Worker):
         self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
         self.output_prefix = os.path.join(self.output_dir, 
                 self.temp_fs.token_id + '_ABC_GLM_')
-        self.cfg_path = self.temp_fs.get_file_path(prefix = 'cfg-',
+        self.cfg_path = self.temp_fs.get_file_path(parent = self.output_dir,
+                prefix = 'cfg-',
                 create = False)
         self.observed_path = expand_path(observed_path)
         self.posterior_path = expand_path(posterior_path)
@@ -922,7 +925,8 @@ class ABCToolBoxRegressWorker(Worker):
             regress_posterior_path = self.posterior_path + \
                     '.regression-adjusted.txt'
         self.regress_posterior_path = regress_posterior_path
-        self.compress = bool(compress)
+        self.compress = compress
+        self.keep_temps = keep_temps
 
     def _pre_process(self):
         self.header = parse_header(self.posterior_path)
@@ -976,7 +980,8 @@ class ABCToolBoxRegressWorker(Worker):
         else:
             shutil.move(regress_summary_path, self.regress_summary_path)
             shutil.move(regress_posterior_path, self.regress_posterior_path)
-        self.temp_fs.remove_dir(self.output_dir)
+        if not self.keep_temps:
+            self.temp_fs.remove_dir(self.output_dir)
 
     def _update_cmd(self):
         cmd = [self.exe_path, self.cfg_path]
@@ -1017,7 +1022,7 @@ class PosteriorWorker(object):
             omega_threshold = 0.01,
             compress = False,
             keep_temps = False,
-            tag = ''):
+            tag = None):
         self.__class__.count += 1
         self.name = self.__class__.__name__ + '-' + str(self.count)
         self.temp_fs = temp_fs
@@ -1057,7 +1062,7 @@ class PosteriorWorker(object):
             model_indices = set(model_indices)
         self.model_indices = model_indices
         self.finished = False
-        self.tag = str(tag)
+        self.tag = tag
         self.top_div_models_to_indices = {}
         self.num_posterior_samples = None
         self.regression_worker = None
@@ -1081,6 +1086,7 @@ class PosteriorWorker(object):
         self.adjusted_prob_omega_zero = None
         self.div_model_summary = None
         self.unadjusted_summaries = {}
+        self.parameter_patterns_to_remove = set()
 
     def _process_posterior_sample(self):
         post = parse_parameters(self.posterior_path)
@@ -1105,6 +1111,8 @@ class PosteriorWorker(object):
         for i in range(self.num_taxon_pairs):
             self.psi_probs[i+1] = psi_freqs.get(i+1, 0.0)
         if post.has_key('model'):
+            if len(set(post['model'])) < 2:
+                self.parameter_patterns_to_remove.update(MODEL_PATTERNS)
             model_freqs = get_freqs(post['model'])
             if self.model_indices:
                 self.model_probs = {}
@@ -1119,6 +1127,14 @@ class PosteriorWorker(object):
                 self.model_probs = model_freqs
         self.prob_omega_zero = freq_less_than(post['omega'],
                 self.omega_threshold)
+        if len(set(post['div_model'])) < 2:
+            self.parameter_patterns_to_remove.update(DIV_MODEL_PATTERNS)
+        if len(set(post['psi'])) < 2:
+            self.parameter_patterns_to_remove.update(PSI_PATTERNS)
+        if len(set(post['omega'])) < 2:
+            self.parameter_patterns_to_remove.update(OMEGA_PATTERNS)
+        if len(set(post['mean_tau'])) < 2:
+            self.parameter_patterns_to_remove.update(MEAN_TAU_PATTERNS)
         self.unadjusted_summaries['PRI.omega'] = get_summary(post['omega'])
         self.unadjusted_summaries['PRI.E.t'] = get_summary(post['mean_tau'])
         self.unadjusted_summaries['PRI.Psi'] = get_summary(post['psi'])
@@ -1149,13 +1165,21 @@ class PosteriorWorker(object):
                 os.remove(self.posterior_path)
         else:
             shutil.move(self.temp_posterior_path, self.posterior_out_path)
+            self.temp_posterior_path = self.posterior_out_path
 
     def _prep_regression_worker(self):
+        header = parse_header(self.temp_posterior_path)
+        all_patterns = set(MEAN_TAU_PATTERNS + OMEGA_PATTERNS + \
+                MODEL_PATTERNS + PSI_PATTERNS + DIV_MODEL_PATTERNS)
+        parameter_patterns = sorted(list(all_patterns - \
+                self.parameter_patterns_to_remove))
+        parameter_indices = sorted(get_parameter_indices(header,
+                parameter_patterns = parameter_patterns))
         self.regression_worker = ABCToolBoxRegressWorker(
                 temp_fs = self.temp_fs,
                 observed_path = self.observed_path,
                 posterior_path = self.temp_posterior_path,
-                parameter_indices = None,
+                parameter_indices = parameter_indices,
                 regress_summary_path = self.regress_summary_path,
                 regress_posterior_path = self.regress_posterior_path,
                 exe_path = self.abctoolbox_exe_path,
@@ -1169,29 +1193,34 @@ class PosteriorWorker(object):
                 compress = self.compress)
 
     def _process_regression_results(self):
+        discrete_parameter_patterns = list(set(PSI_PATTERNS + MODEL_PATTERNS + \
+                DIV_MODEL_PATTERNS) - self.parameter_patterns_to_remove)
         discrete_probs = summarize_discrete_parameters_from_densities(
                 self.regress_posterior_path,
-                discrete_parameter_patterns = PSI_PATTERNS + MODEL_PATTERNS + \
-                        DIV_MODEL_PATTERNS,
+                discrete_parameter_patterns = discrete_parameter_patterns,
                 include_omega_summary = True,
                 omega_threshold = self.omega_threshold)
-        if max(discrete_probs['PRI.Psi'].iterkeys()) > self.num_taxon_pairs:
+        if max(discrete_probs.get('PRI.Psi', {-1: None}).iterkeys()) > \
+                self.num_taxon_pairs:
             raise ValueError('number of taxon pairs is {0}, but found '
                     'psi estimates of {1} in posterior {2}'.format(
                         self.num_taxon_pairs,
                         max(discrete_probs['PRI.Psi'].iterkeys()),
                         self.regress_posterior_path))
         for i in range(self.num_taxon_pairs):
-            self.adjusted_psi_probs[i+1] = discrete_probs['PRI.Psi'].get(i+1, 0.0)
+            self.adjusted_psi_probs[i+1] = discrete_probs.get('PRI.Psi', 
+                    {i+1: float('nan')}).get(i+1, 0.0)
         for k, s in self.div_model_summary:
-            s['adjusted_frequency'] = discrete_probs['PRI.div.model'].get(
-                    self.top_div_models_to_indices[k], 0.0)
-        self.adjusted_prob_omega_zero = discrete_probs['PRI.omega'].get(0, 0.0)
+            s['adjusted_frequency'] = discrete_probs.get('PRI.div.model', 
+                    {self.top_div_models_to_indices[k]: float('nan')}).get(
+                            self.top_div_models_to_indices[k], 0.0)
+        self.adjusted_prob_omega_zero = discrete_probs.get(
+                'PRI.omega', {0: float('nan')}).get(0, 0.0)
         if self.model_probs:
             self.adjusted_model_probs = {}
             for i in self.model_probs.iterkeys():
-                self.adjusted_model_probs[i] = discrete_probs['PRI.model'].get(
-                        i, 0.0)
+                self.adjusted_model_probs[i] = discrete_probs.get(
+                        'PRI.model', {i: float('nan')}).get(i, 0.0)
 
     def _write_div_model_results(self):
         out, close = process_file_arg(self.div_model_results_path, 'w')
@@ -1252,11 +1281,14 @@ class PosteriorWorker(object):
             else:
                 out.write('    modes = {0}\n'.format(', '.join(
                     [str(x) for x in summary['modes']])))
-            out.write('    mode_glm = {0}\n'.format(glm[param]['mode']))
+            out.write('    mode_glm = {0}\n'.format(
+                    glm.get(param, {'mode': float('nan')})['mode']))
             out.write('    median = {0}\n'.format(summary['median']))
-            out.write('    median_glm = {0}\n'.format(glm[param]['median']))
+            out.write('    median_glm = {0}\n'.format(
+                    glm.get(param, {'median': float('nan')})['median']))
             out.write('    mean = {0}\n'.format(summary['mean']))
-            out.write('    mean_glm = {0}\n'.format(glm[param]['mean']))
+            out.write('    mean_glm = {0}\n'.format(
+                    glm.get(param, {'mean': float('nan')})['mean']))
             out.write('    n = {0}\n'.format(summary['n']))
             out.write('    range = {0}, {1}\n'.format(summary['range'][0],
                     summary['range'][1]))
@@ -1264,14 +1296,18 @@ class PosteriorWorker(object):
                     summary['hpdi_95'][0],
                     summary['hpdi_95'][1]))
             out.write('    HPD_95_interval_glm = {0}, {1}\n'.format(
-                    glm[param]['HPD_95_lower_bound'],
-                    glm[param]['HPD_95_upper_bound']))
+                    glm.get(param, {'HPD_95_lower_bound': float('nan')})[
+                            'HPD_95_lower_bound'],
+                    glm.get(param, {'HPD_95_upper_bound': float('nan')})[
+                            'HPD_95_upper_bound']))
             out.write('    quantile_95_interval = {0}, {1}\n'.format(
                     summary['qi_95'][0],
                     summary['qi_95'][1]))
             out.write('    quantile_95_interval_glm = {0}, {1}\n'.format(
-                    glm[param]['quantile_95_lower_bound'],
-                    glm[param]['quantile_95_upper_bound']))
+                    glm.get(param, {'quantile_95_lower_bound': float('nan')})[
+                            'quantile_95_lower_bound'],
+                    glm.get(param, {'quantile_95_upper_bound': float('nan')})[
+                            'quantile_95_upper_bound']))
         if close:
             out.close()
 
