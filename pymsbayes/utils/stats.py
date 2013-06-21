@@ -395,10 +395,10 @@ def summarize_discrete_parameters_from_densities(
 
 class SampleSummarizer(object):
     count = 0
-    def __init__(self, samples = None, tag = ''):
+    def __init__(self, samples = None, tag = None):
         self.__class__.count += 1
         self.name = self.__class__.__name__ + '-' + str(self.count)
-        self.tag = str(tag)
+        self.tag = tag
         self._min = None
         self._max = None
         self._n = 0
