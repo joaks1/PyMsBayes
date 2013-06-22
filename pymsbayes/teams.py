@@ -341,15 +341,22 @@ class ABCTeam(object):
         for k, summary in summaries.iteritems():
             summary.write(self.summary_paths[k])
 
+    def _load_duplicate_rejection_teams(self, prior_worker_batch, model_idx):
+        assert self.num_observed == 1
+        paths = [pw.prior_path for pw in prior_worker_batch]
+        if not paths:
+            return
+        split_paths = list(list_splitter(
+                paths,
+                len(self.rejection_teams[model_idx])))
+        for i in range(len(split_paths)):
+            self.rejection_teams[model_idx][i].prior_paths.extend(
+                    split_paths[i])
+
     def _load_rejection_teams(self, prior_worker_batch):
         if self.global_estimate_only:
             if self.num_observed == 1:
-                paths = list(list_splitter(
-                        [pw.prior_path for pw in prior_worker_batch],
-                        len(self.rejection_teams['combined'])))
-                for i in range(len(paths)):
-                    self.rejection_teams['combined'][i].prior_paths.extend(
-                            paths[i])
+                self._load_duplicate_rejection_teams(prior_worker_batch, 'combined')
                 return
             for rt in self.rejection_teams['combined']:
                 rt.prior_paths.extend(
@@ -362,16 +369,10 @@ class ABCTeam(object):
             prior_workers[pw.tag].append(pw)
         for model_idx, pw_list in prior_workers.iteritems():
             if self.num_observed == 1:
-                paths = list(list_splitter(
-                        [pw.prior_path for pw in pw_list],
-                        len(self.rejection_teams[model_idx])))
-                for i in range(len(paths)):
-                    self.rejection_teams[model_idx][i].prior_paths.extend(
-                            paths[i])
-                return
-            for rt in self.rejection_teams[model_idx]:
-                rt.prior_paths.extend([pw.prior_path for pw in pw_list])
-        return
+                self._load_duplicate_rejection_teams(pw_list, model_idx)
+            else:
+                for rt in self.rejection_teams[model_idx]:
+                    rt.prior_paths.extend([pw.prior_path for pw in pw_list])
         
     def _run_rejection_teams(self):
         reject_teams = []
@@ -434,20 +435,32 @@ class ABCTeam(object):
         self._run_rejection_teams()
 
     def run(self):
+        _LOG.debug('running prior summary workers...')
         self.prior_summary_workers = self._run_prior_workers(
                 self.prior_summary_workers)
+        _LOG.debug('merging summaries...')
         self._merge_summaries()
+        _LOG.debug('loading summary workers for rejection...')
         self._load_rejection_teams(self.prior_summary_workers)
+        _LOG.debug('running rejection on summary worker priors...')
         self._run_rejection_teams()
+        _LOG.debug('purging summary worker priors...')
         self._purge_priors(self.prior_summary_workers)
         for i in range(len(self.prior_workers)):
+            _LOG.debug('running prior worker batch...')
             self.prior_workers[i] = self._run_prior_workers(
                     self.prior_workers[i])
+            _LOG.debug('loading priors for rejection ...')
             self._load_rejection_teams(self.prior_workers[i])
+            _LOG.debug('running rejection teams ...')
             self._run_rejection_teams()
+            _LOG.debug('purging priors...')
             self._purge_priors(self.prior_workers[i])
+        _LOG.debug('merging rejection team posteriors...')
         self._merge_rejection_teams()
+        _LOG.debug('running final rejections...')
         self._run_final_rejections()
+        _LOG.debug('running regressions...')
         self._run_regressions()
         self.finished = True
 
