@@ -17,6 +17,35 @@ from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
 
+
+class ObsSumStatsWorkerTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.cfg_path = package_paths.data_path('negros_panay.cfg')
+        self.new_cfg_path = package_paths.data_path('negros_panay_new.cfg')
+        self.expected = package_paths.data_path('negros_panay_sum_stats.txt')
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_negros_panay(self):
+        ss_path = self.get_test_path(prefix='sum-stats')
+        ss_worker = workers.ObsSumStatsWorker(
+                temp_fs = self.temp_fs,
+                config_path = self.cfg_path,
+                output_path = ss_path,
+                exe_path = None,
+                sort_index = None,
+                schema = 'abctoolbox',
+                stat_patterns = DEFAULT_STAT_PATTERNS,
+                stderr_path = None,
+                tag = None)
+        self.assertFalse(ss_worker.finished)
+        ss_worker.start()
+        self.assertTrue(ss_worker.finished)
+        self.assertSameFiles([ss_path, self.expected])
+
+
 class MsBayesWorkerTestCase(PyMsBayesTestCase):
     def setUp(self):
         self.set_up()

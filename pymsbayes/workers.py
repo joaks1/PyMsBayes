@@ -182,6 +182,72 @@ def merge_prior_files(paths, dest_path):
 ##############################################################################
 ## msBayes class for generating prior files
 
+class ObsSumStatsWorker(Worker):
+    valid_schemas = ['abctoolbox']
+    count = 0
+    def __init__(self,
+            temp_fs,
+            config_path,
+            output_path = None,
+            exe_path = None,
+            sort_index = None,
+            schema = 'abctoolbox',
+            stat_patterns = DEFAULT_STAT_PATTERNS,
+            stderr_path = None,
+            keep_temps = False,
+            tag = None):
+        Worker.__init__(self,
+                stdout_path = None,
+                stderr_path = stderr_path,
+                tag = tag)
+        self.__class__.count += 1
+        self.name = self.__class__.__name__ + '-' + str(self.count)
+        self.temp_fs = temp_fs
+        self.config_path = expand_path(config_path)
+        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
+        if not output_path:
+            output_path = self.config_path + '-summary-statistics.txt'
+        self.output_path = expand_path(output_path)
+        self.temp_output_path = self.temp_fs.get_file_path(
+                parent = self.output_dir,
+                prefix = self.name + '-temp-summary-stats-')
+        self.stdout_path = self.temp_output_path
+        if not exe_path:
+            exe_path = get_tool_path('obssumstats')
+        self.exe_path = expand_path(exe_path)
+        self.sort_index = None
+        if sort_index != None:
+            self.sort_index = int(sort_index)
+        self.schema = schema.lower()
+        if not self.schema in self.valid_schemas:
+            raise ValueError('{0} is not a valid schema, options are: '
+                    '{1}'.format(self.schema, ', '.join(self.valid_schemas)))
+        self.stat_patterns = stat_patterns
+        self.keep_temps = bool(keep_temps)
+        self.header = None
+        self._update_cmd()
+
+    def _update_cmd(self):
+        cmd = [self.exe_path]
+        if self.sort_index != None:
+            cmd.extend(['-s', str(self.sort_index)])
+        cmd.append(self.config_path)
+        self.cmd = cmd
+
+    def _post_process(self):
+        _LOG.debug('{0}\n'.format(self.get_stderr()))
+        if not os.path.isfile(self.temp_output_path):
+            raise Exception('{0} did not produce the output file {1}; '
+                    'here is the std error:\n{2}\n'.format(
+                        self.name, self.temp_output_path, self.get_stderr()))
+        self.header = observed_stats_for_abctoolbox(
+                    in_file = self.temp_output_path,
+                    out_file = self.output_path,
+                    stat_patterns = self.stat_patterns)
+        if not self.keep_temps:
+            self.temp_fs.remove_dir(self.output_dir)
+
+
 class MsBayesWorker(Worker):
     count = 0
     valid_schemas = ['msreject', 'abctoolbox']
@@ -223,7 +289,6 @@ class MsBayesWorker(Worker):
             else:
                 exe_path = get_tool_path('msbayes-old')
         self.exe_path = expand_path(exe_path)
-        _LOG.debug('\n{0}\n'.format(self.exe_path))
         self.model_index = None
         if model_index != None:
             self.model_index = int(model_index)
