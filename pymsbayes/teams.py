@@ -414,6 +414,7 @@ class ABCTeam(object):
             return
         if len(self.models) < 2:
             return
+        self._sort_rejection_teams()
         rej_teams = {}
         rt_length = len(self.rejection_teams['combined'])
         for k in self.models.iterkeys():
