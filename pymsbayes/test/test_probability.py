@@ -82,6 +82,34 @@ class DiscreteUniformDistributionTestCase(PyMsBayesTestCase):
         self.assertEqual(d.minimum, s.minimum)
         self.assertEqual(d.maximum, s.maximum)
 
+class GammaDistributionTestCase(PyMsBayesTestCase):
+
+    def test_value_error(self):
+        self.assertRaises(ValueError, GammaDistribution, 1, 0)
+        self.assertRaises(ValueError, GammaDistribution, 0, 1)
+
+    def test_standard(self):
+        d = GammaDistribution(2, 5)
+        self.assertTrue(isinstance(d, GammaDistribution))
+        self.assertEqual(d.name, 'gamma')
+        self.assertEqual(d.minimum, 0.0)
+        self.assertEqual(d.maximum, float('inf'))
+        self.assertEqual(d.mean, 10.0)
+        self.assertEqual(d.variance, 50.0)
+        self.assertRaises(NotImplementedError, d._get_median)
+
+    def test_draw(self):
+        d = GammaDistribution(2, 0.01)
+        s = SampleSummarizer()
+        for i in d.draw_iter(100000):
+            s.add_sample(i)
+        self.assertAlmostEqual(d.mean, s.mean, 3)
+        self.assertAlmostEqual(d.variance, s.variance, 5)
+        self.assertTrue(s.minimum >= d.minimum)
+        self.assertTrue(s.maximum <= s.maximum)
+        self.assertAlmostEqual(d.minimum, s.minimum, 3)
+
+
 class BetaDistributionTestCase(PyMsBayesTestCase):
 
     def test_value_error(self):

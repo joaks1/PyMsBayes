@@ -97,6 +97,55 @@ class ContinuousUniformDistribution(Distribution):
     def __str__(self):
         return 'U({0},{1})'.format(self._min, self._max)
  
+class GammaDistribution(Distribution):
+    name = 'gamma'
+    def __init__(self, shape, scale):
+        if not shape > 0.0 or not scale > 0.0:
+            raise ValueError('shape and scale must be positive')
+        self._shape = float(shape)
+        self._scale = float(scale)
+
+    def _get_shape(self):
+        return self._shape
+
+    def _get_scale(self):
+        return self._scale
+    
+    shape = property(_get_shape)
+    scale = property(_get_scale)
+
+    def _get_min(self):
+        return 0.0
+
+    def _get_max(self):
+        return float('inf')
+
+    def _get_mean(self):
+        return self._shape * self._scale
+
+    def _get_mode(self):
+        if self._shape <= 1.0:
+            return 0.0
+        else:
+            return (self._shape - 1) * self._scale
+
+    def _get_variance(self):
+        return self._shape * (self._scale**2)
+
+    def draw(self, rng=None):
+        if not rng:
+            rng = GLOBAL_RNG
+        return rng.gammavariate(self._shape, self._scale)
+        
+    def draw_iter(self, n, rng=None):
+        if not rng:
+            rng = GLOBAL_RNG
+        for i in range(n):
+            yield self.draw(rng)
+
+    def __str__(self):
+        return 'Gamma({0},{1})'.format(self._shape, self._scale)
+
 class BetaDistribution(Distribution):
     name = 'beta'
     def __init__(self, alpha, beta, multiplier=1):
