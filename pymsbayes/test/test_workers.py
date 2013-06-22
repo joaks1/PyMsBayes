@@ -9,6 +9,7 @@ from pymsbayes.fileio import is_gzipped
 from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test import TestLevel, test_enabled
+from pymsbayes.utils import get_tool_path
 from pymsbayes.utils.errors import *
 from pymsbayes.utils.parsing import *
 from pymsbayes.utils.stats import SampleSummaryCollection
@@ -20,6 +21,7 @@ class MsBayesWorkerTestCase(PyMsBayesTestCase):
     def setUp(self):
         self.set_up()
         self.cfg_path = package_paths.data_path('4pairs_1locus.cfg')
+        self.new_cfg_path = package_paths.data_path('4pairs_1locus_new.cfg')
 
     def tearDown(self):
         self.tear_down()
@@ -126,6 +128,23 @@ class MsBayesWorkerTestCase(PyMsBayesTestCase):
             self._assert_success(w, 4, 10)
         self.assertSameFiles([j.prior_path for j in jobs])
         self.assertSameFiles([j.header_path for j in jobs])
+
+    def test_new_implementation(self):
+        w = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = self.new_cfg_path,
+                schema = 'abctoolbox')
+        self.assertIsInstance(w, workers.MsBayesWorker)
+        self.assertFalse(w.finished)
+        self.assertEqual(w.exe_path, get_tool_path('msbayes'))
+        self.assertNotEqual(w.exe_path, get_tool_path('msbayes-old'))
+        _LOG.warning('\n\n{0}\n\n'.format(w.exe_path))
+        w.start()
+        self._assert_success(w, 4, 10)
+        self.assertEqual(w.exe_path, get_tool_path('msbayes'))
+        self.assertNotEqual(w.exe_path, get_tool_path('msbayes-old'))
+
 
 class MergePriorTestCase(PyMsBayesTestCase):
     def setUp(self):
