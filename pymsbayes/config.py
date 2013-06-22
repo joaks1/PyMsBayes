@@ -62,7 +62,9 @@ class MsBayesConfig(object):
     def _parse_table(self, table):
         taxa = set()
         for i, row in enumerate(table):
-            taxa.add(row.strip().split()[0])
+            r = row.strip()
+            if r:
+                taxa.add(r.split()[0])
         self.npairs = len(taxa)
 
     def _set_priors(self, preamble):
