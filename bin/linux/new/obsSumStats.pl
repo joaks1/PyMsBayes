@@ -85,6 +85,7 @@ use IO::File;
 use File::Copy;
 use Getopt::Std;
 use IPC::Open2;
+use File::Spec;
 use File::Basename;
 
 # Adding the following paths to @INC, so we can find the R scripts.
@@ -114,7 +115,7 @@ if ($sumStatsBin eq '-1') {
 
 if (@ARGV > 0) {
     if (@ARGV == 1) {
-	$filename = shift;
+	$filename = File::Spec->rel2abs(shift);
     } else {
 	die "Please give only 1 argument\n";
     }
@@ -203,11 +204,16 @@ sub CreateObsSumStats {
 
 	### read in the aligned sequence file, and process it.
 	# column 13 (index 12) contains a file name for a taxon-pair
+    my $full_path = dirname($filename) . "/" . $fastaFile;
+    print STDERR $full_path;
 	my $fileName = "";
 	if ( -e $fastaFile) {
 	    die "ERROR: $fastaFile has 0 size\n" if ( -z $fastaFile);
 	    die "ERROR: $fastaFile is not readable\n" if ( ! (-r $fastaFile));
 	    $fileName = $fastaFile;
+	} elsif ( -e $full_path ){
+	    die "ERROR: $fastaFile has 0 size\n" if ( -z $fastaFile);
+	    $fileName = $full_path;
 	} else {
 	    $fileName = FindSeqFile($fastaFile, \@directory_files);
 	}
