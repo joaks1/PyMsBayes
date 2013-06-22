@@ -57,6 +57,7 @@ use File::Copy;
 use IO::File;
 use POSIX qw(tmpnam);
 use IPC::Open2;
+use File::Basename;
 
 use Getopt::Std;
 
@@ -460,7 +461,8 @@ sub FindExec {
     # force this behavior to reduce confusion. 
     # When this program become more matured, we should reevaluate this.
     # Similar behavior in acceptRej.pl introduced  Naoki Feb 8, 2008
-    $ENV{'PATH'} = ".:" . $ENV{'PATH'} . 
+    my $bin_dir = dirname(__FILE__);
+    $ENV{'PATH'} = $bin_dir . ":" . $ENV{'PATH'} . 
 	":/bin:/usr/bin:/usr/local/bin:$ENV{'HOME'}/bin";
     my $bin = `which $prog 2>/dev/null`;
     chomp $bin;
