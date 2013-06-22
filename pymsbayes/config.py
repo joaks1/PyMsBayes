@@ -9,7 +9,7 @@ import ConfigParser
 from pymsbayes.utils.messaging import get_logger
 from pymsbayes.fileio import process_file_arg
 from pymsbayes.utils.probability import (ContinuousUniformDistribution,
-        BetaDistribution, DiscreteUniformDistribution)
+        BetaDistribution, DiscreteUniformDistribution, GammaDistribution)
 
 _LOG = get_logger(__name__)
 
@@ -19,13 +19,17 @@ class MsBayesConfig(object):
 
     def __init__(self, cfg_file):
         self.theta = None
-        self.d_theta = None,
-        self.a_theta = None,
-        self.tau = None,
-        self.migration = None,
-        self.recombination = None,
-        self.psi = None,
+        self.d_theta = None
+        self.a_theta = None
+        self.tau = None
+        self.migration = None
+        self.recombination = None
+        self.psi = None
+        self.dpp_concentration = None
         self.npairs = None
+        self.implementation = 'old'
+        self.div_model_prior = None
+        self.theta_parameters = None
         self._parse_config(cfg_file)
 
     def _parse_config(self, cfg):
@@ -63,21 +67,83 @@ class MsBayesConfig(object):
 
     def _set_priors(self, preamble):
         kwargs = self._parse_preamble(preamble)
+        psi = int(kwargs.get('numtauclasses', 0))
+        for k in ['concentrationshape', 'concentrationscale', 'taushape',
+                'tauscale', 'thetashape', 'thetascale', 'ancestralthetashape',
+                'ancestralthetascale', 'thetaparameters']:
+            if kwargs.has_key(k):
+                self.implementation = 'new'
+        
+        if self.implementation == 'new':
+            dpp_concentration_shape = float(kwargs.get('concentrationshape',
+                    0.0))
+            dpp_concentration_scale = float(kwargs.get('concentrationscale',
+                    0.0))
+            if psi != 0:
+                self.psi = DiscreteUniformDistribution(psi, psi)
+                self.dpp_concentration = None
+                self.div_model_prior = 'constrained'
+            elif (dpp_concentration_shape > 0.0) and (
+                    dpp_concentration_scale > 0.0):
+                self.div_model_prior = 'dpp'
+                self.dpp_concentration = GammaDistribution(
+                        dpp_concentration_shape,
+                        dpp_concentration_scale)
+            elif (dpp_concentration_shape > -1.0) and (
+                    dpp_concentration_scale > -1.0):
+                self.div_model_prior = 'uniform'
+                self.dpp_concentration = None
+            else:
+                self.div_model_prior = 'psi'
+                self.dpp_concentration = None
+
+            tau_shape = float(kwargs.get('taushape', 1.0))
+            tau_scale = float(kwargs.get('tauscale', 2.0))
+            self.tau = GammaDistribution(tau_shape, tau_scale)
+            theta_shape = float(kwargs.get('thetashape', 1.0))
+            theta_scale = float(kwargs.get('thetascale', 0.001))
+            anc_theta_shape = float(kwargs.get('ancestralthetashape', 0.0))
+            anc_theta_scale = float(kwargs.get('ancestralthetascale', 0.0))
+            theta_params = kwargs.get('thetaparameters', '012')
+            self.theta_parameters = [int(i) for i in list(theta_params)]
+            self.theta = None
+            self.d_theta = GammaDistribution(theta_shape, theta_scale)
+            if ((anc_theta_shape > 0.0) and (anc_theta_scale > 0.0)) and (
+                    (theta_params == '001') or (theta_params == '012')):
+                self.a_theta = GammaDistribution(anc_theta_shape,
+                        anc_theta_scale)
+            else:
+                self.a_theta = GammaDistribution(theta_shape, theta_scale)
+            mig_shape = float(kwargs.get('migrationshape', 0.0))
+            mig_scale = float(kwargs.get('migrationscale', 0.0))
+            if (mig_shape > 0.0) and (mig_scale > 0.0):
+                self.migration = GammaDistribution(mig_shape, mig_scale)
+            else:
+                self.migration = ContinuousUniformDistribution(0.0, 0.0)
+            rec_shape = float(kwargs.get('recombinationshape', 0.0))
+            rec_scale = float(kwargs.get('recombinationscale', 0.0))
+            if (rec_shape > 0.0) and (rec_scale > 0.0):
+                self.recombination = GammaDistribution(rec_shape, rec_scale)
+            else:
+                self.recombination = ContinuousUniformDistribution(0.0, 0.0)
+            return
+
+        ltau = float(kwargs.get('lowertau', 0.0))
+        utau = float(kwargs.get('uppertau', 0.0))
         psi = int(kwargs['numtauclasses'])
         ltheta = float(kwargs.get('lowertheta', 0.0))
         utheta = float(kwargs['uppertheta'])
         anc_scalar = float(kwargs['upperancpopsize'])
-        ltau = float(kwargs.get('lowertau', 0.0))
-        utau = float(kwargs['uppertau'])
         lmig = float(kwargs.get('lowermig', 0.0))
         umig = float(kwargs.get('uppermig', 0.0))
         lrec = float(kwargs.get('lowerrec', 0.0))
         urec = float(kwargs.get('upperrec', 0.0))
-
         if psi == 0:
             self.psi = DiscreteUniformDistribution(1, self.npairs)
+            self.div_model_prior = 'psi'
         else:
             self.psi = DiscreteUniformDistribution(psi, psi)
+            self.div_model_prior = 'constrained'
         self.tau = ContinuousUniformDistribution(ltau, utau)
         self.theta = ContinuousUniformDistribution(ltheta, utheta)
         self.a_theta = ContinuousUniformDistribution(ltheta, utheta*anc_scalar)
@@ -90,6 +156,6 @@ class MsBayesConfig(object):
         cfg.readfp(preamble)
         d = {}
         for tup in cfg.items('preamble'):
-            d[tup[0]] = tup[1]
+            d[tup[0].lower()] = tup[1]
         return d
 

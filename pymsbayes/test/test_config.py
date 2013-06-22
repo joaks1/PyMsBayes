@@ -16,8 +16,27 @@ class MsBayesConfigTestCase(PyMsBayesTestCase):
     def setUp(self):
         self.cfg = StringIO()
 
-    def _update_config(self, cfg, params, multi_locus=False):
-        cfg.write("""upperTheta = 0.1
+    def _update_config(self, cfg, params, multi_locus=False, new_impl=False):
+        if new_impl:
+            cfg.write("""concentrationShape = {c_shape}
+concentrationScale = {c_scale}
+thetaShape = {theta_shape}
+thetaScale = {theta_scale}
+ancestralThetaShape = {a_theta_shape}
+ancestralThetaScale = {a_theta_scale}
+thetaParameters = {theta_params}
+tauShape = {tau_shape}
+tauScale = {tau_scale}
+migrationShape = {migration_shape}
+migrationScale = {migration_scale}
+recombinationShape = {recombination_shape}
+recombinationScale = {recombination_scale}
+numTauClasses = {psi}
+constrain = 0
+subParamConstrain = 111111111
+""".format(**params))
+        else:
+            cfg.write("""upperTheta = 0.1
 lowerTheta = {ltheta}
 upperTau = {utau}
 numTauClasses = {psi}
@@ -71,6 +90,10 @@ END SAMPLE_TBL
         self.assertIsInstance(c.a_theta, ContinuousUniformDistribution)
         self.assertIsInstance(c.theta, ContinuousUniformDistribution)
         self.assertIsInstance(c.d_theta, BetaDistribution)
+        self.assertEqual(c.div_model_prior, 'psi')
+        self.assertEqual(c.dpp_concentration, None)
+        self.assertEqual(c.theta_parameters, None)
+        self.assertEqual(c.implementation, 'old')
 
         self.assertSameDistributions(c.psi, DiscreteUniformDistribution(1,4))
         self.assertSameDistributions(c.tau, ContinuousUniformDistribution(0,10))
@@ -99,6 +122,10 @@ END SAMPLE_TBL
         self.assertIsInstance(c.a_theta, ContinuousUniformDistribution)
         self.assertIsInstance(c.theta, ContinuousUniformDistribution)
         self.assertIsInstance(c.d_theta, BetaDistribution)
+        self.assertEqual(c.div_model_prior, 'psi')
+        self.assertEqual(c.dpp_concentration, None)
+        self.assertEqual(c.theta_parameters, None)
+        self.assertEqual(c.implementation, 'old')
 
         self.assertSameDistributions(c.psi, DiscreteUniformDistribution(1,4))
         self.assertSameDistributions(c.tau, ContinuousUniformDistribution(0,10))
@@ -107,6 +134,44 @@ END SAMPLE_TBL
         self.assertSameDistributions(c.a_theta, ContinuousUniformDistribution(0.0001,0.1))
         self.assertSameDistributions(c.theta, ContinuousUniformDistribution(0.0001,0.1))
         self.assertSameDistributions(c.d_theta, BetaDistribution(1,1,2))
+
+    def test_new_implementation(self):
+        p = {'c_shape': 2,
+             'c_scale': 5,
+             'theta_shape': 2.0,
+             'theta_scale': 0.002,
+             'tau_shape': 1.0,
+             'tau_scale': 5.0,
+             'a_theta_shape': 1,
+             'a_theta_scale': 0.01,
+             'theta_params': '001',
+             'migration_shape': 1.5,
+             'migration_scale': 0.1,
+             'recombination_shape': 0.0,
+             'recombination_scale': 0.0,
+             'psi': 0,}
+        self._update_config(self.cfg, p, new_impl=True)
+        _LOG.debug('testing config:\n\n{0}\n'.format(self.cfg.getvalue()))
+        c = MsBayesConfig(self.cfg)
+        self.assertEqual(c.npairs, 4)
+        self.assertEqual(c.psi, None)
+        self.assertIsInstance(c.tau, GammaDistribution)
+        self.assertIsInstance(c.recombination, ContinuousUniformDistribution)
+        self.assertIsInstance(c.migration, GammaDistribution)
+        self.assertIsInstance(c.a_theta, GammaDistribution)
+        self.assertEqual(c.theta, None)
+        self.assertIsInstance(c.d_theta, GammaDistribution)
+        self.assertEqual(c.div_model_prior, 'dpp')
+        self.assertIsInstance(c.dpp_concentration, GammaDistribution)
+        self.assertEqual(c.theta_parameters, [0, 0, 1])
+        self.assertEqual(c.implementation, 'new')
+
+        self.assertSameDistributions(c.dpp_concentration, GammaDistribution(2, 5))
+        self.assertSameDistributions(c.tau, GammaDistribution(1, 5))
+        self.assertSameDistributions(c.recombination, ContinuousUniformDistribution(0,0))
+        self.assertSameDistributions(c.migration, GammaDistribution(1.5, 0.1))
+        self.assertSameDistributions(c.a_theta, GammaDistribution(1, 0.01))
+        self.assertSameDistributions(c.d_theta, GammaDistribution(2, 0.002))
 
 if __name__ == '__main__':
     unittest.main()
