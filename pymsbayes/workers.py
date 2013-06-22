@@ -12,6 +12,7 @@ from configobj import ConfigObj
 
 from pymsbayes.fileio import (expand_path, process_file_arg, FileStream, open,
         GzipFileStream)
+from pymsbayes.config import MsBayesConfig
 from pymsbayes.utils.tempfs import TempFileSystem
 from pymsbayes.utils import get_tool_path
 from pymsbayes.utils.functions import (get_random_int, get_indices_of_patterns,
@@ -216,8 +217,13 @@ class MsBayesWorker(Worker):
         self.config_path = expand_path(config_path)
         self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
         if not exe_path:
-            exe_path = get_tool_path('msbayes-old')
+            cfg = MsBayesConfig(self.config_path)
+            if cfg.implementation.lower() == 'new':
+                exe_path = get_tool_path('msbayes')
+            else:
+                exe_path = get_tool_path('msbayes-old')
         self.exe_path = expand_path(exe_path)
+        _LOG.debug('\n{0}\n'.format(self.exe_path))
         self.model_index = None
         if model_index != None:
             self.model_index = int(model_index)
@@ -288,6 +294,7 @@ class MsBayesWorker(Worker):
         self.cmd = cmd
 
     def _post_process(self):
+        _LOG.debug('{0}\n'.format(self.get_stderr()))
         prior_path = self.prior_path
         prior_stats_path = self.prior_stats_path
         if self.staging_dir:
