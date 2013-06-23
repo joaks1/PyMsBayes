@@ -69,7 +69,7 @@ class Worker(object):
             _LOG.error('Error during pre-processing:\n{0}'.format(
                     e.getvalue()))
             raise
-        _LOG.info('Starting process with following command:\n\t'
+        _LOG.debug('Starting process with following command:\n\t'
                 '{0}'.format(' '.join(self.cmd)))
         if self.stdout_path:
             sout = open(self.stdout_path, 'a')
