@@ -458,7 +458,7 @@ class ABCTeam(object):
         _LOG.info('Running prior summary workers...')
         self.prior_summary_workers = self._run_prior_workers(
                 self.prior_summary_workers)
-        _LOG.info('Rerging summaries...')
+        _LOG.info('Merging summaries...')
         self._merge_summaries()
         _LOG.info('Loading summary workers for rejection...')
         self._load_rejection_teams(self.prior_summary_workers)
