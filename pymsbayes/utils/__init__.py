@@ -17,9 +17,9 @@ BIN_DIR = None
 if PLATFORM == 'linux':
     BIN_DIR = os.path.join(BASE_DIR, "bin", "linux")
 elif PLATFORM == 'darwin':
-    BIN_DIR = os.path.join(base_dir, "bin", "mac")
+    BIN_DIR = os.path.join(BASE_DIR, "bin", "mac")
 elif PLATFORM == 'windows':
-    BIN_DIR = os.path.join(base_dir, "bin", "win")
+    BIN_DIR = os.path.join(BASE_DIR, "bin", "win")
 
 def get_tool_path_mapping():
     tool_path_map = {}
