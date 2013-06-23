@@ -478,7 +478,7 @@ class ABCTeam(object):
             _LOG.info('Loading prior batch {0} of {1} for rejection...'.format(
                     (i + 1), len(self.prior_workers)))
             self._load_rejection_teams(self.prior_workers[i])
-            _LOG.debug('Running rejection on prior batch {0} of {1}...'.format(
+            _LOG.info('Running rejection on prior batch {0} of {1}...'.format(
                     (i + 1), len(self.prior_workers)))
             self._run_rejection_teams()
             _LOG.debug('Purging priors for batch {0} of {1}...'.format(
