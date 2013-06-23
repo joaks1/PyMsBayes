@@ -83,6 +83,7 @@ class RejectionTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(os.path.exists(rt.posterior_path))
         self.assertEqual(self.get_number_of_lines(rt.posterior_path), 51)
         self.assertEqual(self.get_number_of_header_lines(rt.posterior_path), 1)
+        self.assertEqual(rt.num_samples_processed, 100)
 
         self.assertSameUnsortedFiles([rt.posterior_path,
                 summary_worker.posterior_path])
@@ -183,6 +184,7 @@ class RejectionTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(os.path.exists(rt.posterior_path))
         self.assertEqual(self.get_number_of_lines(rt.posterior_path), 51)
         self.assertEqual(self.get_number_of_header_lines(rt.posterior_path), 1)
+        self.assertEqual(rt.num_samples_processed, 100)
 
         self.assertSameUnsortedFiles([rt.posterior_path,
                 summary_worker.posterior_path])
@@ -284,6 +286,7 @@ class RejectionTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(os.path.exists(rt.posterior_path))
         self.assertEqual(self.get_number_of_lines(rt.posterior_path), 51)
         self.assertEqual(self.get_number_of_header_lines(rt.posterior_path), 1)
+        self.assertEqual(rt.num_samples_processed, 100)
 
         self.assertSameUnsortedFiles([rt.posterior_path,
                 summary_worker.posterior_path])
@@ -390,6 +393,9 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertFalse(abct.finished)
         abct.run()
         self.assertTrue(abct.finished)
+        self.assertEqual(abct.num_samples_generated, 2000)
+        self.assertEqual(abct.num_samples_summarized, 800)
+        self.assertEqual(abct.num_samples_processed[1], 2000)
 
         self.assertTrue(os.path.isfile(
                 abct.rejection_teams[1][0].posterior_path))
@@ -562,6 +568,9 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertFalse(abct1.finished)
         abct1.run()
         self.assertTrue(abct1.finished)
+        self.assertEqual(abct1.num_samples_generated, 2000)
+        self.assertEqual(abct1.num_samples_summarized, 800)
+        self.assertEqual(abct1.num_samples_processed[1], 2000)
 
         self.rng.seed(self.seed)
 
@@ -648,6 +657,10 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertFalse(abct.finished)
         abct.run()
         self.assertTrue(abct.finished)
+        self.assertEqual(abct.num_samples_generated, 4000)
+        self.assertEqual(abct.num_samples_summarized, 1600)
+        self.assertEqual(abct.num_samples_processed[1], 2000)
+        self.assertEqual(abct.num_samples_processed[2], 2000)
 
         self.assertTrue(os.path.isfile(
                 abct.rejection_teams[1][0].posterior_path))
@@ -806,6 +819,9 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertFalse(abct2.finished)
         abct2.run()
         self.assertTrue(abct2.finished)
+        self.assertEqual(abct2.num_samples_generated, 4000)
+        self.assertEqual(abct2.num_samples_summarized, 1600)
+        self.assertEqual(abct2.num_samples_processed['combined'], 4000)
 
         self.assertSameSamples(files = [
                 abct1.rejection_teams['combined'][0].posterior_path,
@@ -868,6 +884,10 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertFalse(abct.finished)
         abct.run()
         self.assertTrue(abct.finished)
+        self.assertEqual(abct.num_samples_generated, 4000)
+        self.assertEqual(abct.num_samples_summarized, 1600)
+        self.assertEqual(abct.num_samples_processed[1], 2000)
+        self.assertEqual(abct.num_samples_processed[2], 2000)
 
         self.assertTrue(os.path.isfile(
                 abct.rejection_teams[1][0].posterior_path))
