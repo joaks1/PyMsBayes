@@ -11,19 +11,15 @@ import multiprocessing
 import random
 import argparse
 import datetime
+import logging
 
 from pymsbayes.fileio import expand_path, process_file_arg, open
-from pymsbayes.workers import (MsBayesWorker, merge_prior_files,
-        ObsSumStatsWorker)
-from pymsbayes.teams import ABCTeam
-from pymsbayes.config import MsBayesConfig
-from pymsbayes.utils.parsing import *
-from pymsbayes.manager import Manager
 from pymsbayes.utils import WORK_FORCE, GLOBAL_RNG
+from pymsbayes.utils.messaging import get_logger, LOGGING_LEVEL_ENV_VAR
 from pymsbayes.utils.functions import (is_file, is_dir, long_division,
         mk_new_dir)
-from pymsbayes.utils.tempfs import TempFileSystem
-from pymsbayes.utils.messaging import get_logger
+
+_LOG = get_logger(__name__)
 
 _program_info = {
     'name': os.path.basename(__file__),
@@ -32,8 +28,6 @@ _program_info = {
     'description': __doc__,
     'copyright': 'Copyright (C) 2013 Jamie Oaks',
     'license': 'GNU GPL version 3 or later',}
-
-_LOG = get_logger(__name__)
 
 class InfoLogger(object):
     def __init__(self, path):
@@ -177,10 +171,25 @@ def main_cli():
     ##########################################################################
     ## handle args
 
+    _LOG.setLevel(logging.INFO)
+    os.environ[LOGGING_LEVEL_ENV_VAR] = "INFO"
     if args.quiet:
-        _LOG.setlevel(logging.WARNING)
+        _LOG.setLevel(logging.WARNING)
+        os.environ[LOGGING_LEVEL_ENV_VAR] = "WARNING"
     if args.debug:
-        _LOG.setlevel(logging.DEBUG)
+        _LOG.setLevel(logging.DEBUG)
+        os.environ[LOGGING_LEVEL_ENV_VAR] = "DEBUG"
+
+    from pymsbayes.workers import (MsBayesWorker, merge_prior_files,
+            ObsSumStatsWorker)
+    from pymsbayes.teams import ABCTeam
+    from pymsbayes.config import MsBayesConfig
+    from pymsbayes.utils.parsing import (get_patterns_from_prefixes,
+        DEFAULT_STAT_PATTERNS, DIV_MODEL_PATTERNS, MODEL_PATTERNS, PSI_PATTERNS,
+        MEAN_TAU_PATTERNS, OMEGA_PATTERNS)
+    from pymsbayes.manager import Manager
+    from pymsbayes.utils.tempfs import TempFileSystem
+
     if not args.output_dir:
         args.output_dir = os.path.dirname(args.observed_config)
     staging_dir = None
