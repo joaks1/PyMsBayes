@@ -120,14 +120,11 @@ def main_cli():
             help = ('The directory in which all output files will be written. '
                     'The default is to use the directory of the observed '
                     'config file.'))
-    parser.add_argument('--staging-dir',
+    parser.add_argument('--temp-dir',
             action = 'store',
             type = arg_is_dir,
-            help = ('A directory to temporarily stage prior files. This option '
-                    'can be useful on clusters to speed up I/O while '
-                    'generating prior samples. You can designate a local temp '
-                    'directory on a compute node to avoid constant writing to '
-                    'a shared drive.'))
+            help = ('A directory to temporarily stage files. The default is to '
+                    'use the output directory.'))
     parser.add_argument('-s', '--stat-prefixes',
             nargs = '*',
             type = str,
@@ -192,15 +189,14 @@ def main_cli():
 
     if not args.output_dir:
         args.output_dir = os.path.dirname(args.observed_config)
-    staging_dir = None
-    if args.staging_dir:
-        staging_dir = args.staging_dir
     base_dir = mk_new_dir(os.path.join(args.output_dir, 'pymsbayes-results'))
+    if not args.temp_dir:
+        args.temp_dir = base_dir
     info = InfoLogger(os.path.join(base_dir, 'pymsbayes-info.txt'))
     info.write('[pymsbayes]\n'.format(base_dir))
     info.write('\tversion = {version}\n'.format(**_program_info))
     info.write('\toutput_directory = {0}\n'.format(base_dir))
-    temp_fs = TempFileSystem(parent=base_dir, prefix='temp-files-')
+    temp_fs = TempFileSystem(parent=args.temp_dir, prefix='temp-files-')
     base_temp_dir = temp_fs.base_dir
     info.write('\ttemp_directory = {0}\n'.format(base_temp_dir))
     if args.reps < 1:
@@ -294,7 +290,7 @@ def main_cli():
                     include_header = True,
                     stat_patterns = stat_patterns,
                     write_stats_file = True,
-                    staging_dir = staging_dir)
+                    staging_dir = None)
             WORK_FORCE.put(worker)
             msbayes_workers.append(worker)
         if remainder > 0:
@@ -308,7 +304,7 @@ def main_cli():
                     include_header = True,
                     stat_patterns = stat_patterns,
                     write_stats_file = True,
-                    staging_dir = staging_dir)
+                    staging_dir = None)
             WORK_FORCE.put(worker)
             msbayes_workers.append(worker)
 
