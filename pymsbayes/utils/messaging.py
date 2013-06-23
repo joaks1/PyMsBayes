@@ -4,7 +4,7 @@ import sys
 import os
 import logging
 
-_LOGGING_LEVEL_ENV_VAR = "PYMSBAYES_LOGGING_LEVEL"
+LOGGING_LEVEL_ENV_VAR = "PYMSBAYES_LOGGING_LEVEL"
 
 def get_logging_level(level=None):
     if level:
@@ -26,7 +26,7 @@ def get_logging_level(level=None):
         return logging.WARNING
 
 def get_env_logging_level():
-    return get_logging_level(os.environ.get(_LOGGING_LEVEL_ENV_VAR, None))
+    return get_logging_level(os.environ.get(LOGGING_LEVEL_ENV_VAR, None))
 
 def get_logger(name = 'pymsbayes', level=None):
     if level:
