@@ -145,6 +145,9 @@ def main_cli():
             help = ('The number of equally spaced quantiles at which to '
                     'evaluate the GLM-estimated posterior density. '
                     'Default: 1000.'))
+    parser.add_argument('--compress',
+            action = 'store_true',
+            help = 'Compress large results files.')
     parser.add_argument('--keep-temps',
             action = 'store_true',
             help = 'Keep all temporary files.')
@@ -357,7 +360,7 @@ def main_cli():
             stat_patterns = stat_patterns,
             abctoolbox_bandwidth = args.bandwidth,
             omega_threshold = 0.01,
-            compress = True,
+            compress = args.compress,
             keep_temps = args.keep_temps,
             global_estimate_only = False,
             work_queue = WORK_FORCE)
