@@ -13,6 +13,7 @@ from pymsbayes.utils import get_tool_path
 from pymsbayes.utils.errors import *
 from pymsbayes.utils.parsing import *
 from pymsbayes.utils.stats import SampleSummaryCollection
+from pymsbayes.utils.functions import whereis
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -1262,6 +1263,46 @@ class ABCToolBoxRegressWorkerTestCase(PyMsBayesTestCase):
         self.assertEqual(self.get_number_of_lines(
                 regress_worker.regress_posterior_path), 101)
 
+    def test_regression_failure(self):
+        post_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                report_parameters = True)
+        post_worker.start()
+        obs_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True,
+                report_parameters = True)
+        obs_worker.start()
+
+        summary_path = self.get_test_path(prefix='test-summary-')
+        regress_posterior_path = self.get_test_path(prefix='test-adjusted-')
+        regress_worker = workers.ABCToolBoxRegressWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                posterior_path = post_worker.prior_path,
+                parameter_indices = None,
+                regress_summary_path = summary_path,
+                regress_posterior_path = regress_posterior_path,
+                exe_path = whereis('echo'),
+                stdout_path = None,
+                stderr_path = None,
+                keep_temps = False,
+                bandwidth = None,
+                num_posterior_quantiles = 100)
+        self.assertFalse(regress_worker.finished)
+        regress_worker.cfg_path = "Hello world!"
+        regress_worker.start()
+        self.assertTrue(regress_worker.finished)
+        self.assertTrue(regress_worker.failed)
+        self.assertEqual(regress_worker.regress_summary_path, None)
+        self.assertEqual(regress_worker.regress_posterior_path, None)
+
     def test_regression_from_prior_with_indices(self):
         post_worker1 = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
@@ -2203,6 +2244,71 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
                 self.get_number_of_lines(post_worker.regress_summary_path),
                 20)
         self.assertTrue(os.path.isfile(post_worker.posterior_summary_path))
+        self.assertTrue(os.path.isfile(post_worker.div_model_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.div_model_results_path),
+                6)
+        self.assertTrue(os.path.isfile(post_worker.psi_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.psi_results_path),
+                5)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.psi_results_path),
+                1)
+        self.assertTrue(os.path.isfile(post_worker.omega_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.omega_results_path),
+                2)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.omega_results_path),
+                1)
+        self.assertFalse(os.path.isfile(post_worker.model_results_path))
+
+    def test_regression_failure(self):
+        prior_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 100,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                report_parameters = True)
+        prior_worker.start()
+        obs_worker = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True,
+                report_parameters = True)
+        obs_worker.start()
+
+        post_out = self.get_test_path(parent = self.output_dir,
+                prefix = self.test_id + '-posterior-sample-')
+        density_path = self.get_test_path(parent = self.output_dir,
+                prefix = self.test_id + '-posterior-density-')
+        post_worker = workers.PosteriorWorker(
+                temp_fs = self.temp_fs,
+                observed_path = obs_worker.prior_stats_path,
+                posterior_path = prior_worker.prior_path,
+                num_taxon_pairs = 4,
+                posterior_out_path = post_out,
+                output_prefix = self.output_prefix,
+                model_indices = None,
+                keep_temps = False,
+                regress_posterior_path = density_path,
+                omega_threshold = 0.01,
+                abctoolbox_num_posterior_quantiles = -10,
+                abctoolbox_bandwidth = -2.0,
+                compress = False,
+                tag = 'test')
+
+        self.assertFalse(post_worker.finished)
+        post_worker.start()
+        self.assertTrue(post_worker.finished)
+        self.assertTrue(post_worker.regression_failed)
+        self.assertTrue(os.path.isfile(post_worker.posterior_out_path))
+        self.assertFalse(is_gzipped(post_worker.posterior_out_path))
+        self.assertFalse(os.path.exists(post_worker.regress_posterior_path))
+        self.assertFalse(os.path.exists(post_worker.regress_summary_path))
         self.assertTrue(os.path.isfile(post_worker.div_model_results_path))
         self.assertEqual(
                 self.get_number_of_lines(post_worker.div_model_results_path),
