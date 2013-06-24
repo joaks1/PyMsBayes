@@ -145,6 +145,13 @@ def main_cli():
             help = ('The number of equally spaced quantiles at which to '
                     'evaluate the GLM-estimated posterior density. '
                     'Default: 1000.'))
+    parser.add_argument('--reporting-frequency',
+            action = 'store',
+            type = int,
+            default = 0,
+            help = ('How frequently (in batch iterations) to run regression '
+                    'and report current results. '
+                    'Default: 0 (only report final results).'))
     parser.add_argument('--compress',
             action = 'store_true',
             help = 'Compress large results files.')
@@ -361,6 +368,7 @@ def main_cli():
             abctoolbox_bandwidth = args.bandwidth,
             omega_threshold = 0.01,
             compress = args.compress,
+            reporting_frequency = args.reporting_frequency,
             keep_temps = args.keep_temps,
             global_estimate_only = False,
             work_queue = WORK_FORCE)
