@@ -411,7 +411,7 @@ class ABCTeam(object):
 
     def _purge_priors(self, prior_workers):
         for pw in prior_workers:
-            os.remove(pw.prior_path)
+            pw.temp_fs.remove_dir(pw.output_dir)
             
     def _merge_rejection_teams(self, purge=True):
         if not self.duplicated_rejection_teams:
