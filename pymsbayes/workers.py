@@ -999,6 +999,7 @@ class ABCToolBoxRegressWorker(Worker):
         self.regress_posterior_path = regress_posterior_path
         self.compress = compress
         self.keep_temps = keep_temps
+        self.failed = False
 
     def _pre_process(self):
         self.header = parse_header(self.posterior_path)
@@ -1035,23 +1036,70 @@ class ABCToolBoxRegressWorker(Worker):
         regress_posterior_path = self.output_prefix + \
                 'PosteriorEstimates_Obs0.txt'
         if self.compress:
-            summary_stream = open(regress_summary_path, 'rU')
-            out = GzipFileStream(self.regress_summary_path, 'w',
-                    compresslevel = 9)
-            for line in summary_stream:
-                out.write(line)
-            summary_stream.close()
-            out.close()
-            adjusted_stream = open(regress_posterior_path, 'rU')
-            out = GzipFileStream(self.regress_posterior_path, 'w',
-                    compresslevel = 9)
-            for line in adjusted_stream:
-                out.write(line)
-            adjusted_stream.close()
-            out.close()
+            if os.path.exists(regress_summary_path):
+                try:
+                    summary_stream = open(regress_summary_path, 'rU')
+                    out = GzipFileStream(self.regress_summary_path, 'w',
+                            compresslevel = 9)
+                    for line in summary_stream:
+                        out.write(line)
+                    summary_stream.close()
+                    out.close()
+                except:
+                    out.close()
+                    _LOG.warning('{0}: problem compressing {1} to {2}... '
+                            'trying without compression'.format(
+                                self.name, regress_summary_path,
+                                self.regress_summary_path))
+                    base, ext = os.path.splitext(self.regress_summary_path)
+                    if ext.lower() == '.gz':
+                        self.regress_summary_path = base
+                    shutil.move(regress_summary_path, self.regress_summary_path)
+            else:
+                _LOG.warning('{0}: did not produce summary file'.format(
+                        self.name))
+                self.regress_summary_path = None
+                self.failed = True
+            if os.path.exists(regress_posterior_path):
+                try:
+                    adjusted_stream = open(regress_posterior_path, 'rU')
+                    out = GzipFileStream(self.regress_posterior_path, 'w',
+                            compresslevel = 9)
+                    for line in adjusted_stream:
+                        out.write(line)
+                    adjusted_stream.close()
+                    out.close()
+                except:
+                    out.close()
+                    _LOG.warning('{0}: problem compressing {1} to {2}... '
+                            'trying without compression'.format(
+                                self.name, regress_posterior_path,
+                                self.regress_posterior_path))
+                    base, ext = os.path.splitext(self.regress_posterior_path)
+                    if ext.lower() == '.gz':
+                        self.regress_posterior_path = base
+                    shutil.move(regress_posterior_path,
+                            self.regress_posterior_path)
+            else:
+                _LOG.warning('{0}: did not produce posterior density '
+                        'file'.format(self.name))
+                self.regress_summary_path = None
+                self.failed = True
         else:
-            shutil.move(regress_summary_path, self.regress_summary_path)
-            shutil.move(regress_posterior_path, self.regress_posterior_path)
+            if os.path.exists(regress_summary_path):
+                shutil.move(regress_summary_path, self.regress_summary_path)
+            else:
+                _LOG.warning('{0}: did not produce summary file'.format(
+                        self.name))
+                self.regress_summary_path = None
+                self.failed = True
+            if os.path.exists(regress_posterior_path):
+                shutil.move(regress_posterior_path, self.regress_posterior_path)
+            else:
+                _LOG.warning('{0}: did not produce posterior density '
+                        'file'.format(self.name))
+                self.regress_posterior_path = None
+                self.failed = True
         if not self.keep_temps:
             self.temp_fs.remove_dir(self.output_dir)
 
@@ -1159,6 +1207,7 @@ class PosteriorWorker(object):
         self.div_model_summary = None
         self.unadjusted_summaries = {}
         self.parameter_patterns_to_remove = set()
+        self.regression_failed = False
 
     def _process_posterior_sample(self):
         post = parse_parameters(self.posterior_path)
@@ -1226,15 +1275,25 @@ class PosteriorWorker(object):
 
     def _return_posterior_sample(self):
         if self.compress:
-            post_stream = open(self.temp_posterior_path, 'rU')
-            out = GzipFileStream(self.posterior_out_path, 'w',
-                    compresslevel = 9)
-            for line in post_stream:
-                out.write(line)
-            out.close()
-            post_stream.close()
-            if self.posterior_out_path == self.posterior_path + '.gz':
-                os.remove(self.posterior_path)
+            try:
+                post_stream = open(self.temp_posterior_path, 'rU')
+                out = GzipFileStream(self.posterior_out_path, 'w',
+                        compresslevel = 9)
+                for line in post_stream:
+                    out.write(line)
+                out.close()
+                post_stream.close()
+                if self.posterior_out_path == self.posterior_path + '.gz':
+                    os.remove(self.posterior_path)
+            except:
+                _LOG.warning('{0}: problem compressing posterior sample... '
+                        'returning uncompressed'.format(self.name))
+                base, ext = os.path.splitext(self.posterior_out_path)
+                if ext.lower() == '.gz':
+                    self.posterior_out_path = base
+                self.posterior_out_path = self.posterior_out_path
+                shutil.move(self.temp_posterior_path, self.posterior_out_path)
+                self.temp_posterior_path = self.posterior_out_path
         else:
             shutil.move(self.temp_posterior_path, self.posterior_out_path)
             self.temp_posterior_path = self.posterior_out_path
@@ -1265,13 +1324,21 @@ class PosteriorWorker(object):
                 compress = self.compress)
 
     def _process_regression_results(self):
+        if self.regression_worker.failed:
+            self.regression_failed = True
         discrete_parameter_patterns = list(set(PSI_PATTERNS + MODEL_PATTERNS + \
                 DIV_MODEL_PATTERNS) - self.parameter_patterns_to_remove)
-        discrete_probs = summarize_discrete_parameters_from_densities(
-                self.regress_posterior_path,
-                discrete_parameter_patterns = discrete_parameter_patterns,
-                include_omega_summary = True,
-                omega_threshold = self.omega_threshold)
+        try:
+            discrete_probs = summarize_discrete_parameters_from_densities(
+                    self.regress_posterior_path,
+                    discrete_parameter_patterns = discrete_parameter_patterns,
+                    include_omega_summary = True,
+                    omega_threshold = self.omega_threshold)
+        except:
+            _LOG.warning('{0}: Problem parsing posterior density file {1!r}'
+                    '... Returning unadjusted results'.format(
+                            self.name, self.regress_posterior_path))
+            discrete_probs = {}
         if max(discrete_probs.get('PRI.Psi', {-1: None}).iterkeys()) > \
                 self.num_taxon_pairs:
             raise ValueError('number of taxon pairs is {0}, but found '
@@ -1343,7 +1410,13 @@ class PosteriorWorker(object):
             out.close()
 
     def _write_summary(self):
-        glm = parse_abctoolbox_summary_file(self.regress_summary_path)
+        try:
+            glm = parse_abctoolbox_summary_file(self.regress_summary_path)
+        except:
+            _LOG.warning('{0}: Parsing of regression summary file {1!r} '
+                    'failed... Returning unadjusted summary'.format(
+                        self.name, self.regress_summary_path))
+            glm = {}
         out, close = process_file_arg(self.posterior_summary_path, 'w')
         for param, summary in self.unadjusted_summaries.iteritems():
             out.write('[{0}]\n'.format(param))
