@@ -115,7 +115,7 @@ def get_bin_width(samples, algorithm = 'freedman-diaconis'):
     """
     if not samples:
         return None
-    if samples < 2:
+    if len(samples) < 2:
         return math.fabs(samples[0])
     a = algorithm.strip().lower()
     n = len(list(samples))
@@ -259,6 +259,10 @@ def mode_list(samples, bin_width = 'auto', zero_value = 'boundary'):
             discrete = False
         if not discrete:
             bin_width = get_bin_width(samples, bin_width)
+            if bin_width == 0.0:
+                bin_width = (max(samples) - min(samples)) / float(10)
+                if bin_width == 0.0:
+                    bin_width = 0.001
     if not discrete:
         bw = float(bin_width)
     counts = {}
