@@ -1296,7 +1296,6 @@ class ABCToolBoxRegressWorkerTestCase(PyMsBayesTestCase):
                 bandwidth = None,
                 num_posterior_quantiles = 100)
         self.assertFalse(regress_worker.finished)
-        regress_worker.cfg_path = "Hello world!"
         regress_worker.start()
         self.assertTrue(regress_worker.finished)
         self.assertTrue(regress_worker.failed)
