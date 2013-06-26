@@ -4,6 +4,7 @@ import unittest
 import os
 import sys
 import random
+import re
 
 from pymsbayes.teams import *
 from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRejectWorker,
@@ -328,6 +329,9 @@ class RejectionTeamTestCase(PyMsBayesTestCase):
         self.assertSameFiles([rt.regress_posterior_path, exp_reg_post_path])
 
 class ABCTeamTestCase(PyMsBayesTestCase):
+    BASE_DIR_PATTERN = re.compile(r'pymsbayes-output[-]*\d*')
+    DATA_DIR_PATTERN = re.compile(r'd\d+')
+    MODEL_DIR_PATTERN = re.compile(r'm\d+')
     def setUp(self):
         self.set_up()
         self.cfg_path = package_paths.data_path('4pairs_1locus.cfg')
@@ -336,21 +340,15 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.rng = random.Random()
         self.rng.seed(self.seed)
         self.output_dir = self.get_test_subdir(prefix='abc-team-test-')
-        self.base_dir = os.path.join(self.output_dir, 'pymsbayes-output')
-        self.base_dir2 = self.base_dir + '-0'
-        self.temp_fs._register_dir(self.base_dir)
-        self.temp_fs._register_dir(self.base_dir2)
 
     def tearDown(self):
-        for p in os.listdir(self.base_dir):
-            p = os.path.join(self.base_dir, p)
-            if os.path.isdir(p):
-                self.temp_fs._register_dir(p)
-        if os.path.exists(self.base_dir2):
-            for p in os.listdir(self.base_dir2):
-                p = os.path.join(self.base_dir2, p)
-                if os.path.isdir(p):
-                    self.temp_fs._register_dir(p)
+        for base, dirs, files in os.walk(self.output_dir):
+            for d in dirs:
+                if self.BASE_DIR_PATTERN.match(d) or \
+                        self.DATA_DIR_PATTERN.match(d) or \
+                        self.MODEL_DIR_PATTERN.match(d) or \
+                        d == 'prior-stats-summaries':
+                    self.temp_fs._register_dir(os.path.join(base, d))
         self.tear_down()
 
     def test_abc_team(self):
@@ -373,7 +371,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
 
         abct = ABCTeam(
                 temp_fs = self.temp_fs,
-                observed_stats_file = obs_worker.prior_stats_path,
+                observed_stats_files = [obs_worker.prior_stats_path],
                 num_taxon_pairs = num_taxon_pairs,
                 model_indices_to_config_paths = {1: self.cfg_path},
                 num_prior_samples = num_prior_samples,
@@ -549,7 +547,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
 
         abct = ABCTeam(
                 temp_fs = self.temp_fs,
-                observed_stats_file = obs_worker.prior_stats_path,
+                observed_stats_files = [obs_worker.prior_stats_path],
                 num_taxon_pairs = num_taxon_pairs,
                 model_indices_to_config_paths = {1: self.cfg_path},
                 num_prior_samples = num_prior_samples,
@@ -725,7 +723,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
 
         abct1 = ABCTeam(
                 temp_fs = self.temp_fs,
-                observed_stats_file = obs_worker.prior_stats_path,
+                observed_stats_files = [obs_worker.prior_stats_path],
                 num_taxon_pairs = num_taxon_pairs,
                 model_indices_to_config_paths = {1: self.cfg_path},
                 num_prior_samples = num_prior_samples,
@@ -753,7 +751,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
 
         abct2 = ABCTeam(
                 temp_fs = self.temp_fs,
-                observed_stats_file = obs_worker.prior_stats_path,
+                observed_stats_files = [obs_worker.prior_stats_path],
                 num_taxon_pairs = num_taxon_pairs,
                 model_indices_to_config_paths = {1: self.cfg_path},
                 num_prior_samples = num_prior_samples,
@@ -814,7 +812,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
 
         abct = ABCTeam(
                 temp_fs = self.temp_fs,
-                observed_stats_file = obs_worker.prior_stats_path,
+                observed_stats_files = [obs_worker.prior_stats_path],
                 num_taxon_pairs = num_taxon_pairs,
                 model_indices_to_config_paths = {1: self.cfg_path,
                         2: self.cfg_path2},
@@ -950,7 +948,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
 
         abct1 = ABCTeam(
                 temp_fs = self.temp_fs,
-                observed_stats_file = obs_worker.prior_stats_path,
+                observed_stats_files = [obs_worker.prior_stats_path],
                 num_taxon_pairs = num_taxon_pairs,
                 model_indices_to_config_paths = {1: self.cfg_path,
                         2: self.cfg_path2},
@@ -976,7 +974,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
 
         abct2 = ABCTeam(
                 temp_fs = self.temp_fs,
-                observed_stats_file = obs_worker.prior_stats_path,
+                observed_stats_files = [obs_worker.prior_stats_path],
                 num_taxon_pairs = num_taxon_pairs,
                 model_indices_to_config_paths = {1: self.cfg_path,
                         2: self.cfg_path2},
@@ -1041,7 +1039,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
 
         abct = ABCTeam(
                 temp_fs = self.temp_fs,
-                observed_stats_file = obs_path,
+                observed_stats_files = [obs_path],
                 num_taxon_pairs = num_taxon_pairs,
                 model_indices_to_config_paths = {1: self.cfg_path,
                         2: self.cfg_path2},
@@ -1278,7 +1276,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
 
         abct1 = ABCTeam(
                 temp_fs = self.temp_fs,
-                observed_stats_file = obs_path,
+                observed_stats_files = [obs_path],
                 num_taxon_pairs = num_taxon_pairs,
                 model_indices_to_config_paths = {1: self.cfg_path,
                         2: self.cfg_path2},
@@ -1310,7 +1308,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
 
         abct2 = ABCTeam(
                 temp_fs = self.temp_fs,
-                observed_stats_file = obs_path,
+                observed_stats_files = [obs_path],
                 num_taxon_pairs = num_taxon_pairs,
                 model_indices_to_config_paths = {1: self.cfg_path,
                         2: self.cfg_path2},

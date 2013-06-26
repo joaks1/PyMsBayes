@@ -23,7 +23,7 @@ class ABCTeam(object):
     count = 0
     def __init__(self,
             temp_fs,
-            observed_stats_file,
+            observed_stats_files,
             num_taxon_pairs,
             model_indices_to_config_paths,
             num_prior_samples,
@@ -62,9 +62,11 @@ class ABCTeam(object):
         self.summary_temp_dir = temp_fs.create_subdir(
                 parent = self.temp_output_dir,
                 prefix = 'summary-files-')
-        self.observed_stats_path = expand_path(observed_stats_file)
+        self.observed_stats_paths = dict(zip(
+            [i for i in range(len(observed_stats_files))],
+            [expand_path(p) for p in observed_stats_files]))
         if not output_dir:
-            output_dir = os.path.dirname(self.observed_stats_path)
+            output_dir = os.path.dirname(self.observed_stats_paths[0])
         self.output_dir = mk_new_dir(os.path.join(expand_path(output_dir),
                 'pymsbayes-output'))
         self.output_prefix = str(output_prefix)
@@ -95,18 +97,28 @@ class ABCTeam(object):
         self.abctoolbox_bandwidth = abctoolbox_bandwidth
         self.omega_threshold = omega_threshold
         self.compress = compress
-        self.model_dirs = dict(zip(self.models.keys(),
-                [mk_new_dir(os.path.join(self.output_dir,
-                        'm' + str(k))) for k in self.models.keys()]))
-        if len(self.models) > 1:
-            self.model_dirs.update({'combined': mk_new_dir(os.path.join(
-                    self.output_dir,
-                    'm' + ''.join([str(i) for i in sorted(self.models.keys())])))})
-        else:
+        self.observed_dirs = dict(zip(
+                self.observed_stats_paths.keys(),
+                [mk_new_dir(os.path.join(self.output_dir, 'd' + str(
+                        k))) for k in self.observed_stats_paths.iterkeys()]))
+        self.model_dirs = {}
+        for obs_idx, obs_dir in self.observed_dirs.iteritems():
+            self.model_dirs[obs_idx] = {}
+            for model_idx in self.models.iterkeys():
+                self.model_dirs[obs_idx][model_idx] = mk_new_dir(os.path.join(
+                        obs_dir, 'm' + str(model_idx)))
+            if len(self.models) > 1:
+                self.model_dirs[obs_idx].update({
+                        'combined': mk_new_dir(os.path.join(obs_dir,
+                        'm' + ''.join([str(i) for i in sorted(
+                                self.models.keys())])))})
+        if len(self.models) < 2:
             self.global_estimate_only = False
+        self.summary_dir = mk_new_dir(os.path.join(self.output_dir,
+                'prior-stats-summaries'))
         self.summary_paths = {}
-        for k, d in self.model_dirs.iteritems():
-            self.summary_paths[k] = os.path.join(d,
+        for k, d in self.model_dirs[0].iteritems():
+            self.summary_paths[k] = os.path.join(self.summary_dir,
                     self.output_prefix + os.path.basename(d) + \
                             '-stat-means-and-std-devs.txt')
         self.rejection_teams = {}
@@ -139,6 +151,11 @@ class ABCTeam(object):
             if rep_indices[-1] >= (len(self.prior_workers) - 1):
                 rep_indices.pop(-1)
             self.reporting_indices = rep_indices
+        self.model_key_path = os.path.join(self.output_dir,
+                self.output_prefix + 'model-key.txt')
+        self.data_key_path = os.path.join(self.output_dir,
+                self.output_prefix + 'data-key.txt')
+        self._write_keys()
         self.finished = False
 
     def _assemble_prior_workers(self):
@@ -178,7 +195,7 @@ class ABCTeam(object):
                             create = False)
                     sum_worker = EuRejectWorker(
                             temp_fs = self.temp_fs,
-                            observed_path = self.observed_stats_path,
+                            observed_path = self.observed_stats_paths[0],
                             prior_paths = [worker.prior_path],
                             posterior_path = post_path,
                             num_posterior_samples = 0,
@@ -213,7 +230,7 @@ class ABCTeam(object):
                             create = False)
                     sum_worker = EuRejectWorker(
                             temp_fs = self.temp_fs,
-                            observed_path = self.observed_stats_path,
+                            observed_path = self.observed_stats_paths[0],
                             prior_paths = [worker.prior_path],
                             posterior_path = post_path,
                             num_posterior_samples = 0,
@@ -243,66 +260,38 @@ class ABCTeam(object):
                 self.num_processors, by_size=True))
 
     def _assemble_rejection_teams(self):
-        obs_file, close = process_file_arg(self.observed_stats_path)
-        header = parse_header(obs_file)
-        all_stat_indices = get_stat_indices(header,
-                stat_patterns=ALL_STAT_PATTERNS)
-        obs_file.next() # header line
-        for i, line in enumerate(obs_file):
-            self.num_observed += 1
-            index = i + 1
-            tmp_obs_path = self.temp_fs.get_file_path(
-                    parent = self.observed_temp_dir,
-                    prefix = 'observed-{0}-'.format(index),
-                    create = False)
-            l = line.strip().split()
-            with open(tmp_obs_path, 'w') as out:
-                out.write('{0}\n{1}\n'.format(
+        for obs_idx, obs_path in self.observed_stats_paths.iteritems():
+            obs_file, close = process_file_arg(obs_path)
+            header = parse_header(obs_file, seek = False)
+            all_stat_indices = get_stat_indices(header,
+                    stat_patterns=ALL_STAT_PATTERNS)
+            for i, line in enumerate(obs_file):
+                self.num_observed += 1
+                index = i + 1
+                tmp_obs_path = self.temp_fs.get_file_path(
+                        parent = self.observed_temp_dir,
+                        prefix = 'observed-{0}-{1}-'.format(obs_idx, index),
+                        create = False)
+                l = line.strip().split()
+                with open(tmp_obs_path, 'w') as out:
+                    out.write('{0}\n{1}\n'.format(
                         '\t'.join([header[idx] for idx in all_stat_indices]),
                         '\t'.join([str(l[idx]) for idx in all_stat_indices])))
-            for model_idx, rejection_team_list in self.rejection_teams.iteritems():
-                if model_idx == 'combined':
-                    m_indices = self.models.keys()
-                else:
-                    m_indices = [model_idx]
-                rejection_team_list.append(RejectionTeam(
-                        temp_fs = self.temp_fs,
-                        observed_path = tmp_obs_path,
-                        output_dir = self.model_dirs[model_idx],
-                        output_prefix = self.output_prefix,
-                        num_taxon_pairs = self.num_taxon_pairs,
-                        prior_paths = [],
-                        model_indices = m_indices,
-                        summary_in_path = self.summary_paths[model_idx],
-                        num_posterior_samples = self.num_posterior_samples,
-                        num_posterior_density_quantiles = \
-                                self.num_posterior_density_quantiles,
-                        run_regression = False,
-                        eureject_exe_path = self.eureject_exe_path,
-                        abctoolbox_exe_path = self.abctoolbox_exe_path,
-                        abctoolbox_bandwidth = self.abctoolbox_bandwidth,
-                        omega_threshold = self.omega_threshold,
-                        compress = self.compress,
-                        keep_temps = self.keep_temps,
-                        index = index,
-                        tag = model_idx))
-        if close:
-            obs_file.close()
-        if self.num_observed == 1:
-            for model_idx, rt_list in self.rejection_teams.iteritems():
-                assert len(rt_list) == 1
-                rt = rt_list[0]
-                for i in range(self.num_processors - 1):
-                    self.duplicated_rejection_teams = True
-                    rt_list.append(RejectionTeam(
+                for model_idx, rejection_team_list in \
+                        self.rejection_teams.iteritems():
+                    if model_idx == 'combined':
+                        m_indices = self.models.keys()
+                    else:
+                        m_indices = [model_idx]
+                    rejection_team_list.append(RejectionTeam(
                             temp_fs = self.temp_fs,
-                            observed_path = rt.observed_path,
-                            output_dir = rt.output_dir,
+                            observed_path = tmp_obs_path,
+                            output_dir = self.model_dirs[obs_idx][model_idx],
                             output_prefix = self.output_prefix,
                             num_taxon_pairs = self.num_taxon_pairs,
                             prior_paths = [],
-                            model_indices = rt.model_indices,
-                            summary_in_path = rt.summary_in_path,
+                            model_indices = m_indices,
+                            summary_in_path = self.summary_paths[model_idx],
                             num_posterior_samples = self.num_posterior_samples,
                             num_posterior_density_quantiles = \
                                     self.num_posterior_density_quantiles,
@@ -313,8 +302,49 @@ class ABCTeam(object):
                             omega_threshold = self.omega_threshold,
                             compress = self.compress,
                             keep_temps = self.keep_temps,
-                            index = rt.index,
+                            index = index,
                             tag = model_idx))
+            if close:
+                obs_file.close()
+            if self.num_observed == 1:
+                for model_idx, rt_list in self.rejection_teams.iteritems():
+                    assert len(rt_list) == 1
+                    rt = rt_list[0]
+                    for i in range(self.num_processors - 1):
+                        self.duplicated_rejection_teams = True
+                        rt_list.append(RejectionTeam(
+                                temp_fs = self.temp_fs,
+                                observed_path = rt.observed_path,
+                                output_dir = rt.output_dir,
+                                output_prefix = self.output_prefix,
+                                num_taxon_pairs = self.num_taxon_pairs,
+                                prior_paths = [],
+                                model_indices = rt.model_indices,
+                                summary_in_path = rt.summary_in_path,
+                                num_posterior_samples = \
+                                        self.num_posterior_samples,
+                                num_posterior_density_quantiles = \
+                                        self.num_posterior_density_quantiles,
+                                run_regression = False,
+                                eureject_exe_path = self.eureject_exe_path,
+                                abctoolbox_exe_path = self.abctoolbox_exe_path,
+                                abctoolbox_bandwidth = \
+                                        self.abctoolbox_bandwidth,
+                                omega_threshold = self.omega_threshold,
+                                compress = self.compress,
+                                keep_temps = self.keep_temps,
+                                index = rt.index,
+                                tag = model_idx))
+
+    def _write_keys(self):
+        out, close = process_file_arg(self.model_key_path, 'w')
+        for idx, cfg_path in self.models.iteritems():
+            out.write('m{0} = {1}\n'.format(idx, cfg_path))
+        out.close()
+        out, close = process_file_arg(self.data_key_path, 'w')
+        for idx, data_path in self.observed_stats_paths.iteritems():
+            out.write('d{0} = {1}\n'.format(idx, data_path))
+        out.close()
     
     def _run_workers(self, workers):
         assert self.work_queue.empty()
