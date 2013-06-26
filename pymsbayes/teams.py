@@ -267,10 +267,10 @@ class ABCTeam(object):
                     stat_patterns=ALL_STAT_PATTERNS)
             for i, line in enumerate(obs_file):
                 self.num_observed += 1
-                index = i + 1
                 tmp_obs_path = self.temp_fs.get_file_path(
                         parent = self.observed_temp_dir,
-                        prefix = 'observed-{0}-{1}-'.format(obs_idx, index),
+                        prefix = 'observed-{0}-{1}-'.format(self.num_observed,
+                                obs_idx),
                         create = False)
                 l = line.strip().split()
                 with open(tmp_obs_path, 'w') as out:
@@ -302,39 +302,39 @@ class ABCTeam(object):
                             omega_threshold = self.omega_threshold,
                             compress = self.compress,
                             keep_temps = self.keep_temps,
-                            index = index,
+                            index = self.num_observed,
                             tag = model_idx))
             if close:
                 obs_file.close()
-            if self.num_observed == 1:
-                for model_idx, rt_list in self.rejection_teams.iteritems():
-                    assert len(rt_list) == 1
-                    rt = rt_list[0]
-                    for i in range(self.num_processors - 1):
-                        self.duplicated_rejection_teams = True
-                        rt_list.append(RejectionTeam(
-                                temp_fs = self.temp_fs,
-                                observed_path = rt.observed_path,
-                                output_dir = rt.output_dir,
-                                output_prefix = self.output_prefix,
-                                num_taxon_pairs = self.num_taxon_pairs,
-                                prior_paths = [],
-                                model_indices = rt.model_indices,
-                                summary_in_path = rt.summary_in_path,
-                                num_posterior_samples = \
-                                        self.num_posterior_samples,
-                                num_posterior_density_quantiles = \
-                                        self.num_posterior_density_quantiles,
-                                run_regression = False,
-                                eureject_exe_path = self.eureject_exe_path,
-                                abctoolbox_exe_path = self.abctoolbox_exe_path,
-                                abctoolbox_bandwidth = \
-                                        self.abctoolbox_bandwidth,
-                                omega_threshold = self.omega_threshold,
-                                compress = self.compress,
-                                keep_temps = self.keep_temps,
-                                index = rt.index,
-                                tag = model_idx))
+        if self.num_observed == 1:
+            for model_idx, rt_list in self.rejection_teams.iteritems():
+                assert len(rt_list) == 1
+                rt = rt_list[0]
+                for i in range(self.num_processors - 1):
+                    self.duplicated_rejection_teams = True
+                    rt_list.append(RejectionTeam(
+                            temp_fs = self.temp_fs,
+                            observed_path = rt.observed_path,
+                            output_dir = rt.output_dir,
+                            output_prefix = self.output_prefix,
+                            num_taxon_pairs = self.num_taxon_pairs,
+                            prior_paths = [],
+                            model_indices = rt.model_indices,
+                            summary_in_path = rt.summary_in_path,
+                            num_posterior_samples = \
+                                    self.num_posterior_samples,
+                            num_posterior_density_quantiles = \
+                                    self.num_posterior_density_quantiles,
+                            run_regression = False,
+                            eureject_exe_path = self.eureject_exe_path,
+                            abctoolbox_exe_path = self.abctoolbox_exe_path,
+                            abctoolbox_bandwidth = \
+                                    self.abctoolbox_bandwidth,
+                            omega_threshold = self.omega_threshold,
+                            compress = self.compress,
+                            keep_temps = self.keep_temps,
+                            index = rt.index,
+                            tag = model_idx))
 
     def _write_keys(self):
         out, close = process_file_arg(self.model_key_path, 'w')
@@ -451,6 +451,7 @@ class ABCTeam(object):
             for i in range(len(rt_list)-1):
                 rt = rt_list.pop(-1)
                 if rt.posterior_path:
+                    assert rt.observed_path == rt_list[0].observed_path
                     rt_list[0].prior_paths.append(rt.posterior_path)
                     rt_list[0].num_samples_processed += \
                             (rt.num_samples_processed - rt.posterior_size)
