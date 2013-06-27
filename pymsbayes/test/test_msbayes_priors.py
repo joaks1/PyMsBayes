@@ -3,6 +3,7 @@
 import unittest
 import os
 import sys
+import math
 import multiprocessing
 
 from pymsbayes.workers import *
@@ -12,6 +13,7 @@ from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test import TestLevel, test_enabled
 from pymsbayes.utils.parsing import parse_parameters
 from pymsbayes.utils.functions import long_division
+from pymsbayes.utils.stats import mode_list
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -100,6 +102,12 @@ class PriorTestCase(PyMsBayesTestCase):
                 self.samples['mean_d_thetas'].append(mean_d_theta)
 
     def test_old_unconstrained(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         self.preamble = """
 upperTheta = 0.1
 lowerTheta = 0.0001
@@ -131,6 +139,12 @@ subParamConstrain = 111111111
             self.assertAlmostEqual(freq, 0.25, places=1)
 
     def test_old_constrained(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         self.preamble = """
 upperTheta = 0.1
 lowerTheta = 0.0001
@@ -162,6 +176,12 @@ subParamConstrain = 111111111
             self.assertEqual(len(set(t)), 4)
 
     def test_new_uniform_theta000(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         self.preamble = """
 concentrationShape = 0
 concentrationScale = 0
@@ -208,6 +228,12 @@ subParamConstrain = 111111111
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
 
     def test_new_uniform_theta001(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         self.preamble = """
 concentrationShape = 0
 concentrationScale = 0
@@ -261,6 +287,12 @@ subParamConstrain = 111111111
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
 
     def test_new_uniform_theta011(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         self.preamble = """
 concentrationShape = 0
 concentrationScale = 0
@@ -314,6 +346,12 @@ subParamConstrain = 111111111
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
 
     def test_new_uniform_theta010(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         self.preamble = """
 concentrationShape = 0
 concentrationScale = 0
@@ -367,6 +405,12 @@ subParamConstrain = 111111111
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
 
     def test_new_uniform_theta012(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         self.preamble = """
 concentrationShape = 0
 concentrationScale = 0
@@ -425,6 +469,12 @@ subParamConstrain = 111111111
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
 
     def test_new_uniform_constrained(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         self.preamble = """
 concentrationShape = 0
 concentrationScale = 0
@@ -470,6 +520,483 @@ subParamConstrain = 111111111
         tau_ss = SampleSummarizer(self.samples['unique_taus'])
         self.assertAlmostEqual(tau_ss.mean, tau.mean, places=0)
         self.assertAlmostEqual(tau_ss.variance, tau.variance, places=0)
+        self.assertAlmostEqual(d_theta_ss.mean, theta.mean, places=2)
+        self.assertAlmostEqual(d_theta_ss.variance, theta.variance, places=2)
+        self.assertEqual(self.samples['psi'], [4]*1000)
+        for t in self.samples['taus']:
+            self.assertEqual(len(set(t)), 4)
+
+    def test_new_uniform_with_uniform_tau(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
+        self.preamble = """
+concentrationShape = 0
+concentrationScale = 0
+thetaShape = 1.0
+thetaScale = 0.01
+ancestralThetaShape = 0
+ancestralThetaScale = 0
+thetaParameters = 012
+tauShape = -1.0
+tauScale = -4.0
+bottleProportionShapeA = 10
+bottleProportionShapeB = 1
+bottleProportionShared = 0
+numTauClasses = 0
+migrationShape = 0
+migrationScale = 0
+recombinationShape = 0
+recombinationScale = 0
+constrain = 0
+subParamConstrain = 111111111
+"""
+
+        self.generate_prior(sample_size=1000, batch_size=250, np=4)
+        self.assertFalse(self.samples == None)
+        theta = GammaDistribution(1.0, 0.01)
+        tau = ContinuousUniformDistribution(1.0, 4.0)
+        not_equal_failures = 0
+        for i in range(1000):
+            for j in range(4):
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d1_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['d1_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+        self.assertTrue(not_equal_failures < 10)
+        d_theta_ss = SampleSummarizer(self.samples['all_d1_thetas'] + \
+                self.samples['all_d2_thetas'] + \
+                self.samples['all_a_thetas'])
+        tau_ss = SampleSummarizer(self.samples['unique_taus'])
+        self.assertAlmostEqual(tau_ss.mean, tau.mean, places=0)
+        self.assertAlmostEqual(tau_ss.variance, tau.variance, places=0)
+        self.assertAlmostEqual(d_theta_ss.mean, theta.mean, places=2)
+        self.assertAlmostEqual(d_theta_ss.variance, theta.variance, places=2)
+        psi_freqs = get_freqs(self.samples['psi'])
+        for psi, freq in psi_freqs.iteritems():
+            if psi == 2:
+                self.assertAlmostEqual(freq, 2/float(5), places=1)
+            else:
+                self.assertAlmostEqual(freq, 1/float(5), places=1)
+
+    def test_new_uniform_constrained_with_uniform_tau(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
+        self.preamble = """
+concentrationShape = 0
+concentrationScale = 0
+thetaShape = 1.0
+thetaScale = 0.01
+ancestralThetaShape = 0
+ancestralThetaScale = 0
+thetaParameters = 012
+tauShape = -1.0
+tauScale = -4.0
+bottleProportionShapeA = 10
+bottleProportionShapeB = 1
+bottleProportionShared = 0
+numTauClasses = 4
+migrationShape = 0
+migrationScale = 0
+recombinationShape = 0
+recombinationScale = 0
+constrain = 0
+subParamConstrain = 111111111
+"""
+
+        self.generate_prior(sample_size=1000, batch_size=250, np=4)
+        self.assertFalse(self.samples == None)
+        theta = GammaDistribution(1.0, 0.01)
+        tau = ContinuousUniformDistribution(1.0, 4.0)
+        not_equal_failures = 0
+        for i in range(1000):
+            for j in range(4):
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d1_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['d1_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+        self.assertTrue(not_equal_failures < 10)
+        d_theta_ss = SampleSummarizer(self.samples['all_d1_thetas'] + \
+                self.samples['all_d2_thetas'] + \
+                self.samples['all_a_thetas'])
+        tau_ss = SampleSummarizer(self.samples['unique_taus'])
+        self.assertAlmostEqual(tau_ss.mean, tau.mean, places=0)
+        self.assertAlmostEqual(tau_ss.variance, tau.variance, places=0)
+        self.assertAlmostEqual(d_theta_ss.mean, theta.mean, places=2)
+        self.assertAlmostEqual(d_theta_ss.variance, theta.variance, places=2)
+        self.assertEqual(self.samples['psi'], [4]*1000)
+        for t in self.samples['taus']:
+            self.assertEqual(len(set(t)), 4)
+
+    def test_new_uniform_psi(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
+        self.preamble = """
+concentrationShape = -1
+concentrationScale = -1
+thetaShape = 0.5
+thetaScale = 0.01
+ancestralThetaShape = 0
+ancestralThetaScale = 0
+thetaParameters = 012
+tauShape = 1.0
+tauScale = 3.0
+bottleProportionShapeA = 10
+bottleProportionShapeB = 1
+bottleProportionShared = 0
+numTauClasses = 0
+migrationShape = 0
+migrationScale = 0
+recombinationShape = 0
+recombinationScale = 0
+constrain = 0
+subParamConstrain = 111111111
+"""
+
+        self.generate_prior(sample_size=1000, batch_size=250, np=4)
+        self.assertFalse(self.samples == None)
+        theta = GammaDistribution(0.5, 0.01)
+        tau = GammaDistribution(1.0, 3.0)
+        not_equal_failures = 0
+        for i in range(1000):
+            for j in range(4):
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d1_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['d1_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+        self.assertTrue(not_equal_failures < 10)
+        d_theta_ss = SampleSummarizer(self.samples['all_d1_thetas'] + \
+                self.samples['all_d2_thetas'] + \
+                self.samples['all_a_thetas'])
+        tau_ss = SampleSummarizer(self.samples['unique_taus'])
+        self.assertAlmostEqual(tau_ss.mean, tau.mean, places=0)
+        self.assertAlmostEqual(tau_ss.variance, tau.variance, places=0)
+        self.assertAlmostEqual(d_theta_ss.mean, theta.mean, places=2)
+        self.assertAlmostEqual(d_theta_ss.variance, theta.variance, places=2)
+        psi_freqs = get_freqs(self.samples['psi'])
+        for psi, freq in psi_freqs.iteritems():
+            self.assertAlmostEqual(freq, 0.25, places=1)
+
+    def test_new_dpp_clustered(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
+        self.preamble = """
+concentrationShape = 1000
+concentrationScale = 0.0000000001
+thetaShape = 1.0
+thetaScale = 0.01
+ancestralThetaShape = 0
+ancestralThetaScale = 0
+thetaParameters = 012
+tauShape = 1.0
+tauScale = 5.0
+bottleProportionShapeA = 0
+bottleProportionShapeB = 0
+bottleProportionShared = 1
+numTauClasses = 0
+migrationShape = 0
+migrationScale = 0
+recombinationShape = 0
+recombinationScale = 0
+constrain = 0
+subParamConstrain = 111111111
+"""
+
+        self.generate_prior(sample_size=1000, batch_size=250, np=4)
+        self.assertFalse(self.samples == None)
+        theta = GammaDistribution(1.0, 0.01)
+        tau = GammaDistribution(1.0, 5.0)
+        not_equal_failures = 0
+        for i in range(1000):
+            for j in range(4):
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d1_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['d1_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+        self.assertTrue(not_equal_failures < 10)
+        d_theta_ss = SampleSummarizer(self.samples['all_d1_thetas'] + \
+                self.samples['all_d2_thetas'] + \
+                self.samples['all_a_thetas'])
+        tau_ss = SampleSummarizer(self.samples['unique_taus'])
+        self.assertAlmostEqual(tau_ss.mean, tau.mean, places=0)
+        self.assertTrue(math.fabs(tau_ss.variance - tau.variance) < 3.0,
+                msg='unique tau variance is {0}; expecting {1}'.format(
+                        tau_ss.variance, tau.variance))
+        self.assertAlmostEqual(d_theta_ss.mean, theta.mean, places=2)
+        self.assertAlmostEqual(d_theta_ss.variance, theta.variance, places=2)
+        self.assertEqual(self.samples['psi'], [1]*1000)
+        for t in self.samples['taus']:
+            self.assertEqual(len(set(t)), 1)
+
+    def test_new_dpp_dispersed(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
+        self.preamble = """
+concentrationShape = 1000
+concentrationScale = 1000
+thetaShape = 1.0
+thetaScale = 0.01
+ancestralThetaShape = 0
+ancestralThetaScale = 0
+thetaParameters = 012
+tauShape = 1.0
+tauScale = 5.0
+bottleProportionShapeA = 0
+bottleProportionShapeB = 0
+bottleProportionShared = 1
+numTauClasses = 0
+migrationShape = 0
+migrationScale = 0
+recombinationShape = 0
+recombinationScale = 0
+constrain = 0
+subParamConstrain = 111111111
+"""
+
+        self.generate_prior(sample_size=1000, batch_size=250, np=4)
+        self.assertFalse(self.samples == None)
+        theta = GammaDistribution(1.0, 0.01)
+        tau = GammaDistribution(1.0, 5.0)
+        not_equal_failures = 0
+        for i in range(1000):
+            for j in range(4):
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d1_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['d1_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+        self.assertTrue(not_equal_failures < 10)
+        d_theta_ss = SampleSummarizer(self.samples['all_d1_thetas'] + \
+                self.samples['all_d2_thetas'] + \
+                self.samples['all_a_thetas'])
+        tau_ss = SampleSummarizer(self.samples['unique_taus'])
+        self.assertAlmostEqual(tau_ss.mean, tau.mean, places=0)
+        self.assertTrue(math.fabs(tau_ss.variance - tau.variance) < 3.0,
+                msg='unique tau variance is {0}; expecting {1}'.format(
+                        tau_ss.variance, tau.variance))
+        self.assertAlmostEqual(d_theta_ss.mean, theta.mean, places=2)
+        self.assertAlmostEqual(d_theta_ss.variance, theta.variance, places=2)
+        self.assertEqual(self.samples['psi'], [4]*1000)
+        for t in self.samples['taus']:
+            self.assertEqual(len(set(t)), 4)
+
+    def test_new_dpp_2(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
+        self.preamble = """
+concentrationShape = 1000
+concentrationScale = 0.00088
+thetaShape = 1.0
+thetaScale = 0.01
+ancestralThetaShape = 0
+ancestralThetaScale = 0
+thetaParameters = 012
+tauShape = 1.0
+tauScale = 5.0
+bottleProportionShapeA = 0
+bottleProportionShapeB = 0
+bottleProportionShared = 1
+numTauClasses = 0
+migrationShape = 0
+migrationScale = 0
+recombinationShape = 0
+recombinationScale = 0
+constrain = 0
+subParamConstrain = 111111111
+"""
+
+        self.generate_prior(sample_size=1000, batch_size=250, np=4)
+        self.assertFalse(self.samples == None)
+        theta = GammaDistribution(1.0, 0.01)
+        tau = GammaDistribution(1.0, 5.0)
+        not_equal_failures = 0
+        for i in range(1000):
+            for j in range(4):
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d1_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['d1_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+        self.assertTrue(not_equal_failures < 10)
+        d_theta_ss = SampleSummarizer(self.samples['all_d1_thetas'] + \
+                self.samples['all_d2_thetas'] + \
+                self.samples['all_a_thetas'])
+        tau_ss = SampleSummarizer(self.samples['unique_taus'])
+        self.assertAlmostEqual(tau_ss.mean, tau.mean, places=0)
+        self.assertTrue(math.fabs(tau_ss.variance - tau.variance) < 3.0,
+                msg='unique tau variance is {0}; expecting {1}'.format(
+                        tau_ss.variance, tau.variance))
+        self.assertAlmostEqual(d_theta_ss.mean, theta.mean, places=2)
+        self.assertAlmostEqual(d_theta_ss.variance, theta.variance, places=2)
+        psi_freqs = get_freqs(self.samples['psi'])
+        self.assertAlmostEqual(psi_freqs[2], 0.46078, places=1)
+        self.assertEqual(mode_list(self.samples['psi']), [2])
+
+    def test_new_dpp_2_with_uniform_tau(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
+        self.preamble = """
+concentrationShape = 1000
+concentrationScale = 0.00088
+thetaShape = 1.0
+thetaScale = 0.01
+ancestralThetaShape = 0
+ancestralThetaScale = 0
+thetaParameters = 012
+tauShape = 2.0
+tauScale = -10.0
+bottleProportionShapeA = 0
+bottleProportionShapeB = 0
+bottleProportionShared = 1
+numTauClasses = 0
+migrationShape = 0
+migrationScale = 0
+recombinationShape = 0
+recombinationScale = 0
+constrain = 0
+subParamConstrain = 111111111
+"""
+
+        self.generate_prior(sample_size=1000, batch_size=250, np=4)
+        self.assertFalse(self.samples == None)
+        theta = GammaDistribution(1.0, 0.01)
+        tau = ContinuousUniformDistribution(2.0, 10.0)
+        not_equal_failures = 0
+        for i in range(1000):
+            for j in range(4):
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d1_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['d1_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+        self.assertTrue(not_equal_failures < 10)
+        d_theta_ss = SampleSummarizer(self.samples['all_d1_thetas'] + \
+                self.samples['all_d2_thetas'] + \
+                self.samples['all_a_thetas'])
+        tau_ss = SampleSummarizer(self.samples['unique_taus'])
+        self.assertAlmostEqual(tau_ss.mean, tau.mean, places=0)
+        self.assertTrue(math.fabs(tau_ss.variance - tau.variance) < 3.0,
+                msg='unique tau variance is {0}; expecting {1}'.format(
+                        tau_ss.variance, tau.variance))
+        self.assertAlmostEqual(d_theta_ss.mean, theta.mean, places=2)
+        self.assertAlmostEqual(d_theta_ss.variance, theta.variance, places=2)
+        psi_freqs = get_freqs(self.samples['psi'])
+        self.assertAlmostEqual(psi_freqs[2], 0.46078, places=1)
+        self.assertEqual(mode_list(self.samples['psi']), [2])
+
+    def test_new_dpp_constrained_with_uniform_tau(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
+        self.preamble = """
+concentrationShape = 1000
+concentrationScale = 0.00088
+thetaShape = 1.0
+thetaScale = 0.01
+ancestralThetaShape = 0
+ancestralThetaScale = 0
+thetaParameters = 012
+tauShape = 2.0
+tauScale = -10.0
+bottleProportionShapeA = 0
+bottleProportionShapeB = 0
+bottleProportionShared = 1
+numTauClasses = 4
+migrationShape = 0
+migrationScale = 0
+recombinationShape = 0
+recombinationScale = 0
+constrain = 0
+subParamConstrain = 111111111
+"""
+
+        self.generate_prior(sample_size=1000, batch_size=250, np=4)
+        self.assertFalse(self.samples == None)
+        theta = GammaDistribution(1.0, 0.01)
+        tau = ContinuousUniformDistribution(2.0, 10.0)
+        not_equal_failures = 0
+        for i in range(1000):
+            for j in range(4):
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d1_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['d1_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+        self.assertTrue(not_equal_failures < 10)
+        d_theta_ss = SampleSummarizer(self.samples['all_d1_thetas'] + \
+                self.samples['all_d2_thetas'] + \
+                self.samples['all_a_thetas'])
+        tau_ss = SampleSummarizer(self.samples['unique_taus'])
+        self.assertAlmostEqual(tau_ss.mean, tau.mean, places=0)
+        self.assertTrue(math.fabs(tau_ss.variance - tau.variance) < 3.0,
+                msg='unique tau variance is {0}; expecting {1}'.format(
+                        tau_ss.variance, tau.variance))
         self.assertAlmostEqual(d_theta_ss.mean, theta.mean, places=2)
         self.assertAlmostEqual(d_theta_ss.variance, theta.variance, places=2)
         self.assertEqual(self.samples['psi'], [4]*1000)
