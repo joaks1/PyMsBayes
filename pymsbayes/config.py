@@ -3,6 +3,7 @@
 import os
 import sys
 import re
+import math
 from cStringIO import StringIO
 import ConfigParser
 
@@ -101,7 +102,15 @@ class MsBayesConfig(object):
 
             tau_shape = float(kwargs.get('taushape', 1.0))
             tau_scale = float(kwargs.get('tauscale', 2.0))
-            self.tau = GammaDistribution(tau_shape, tau_scale)
+            if tau_shape > 0.0 and tau_scale > 0.0:
+                self.tau = GammaDistribution(tau_shape, tau_scale)
+            else:
+                a = math.fabs(tau_shape)
+                b = math.fabs(tau_scale)
+                if a < b:
+                    self.tau = ContinuousUniformDistribution(a, b)
+                else:
+                    self.tau = ContinuousUniformDistribution(b, a)
             theta_shape = float(kwargs.get('thetashape', 1.0))
             theta_scale = float(kwargs.get('thetascale', 0.001))
             anc_theta_shape = float(kwargs.get('ancestralthetashape', 0.0))
