@@ -52,43 +52,49 @@ def reduce_columns(in_file, out_file, column_indices, sep='\t',
 
 HEADER_PATTERN = re.compile(r'^\s*\D.+')
 PARAMETER_PATTERNS = [
-        re.compile(r'\s*PRI\.(?!numTauClass)\S+\s*$'),
+        re.compile(r'^\s*PRI\.(?!numTauClass)\S+\s*$'),
         ]
 DEFAULT_STAT_PATTERNS = [
-        re.compile(r'\s*pi\.\d+\s*'),
-        re.compile(r'\s*wattTheta\.\d+\s*'),
-        re.compile(r'\s*pi\.net\.\d+\s*'),
-        re.compile(r'\s*tajD\.denom\.\d+\s*'),
+        re.compile(r'^\s*pi\.\d+\s*$'),
+        re.compile(r'^\s*wattTheta\.\d+\s*$'),
+        re.compile(r'^\s*pi\.net\.\d+\s*$'),
+        re.compile(r'^\s*tajD\.denom\.\d+\s*$'),
         ]
 ALL_STAT_PATTERNS = [
-        re.compile(r'\s*(?!PRI)\S+\s*$'),
+        re.compile(r'^\s*(?!PRI)\S+\s*$'),
         ]
 DUMMY_PATTERNS = [
-        re.compile(r'\s*PRI\.numTauClass\s*')
+        re.compile(r'^\s*PRI\.numTauClass\s*$')
         ]
 MODEL_PATTERNS = [
-        re.compile(r'\s*PRI\.model\s*'),
+        re.compile(r'^\s*PRI\.model\s*$'),
         ]
 TAU_PATTERNS = [
-        re.compile(r'\s*PRI\.t\.\d+\s*'),
+        re.compile(r'^\s*PRI\.t\.\d+\s*$'),
         ]
 D_THETA_PATTERNS = [
-        re.compile(r'\s*PRI\.d[12]Theta\.\d+\s*'),
+        re.compile(r'^\s*PRI\.d[12]Theta\.\d+\s*$'),
+        ]
+D1_THETA_PATTERNS = [
+        re.compile(r'^\s*PRI\.d1Theta\.\d+\s*$'),
+        ]
+D2_THETA_PATTERNS = [
+        re.compile(r'^\s*PRI\.d2Theta\.\d+\s*$'),
         ]
 A_THETA_PATTERNS = [
-        re.compile(r'\s*PRI\.aTheta\.\d+\s*'),
+        re.compile(r'^\s*PRI\.aTheta\.\d+\s*$'),
         ]
 PSI_PATTERNS = [
-        re.compile(r'\s*PRI\.Psi\s*'),
+        re.compile(r'^\s*PRI\.Psi\s*$'),
         ]
 MEAN_TAU_PATTERNS = [
-        re.compile(r'\s*PRI\.E\.t\s*'),
+        re.compile(r'^\s*PRI\.E\.t\s*$'),
         ]
 OMEGA_PATTERNS = [
-        re.compile(r'\s*PRI\.omega\s*'),
+        re.compile(r'^\s*PRI\.omega\s*$'),
         ]
 DIV_MODEL_PATTERNS = [
-        re.compile(r'\s*PRI\.div\.model\s*'),
+        re.compile(r'^\s*PRI\.div\.model\s*$'),
         ]
 
 def line_count(file_obj, ignore_headers=False):
@@ -212,7 +218,7 @@ def parse_parameter_density_file(parameter_density_file,
             val_dens_tups[k].append(vd_tup)
     return val_dens_tups
 
-def parameter_iter(file_obj, include_line = False):
+def parameter_iter(file_obj, include_line = False, include_thetas = False):
     indices = {}
     post_file, close = process_file_arg(file_obj)
     header = parse_header(post_file, seek = False)
@@ -231,6 +237,16 @@ def parameter_iter(file_obj, include_line = False):
     t_indices = get_indices_of_patterns(header, TAU_PATTERNS)
     if t_indices:
         indices['taus'] = t_indices
+    if include_thetas:
+        a_theta_indices = get_indices_of_patterns(header, A_THETA_PATTERNS)
+        d1_theta_indices = get_indices_of_patterns(header, D1_THETA_PATTERNS)
+        d2_theta_indices = get_indices_of_patterns(header, D2_THETA_PATTERNS)
+        if a_theta_indices:
+            indices['a_thetas'] = a_theta_indices
+        if d1_theta_indices:
+            indices['d1_thetas'] = d1_theta_indices
+        if d2_theta_indices:
+            indices['d2_thetas'] = d2_theta_indices
     psi_indices = get_indices_of_patterns(header, PSI_PATTERNS)
     if len(psi_indices) > 1:
         raise ParameterParsingError('posterior file {0} has {1} psi '
@@ -262,7 +278,7 @@ def parameter_iter(file_obj, include_line = False):
                     samples[k] = [float(l[i]) for i in idx_list]
                 elif k in ['psi', 'model', 'div_model']:
                     samples[k] = [int(l[i]) for i in idx_list]
-                elif k == 'taus':
+                elif k in ['taus', 'a_thetas', 'd1_thetas', 'd2_thetas']:
                     samples[k] = [[float(l[i]) for i in idx_list]]
                 else:
                     raise ParameterParsingError('unexpected key {0!r}; '
@@ -275,9 +291,9 @@ def parameter_iter(file_obj, include_line = False):
     if close:
         post_file.close()
 
-def parse_parameters(file_obj):
+def parse_parameters(file_obj, include_thetas = False):
     samples = None
-    for s in parameter_iter(file_obj):
+    for s in parameter_iter(file_obj, include_thetas = include_thetas):
         if not samples:
             samples = dict(zip(s.keys(), [[] for i in range(len(s))]))
         for k, v in s.iteritems():
