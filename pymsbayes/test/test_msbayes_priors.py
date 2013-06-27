@@ -196,7 +196,7 @@ subParamConstrain = 111111111
                         self.samples['d2_thetas'][i][j])
         a_theta_ss = SampleSummarizer(self.samples['all_a_thetas'])
         tau_ss = SampleSummarizer(self.samples['unique_taus'])
-        self.assertAlmostEqual(tau_ss.mean, tau.mean, places=1)
+        self.assertAlmostEqual(tau_ss.mean, tau.mean, places=0)
         self.assertAlmostEqual(tau_ss.variance, tau.variance, places=0)
         self.assertAlmostEqual(a_theta_ss.mean, theta.mean, places=2)
         self.assertAlmostEqual(a_theta_ss.variance, theta.variance, places=2)
@@ -247,7 +247,7 @@ subParamConstrain = 111111111
         a_theta_ss = SampleSummarizer(self.samples['all_a_thetas'])
         d1_theta_ss = SampleSummarizer(self.samples['all_d1_thetas'])
         tau_ss = SampleSummarizer(self.samples['unique_taus'])
-        self.assertAlmostEqual(tau_ss.mean, tau.mean, places=1)
+        self.assertAlmostEqual(tau_ss.mean, tau.mean, places=0)
         self.assertAlmostEqual(tau_ss.variance, tau.variance, places=0)
         self.assertAlmostEqual(a_theta_ss.mean, a_theta.mean, places=2)
         self.assertAlmostEqual(a_theta_ss.variance, a_theta.variance, places=2)
@@ -424,57 +424,57 @@ subParamConstrain = 111111111
             else:
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
 
-    # def test_new_uniform_constrained(self):
-    #     self.preamble = """
-# concentrationShape = 0
-# concentrationScale = 0
-# thetaShape = 1.0
-# thetaScale = 0.01
-# ancestralThetaShape = 0
-# ancestralThetaScale = 0
-# thetaParameters = 012
-# tauShape = 2.0
-# tauScale = 5.0
-# bottleProportionShapeA = 0
-# bottleProportionShapeB = 0
-# bottleProportionShared = 1
-# numTauClasses = 4
-# migrationShape = 0
-# migrationScale = 0
-# recombinationShape = 0
-# recombinationScale = 0
-# constrain = 0
-# subParamConstrain = 111111111
-# """
+    def test_new_uniform_constrained(self):
+        self.preamble = """
+concentrationShape = 0
+concentrationScale = 0
+thetaShape = 1.0
+thetaScale = 0.01
+ancestralThetaShape = 0
+ancestralThetaScale = 0
+thetaParameters = 012
+tauShape = 2.0
+tauScale = 5.0
+bottleProportionShapeA = 0
+bottleProportionShapeB = 0
+bottleProportionShared = 1
+numTauClasses = 4
+migrationShape = 0
+migrationScale = 0
+recombinationShape = 0
+recombinationScale = 0
+constrain = 0
+subParamConstrain = 111111111
+"""
 
-    #     self.generate_prior(sample_size=1000, batch_size=250, np=4)
-    #     self.assertFalse(self.samples == None)
-    #     theta = GammaDistribution(1.0, 0.01)
-    #     tau = GammaDistribution(2.0, 5.0)
-    #     not_equal_failures = 0
-    #     for i in range(1000):
-    #         for j in range(4):
-    #             if self.samples['a_thetas'][i][j] == \
-    #                     self.samples['d1_thetas'][i][j]:
-    #                 not_equal_failures += 1
-    #             if self.samples['a_thetas'][i][j] == \
-    #                     self.samples['d2_thetas'][i][j]:
-    #                 not_equal_failures += 1
-    #             if self.samples['d1_thetas'][i][j] == \
-    #                     self.samples['d2_thetas'][i][j]:
-    #                 not_equal_failures += 1
-    #     self.assertTrue(not_equal_failures < 10)
-    #     d_theta_ss = SampleSummarizer(self.samples['all_d1_thetas'] + \
-    #             self.samples['all_d2_thetas'] + \
-    #             self.samples['all_a_thetas'])
-    #     tau_ss = SampleSummarizer(self.samples['unique_taus'])
-    #     self.assertAlmostEqual(tau_ss.mean, tau.mean, places=1)
-    #     self.assertAlmostEqual(tau_ss.variance, tau.variance, places=0)
-    #     self.assertAlmostEqual(d_theta_ss.mean, theta.mean, places=2)
-    #     self.assertAlmostEqual(d_theta_ss.variance, theta.variance, places=2)
-    #     self.assertEqual(self.samples['psi'], [4]*1000)
-    #     for t in self.samples['taus']:
-    #         self.assertEqual(len(set(t)), 4)
+        self.generate_prior(sample_size=1000, batch_size=250, np=4)
+        self.assertFalse(self.samples == None)
+        theta = GammaDistribution(1.0, 0.01)
+        tau = GammaDistribution(2.0, 5.0)
+        not_equal_failures = 0
+        for i in range(1000):
+            for j in range(4):
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d1_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['d1_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+        self.assertTrue(not_equal_failures < 10)
+        d_theta_ss = SampleSummarizer(self.samples['all_d1_thetas'] + \
+                self.samples['all_d2_thetas'] + \
+                self.samples['all_a_thetas'])
+        tau_ss = SampleSummarizer(self.samples['unique_taus'])
+        self.assertAlmostEqual(tau_ss.mean, tau.mean, places=0)
+        self.assertAlmostEqual(tau_ss.variance, tau.variance, places=0)
+        self.assertAlmostEqual(d_theta_ss.mean, theta.mean, places=2)
+        self.assertAlmostEqual(d_theta_ss.variance, theta.variance, places=2)
+        self.assertEqual(self.samples['psi'], [4]*1000)
+        for t in self.samples['taus']:
+            self.assertEqual(len(set(t)), 4)
 
 if __name__ == '__main__':
     unittest.main()
