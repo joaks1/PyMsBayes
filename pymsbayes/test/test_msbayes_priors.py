@@ -301,7 +301,7 @@ thetaScale = 0.005
 ancestralThetaShape = 1
 ancestralThetaScale = 0.1
 thetaParameters = 011
-tauShape = 0.5
+tauShape = 1.0
 tauScale = 1.0
 bottleProportionShapeA = 0
 bottleProportionShapeB = 0
@@ -319,7 +319,7 @@ subParamConstrain = 111111111
         self.assertFalse(self.samples == None)
         theta = GammaDistribution(4, 0.005)
         a_theta = theta
-        tau = GammaDistribution(0.5, 1.0)
+        tau = GammaDistribution(1.0, 1.0)
         not_equal_failures = 0
         for i in range(1000):
             for j in range(4):
