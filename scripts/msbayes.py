@@ -350,7 +350,7 @@ def main_cli():
 
     abc_team = ABCTeam(
             temp_fs = temp_fs,
-            observed_stats_file = observed_path,
+            observed_stats_files = [observed_path],
             num_taxon_pairs = num_taxon_pairs,
             model_indices_to_config_paths = models_to_configs,
             num_prior_samples = args.num_prior_samples,
