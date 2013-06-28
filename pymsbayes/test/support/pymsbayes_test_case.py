@@ -7,7 +7,7 @@ import re
 import random
 from configobj import ConfigObj
 
-from pymsbayes.fileio import process_file_arg, open
+from pymsbayes.fileio import process_file_arg, open, FileStream
 from pymsbayes.utils.parsing import (TAU_PATTERNS,
         MODEL_PATTERNS,
         D_THETA_PATTERNS,
@@ -37,6 +37,7 @@ class PyMsBayesTestCase(unittest.TestCase):
     def tear_down(self):
         self.register_file_system()
         self.temp_fs.purge()
+        self.assertEqual(FileStream.open_files, set())
 
     def get_test_path(self, parent=None, prefix='temp', create=False):
         return self.temp_fs.get_file_path(parent=parent, prefix=prefix,
@@ -98,6 +99,7 @@ class PyMsBayesTestCase(unittest.TestCase):
                 _LOG.error('prior invalid: num of columns at line {0} is {1} '
                         'NOT {2}'.format(i+1, ncols, num_of_columns))
                 return False
+        prior_file.close()
         if num_of_samples != nrows:
             _LOG.error('prior invalid: num of rows is {0} NOT {1}'.format(
                     nrows, num_of_samples))

@@ -42,8 +42,10 @@ class ManagerTestCase(PyMsBayesTestCase):
         self.assertTrue(os.path.isdir(w.output_dir))
         self.assertTrue(os.path.isfile(w.prior_path))
         self.assertTrue(os.path.isfile(w.header_path))
-        self.assertEqual(w.header,
-                open(w.header_path, 'rU').read().strip().split())
+        f = open(w.header_path, 'rU')
+        h = f.read().strip().split()
+        f.close()
+        self.assertEqual(w.header, h)
         expected_p_indices, expected_s_indices = self.get_expected_indices(
                 num_pairs = num_pairs,
                 dummy_column = True,
