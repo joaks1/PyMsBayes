@@ -184,6 +184,7 @@ class PyMsBayesTestCase(unittest.TestCase):
                 else:
                     for i in w.parameter_indices:
                         s[i].add_sample(float(r[i]))
+            f.close()
         return s
 
     def assertPriorIsPrecise(self, msbayes_workers, places=2):
