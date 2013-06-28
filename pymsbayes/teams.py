@@ -159,7 +159,8 @@ class ABCTeam(object):
         self.finished = False
 
     def _assemble_prior_workers(self):
-        prior_workers = []
+        prior_workers = dict(zip(self.models.keys(),
+                [[] for i in range(len(self.models.keys()))]))
         for model_index, config_path in self.models.iteritems():
             to_summarize = self.num_standardizing_samples
             for i in range(self.num_batches):
@@ -208,7 +209,7 @@ class ABCTeam(object):
                 if sum_worker:
                     self.prior_summary_workers.append(worker)
                 else:
-                    prior_workers.append(worker)
+                    prior_workers[model_index].append(worker)
             if self.num_extra_samples > 0:
                 sum_worker = None
                 seed = get_random_int(self.rng)
@@ -255,22 +256,32 @@ class ABCTeam(object):
                 if sum_worker:
                     self.prior_summary_workers.append(worker)
                 else:
-                    prior_workers.append(worker)
-        self.prior_workers = list(list_splitter(prior_workers,
-                self.num_processors, by_size=True))
+                    prior_workers[model_index].append(worker)
+        n_lists = None
+        for idx, pw_list in prior_workers.iteritems():
+            pw_sublists = list(list_splitter(pw_list,
+                    self.num_processors, by_size=True))
+            if not n_lists:
+                n_lists = len(pw_sublists)
+                self.prior_workers = pw_sublists
+            else:
+                assert n_lists == len(pw_sublists)
+                for i in range(n_lists):
+                    self.prior_workers[i].extend(pw_sublists[i])
 
     def _assemble_rejection_teams(self):
         for obs_idx, obs_path in self.observed_stats_paths.iteritems():
+            sim_index = 0
             obs_file, close = process_file_arg(obs_path)
             header = parse_header(obs_file, seek = False)
             all_stat_indices = get_stat_indices(header,
                     stat_patterns=ALL_STAT_PATTERNS)
             for i, line in enumerate(obs_file):
                 self.num_observed += 1
+                sim_index += 1
                 tmp_obs_path = self.temp_fs.get_file_path(
                         parent = self.observed_temp_dir,
-                        prefix = 'observed-{0}-{1}-'.format(self.num_observed,
-                                obs_idx),
+                        prefix = 'observed-{0}-{1}-'.format(obs_idx, sim_index),
                         create = False)
                 l = line.strip().split()
                 with open(tmp_obs_path, 'w') as out:
@@ -283,11 +294,13 @@ class ABCTeam(object):
                         m_indices = self.models.keys()
                     else:
                         m_indices = [model_idx]
+                    out_prefix = '{0}d{1}-m{2}-'.format(self.output_prefix,
+                            obs_idx, model_idx)
                     rejection_team_list.append(RejectionTeam(
                             temp_fs = self.temp_fs,
                             observed_path = tmp_obs_path,
                             output_dir = self.model_dirs[obs_idx][model_idx],
-                            output_prefix = self.output_prefix,
+                            output_prefix = out_prefix,
                             num_taxon_pairs = self.num_taxon_pairs,
                             prior_paths = [],
                             model_indices = m_indices,
@@ -302,7 +315,7 @@ class ABCTeam(object):
                             omega_threshold = self.omega_threshold,
                             compress = self.compress,
                             keep_temps = self.keep_temps,
-                            index = self.num_observed,
+                            index = sim_index,
                             tag = model_idx))
             if close:
                 obs_file.close()
