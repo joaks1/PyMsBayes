@@ -55,10 +55,13 @@ class Worker(object):
         if not self.stderr_path:
             return self.stderr
         try:
-            return open(self.stderr_path, 'rU').read()
+            se = open(self.stderr_path, 'rU')
         except IOError, e:
             _LOG.error('Could not open stderr file')
             raise e
+        msg = se.read()
+        se.close()
+        return msg
 
     def start(self):
         try:
@@ -90,11 +93,9 @@ class Worker(object):
         if self.stderr_path:
             serr.close()
         if self.exit_code != 0:
-            if self.stderr_path:
-                self.stderr = open(self.stderr_path, 'rU').read()
             _LOG.error('execution failed')
             raise WorkerExecutionError('{0} failed. stderr:\n{1}'.format(
-                self.name, self.stderr))
+                self.name, self.get_stderr()))
         try:
             self._post_process()
         except:
