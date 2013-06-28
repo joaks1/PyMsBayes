@@ -16,6 +16,7 @@ import logging
 from pymsbayes.fileio import expand_path, process_file_arg, open
 from pymsbayes.utils import WORK_FORCE, GLOBAL_RNG
 from pymsbayes.utils.messaging import get_logger, LOGGING_LEVEL_ENV_VAR
+from pymsbayes.utils.parsing import line_count
 from pymsbayes.utils.functions import (is_file, is_dir, long_division,
         mk_new_dir)
 
@@ -33,10 +34,12 @@ class InfoLogger(object):
     def __init__(self, path):
         self.path = path
 
-    def write(self, msg):
+    def write(self, msg, log_func=None):
         out = open(self.path, 'a')
         out.write(msg)
         out.close()
+        if log_func:
+            log_func(msg)
 
 def arg_is_file(path):
     try:
@@ -59,16 +62,17 @@ def arg_is_dir(path):
 def main_cli():
     description = '{name} {version}'.format(**_program_info)
     parser = argparse.ArgumentParser(description = description)
-    parser.add_argument('-o', '--observed-config',
-            action = 'store',
+    parser.add_argument('-o', '--observed-configs',
+            nargs = '+',
             type = arg_is_file,
             required = True,
-            help = ('The msBayes config file that specifies the observed '
-                    'data. If used in combination with `-r` this config will '
-                    'be used to simulate pseudo-observed data. If analyzing '
-                    'real data, do not use the `-r` option, and the data '
-                    'files specified in the config must exist and contain the '
-                    'sequence data.'))
+            help = ('One or more msBayes config files to be used to either '
+                    'calculate or simulate observed summary statistics. If '
+                    'used in combination with `-r` each config will be used to '
+                    'simulate pseudo-observed data. If analyzing real data, do '
+                    'not use the `-r` option, and the fasta files specified '
+                    'within the config must exist and contain the sequence '
+                    'data.'))
     parser.add_argument('-p', '--prior-configs',
             nargs = '+',
             type = arg_is_file,
@@ -118,7 +122,7 @@ def main_cli():
             action = 'store',
             type = arg_is_dir,
             help = ('The directory in which all output files will be written. '
-                    'The default is to use the directory of the observed '
+                    'The default is to use the directory of the first observed '
                     'config file.'))
     parser.add_argument('--temp-dir',
             action = 'store',
@@ -198,7 +202,7 @@ def main_cli():
     from pymsbayes.utils.tempfs import TempFileSystem
 
     if not args.output_dir:
-        args.output_dir = os.path.dirname(args.observed_config)
+        args.output_dir = os.path.dirname(args.observed_configs[0])
     base_dir = mk_new_dir(os.path.join(args.output_dir, 'pymsbayes-results'))
     if not args.temp_dir:
         args.temp_dir = base_dir
@@ -213,6 +217,8 @@ def main_cli():
         info.write('\tsimulate_data = False\n')
     else:
         info.write('\tsimulate_data = True\n')
+    if len(args.observed_configs) != len(set(args.observed_configs)):
+        raise ValueError('All paths to observed config files must be unique')
     if len(args.prior_configs) != len(set(args.prior_configs)):
         raise ValueError('All paths to prior config files must be unique') 
     stat_patterns = DEFAULT_STAT_PATTERNS
@@ -227,7 +233,9 @@ def main_cli():
     if not args.seed:
         args.seed = random.randint(1, 999999999)
     GLOBAL_RNG.seed(args.seed)
-    observed_path = os.path.join(base_dir, 'observed.txt')
+    observed_dir = mk_new_dir(os.path.join(base_dir, 'observed-summary-stats'))
+    observed_paths = [os.path.join(observed_dir, 'observed-{0}.txt'.format(
+            i)) for i in range(len(args.observed_configs))]
     info.write('\tseed = {0}\n'.format(args.seed))
     info.write('\tnum_processors = {0}\n'.format(args.np))
     info.write('\tbandwidth = {0}\n'.format(args.bandwidth))
@@ -237,7 +245,12 @@ def main_cli():
             args.num_posterior_samples))
     info.write('\tnum_standardizing_samples = {0}\n'.format(
             args.num_posterior_samples))
-    info.write('\tobserved_path = {0}\n'.format(observed_path))
+    info.write('\t[[observed_configs]]\n')
+    for i, cfg in enumerate(args.observed_configs):
+        info.write('\t\t{0} = {1}\n'.format(i, cfg))
+    info.write('\t[[observed_paths]]\n')
+    for i, p in enumerate(observed_paths):
+        info.write('\t\t{0} = {1}\n'.format(i, p))
     info.write('\t[[column_prefixes]]\n')
     info.write('\t\tstat_patterns = {0}\n'.format(
             ', '.join([p.pattern for p in stat_patterns])))
@@ -255,92 +268,126 @@ def main_cli():
         if not num_taxon_pairs:
             num_taxon_pairs = cfg.npairs
         else:
-            assert num_taxon_pairs == cfg.npairs
-    model_indices = models_to_configs.keys()
+            if num_taxon_pairs != cfg.npairs:
+                raise ValueError('prior configs have different numbers of '
+                        'taxon pairs')
     info.write('\t[[prior_configs]]\n')
     for model_idx, cfg in models_to_configs.iteritems():
         info.write('\t\t{0} = {1}\n'.format(model_idx, cfg))
+
+    for config in args.observed_configs:
+        cfg = MsBayesConfig(config)
+        if num_taxon_pairs != cfg.npairs:
+            raise ValueError('observed config {0} has {1} taxon pairs, whereas '
+                    'the prior configs have {2} pairs'.format(config,
+                            cfg.npairs, num_taxon_pairs))
 
     ##########################################################################
     ## begin analysis --- get observed summary stats
 
     start_time = datetime.datetime.now()
+    result_q = multiprocessing.Queue()
 
     observed_temp_fs = TempFileSystem(parent = base_temp_dir,
             prefix = 'observed-temps-')
 
     if args.reps < 1:
-        ss_worker = ObsSumStatsWorker(
-                temp_fs = observed_temp_fs,
-                config_path = args.observed_config,
-                output_path = observed_path,
-                schema = 'abctoolbox',
-                stat_patterns = stat_patterns)
-        ss_worker.start()
+        _LOG.info('Calculating summary statistics from sequence data...')
+        obs_workers = []
+        for i, cfg in enumerate(args.observed_configs):
+            ss_worker = ObsSumStatsWorker(
+                    temp_fs = observed_temp_fs,
+                    config_path = cfg,
+                    output_path = observed_paths[i],
+                    schema = 'abctoolbox',
+                    stat_patterns = stat_patterns)
+            WORK_FORCE.put(ss_worker)
+            obs_workers.append(ss_worker)
+        managers = []
+        for i in range(args.np):
+            m = Manager(work_queue = WORK_FORCE,
+                    result_queue = result_q)
+            m.start()
+            managers.append(m)
+        for i in range(len(obs_workers)):
+            obs_workers[i] = result_q.get()
+        for m in managers:
+            m.join()
+        assert WORK_FORCE.empty()
+        assert result_q.empty()
     else:
+        _LOG.info('Simulating summary statistics from observed configs...')
         num_observed_workers = min([args.reps, args.np])
         if args.reps <= args.np:
             observed_batch_size = 1
         else:
             observed_batch_size, remainder = long_division(args.reps, args.np)
-        observed_model_idx = configs_to_models.get(args.observed_config, 0)
-        info.write('\t[[observed_configs]]\n')
-        info.write('\t\t{0} = {1}\n'.format(observed_model_idx,
-            args.observed_config))
-        schema = 'abctoolbox'
         msbayes_workers = []
-        for i in range(num_observed_workers):
-            worker = MsBayesWorker(
-                    temp_fs = observed_temp_fs,
-                    sample_size = observed_batch_size,
-                    config_path = args.observed_config,
-                    model_index = observed_model_idx,
-                    report_parameters = True,
-                    schema = schema,
-                    include_header = True,
-                    stat_patterns = stat_patterns,
-                    write_stats_file = True,
-                    staging_dir = None)
-            WORK_FORCE.put(worker)
-            msbayes_workers.append(worker)
-        if remainder > 0:
-            worker = MsBayesWorker(
-                    temp_fs = observed_temp_fs,
-                    sample_size = remainder,
-                    config_path = args.observed_config,
-                    model_index = observed_model_idx,
-                    report_parameters = True,
-                    schema = schema,
-                    include_header = True,
-                    stat_patterns = stat_patterns,
-                    write_stats_file = True,
-                    staging_dir = None)
-            WORK_FORCE.put(worker)
-            msbayes_workers.append(worker)
+        for idx, cfg in enumerate(args.observed_configs):
+            observed_model_idx = configs_to_models.get(cfg,
+                    None)
+            schema = 'abctoolbox'
+            for i in range(num_observed_workers):
+                worker = MsBayesWorker(
+                        temp_fs = observed_temp_fs,
+                        sample_size = observed_batch_size,
+                        config_path = cfg,
+                        model_index = observed_model_idx,
+                        report_parameters = True,
+                        schema = schema,
+                        include_header = True,
+                        stat_patterns = stat_patterns,
+                        write_stats_file = True,
+                        staging_dir = None,
+                        tag = idx)
+                WORK_FORCE.put(worker)
+                msbayes_workers.append(worker)
+            if remainder > 0:
+                worker = MsBayesWorker(
+                        temp_fs = observed_temp_fs,
+                        sample_size = remainder,
+                        config_path = cfg,
+                        model_index = observed_model_idx,
+                        report_parameters = True,
+                        schema = schema,
+                        include_header = True,
+                        stat_patterns = stat_patterns,
+                        write_stats_file = True,
+                        staging_dir = None,
+                        tag = idx)
+                WORK_FORCE.put(worker)
+                msbayes_workers.append(worker)
 
         # run parallel msbayes processes
-        msbayes_result_queue = multiprocessing.Queue()
         msbayes_managers = []
         for i in range(args.np):
             m = Manager(work_queue = WORK_FORCE,
-                    result_queue = msbayes_result_queue)
+                    result_queue = result_q)
             m.start()
             msbayes_managers.append(m)
         for i in range(len(msbayes_workers)):
-            msbayes_workers[i] = msbayes_result_queue.get()
+            msbayes_workers[i] = result_q.get()
         for m in msbayes_managers:
             m.join()
         assert WORK_FORCE.empty()
-        assert msbayes_result_queue.empty()
+        assert result_q.empty()
 
-        # merged simulated observed data into one file
-        merge_prior_files([w.prior_stats_path for w in msbayes_workers],
-                observed_path)
-        lc = line_count(observed_path, ignore_headers=True)
-        if lc != args.reps:
-            raise Exception('The number of observed simulations ({0}) does '
-                    'not match the number of reps ({1})'.format(lc,
-                            args.reps))
+        workers = dict(zip(range(len(args.observed_configs)),
+                [[] for i in range(len(args.observed_configs))]))
+        for w in msbayes_workers:
+            workers[w.tag].append(w)
+
+        # merge simulated observed data into one file
+        for i in range(len(args.observed_configs)):
+            merge_prior_files([w.prior_stats_path for w in workers[i]],
+                    observed_paths[i])
+            lc = line_count(observed_paths[i], ignore_headers=True)
+            if lc != args.reps:
+                raise Exception('The number of observed simulations ({0}) '
+                        'generated for observed config {1!r} and output to '
+                        'file {2!r} does not match the number of reps '
+                        '({3})'.format(lc, args.observed_configs[i],
+                            observed_paths[i], args.reps))
     if not args.keep_temps:
         _LOG.debug('purging observed temps...')
         observed_temp_fs.purge()
@@ -350,7 +397,7 @@ def main_cli():
 
     abc_team = ABCTeam(
             temp_fs = temp_fs,
-            observed_stats_files = [observed_path],
+            observed_stats_files = observed_paths,
             num_taxon_pairs = num_taxon_pairs,
             model_indices_to_config_paths = models_to_configs,
             num_prior_samples = args.num_prior_samples,
@@ -375,10 +422,12 @@ def main_cli():
     abc_team.run()
 
     stop_time = datetime.datetime.now()
-    info.write('\t[[run_stats]]\n')
-    info.write('\t\tstart_time = {0}\n'.format(str(start_time)))
-    info.write('\t\tstop_time = {0}\n'.format(str(stop_time)))
-    info.write('\t\ttotal_duration = {0}\n'.format(str(stop_time - start_time)))
+    _LOG.info('Done!')
+    info.write('\t[[run_stats]]\n', _LOG.info)
+    info.write('\t\tstart_time = {0}\n'.format(str(start_time)), _LOG.info)
+    info.write('\t\tstop_time = {0}\n'.format(str(stop_time)), _LOG.info)
+    info.write('\t\ttotal_duration = {0}\n'.format(str(stop_time - start_time)),
+            _LOG.info)
 
     if not args.keep_temps:
         _LOG.debug('purging temps...')
