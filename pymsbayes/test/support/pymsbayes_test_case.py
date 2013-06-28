@@ -275,7 +275,7 @@ class PyMsBayesTestCase(unittest.TestCase):
             _LOG.error('x ({0}) and y ({1}) are not equal'.format(x, y))
         self.assertTrue(eq)
 
-    def files_equal(self, f1, f2):
+    def files_equal(self, f1, f2, exclude_line_endings=False):
         equal = True
         diffs = []
         f1, c1 = process_file_arg(f1)
@@ -300,6 +300,9 @@ class PyMsBayesTestCase(unittest.TestCase):
                     pass
             if f1_end != False and f2_end != False:
                 break
+            if exclude_line_endings:
+                l1 = l1.strip()
+                l2 = l2.strip()
             if f1_end == False and f2_end == False and l1 != l2:
                 diffs.append(line)
                 equal = False
@@ -315,13 +318,13 @@ class PyMsBayesTestCase(unittest.TestCase):
             f2.close()
         return equal, diffs
 
-    def assertSameFiles(self, files):
+    def assertSameFiles(self, files, exclude_line_endings=False):
         files = list(files)
         all_equal = True
         diffs = StringIO()
         f1 = files.pop(0)
         for f2 in files:
-            equal, diff_list = self.files_equal(f1, f2)
+            equal, diff_list = self.files_equal(f1, f2, exclude_line_endings)
             if not equal:
                 all_equal = False
                 n1 = f1
