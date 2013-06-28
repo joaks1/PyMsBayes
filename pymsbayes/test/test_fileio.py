@@ -94,7 +94,7 @@ class ProcessFileArgTestCase(PyMsBayesTestCase):
         self.assertTrue(f.closed)
 
     def test_read_compressed_file(self):
-        gzfs, close = process_file_arg(self.gz_path, 'rU')
+        gzfs, close = process_file_arg(self.gz_path, 'rb')
         out, close_out = process_file_arg(self.test_path, 'w')
         for line in gzfs:
             out.write(line)
@@ -102,11 +102,12 @@ class ProcessFileArgTestCase(PyMsBayesTestCase):
             out.close()
         if close:
             gzfs.close()
-        self.assertSameFiles([self.ungz_path, self.test_path])
+        self.assertSameFiles([self.ungz_path, self.test_path], 
+                exclude_line_endings=True)
 
     def test_write_compressed_file(self):
-        fs, close = process_file_arg(self.ungz_path, 'rU')
-        out, close_out = process_file_arg(self.test_path, 'w', compresslevel=9)
+        fs, close = process_file_arg(self.ungz_path, 'rb')
+        out, close_out = process_file_arg(self.test_path, 'wb', compresslevel=9)
         for line in fs:
             out.write(line)
         if close_out:
@@ -114,7 +115,8 @@ class ProcessFileArgTestCase(PyMsBayesTestCase):
         if close:
             fs.close()
         self.assertTrue(is_gzipped(self.test_path))
-        self.assertSameFiles([self.gz_path, self.test_path])
+        self.assertSameFiles([self.gz_path, self.test_path],
+                exclude_line_endings=True)
 
 
 class GzipFileStreamTestCase(PyMsBayesTestCase):
@@ -131,30 +133,32 @@ class GzipFileStreamTestCase(PyMsBayesTestCase):
         self.tear_down()
 
     def test_read(self):
-        gzfs = GzipFileStream(self.gz_path, 'rU')
+        gzfs = GzipFileStream(self.gz_path, 'rb')
         gzfs_str = gzfs.read()
-        with open(self.ungz_path, 'rU') as fs:
+        with open(self.ungz_path, 'rb') as fs:
             self.assertEqual(gzfs_str, fs.read())
         gzfs.close()
 
     def test_read_compressed_read_uncompressed(self):
-        gzfs = GzipFileStream(self.gz_path, 'rU')
-        out = open(self.test_path, 'w')
+        gzfs = GzipFileStream(self.gz_path, 'rb')
+        out = open(self.test_path, 'wb')
         for line in gzfs:
             out.write(line)
         out.close()
         gzfs.close()
-        self.assertSameFiles([self.ungz_path, self.test_path])
+        self.assertSameFiles([self.ungz_path, self.test_path],
+                exclude_line_endings=True)
 
     def test_read_compressed_write_compressed(self):
-        gzfs = GzipFileStream(self.gz_path, 'rU')
+        gzfs = GzipFileStream(self.gz_path, 'rb')
         out = GzipFileStream(self.test_path, 'w')
         for line in gzfs:
             out.write(line)
         out.close()
         gzfs.close()
         self.assertTrue(is_gzipped(self.test_path))
-        self.assertSameFiles([self.gz_path, self.test_path])
+        self.assertSameFiles([self.gz_path, self.test_path], 
+                exclude_line_endings=True)
 
 if __name__ == '__main__':
     unittest.main()

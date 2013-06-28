@@ -24,9 +24,10 @@ def process_file_arg(file_arg, mode='rU', compresslevel = None):
         if os.path.isfile(fp):
             gzipped = is_gzipped(fp)
         if compresslevel:
-            return GzipFileStream(fp, mode, compresslevel), True
+            return GzipFileStream(fp, mode.strip('U+') + 'b',
+                    compresslevel), True
         elif gzipped:
-            return GzipFileStream(fp, mode), True
+            return GzipFileStream(fp, mode.strip('U+') + 'b'), True
         else:
             return open(fp, mode), True
     return file_arg, False
