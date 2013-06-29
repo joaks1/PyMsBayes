@@ -58,7 +58,7 @@ class Manager(multiprocessing.Process):
         self.send_msg(msg, method_str='error')
 
     def run(self):
-        while not self.killed:
+        while (not self.killed) and (not self.work_queue.empty()):
             try:
                 worker = self.work_queue.get(block=True, timeout=0.1)
                 # without blocking processes were stopping when the queue
