@@ -380,8 +380,6 @@ class ABCTeam(object):
                 m.start()
                 managers.append(m)
             while len(f_list) < len(w_list):
-            # for i in range(len(w_list)):
-                # w_list[i] = self.result_queue.get()
                 f_list.append(self.result_queue.get())
             for m in managers:
                 m.join()
