@@ -365,24 +365,30 @@ class ABCTeam(object):
             out.write('d{0} = {1}\n'.format(idx, data_path))
         out.close()
     
-    def _run_workers(self, workers):
-        assert self.work_queue.empty()
-        assert self.result_queue.empty()
-        for w in workers:
-            self.work_queue.put(w)
-        managers = []
-        for i in range(self.num_processors):
-            m = Manager(work_queue = self.work_queue,
-                    result_queue = self.result_queue)
-            m.start()
-            managers.append(m)
-        for i in range(len(workers)):
-            workers[i] = self.result_queue.get()
-        for m in managers:
-            m.join()
-        assert self.work_queue.empty()
-        assert self.result_queue.empty()
-        return workers
+    def _run_workers(self, workers, queue_max = 1000):
+        finished = []
+        for w_list in list_splitter(workers, queue_max, by_size = True):
+            f_list = []
+            assert self.work_queue.empty()
+            assert self.result_queue.empty()
+            for w in w_list:
+                self.work_queue.put(w)
+            managers = []
+            for i in range(self.num_processors):
+                m = Manager(work_queue = self.work_queue,
+                        result_queue = self.result_queue)
+                m.start()
+                managers.append(m)
+            while len(f_list) < len(w_list):
+            # for i in range(len(w_list)):
+                # w_list[i] = self.result_queue.get()
+                f_list.append(self.result_queue.get())
+            for m in managers:
+                m.join()
+            assert self.work_queue.empty()
+            assert self.result_queue.empty()
+            finished.extend(f_list)
+        return finished
 
     def _run_prior_workers(self, prior_worker_batch):
         workers = self._run_workers(prior_worker_batch)
