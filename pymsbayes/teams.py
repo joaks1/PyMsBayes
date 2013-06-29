@@ -4,6 +4,7 @@ import os
 import sys
 import copy
 import multiprocessing
+import Queue
 
 from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRegressWorker,
         EuRejectSummaryMerger, EuRejectWorker, PosteriorWorker)
@@ -368,7 +369,6 @@ class ABCTeam(object):
     def _run_workers(self, workers, queue_max = 1000):
         finished = []
         for w_list in list_splitter(workers, queue_max, by_size = True):
-            f_list = []
             assert self.work_queue.empty()
             assert self.result_queue.empty()
             for w in w_list:
@@ -379,13 +379,13 @@ class ABCTeam(object):
                         result_queue = self.result_queue)
                 m.start()
                 managers.append(m)
-            while len(f_list) < len(w_list):
-                f_list.append(self.result_queue.get())
+            for i in range(len(w_list)):
+                w_list[i] = self.result_queue.get()
             for m in managers:
                 m.join()
             assert self.work_queue.empty()
             assert self.result_queue.empty()
-            finished.extend(f_list)
+            finished.extend(w_list)
         return finished
 
     def _run_prior_workers(self, prior_worker_batch):
