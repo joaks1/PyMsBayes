@@ -57,19 +57,53 @@ class Manager(multiprocessing.Process):
     def send_error(self, msg):
         self.send_msg(msg, method_str='error')
 
+    def _get_worker(self):
+        worker = None
+        try:
+            self.send_debug('getting worker')
+            worker = self.work_queue.get(block=True, timeout=0.1)
+            self.send_debug('received worker {0}'.format(
+                    getattr(worker, 'name', 'nameless')))
+            # without blocking processes were stopping when the queue
+            # was not empty, and without timeout, the processes would
+            # hang waiting for jobs.
+        except Queue.Empty:
+            if not self.work_queue.empty():
+                self.send_warning('raised Queue.Empty, but queue is '
+                        'not empty... trying again')
+                self._get_worker()
+            else:
+                self.send_info('work queue is empty')
+        return worker
+
+    def _put_worker(self, worker):
+        try:
+            self.send_debug('returning worker {0}'.format(
+                    getattr(worker, 'name', 'nameless')))
+            self.result_queue.put(worker, block=True, timeout=0.1)
+            self.send_debug('worker {0} returned'.format(
+                    getattr(worker, 'name', 'nameless')))
+        except Queue.Full, e:
+            if not self.result_queue.full():
+                self.send_warning('raised Queue.Full, but queue is '
+                        'not full... trying again')
+                self._put_worker(worker)
+            else:
+                self.send_error('result queue is full... aborting')
+            self.killed = True
+            raise e
+
     def run(self):
         while (not self.killed) and (not self.work_queue.empty()):
-            try:
-                worker = self.work_queue.get(block=True, timeout=0.1)
-                # without blocking processes were stopping when the queue
-                # was not empty, and without timeout, the processes would
-                # hang waiting for jobs.
-            except Queue.Empty:
+            worker = self._get_worker()
+            if worker is None:
                 break
-            self.send_info('starting worker {0}'.format(worker.name))
+            self.send_info('starting worker {0}'.format(
+                    getattr(worker, 'name', 'nameless')))
             worker.start()
-            self.send_info('worker {0} finished'.format(worker.name))
-            self.result_queue.put(worker, block=True, timeout=0.1)
+            self.send_info('worker {0} finished'.format(
+                    getattr(worker, 'name', 'nameless')))
+            self._put_worker(worker)
         if self.killed:
             self.send_error('manager was killed!')
 
