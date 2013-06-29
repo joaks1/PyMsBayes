@@ -123,6 +123,7 @@ def parse_header(file_obj, sep='\t', seek=True):
     file_stream, close = process_file_arg(file_obj, 'rU')
     header_line = file_stream.next()
     if not HEADER_PATTERN.match(header_line):
+        file_stream.close()
         raise Exception('did not find header in {0}'.format(file_stream.name))
     header = header_line.strip().split(sep)
     if close:
@@ -195,6 +196,7 @@ def parameter_density_iter(parameter_density_file,
     heads_to_dens_tups = dict(zip([header[i] for i in parameter_indices],
             [None for i in range(len(parameter_indices))]))
     if not len(parameter_indices) == len(set(indices_to_heads.itervalues())):
+        dens_file.close()
         raise ParameterParsingError('some parameters were found in multiple '
                 'columns in density file {0!r}'.format(dens_file.name))
     for i, line in enumerate(dens_file):
@@ -224,12 +226,14 @@ def parameter_iter(file_obj, include_line = False, include_thetas = False):
     header = parse_header(post_file, seek = False)
     mean_t_indices = get_indices_of_patterns(header, MEAN_TAU_PATTERNS)
     if len(mean_t_indices) > 1:
+        post_file.close()
         raise ParameterParsingError('posterior file {0} has {1} mean '
                 'tau columns'.format(post_file.name, len(mean_t_indices)))
     if mean_t_indices:
         indices['mean_tau'] = mean_t_indices
     omega_indices = get_indices_of_patterns(header, OMEGA_PATTERNS)
     if len(omega_indices) > 1:
+        post_file.close()
         raise ParameterParsingError('posterior file {0} has {1} omega '
                 'columns'.format(post_file.name, len(omega_indices)))
     if omega_indices:
@@ -249,18 +253,21 @@ def parameter_iter(file_obj, include_line = False, include_thetas = False):
             indices['d2_thetas'] = d2_theta_indices
     psi_indices = get_indices_of_patterns(header, PSI_PATTERNS)
     if len(psi_indices) > 1:
+        post_file.close()
         raise ParameterParsingError('posterior file {0} has {1} psi '
                 'columns'.format(post_file.name, len(psi_indices)))
     if psi_indices:
         indices['psi'] = psi_indices
     model_indices = get_indices_of_patterns(header, MODEL_PATTERNS)
     if len(model_indices) > 1:
+        post_file.close()
         raise ParameterParsingError('posterior file {0} has {1} model '
                 'columns'.format(post_file.name, len(model_indices)))
     if model_indices:
         indices['model'] = model_indices
     div_model_indices = get_indices_of_patterns(header, DIV_MODEL_PATTERNS)
     if len(div_model_indices) > 1:
+        post_file.close()
         raise ParameterParsingError('posterior file {0} has {1} div model '
                 'columns'.format(post_file.name, len(div_model_indices)))
     if div_model_indices:
@@ -270,6 +277,7 @@ def parameter_iter(file_obj, include_line = False, include_thetas = False):
         l = line.strip().split()
         if l:
             if len(l) != len(header):
+                post_file.close()
                 raise ParameterParsingError('posterior file {0} has '
                         '{1} columns at line {2}; expecting {3}'.format(
                                 post_file.name, len(l), i + 2, len(header)))
@@ -281,6 +289,7 @@ def parameter_iter(file_obj, include_line = False, include_thetas = False):
                 elif k in ['taus', 'a_thetas', 'd1_thetas', 'd2_thetas']:
                     samples[k] = [[float(l[i]) for i in idx_list]]
                 else:
+                    post_file.close()
                     raise ParameterParsingError('unexpected key {0!r}; '
                             'posterior file {1}, line {2}'.format(
                                 k, post_file.name, i+2))
@@ -313,6 +322,7 @@ def add_div_model_column(in_file, out_file, div_models_to_indices,
     other_index = max(div_models_to_indices.itervalues()) + 1
     for parameters, line in parameter_iter(in_file, include_line = True):
         if not parameters.has_key('taus'):
+            out.close()
             raise ParameterParsingError('posterior file {0} does not contain '
                     'divergence time vector'.format(
                     getattr(file_obj, 'name', file_obj)))
