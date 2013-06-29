@@ -15,6 +15,7 @@ from pymsbayes.utils import GLOBAL_RNG, WORK_FORCE
 from pymsbayes.utils.functions import (long_division, least_common_multiple,
         get_random_int, list_splitter, mk_new_dir)
 from pymsbayes.utils.stats import SampleSummaryCollection
+from pymsbayes.utils.tempfs import TempFileSystem
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -34,6 +35,7 @@ class ABCTeam(object):
             batch_size = 10000,
             output_dir = None,
             output_prefix = '',
+            prior_temp_dir = None,
             rng = None,
             sort_index = None,
             report_parameters = True,
@@ -62,6 +64,10 @@ class ABCTeam(object):
         self.summary_temp_dir = temp_fs.create_subdir(
                 parent = self.temp_output_dir,
                 prefix = 'summary-files-')
+        self.prior_temp_fs = self.temp_fs
+        if prior_temp_dir:
+            self.prior_temp_fs = TempFileSystem(parent = prior_temp_dir,
+                    prefix = 'pymsbayes-temp-priors-')
         self.observed_stats_paths = dict(zip(
             [i for i in range(len(observed_stats_files))],
             [expand_path(p) for p in observed_stats_files]))
@@ -167,7 +173,7 @@ class ABCTeam(object):
                 sum_worker = None
                 seed = get_random_int(self.rng)
                 worker = MsBayesWorker(
-                        temp_fs = self.temp_fs,
+                        temp_fs = self.prior_temp_fs,
                         sample_size = self.batch_size,
                         config_path = config_path,
                         exe_path = self.msbayes_exe_path,
@@ -242,7 +248,7 @@ class ABCTeam(object):
                             tag = model_index)
                     self.summary_workers.append(sum_worker)
                 worker = MsBayesWorker(
-                        temp_fs = self.temp_fs,
+                        temp_fs = self.prior_temp_fs,
                         sample_size = self.num_extra_samples,
                         config_path = config_path,
                         exe_path = self.msbayes_exe_path,

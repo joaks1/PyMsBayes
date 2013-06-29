@@ -129,6 +129,14 @@ def main_cli():
             type = arg_is_dir,
             help = ('A directory to temporarily stage files. The default is to '
                     'use the output directory.'))
+    parser.add_argument('--staging-dir',
+            action = 'store',
+            type = arg_is_dir,
+            help = ('A directory to temporarily stage prior files. This option '
+                    'can be useful on clusters to speed up I/O while '
+                    'generating prior samples. You can designate a local temp '
+                    'directory on a compute node to avoid constant writing to '
+                    'a shared drive. The default is to use the `temp-dir`.'))
     parser.add_argument('-s', '--stat-prefixes',
             nargs = '*',
             type = str,
@@ -288,7 +296,10 @@ def main_cli():
     start_time = datetime.datetime.now()
     result_q = multiprocessing.Queue()
 
-    observed_temp_fs = TempFileSystem(parent = base_temp_dir,
+    obs_temp_dir = base_temp_dir
+    if args.staging_dir:
+        obs_temp_dir = args.staging_dir
+    observed_temp_fs = TempFileSystem(parent = obs_temp_dir,
             prefix = 'observed-temps-')
 
     if args.reps < 1:
@@ -408,6 +419,7 @@ def main_cli():
             batch_size = args.prior_batch_size,
             output_dir = base_dir,
             output_prefix = '',
+            prior_temp_dir = args.staging_dir,
             rng = GLOBAL_RNG,
             sort_index = None,
             report_parameters = True,
