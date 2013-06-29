@@ -88,14 +88,16 @@ class Worker(object):
                 shell = False)
         self.stdout, self.stderr = self.process.communicate()
         self.exit_code = self.process.wait()
-        if self.stdout_path:
+        if hasattr(sout, 'close'):
             sout.close()
-        if self.stderr_path:
+        if hasattr(serr, 'close'):
             serr.close()
         if self.exit_code != 0:
             _LOG.error('execution failed')
-            raise WorkerExecutionError('{0} failed. stderr:\n{1}'.format(
-                self.name, self.get_stderr()))
+            raise WorkerExecutionError('{0} failed.\ninvocation:\n{1}\n'
+                    'stderr:\n{2}'.format(
+                    self.name, ' '.join([str(x) for x in self.cmd]),
+                    self.get_stderr()))
         try:
             self._post_process()
         except:
