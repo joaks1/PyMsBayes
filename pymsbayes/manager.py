@@ -69,7 +69,7 @@ class Manager(multiprocessing.Process):
             self.send_info('starting worker {0}'.format(worker.name))
             worker.start()
             self.send_info('worker {0} finished'.format(worker.name))
-            self.result_queue.put(worker)
+            self.result_queue.put(worker, block=True, timeout=0.1)
         if self.killed:
             self.send_error('manager was killed!')
 
