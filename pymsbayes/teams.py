@@ -366,7 +366,7 @@ class ABCTeam(object):
             out.write('d{0} = {1}\n'.format(idx, data_path))
         out.close()
     
-    def _run_workers(self, workers, queue_max = 1000):
+    def _run_workers(self, workers, queue_max = 100):
         finished = []
         for w_list in list_splitter(workers, queue_max, by_size = True):
             assert self.work_queue.empty()
@@ -381,7 +381,10 @@ class ABCTeam(object):
             for i in range(len(managers)):
                 managers[i].start()
             for i in range(len(w_list)):
+                _LOG.debug('{0}: getting result...'.format(self.name))
                 w_list[i] = self.result_queue.get()
+                _LOG.debug('{0}: got result {1}'.format(self.name,
+                        getattr(w_list[i], 'name', 'nameless')))
             for i in range(len(managers)):
                 managers[i].join()
             assert self.work_queue.empty()
