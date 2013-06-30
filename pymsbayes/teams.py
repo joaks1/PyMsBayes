@@ -368,7 +368,9 @@ class ABCTeam(object):
     
     def _run_workers(self, workers, queue_max = 1000):
         finished = []
+        _LOG.debug('num workers: {0}'.format(len(workers)))
         for w_list in list_splitter(workers, queue_max, by_size = True):
+            _LOG.debug('num sub workers: {0}'.format(len(w_list)))
             assert self.work_queue.empty()
             assert self.result_queue.empty()
             for w in w_list:
