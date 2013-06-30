@@ -107,4 +107,5 @@ class Manager(multiprocessing.Process):
             self._put_worker(worker)
         if self.killed:
             self.send_error('manager was killed!')
+        self.send_debug('end run')
 
