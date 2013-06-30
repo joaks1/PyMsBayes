@@ -95,7 +95,6 @@ class Manager(multiprocessing.Process):
 
     def run(self):
         self.send_debug('starting run')
-        # while (not self.killed) and (not self.work_queue.empty()):
         while not self.killed:
             worker = self._get_worker()
             if worker is None:
