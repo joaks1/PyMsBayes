@@ -27,7 +27,7 @@ class ABCTeam(object):
             temp_fs,
             observed_stats_files,
             num_taxon_pairs,
-            model_indices_to_config_paths,
+            config_paths,
             num_prior_samples,
             num_processors,
             num_standardizing_samples = 10000,
@@ -65,13 +65,18 @@ class ABCTeam(object):
         self.summary_temp_dir = temp_fs.create_subdir(
                 parent = self.temp_output_dir,
                 prefix = 'summary-files-')
+        self.posterior_temp_dir = temp_fs.create_subdir(
+                parent = self.temp_output_dir,
+                prefix = 'posterior-files-')
         self.prior_temp_fs = self.temp_fs
         if prior_temp_dir:
             self.prior_temp_fs = TempFileSystem(parent = prior_temp_dir,
                     prefix = 'pymsbayes-temp-priors-')
         self.observed_stats_paths = dict(zip(
-            [i for i in range(len(observed_stats_files))],
-            [expand_path(p) for p in observed_stats_files]))
+                [i for i in range(len(observed_stats_files))],
+                [expand_path(p) for p in observed_stats_files]))
+        self.temp_observed_paths = dict(zip(self.observed_stats_paths.keys(),
+                [{} for i in range(len(self.observed_stats_paths.keys))]))
         if not output_dir:
             output_dir = os.path.dirname(self.observed_stats_paths[0])
         self.output_dir = mk_new_dir(os.path.join(expand_path(output_dir),
@@ -79,7 +84,9 @@ class ABCTeam(object):
         self.output_prefix = str(output_prefix)
         self.global_estimate_only = global_estimate_only
         self.num_taxon_pairs = num_taxon_pairs
-        self.models = model_indices_to_config_paths
+        self.models = dict(zip(
+                [i for i in range(len(config_paths))],
+                [expand_path(p) for p in config_paths]))
         self.num_prior_samples = num_prior_samples
         self.num_processors = num_processors
         self.num_standardizing_samples = num_standardizing_samples
@@ -108,17 +115,17 @@ class ABCTeam(object):
                 self.observed_stats_paths.keys(),
                 [mk_new_dir(os.path.join(self.output_dir, 'd' + str(
                         k))) for k in self.observed_stats_paths.iterkeys()]))
+        self.model_strings = dict(zip(self.models.keys(),
+                ['m' + str(i) for i in self.models.iterkeys()]))
+        if len(self.models) > 1:
+            self.model_strings['combined'] = 'm' + ''.join(
+                    [str(i) for i in sorted(self.models.iterkeys())])
         self.model_dirs = {}
         for obs_idx, obs_dir in self.observed_dirs.iteritems():
             self.model_dirs[obs_idx] = {}
-            for model_idx in self.models.iterkeys():
+            for model_idx, model_str in self.model_strings.iteritems():
                 self.model_dirs[obs_idx][model_idx] = mk_new_dir(os.path.join(
-                        obs_dir, 'm' + str(model_idx)))
-            if len(self.models) > 1:
-                self.model_dirs[obs_idx].update({
-                        'combined': mk_new_dir(os.path.join(obs_dir,
-                        'm' + ''.join([str(i) for i in sorted(
-                                self.models.keys())])))})
+                        obs_dir, model_str))
         if len(self.models) < 2:
             self.global_estimate_only = False
         self.summary_dir = mk_new_dir(os.path.join(self.output_dir,
@@ -128,12 +135,22 @@ class ABCTeam(object):
             self.summary_paths[k] = os.path.join(self.summary_dir,
                     self.output_prefix + os.path.basename(d) + \
                             '-stat-means-and-std-devs.txt')
-        self.rejection_teams = {}
+        # self.rejection_teams = {}
+        # if not self.global_estimate_only:
+        #     self.rejection_teams = dict(zip(self.models.keys(),
+        #             [[] for i in range(len(self.models.keys()))]))
+        # if len(self.models) > 1:
+        #     self.rejection_teams.update({'combined': []})
+        self.temp_posterior_paths = dict(zip(self.observed_stats_paths.keys(),
+                [{} for i in range(len(self.observed_stats_paths.keys))]))
         if not self.global_estimate_only:
-            self.rejection_teams = dict(zip(self.models.keys(),
-                    [[] for i in range(len(self.models.keys()))]))
+            for obs_idx in self.temp_posterior_paths.iterkeys():
+                self.temp_posterior_paths[obs_idx] = dict(zip(
+                        self.models.keys(),
+                        [{} for i in range(len(self.models.keys()))]))
         if len(self.models) > 1:
-            self.rejection_teams.update({'combined': []})
+            for obs_idx in self.temp_posterior_paths.iterkeys():
+                self.temp_posterior_paths[obs_idx]['combined'] = []
         self.prior_summary_workers = []
         self.prior_workers = []
         self.num_observed = 0
@@ -164,6 +181,55 @@ class ABCTeam(object):
                 self.output_prefix + 'data-key.txt')
         self._write_keys()
         self.finished = False
+
+    def get_observed_path(self, observed_index, simulation_index):
+        return os.path.join(self.observed_temp_dir, 
+                '{0}-d{1}-s{2}-observed.txt'.format(self.temp_fs.token_id,
+                        observed_index, simulation_index))
+
+    def get_posterior_paths(self, observed_index, simulation_index):
+        return dict(zip(self.model_strings.keys(),
+                [os.path.join(self.posterior_temp_dir,
+                        '{0}-d{1}-{2}-s{3}-posterior.txt'.format(
+                                self.temp_fs.token_id,
+                                observed_index,
+                                self.model_strings[k],
+                                simulation_index
+                        )) for k in self.model_strings.iterkeys()]))
+
+    def get_observed_posterior_paths(self, observed_index, simulation_index):
+        return (self.get_observed_path(observed_index, simulation_index),
+                self.get_posterior_paths(observed_index, simulation_index))
+
+    def prior_summary_worker_iter(self):
+        pass
+    def prior_worker_iter(self):
+        pass
+    def _create_temp_paths(self):
+        for obs_idx, obs_path in self.observed_stats_paths.iteritems():
+            sim_index = 0
+            obs_file, close = process_file_arg(obs_path)
+            header = parse_header(obs_file, seek = False)
+            all_stat_indices = get_stat_indices(header,
+                    stat_patterns=ALL_STAT_PATTERNS)
+            for i, line in enumerate(obs_file):
+                self.num_observed += 1
+                sim_index += 1
+                tmp_obs_path = self.get_observed_path(obs_idx, sim_index)
+                l = line.strip().split()
+                with open(tmp_obs_path, 'w') as out:
+                    out.write('{0}\n{1}\n'.format(
+                        '\t'.join([header[idx] for idx in all_stat_indices]),
+                        '\t'.join([str(l[idx]) for idx in all_stat_indices])))
+                self.temp_observed_paths[obs_idx][i] = tmp_obs_path
+                for model_idx in self.temp_posterior_paths[obs_idx].iterkeys():
+                    self.temp_posterior_paths[obs_idx][model_idx][i] = \
+                            self.temp_fs.get_file_path(
+                                    parent = self.posterior_temp_dir,
+                                    prefix = 'd{0}-{1}-{2}-posterior-'.format(
+                                            obs_idx,
+                                            self.model_strings[model_idx],
+                                            i))
 
     def _assemble_prior_workers(self):
         prior_workers = dict(zip(self.models.keys(),
