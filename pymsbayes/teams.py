@@ -377,12 +377,13 @@ class ABCTeam(object):
             for i in range(self.num_processors):
                 m = Manager(work_queue = self.work_queue,
                         result_queue = self.result_queue)
-                m.start()
                 managers.append(m)
+            for i in range(len(managers)):
+                managers[i].start()
             for i in range(len(w_list)):
                 w_list[i] = self.result_queue.get()
-            for m in managers:
-                m.join()
+            for i in range(len(managers)):
+                managers[i].join()
             assert self.work_queue.empty()
             assert self.result_queue.empty()
             finished.extend(w_list)
