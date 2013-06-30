@@ -4,6 +4,7 @@ import os
 import sys
 import multiprocessing
 import Queue
+import time
 
 from pymsbayes.utils import WORK_FORCE
 from pymsbayes.utils.messaging import get_logger
@@ -61,17 +62,18 @@ class Manager(multiprocessing.Process):
         worker = None
         try:
             self.send_debug('getting worker')
-            worker = self.work_queue.get(block=True, timeout=0.1)
+            worker = self.work_queue.get(block=True, timeout=0.2)
             self.send_debug('received worker {0}'.format(
                     getattr(worker, 'name', 'nameless')))
             # without blocking processes were stopping when the queue
             # was not empty, and without timeout, the processes would
             # hang waiting for jobs.
         except Queue.Empty:
+            time.sleep(0.5)
             if not self.work_queue.empty():
                 self.send_warning('raised Queue.Empty, but queue is '
                         'not empty... trying again')
-                self._get_worker()
+                return self._get_worker()
             else:
                 self.send_info('work queue is empty')
         return worker
@@ -80,10 +82,11 @@ class Manager(multiprocessing.Process):
         try:
             self.send_debug('returning worker {0}'.format(
                     getattr(worker, 'name', 'nameless')))
-            self.result_queue.put(worker, block=True, timeout=0.1)
+            self.result_queue.put(worker, block=True, timeout=0.2)
             self.send_debug('worker {0} returned'.format(
                     getattr(worker, 'name', 'nameless')))
         except Queue.Full, e:
+            time.sleep(1)
             if not self.result_queue.full():
                 self.send_warning('raised Queue.Full, but queue is '
                         'not full... trying again')
