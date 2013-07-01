@@ -3,6 +3,7 @@
 import os
 import sys
 import copy
+import shutil
 import multiprocessing
 import Queue
 
@@ -83,10 +84,10 @@ class ABCTeam(object):
         self.global_estimate_only = global_estimate_only
         self.num_taxon_pairs = num_taxon_pairs
         self.models = dict(zip(
-                [i+1 for i in range(len(config_paths))],
+                [i for i in range(len(config_paths))],
                 [expand_path(p) for p in config_paths]))
         self.observed_stats_paths = dict(zip(
-                [i+1 for i in range(len(observed_stats_files))],
+                [i for i in range(len(observed_stats_files))],
                 [expand_path(p) for p in observed_stats_files]))
         self.num_prior_samples = num_prior_samples
         self.num_processors = num_processors
@@ -162,9 +163,9 @@ class ABCTeam(object):
         self.reporting_frequency = reporting_frequency
         self.reporting_indices = None
         if self.reporting_frequency and self.reporting_frequency > 0:
-            rep_indices = range(0, len(self.prior_workers),
+            rep_indices = range(0, self.num_prior_batch_iters,
                     self.reporting_frequency)
-            if rep_indices[-1] >= (len(self.prior_workers) - 1):
+            if rep_indices[-1] >= (self.num_prior_batch_iters - 1):
                 rep_indices.pop(-1)
             self.reporting_indices = rep_indices
         self.model_key_path = os.path.join(self.output_dir,
@@ -185,7 +186,7 @@ class ABCTeam(object):
             per_processor = False):
         if per_processor:
             d = dict(zip(self.model_strings.keys(),
-                [[] for k in range(len(self.model_strings))]))
+                [[] for i in range(len(self.model_strings))]))
             for model_idx, paths in d.iteritems():
                 for i in range(self.num_processors):
                     paths.append(os.path.join(self.posterior_temp_dir,
@@ -252,6 +253,7 @@ class ABCTeam(object):
                         temp_fs = self.prior_temp_fs,
                         sample_size = self.batch_size,
                         config_path = config_path,
+                        prior_path = prior_path,
                         exe_path = self.msbayes_exe_path,
                         model_index = model_index,
                         report_parameters = self.report_parameters,
@@ -299,6 +301,7 @@ class ABCTeam(object):
                         temp_fs = self.prior_temp_fs,
                         sample_size = self.num_extra_samples,
                         config_path = config_path,
+                        prior_path = prior_path,
                         exe_path = self.msbayes_exe_path,
                         model_index = model_index,
                         report_parameters = self.report_parameters,
@@ -325,6 +328,7 @@ class ABCTeam(object):
                         temp_fs = self.prior_temp_fs,
                         sample_size = self.batch_size,
                         config_path = config_path,
+                        prior_path = prior_path,
                         exe_path = self.msbayes_exe_path,
                         model_index = model_index,
                         report_parameters = self.report_parameters,
@@ -348,6 +352,7 @@ class ABCTeam(object):
                         temp_fs = self.prior_temp_fs,
                         sample_size = self.num_extra_samples,
                         config_path = config_path,
+                        prior_path = prior_path,
                         exe_path = self.msbayes_exe_path,
                         model_index = model_index,
                         report_parameters = self.report_parameters,
@@ -374,6 +379,8 @@ class ABCTeam(object):
                     out.write('{0}\n{1}\n'.format(
                         '\t'.join([header[idx] for idx in all_stat_indices]),
                         '\t'.join([str(l[idx]) for idx in all_stat_indices])))
+            if close:
+                obs_file.close()
 
     def _write_keys(self):
         out, close = process_file_arg(self.model_key_path, 'w')
@@ -392,7 +399,7 @@ class ABCTeam(object):
                 for j in range(i, i + max_num_workers):
                     if j >= n_observed:
                         break
-                    obs_path, post_paths = get_observed_posterior_paths(
+                    obs_path, post_paths = self.get_observed_posterior_paths(
                             observed_idx,
                             j,
                             per_processor = self.duplicate_rejection_workers)
@@ -407,10 +414,11 @@ class ABCTeam(object):
                             if os.path.exists(p_path):
                                 temp_post_path = self.temp_fs.get_file_path(
                                         parent = self.old_posterior_temp_dir,
-                                        prefix('old-post-d{0}-{1}-s{2}-{3}'.format(
+                                        prefix = '{0}-d{1}-{2}-s{3}-{4}'.format(
+                                                self.temp_fs.token_id,
                                                 observed_idx,
                                                 self.model_strings[model_idx],
-                                                j, k)))
+                                                j, k))
                                 shutil.move(p_path, temp_post_path)
                                 prior_paths.append(temp_post_path)
                             rejection_workers.append(EuRejectWorker(
@@ -437,11 +445,11 @@ class ABCTeam(object):
                 for j in range(i, i + max_num_workers):
                     if j >= n_observed:
                         break
-                    obs_path, post_paths = get_observed_posterior_paths(
+                    obs_path, post_paths = self.get_observed_posterior_paths(
                             observed_idx,
                             j,
                             per_processor = True)
-                    final_post_paths = get_posterior_paths(
+                    final_post_paths = self.get_posterior_paths(
                             observed_idx,
                             j,
                             per_processor = False)
@@ -480,7 +488,7 @@ class ABCTeam(object):
                 for j in range(i, i + max_num_workers):
                     if j >= n_observed:
                         break
-                    obs_path, post_paths = get_observed_posterior_paths(
+                    obs_path, post_paths = self.get_observed_posterior_paths(
                             observed_idx,
                             j,
                             per_processor = False)
@@ -514,7 +522,7 @@ class ABCTeam(object):
                 for j in range(i, i + max_num_workers):
                     if j >= n_observed:
                         break
-                    obs_path, post_paths = get_observed_posterior_paths(
+                    obs_path, post_paths = self.get_observed_posterior_paths(
                             observed_idx,
                             j,
                             per_processor = False)
@@ -523,7 +531,7 @@ class ABCTeam(object):
                     for model_idx, p_paths in post_paths.iteritems():
                         fname_parts = os.path.basename(p_paths[0]).split('-')
                         fname_prefix = self.output_prefix + \
-                                '-'.join(self.fname_parts[1:4] + \
+                                '-'.join(fname_parts[1:4] + \
                                         [str(batch_index)])
                         out_prefix = os.path.join(
                                 self.model_dirs[observed_idx][model_idx],
@@ -536,18 +544,18 @@ class ABCTeam(object):
                         posterior_workers.append(PosteriorWorker(
                                 temp_fs = self.temp_fs,
                                 observed_path = obs_path,
-                                posterior_path = p_paths[0]
+                                posterior_path = p_paths[0],
                                 num_taxon_pairs = self.num_taxon_pairs,
                                 posterior_out_path = post_out_path,
                                 output_prefix = out_prefix,
                                 model_indices = model_indices,
-                                abctoolbox_exe_path, self.abctoolbox_exe_path,
+                                abctoolbox_exe_path = self.abctoolbox_exe_path,
                                 abctoolbox_num_posterior_quantiles = \
                                         self.num_posterior_density_quantiles,
                                 omega_threshold = self.omega_threshold,
                                 compress = self.compress,
                                 keep_temps = self.keep_temps,
-                                tag = model_idx)
+                                tag = model_idx))
                 yield posterior_workers
     
     def _run_workers(self, workers, queue_max = 100):
