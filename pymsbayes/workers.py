@@ -259,6 +259,8 @@ class MsBayesWorker(Worker):
             temp_fs,
             sample_size,
             config_path,
+            prior_path = None,
+            header_path = None,
             exe_path = None,
             model_index = None,
             sort_index = None,
@@ -274,6 +276,7 @@ class MsBayesWorker(Worker):
             stderr_path = None,
             staging_dir = None,
             write_stats_file = False,
+            stats_file_path = None,
             tag = None):
         Worker.__init__(self,
                 stdout_path = stdout_path,
@@ -303,18 +306,24 @@ class MsBayesWorker(Worker):
             self.seed = get_random_int()
         else:
             self.seed = int(seed)
-        self.prior_path = self.temp_fs.get_file_path(
-                parent = self.output_dir,
-                prefix = 'prior-{0}-{1}-'.format(
-                        self.sample_size,
-                        self.seed),
-                create = False)
-        self.header_path = self.temp_fs.get_file_path(
-                parent = self.output_dir,
-                prefix = 'prior-{0}-{1}-header-'.format(
-                        self.sample_size,
-                        self.seed),
-                create = False)
+        if not prior_path:
+            self.prior_path = self.temp_fs.get_file_path(
+                    parent = self.output_dir,
+                    prefix = 'prior-{0}-{1}-'.format(
+                            self.sample_size,
+                            self.seed),
+                    create = False)
+        else:
+            self.prior_path = expand_path(prior_path)
+        if not header_path:
+            self.header_path = self.temp_fs.get_file_path(
+                    parent = self.output_dir,
+                    prefix = 'prior-{0}-{1}-header-'.format(
+                            self.sample_size,
+                            self.seed),
+                    create = False)
+        else:
+            self.header_path = expand_path(header_path)
         if not schema.lower() in self.valid_schemas:
             raise ValueError(
                     'schema {0} is not valid. Options are: {1}'.format(
@@ -323,8 +332,11 @@ class MsBayesWorker(Worker):
         self.include_header = include_header
         self.prior_stats_path = None
         if write_stats_file:
-            self.prior_stats_path = self.prior_path + '.stats.txt'
-            self.temp_fs._register_file(self.prior_stats_path)
+            if stats_file_path:
+                self.prior_stats_path = expand_path(stats_file_path)
+            else:
+                self.prior_stats_path = self.prior_path + '.stats.txt'
+                self.temp_fs._register_file(self.prior_stats_path)
         self.stat_patterns = stat_patterns
         self.parameter_patterns = parameter_patterns
         self.header = None
@@ -417,6 +429,9 @@ class MsBayesWorker(Worker):
         self.stat_indices = get_stat_indices(
                 header_list = self.header,
                 stat_patterns = ALL_STAT_PATTERNS)
+
+    def purge(self):
+        self.temp_fs.remove_dir(self.output_dir)
 
         
 ##############################################################################
