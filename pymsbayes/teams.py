@@ -68,15 +68,13 @@ class ABCTeam(object):
         self.posterior_temp_dir = temp_fs.create_subdir(
                 parent = self.temp_output_dir,
                 prefix = 'posterior-files-')
+        self.old_posterior_temp_dir = temp_fs.create_subdir(
+                parent = self.temp_output_dir,
+                prefix = 'old-posterior-files-')
         self.prior_temp_fs = self.temp_fs
         if prior_temp_dir:
             self.prior_temp_fs = TempFileSystem(parent = prior_temp_dir,
                     prefix = 'pymsbayes-temp-priors-')
-        self.observed_stats_paths = dict(zip(
-                [i for i in range(len(observed_stats_files))],
-                [expand_path(p) for p in observed_stats_files]))
-        self.temp_observed_paths = dict(zip(self.observed_stats_paths.keys(),
-                [{} for i in range(len(self.observed_stats_paths.keys))]))
         if not output_dir:
             output_dir = os.path.dirname(self.observed_stats_paths[0])
         self.output_dir = mk_new_dir(os.path.join(expand_path(output_dir),
@@ -85,8 +83,11 @@ class ABCTeam(object):
         self.global_estimate_only = global_estimate_only
         self.num_taxon_pairs = num_taxon_pairs
         self.models = dict(zip(
-                [i for i in range(len(config_paths))],
+                [i+1 for i in range(len(config_paths))],
                 [expand_path(p) for p in config_paths]))
+        self.observed_stats_paths = dict(zip(
+                [i+1 for i in range(len(observed_stats_files))],
+                [expand_path(p) for p in observed_stats_files]))
         self.num_prior_samples = num_prior_samples
         self.num_processors = num_processors
         self.num_standardizing_samples = num_standardizing_samples
@@ -102,6 +103,12 @@ class ABCTeam(object):
         self.num_batches, self.num_extra_samples = long_division(
                 self.num_prior_samples, 
                 self.batch_size)
+        self.num_batches_remaining, self.num_extra_samples_remaining = \
+                self.num_batches, self.num_extra_samples
+        self.num_prior_batch_iters, r = long_division(self.num_prior_samples,
+                self.batch_size * self.num_processors)
+        if r > 0:
+            self.num_prior_batch_iters += 1
         self.sort_index = sort_index
         self.report_parameters = report_parameters
         self.stat_patterns = stat_patterns
@@ -135,31 +142,16 @@ class ABCTeam(object):
             self.summary_paths[k] = os.path.join(self.summary_dir,
                     self.output_prefix + os.path.basename(d) + \
                             '-stat-means-and-std-devs.txt')
-        # self.rejection_teams = {}
-        # if not self.global_estimate_only:
-        #     self.rejection_teams = dict(zip(self.models.keys(),
-        #             [[] for i in range(len(self.models.keys()))]))
-        # if len(self.models) > 1:
-        #     self.rejection_teams.update({'combined': []})
-        self.temp_posterior_paths = dict(zip(self.observed_stats_paths.keys(),
-                [{} for i in range(len(self.observed_stats_paths.keys))]))
-        if not self.global_estimate_only:
-            for obs_idx in self.temp_posterior_paths.iterkeys():
-                self.temp_posterior_paths[obs_idx] = dict(zip(
-                        self.models.keys(),
-                        [{} for i in range(len(self.models.keys()))]))
-        if len(self.models) > 1:
-            for obs_idx in self.temp_posterior_paths.iterkeys():
-                self.temp_posterior_paths[obs_idx]['combined'] = []
-        self.prior_summary_workers = []
-        self.prior_workers = []
         self.num_observed = 0
+        self.n_observed_map = dict(zip(self.observed_stats_paths.keys(),
+                [0 for i in self.observed_stats_paths.iterkeys()]))
+        self._parse_observed_paths()
         self.keep_temps = keep_temps
         self.work_queue = work_queue
         self.result_queue = multiprocessing.Queue()
-        self.duplicated_rejection_teams = False
-        self._assemble_rejection_teams()
-        self._assemble_prior_workers()
+        self.duplicate_rejection_workers = False
+        if (self.num_observed < 2) and (self.num_processors > 1):
+            self.duplicate_rejection_workers = True
         self.num_samples_generated = 0
         self.num_samples_summarized = 0
         if not self.global_estimate_only:
@@ -180,64 +172,81 @@ class ABCTeam(object):
         self.data_key_path = os.path.join(self.output_dir,
                 self.output_prefix + 'data-key.txt')
         self._write_keys()
+        self.prior_summary_worker_iter = self._prior_summary_worker_iter()
+        self.prior_worker_iter = self._prior_worker_iter()
         self.finished = False
 
     def get_observed_path(self, observed_index, simulation_index):
         return os.path.join(self.observed_temp_dir, 
                 '{0}-d{1}-s{2}-observed.txt'.format(self.temp_fs.token_id,
-                        observed_index, simulation_index))
+                        observed_index, simulation_index + 1))
 
-    def get_posterior_paths(self, observed_index, simulation_index):
+    def get_posterior_paths(self, observed_index, simulation_index,
+            per_processor = False):
+        if per_processor:
+            d = dict(zip(self.model_strings.keys(),
+                [[] for k in range(len(self.model_strings))]))
+            for model_idx, paths in d.iteritems():
+                for i in range(self.num_processors):
+                    paths.append(os.path.join(self.posterior_temp_dir,
+                            '{0}-d{1}-{2}-s{3}-{4}-posterior.txt'.format(
+                                self.temp_fs.token_id,
+                                observed_index,
+                                self.model_strings[model_idx],
+                                simulation_index + 1,
+                                i)))
+            return d
         return dict(zip(self.model_strings.keys(),
-                [os.path.join(self.posterior_temp_dir,
+                [[os.path.join(self.posterior_temp_dir,
                         '{0}-d{1}-{2}-s{3}-posterior.txt'.format(
                                 self.temp_fs.token_id,
                                 observed_index,
                                 self.model_strings[k],
-                                simulation_index
-                        )) for k in self.model_strings.iterkeys()]))
+                                simulation_index + 1
+                        ))] for k in self.model_strings.iterkeys()]))
 
-    def get_observed_posterior_paths(self, observed_index, simulation_index):
+    def get_observed_posterior_paths(self, observed_index, simulation_index,
+            per_processor = False):
         return (self.get_observed_path(observed_index, simulation_index),
-                self.get_posterior_paths(observed_index, simulation_index))
+                self.get_posterior_paths(observed_index, simulation_index,
+                        per_processor = per_processor))
 
-    def prior_summary_worker_iter(self):
-        pass
-    def prior_worker_iter(self):
-        pass
-    def _create_temp_paths(self):
-        for obs_idx, obs_path in self.observed_stats_paths.iteritems():
-            sim_index = 0
-            obs_file, close = process_file_arg(obs_path)
-            header = parse_header(obs_file, seek = False)
-            all_stat_indices = get_stat_indices(header,
-                    stat_patterns=ALL_STAT_PATTERNS)
-            for i, line in enumerate(obs_file):
-                self.num_observed += 1
-                sim_index += 1
-                tmp_obs_path = self.get_observed_path(obs_idx, sim_index)
-                l = line.strip().split()
-                with open(tmp_obs_path, 'w') as out:
-                    out.write('{0}\n{1}\n'.format(
-                        '\t'.join([header[idx] for idx in all_stat_indices]),
-                        '\t'.join([str(l[idx]) for idx in all_stat_indices])))
-                self.temp_observed_paths[obs_idx][i] = tmp_obs_path
-                for model_idx in self.temp_posterior_paths[obs_idx].iterkeys():
-                    self.temp_posterior_paths[obs_idx][model_idx][i] = \
-                            self.temp_fs.get_file_path(
-                                    parent = self.posterior_temp_dir,
-                                    prefix = 'd{0}-{1}-{2}-posterior-'.format(
-                                            obs_idx,
-                                            self.model_strings[model_idx],
-                                            i))
-
-    def _assemble_prior_workers(self):
-        prior_workers = dict(zip(self.models.keys(),
-                [[] for i in range(len(self.models.keys()))]))
-        for model_index, config_path in self.models.iteritems():
-            to_summarize = self.num_standardizing_samples
-            for i in range(self.num_batches):
-                sum_worker = None
+    def _prior_summary_worker_iter(self):
+        to_summarize = self.num_standardizing_samples
+        for i in range(self.num_batches):
+            if to_summarize <= 0:
+                break
+            if (to_summarize - self.batch_size) >= 0:
+                nsum = self.batch_size
+            else:
+                nsum = to_summarize
+            to_summarize -= nsum
+            for model_index, config_path in self.models.iteritems():
+                prior_path = self.prior_temp_fs.get_file_path(
+                        prefix = 'prior-to-sum-{0}-{1}-'.format(
+                                self.model_strings[model_index],
+                                i + 1))
+                sum_path = self.temp_fs.get_file_path(
+                        parent = self.summary_temp_dir,
+                        prefix = 'summary-{0}-{1}-'.format(model_index,
+                                i + 1),
+                        create = False)
+                post_path = self.temp_fs.get_file_path(
+                        parent = self.summary_temp_dir,
+                        prefix = 'posterior-{0}-{1}-'.format(model_index,
+                                i + 1),
+                        create = False)
+                sum_worker = EuRejectWorker(
+                        temp_fs = self.temp_fs,
+                        observed_path = self.observed_stats_paths[0],
+                        prior_paths = [prior_path],
+                        posterior_path = post_path,
+                        num_posterior_samples = 0,
+                        num_standardizing_samples = nsum,
+                        summary_out_path = sum_path,
+                        exe_path = self.eureject_exe_path,
+                        keep_temps = self.keep_temps,
+                        tag = model_index)
                 seed = get_random_int(self.rng)
                 worker = MsBayesWorker(
                         temp_fs = self.prior_temp_fs,
@@ -251,69 +260,41 @@ class ABCTeam(object):
                         stat_patterns = self.stat_patterns,
                         summary_worker = sum_worker,
                         tag = model_index)
-                if to_summarize > 0:
-                    if (to_summarize - self.batch_size) >= 0:
-                        nsum = self.batch_size
-                    else:
-                        nsum = to_summarize
-                    to_summarize -= nsum
-                    sum_path = self.temp_fs.get_file_path(
-                            parent = self.summary_temp_dir,
-                            prefix = 'summary-{0}-{1}-'.format(model_index,
-                                    i+1),
-                            create = False)
-                    post_path = self.temp_fs.get_file_path(
-                            parent = self.summary_temp_dir,
-                            prefix = 'posterior-{0}-{1}-'.format(model_index,
-                                    i+1),
-                            create = False)
-                    sum_worker = EuRejectWorker(
-                            temp_fs = self.temp_fs,
-                            observed_path = self.observed_stats_paths[0],
-                            prior_paths = [worker.prior_path],
-                            posterior_path = post_path,
-                            num_posterior_samples = 0,
-                            num_standardizing_samples = nsum,
-                            summary_out_path = sum_path,
-                            exe_path = self.eureject_exe_path,
-                            keep_temps = self.keep_temps,
-                            tag = model_index)
-                    worker.summary_worker = sum_worker
-                if sum_worker:
-                    self.prior_summary_workers.append(worker)
-                else:
-                    prior_workers[model_index].append(worker)
-            if self.num_extra_samples > 0:
-                sum_worker = None
+                yield worker
+            self.num_batches_remaining -= 1
+        if to_summarize > 0:
+            if (to_summarize - self.num_extra_samples) >= 0:
+                nsum = self.num_extra_samples
+            else:
+                nsum = to_summarize
+            to_summarize -= nsum
+            for model_index, config_path in self.models.iteritems():
+                prior_path = self.prior_temp_fs.get_file_path(
+                        prefix = 'prior-to-sum-{0}-{1}-'.format(
+                                self.model_strings[model_index],
+                                i + 2))
+                sum_path = self.temp_fs.get_file_path(
+                        parent = self.summary_temp_dir,
+                        prefix = 'summary-{0}-{1}-'.format(model_index,
+                                i + 2),
+                        create = False)
+                post_path = self.temp_fs.get_file_path(
+                        parent = self.summary_temp_dir,
+                        prefix = 'posterior-{0}-{1}-'.format(model_index,
+                                i + 2),
+                        create = False)
+                sum_worker = EuRejectWorker(
+                        temp_fs = self.temp_fs,
+                        observed_path = self.observed_stats_paths[0],
+                        prior_paths = [prior_path],
+                        posterior_path = post_path,
+                        num_posterior_samples = 0,
+                        num_standardizing_samples = nsum,
+                        summary_out_path = sum_path,
+                        exe_path = self.eureject_exe_path,
+                        keep_temps = self.keep_temps,
+                        tag = model_index)
                 seed = get_random_int(self.rng)
-                if to_summarize > 0:
-                    if (to_summarize - self.num_extra_samples) >= 0:
-                        nsum = self.num_extra_samples
-                    else:
-                        nsum = to_summarize
-                    to_summarize -= nsum
-                    sum_path = temp_fs.get_file_path(
-                            parent = self.summary_temp_dir,
-                            prefix = 'summary-{0}-{1}-'.format(model_index,
-                                    i+1),
-                            create = False)
-                    post_path = self.temp_fs.get_file_path(
-                            parent = self.summary_temp_dir,
-                            prefix = 'posterior-{0}-{1}-'.format(model_index,
-                                    i+1),
-                            create = False)
-                    sum_worker = EuRejectWorker(
-                            temp_fs = self.temp_fs,
-                            observed_path = self.observed_stats_paths[0],
-                            prior_paths = [worker.prior_path],
-                            posterior_path = post_path,
-                            num_posterior_samples = 0,
-                            num_standardizing_samples = nsum,
-                            summary_out_path = sum_path,
-                            exe_path = self.eureject_exe_path,
-                            keep_temps = self.keep_temps,
-                            tag = model_index)
-                    self.summary_workers.append(sum_worker)
                 worker = MsBayesWorker(
                         temp_fs = self.prior_temp_fs,
                         sample_size = self.num_extra_samples,
@@ -326,101 +307,73 @@ class ABCTeam(object):
                         stat_patterns = self.stat_patterns,
                         summary_worker = sum_worker,
                         tag = model_index)
-                if sum_worker:
-                    self.prior_summary_workers.append(worker)
-                else:
-                    prior_workers[model_index].append(worker)
-        n_lists = None
-        for idx, pw_list in prior_workers.iteritems():
-            pw_sublists = list(list_splitter(pw_list,
-                    self.num_processors, by_size=True))
-            if not n_lists:
-                n_lists = len(pw_sublists)
-                self.prior_workers = pw_sublists
-            else:
-                assert n_lists == len(pw_sublists)
-                for i in range(n_lists):
-                    self.prior_workers[i].extend(pw_sublists[i])
+                yield worker
+            self.num_extra_samples_remaining = 0
 
-    def _assemble_rejection_teams(self):
+    def _prior_worker_iter(self):
+        n = 0
+        prior_workers = []
+        for i in range(self.num_batches_remaining):
+            n += 1
+            for model_index, config_path in self.models.iteritems():
+                prior_path = self.prior_temp_fs.get_file_path(
+                        prefix = 'prior-{0}-{1}-'.format(
+                                self.model_strings[model_index],
+                                i + 1))
+                seed = get_random_int(self.rng)
+                worker = MsBayesWorker(
+                        temp_fs = self.prior_temp_fs,
+                        sample_size = self.batch_size,
+                        config_path = config_path,
+                        exe_path = self.msbayes_exe_path,
+                        model_index = model_index,
+                        report_parameters = self.report_parameters,
+                        seed = seed,
+                        schema = 'abctoolbox',
+                        stat_patterns = self.stat_patterns,
+                        summary_worker = None,
+                        tag = model_index)
+                prior_workers.append(worker)
+            if n >= self.num_processors:
+                n = 0
+                yield [prior_workers.pop(0) for i in range(len(prior_workers))]
+        if self.num_extra_samples_remaining > 0:
+            for model_index, config_path in self.models.iteritems():
+                prior_path = self.prior_temp_fs.get_file_path(
+                        prefix = 'prior-{0}-{1}-'.format(
+                                self.model_strings[model_index],
+                                i + 2))
+                seed = get_random_int(self.rng)
+                worker = MsBayesWorker(
+                        temp_fs = self.prior_temp_fs,
+                        sample_size = self.num_extra_samples,
+                        config_path = config_path,
+                        exe_path = self.msbayes_exe_path,
+                        model_index = model_index,
+                        report_parameters = self.report_parameters,
+                        seed = seed,
+                        schema = 'abctoolbox',
+                        stat_patterns = self.stat_patterns,
+                        summary_worker = sum_worker,
+                        tag = model_index)
+                prior_workers.append(worker)
+            yield prior_workers
+
+    def _parse_observed_paths(self):
         for obs_idx, obs_path in self.observed_stats_paths.iteritems():
-            sim_index = 0
             obs_file, close = process_file_arg(obs_path)
             header = parse_header(obs_file, seek = False)
             all_stat_indices = get_stat_indices(header,
                     stat_patterns=ALL_STAT_PATTERNS)
             for i, line in enumerate(obs_file):
                 self.num_observed += 1
-                sim_index += 1
-                tmp_obs_path = self.temp_fs.get_file_path(
-                        parent = self.observed_temp_dir,
-                        prefix = 'observed-{0}-{1}-'.format(obs_idx, sim_index),
-                        create = False)
+                self.n_observed_map[obs_idx] += 1
+                tmp_obs_path = self.get_observed_path(obs_idx, i)
                 l = line.strip().split()
                 with open(tmp_obs_path, 'w') as out:
                     out.write('{0}\n{1}\n'.format(
                         '\t'.join([header[idx] for idx in all_stat_indices]),
                         '\t'.join([str(l[idx]) for idx in all_stat_indices])))
-                for model_idx, rejection_team_list in \
-                        self.rejection_teams.iteritems():
-                    if model_idx == 'combined':
-                        m_indices = self.models.keys()
-                    else:
-                        m_indices = [model_idx]
-                    out_prefix = '{0}d{1}-m{2}-'.format(self.output_prefix,
-                            obs_idx, model_idx)
-                    rejection_team_list.append(RejectionTeam(
-                            temp_fs = self.temp_fs,
-                            observed_path = tmp_obs_path,
-                            output_dir = self.model_dirs[obs_idx][model_idx],
-                            output_prefix = out_prefix,
-                            num_taxon_pairs = self.num_taxon_pairs,
-                            prior_paths = [],
-                            model_indices = m_indices,
-                            summary_in_path = self.summary_paths[model_idx],
-                            num_posterior_samples = self.num_posterior_samples,
-                            num_posterior_density_quantiles = \
-                                    self.num_posterior_density_quantiles,
-                            run_regression = False,
-                            eureject_exe_path = self.eureject_exe_path,
-                            abctoolbox_exe_path = self.abctoolbox_exe_path,
-                            abctoolbox_bandwidth = self.abctoolbox_bandwidth,
-                            omega_threshold = self.omega_threshold,
-                            compress = self.compress,
-                            keep_temps = self.keep_temps,
-                            index = sim_index,
-                            tag = model_idx))
-            if close:
-                obs_file.close()
-        if self.num_observed == 1:
-            for model_idx, rt_list in self.rejection_teams.iteritems():
-                assert len(rt_list) == 1
-                rt = rt_list[0]
-                for i in range(self.num_processors - 1):
-                    self.duplicated_rejection_teams = True
-                    rt_list.append(RejectionTeam(
-                            temp_fs = self.temp_fs,
-                            observed_path = rt.observed_path,
-                            output_dir = rt.output_dir,
-                            output_prefix = self.output_prefix,
-                            num_taxon_pairs = self.num_taxon_pairs,
-                            prior_paths = [],
-                            model_indices = rt.model_indices,
-                            summary_in_path = rt.summary_in_path,
-                            num_posterior_samples = \
-                                    self.num_posterior_samples,
-                            num_posterior_density_quantiles = \
-                                    self.num_posterior_density_quantiles,
-                            run_regression = False,
-                            eureject_exe_path = self.eureject_exe_path,
-                            abctoolbox_exe_path = self.abctoolbox_exe_path,
-                            abctoolbox_bandwidth = \
-                                    self.abctoolbox_bandwidth,
-                            omega_threshold = self.omega_threshold,
-                            compress = self.compress,
-                            keep_temps = self.keep_temps,
-                            index = rt.index,
-                            tag = model_idx))
 
     def _write_keys(self):
         out, close = process_file_arg(self.model_key_path, 'w')
@@ -431,6 +384,171 @@ class ABCTeam(object):
         for idx, data_path in self.observed_stats_paths.iteritems():
             out.write('d{0} = {1}\n'.format(idx, data_path))
         out.close()
+
+    def _rejection_worker_iter(self, max_num_workers = 100):
+        for observed_idx, n_observed in self.n_observed_map.iteritems():
+            for i in range(0, n_observed, max_num_workers):
+                rejection_workers = []
+                for j in range(i, i + max_num_workers):
+                    if j >= n_observed:
+                        break
+                    obs_path, post_paths = get_observed_posterior_paths(
+                            observed_idx,
+                            j,
+                            per_processor = self.duplicate_rejection_workers)
+                    combined_post_paths = None
+                    if post_paths.has_key('combined'):
+                        combined_post_paths = post_paths.pop('combined')
+                    if self.global_estimate_only:
+                        post_paths = {'combined': combined_post_paths}
+                    for model_idx, p_paths in post_paths.iteritems():
+                        for k, p_path in enumerate(p_paths):
+                            prior_paths = []
+                            if os.path.exists(p_path):
+                                temp_post_path = self.temp_fs.get_file_path(
+                                        parent = self.old_posterior_temp_dir,
+                                        prefix('old-post-d{0}-{1}-s{2}-{3}'.format(
+                                                observed_idx,
+                                                self.model_strings[model_idx],
+                                                j, k)))
+                                shutil.move(p_path, temp_post_path)
+                                prior_paths.append(temp_post_path)
+                            rejection_workers.append(EuRejectWorker(
+                                    temp_fs = self.temp_fs,
+                                    observed_path = obs_path,
+                                    prior_paths = prior_paths,
+                                    num_posterior_samples = \
+                                            self.num_posterior_samples,
+                                    num_standardizing_samples = 0,
+                                    summary_in_path = \
+                                            self.summary_paths[model_idx],
+                                    summary_out_path = None,
+                                    posterior_path = p_path,
+                                    regression_worker = None,
+                                    exe_path = self.eureject_exe_path,
+                                    keep_temps = self.keep_temps,
+                                    tag = model_idx))
+                yield rejection_workers
+
+    def _merging_rejection_worker_iter(self, max_num_workers = 100):
+        for observed_idx, n_observed in self.n_observed_map.iteritems():
+            for i in range(0, n_observed, max_num_workers):
+                rejection_workers = []
+                for j in range(i, i + max_num_workers):
+                    if j >= n_observed:
+                        break
+                    obs_path, post_paths = get_observed_posterior_paths(
+                            observed_idx,
+                            j,
+                            per_processor = True)
+                    final_post_paths = get_posterior_paths(
+                            observed_idx,
+                            j,
+                            per_processor = False)
+                    combined_post_paths = None
+                    if post_paths.has_key('combined'):
+                        combined_post_paths = post_paths.pop('combined')
+                    if self.global_estimate_only:
+                        post_paths = {'combined': combined_post_paths}
+                    for model_idx, p_paths in post_paths.iteritems():
+                        prior_paths = []
+                        for k, p_path in enumerate(p_paths):
+                            if os.path.exists(p_path):
+                                prior_paths.append(p_path)
+                        if prior_paths:
+                            rejection_workers.append(EuRejectWorker(
+                                    temp_fs = self.temp_fs,
+                                    observed_path = obs_path,
+                                    prior_paths = prior_paths,
+                                    num_posterior_samples = \
+                                            self.num_posterior_samples,
+                                    num_standardizing_samples = 0,
+                                    summary_in_path = \
+                                            self.summary_paths[model_idx],
+                                    summary_out_path = None,
+                                    posterior_path = final_post_paths[model_idx][0],
+                                    regression_worker = None,
+                                    exe_path = self.eureject_exe_path,
+                                    keep_temps = self.keep_temps,
+                                    tag = model_idx))
+                yield rejection_workers
+
+    def _final_rejection_worker_iter(self, max_num_workers = 100):
+        for observed_idx, n_observed in self.n_observed_map.iteritems():
+            for i in range(0, n_observed, max_num_workers):
+                rejection_workers = []
+                for j in range(i, i + max_num_workers):
+                    if j >= n_observed:
+                        break
+                    obs_path, post_paths = get_observed_posterior_paths(
+                            observed_idx,
+                            j,
+                            per_processor = False)
+                    combined_post_paths = post_paths.pop('combined')
+                    prior_paths = []
+                    for model_idx, p_paths in post_paths.iteritems():
+                        assert os.path.exists(p_paths[0])
+                        prior_paths.append(p_paths[0])
+                    if prior_paths:
+                        rejection_workers.append(EuRejectWorker(
+                                temp_fs = self.temp_fs,
+                                observed_path = obs_path,
+                                prior_paths = prior_paths,
+                                num_posterior_samples = \
+                                        self.num_posterior_samples,
+                                num_standardizing_samples = 0,
+                                summary_in_path = \
+                                        self.summary_paths[model_idx],
+                                summary_out_path = None,
+                                posterior_path = combined_post_paths[0],
+                                regression_worker = None,
+                                exe_path = self.eureject_exe_path,
+                                keep_temps = self.keep_temps,
+                                tag = model_idx))
+                yield rejection_workers
+
+    def _regression_worker_iter(self, batch_index, max_num_workers = 100):
+        for observed_idx, n_observed in self.n_observed_map.iteritems():
+            for i in range(0, n_observed, max_num_workers):
+                posterior_workers = []
+                for j in range(i, i + max_num_workers):
+                    if j >= n_observed:
+                        break
+                    obs_path, post_paths = get_observed_posterior_paths(
+                            observed_idx,
+                            j,
+                            per_processor = False)
+                    if self.global_estimate_only:
+                        post_paths = {'combined': post_paths['combined']}
+                    for model_idx, p_paths in post_paths.iteritems():
+                        fname_parts = os.path.basename(p_paths[0]).split('-')
+                        fname_prefix = self.output_prefix + \
+                                '-'.join(self.fname_parts[1:4] + \
+                                        [str(batch_index)])
+                        out_prefix = os.path.join(
+                                self.model_dirs[observed_idx][model_idx],
+                                fname_prefix)
+                        post_out_path = out_prefix + '-posterior-sample.txt'
+                        if model_idx == 'combined':
+                            model_indices = self.models.keys()
+                        else:
+                            model_indices = [model_idx]
+                        posterior_workers.append(PosteriorWorker(
+                                temp_fs = self.temp_fs,
+                                observed_path = obs_path,
+                                posterior_path = p_paths[0]
+                                num_taxon_pairs = self.num_taxon_pairs,
+                                posterior_out_path = post_out_path,
+                                output_prefix = out_prefix,
+                                model_indices = model_indices,
+                                abctoolbox_exe_path, self.abctoolbox_exe_path,
+                                abctoolbox_num_posterior_quantiles = \
+                                        self.num_posterior_density_quantiles,
+                                omega_threshold = self.omega_threshold,
+                                compress = self.compress,
+                                keep_temps = self.keep_temps,
+                                tag = model_idx)
+                yield posterior_workers
     
     def _run_workers(self, workers, queue_max = 100):
         finished = []
@@ -458,25 +576,91 @@ class ABCTeam(object):
             finished.extend(w_list)
         return finished
 
-    def _run_prior_workers(self, prior_worker_batch):
-        workers = self._run_workers(prior_worker_batch)
+    def _run_prior_summary_workers(self):
+        workers = self._run_workers(list(self.prior_summary_worker_iter))
+        prior_paths = []
+        summary_workers = []
         for w in workers:
             self.num_samples_generated += w.sample_size
-            if w.summary_worker:
-                if w.summary_worker.num_summarized:
-                    self.num_samples_summarized += w.summary_worker.num_summarized
+            self.num_samples_summarized += w.summary_worker.num_summarized
+            prior_paths.append(str(w.prior_path))
+            summary_workers.append(copy.deepcopy(w.summary_worker))
+            w.purge()
+        del workers
+        return prior_paths, summary_workers
+
         return workers
 
-    def _merge_summaries(self):
-        summary_workers = dict(zip(self.models.keys(),
+    def _run_prior_workers(self, prior_worker_batch):
+        workers = self._run_workers(prior_worker_batch)
+        prior_paths = []
+        for w in workers:
+            self.num_samples_generated += w.sample_size
+            assert w.summary_worker is None
+            prior_paths.append(str(w.prior_path))
+            w.purge()
+        del workers
+        return prior_paths
+
+    def _run_rejection_workers(self, prior_paths):
+        for i, rej_worker_batch in enumerate(self._rejection_worker_iter()):
+            for rej_worker in rej_worker_batch:
+                rej_worker.prior_paths.extend(prior_paths)
+            rej_worker_batch = self._run_workers(rej_worker_batch)
+            for rej_worker in rej_worker_batch:
+                self.num_samples_processed[rej_worker.tag] += \
+                        rej_worker.num_processed
+            del rej_worker_batch
+            self._purge_old_posterior_temp_dir()
+        for p in prior_paths:
+            self.temp_fs._remove_file(p)
+
+    def _purge_old_posterior_temp_dir(self):
+        for fname in os.listdir(self.old_posterior_temp_dir):
+            if fname.startswith(self.temp_fs.token_id):
+                os.remove(os.path.join(self.old_posterior_temp_dir, fname))
+        assert os.listdir(self.old_posterior_temp_dir) == []
+
+    def _run_merging_rejection_workers(self, remove_files = False):
+        if not self.duplicate_rejection_workers:
+            return
+        for i, rej_worker_batch in enumerate(self._merging_rejection_worker_iter()):
+            rej_worker_batch = self._run_workers(rej_worker_batch)
+            if remove_files:
+                for rej_worker in rej_worker_batch:
+                    for p in rej_worker.prior_paths:
+                        assert p.startswith(self.temp_fs.token_id)
+                        os.remove(p)
+            del rej_worker_batch
+    
+    def _run_final_rejections(self):
+        if self.global_estimate_only:
+            return
+        if len(self.models) < 2:
+            return
+        for i, rej_worker_batch in enumerate(self._final_rejection_worker_iter()):
+            rej_worker_batch = self._run_workers(rej_worker_batch)
+            del rej_worker_batch
+
+    def _run_regression_workers(self, batch_index, remove_files = False):
+        for i, reg_worker_batch in enumerate(self._regression_worker_iter(
+                batch_index)):
+            reg_worker_batch = self._run_workers(reg_worker_batch)
+            if remove_files:
+                for reg_worker in reg_worker_batch:
+                    assert reg_worker.posterior_path.startswith(self.temp_fs.token_id)
+                    os.remove(reg_worker.posterior_path)
+            del reg_worker_batch
+
+    def _merge_summaries(self, summary_workers):
+        sum_workers = dict(zip(self.models.keys(),
                 [[] for i in range(len(self.models.keys()))]))
         sum_mergers = []
         summaries = {}
-        for pw in self.prior_summary_workers:
-            assert pw.tag == pw.summary_worker.tag
-            summary_workers[pw.tag].append(pw.summary_worker)
-        for model_idx, sum_workers in summary_workers.iteritems():
-            summary_merger = EuRejectSummaryMerger(sum_workers,
+        for sw in summary_workers:
+            sum_workers[sw.tag].append(sw)
+        for model_idx, s_workers in sum_workers.iteritems():
+            summary_merger = EuRejectSummaryMerger(s_workers,
                     tag = model_idx)
             sum_mergers.append(summary_merger)
         sum_mergers = self._run_workers(sum_mergers)
@@ -488,180 +672,51 @@ class ABCTeam(object):
         for k, summary in summaries.iteritems():
             summary.write(self.summary_paths[k])
 
-    def _load_duplicate_rejection_teams(self, prior_worker_batch, model_idx):
-        assert self.duplicated_rejection_teams
-        paths = [pw.prior_path for pw in prior_worker_batch]
-        if not paths:
-            return
-        split_paths = list(list_splitter(
-                paths,
-                len(self.rejection_teams[model_idx])))
-        for i in range(len(split_paths)):
-            self.rejection_teams[model_idx][i].prior_paths.extend(
-                    split_paths[i])
-
-    def _load_rejection_teams(self, prior_worker_batch):
-        if self.global_estimate_only:
-            if self.duplicated_rejection_teams:
-                self._load_duplicate_rejection_teams(prior_worker_batch, 'combined')
-                return
-            for rt in self.rejection_teams['combined']:
-                rt.prior_paths.extend(
-                        [pw.prior_path for pw in prior_worker_batch])
-            return
-        model_indices = set(pw.tag for pw in prior_worker_batch)
-        prior_workers = dict(zip(model_indices,
-                [[] for i in range(len(model_indices))]))
-        for pw in prior_worker_batch:
-            prior_workers[pw.tag].append(pw)
-        for model_idx, pw_list in prior_workers.iteritems():
-            if self.duplicated_rejection_teams:
-                self._load_duplicate_rejection_teams(pw_list, model_idx)
-            else:
-                for rt in self.rejection_teams[model_idx]:
-                    rt.prior_paths.extend([pw.prior_path for pw in pw_list])
-        
-    def _run_rejection_teams(self):
-        reject_teams = []
-        for model_idx, rt_list in self.rejection_teams.iteritems():
-            reject_teams.extend(rt_list)
-        reject_teams = self._run_workers(reject_teams)
-        rteams = dict(zip(self.rejection_teams.keys(),
-                [[] for i in range(len(self.rejection_teams))]))
-        for rt in reject_teams:
-            rteams[rt.tag].append(rt)
-        self.rejection_teams = rteams
-
-    def _purge_priors(self, prior_workers):
-        for pw in prior_workers:
-            pw.temp_fs.remove_dir(pw.output_dir)
-            
-    def _merge_rejection_teams(self, purge=True):
-        if not self.duplicated_rejection_teams:
-            return
-        paths_to_purge = []
-        for model_idx, rt_list in self.rejection_teams.iteritems():
-            for i in range(len(rt_list)-1):
-                rt = rt_list.pop(-1)
-                if rt.posterior_path:
-                    assert rt.observed_path == rt_list[0].observed_path
-                    rt_list[0].prior_paths.append(rt.posterior_path)
-                    rt_list[0].num_samples_processed += \
-                            (rt.num_samples_processed - rt.posterior_size)
-                    if not purge:
-                        rt_list[0].keep_temps = True
-                    paths_to_purge.append(rt.posterior_path)
-            assert len(rt_list) == 1
-        self._run_rejection_teams()
-        if purge and paths_to_purge:
-            for p in paths_to_purge:
-                os.remove(p)
-        else:
-            for model_idx, rt_list in self.rejection_teams.iteritems():
-                rt_list[0].keep_temps = self.keep_temps
-
-    def _sort_rejection_teams(self):
-        for k in self.rejection_teams.iterkeys():
-            self.rejection_teams[k] = sorted(self.rejection_teams[k],
-                    key = lambda x : x.observed_path)
-
-    def _run_final_rejections(self):
-        if self.global_estimate_only:
-            return
-        if len(self.models) < 2:
-            return
-        self._sort_rejection_teams()
-        rej_teams = {}
-        rt_length = len(self.rejection_teams['combined'])
-        for k in self.models.iterkeys():
-            assert len(self.rejection_teams[k]) == rt_length
-            for i in range(len(self.rejection_teams[k])):
-                assert self.rejection_teams[k][i].observed_path == \
-                       self.rejection_teams['combined'][i].observed_path
-                self.rejection_teams['combined'][i].prior_paths.append(
-                        self.rejection_teams[k][i].posterior_path)
-        self.rejection_teams['combined'] = self._run_workers(
-                self.rejection_teams['combined'])
-
-    def _update_num_processed(self):
-        for k in self.num_samples_processed.iterkeys():
-            self.num_samples_processed[k] = \
-                    self.rejection_teams[k][0].num_samples_processed
-
-    def _run_interim_regressions(self):
-        current_rejection_teams = copy.deepcopy(self.rejection_teams)
-        self._merge_rejection_teams(purge=False)
-        self._run_final_rejections()
-        for model_idx, rt_list in self.rejection_teams.iteritems():
-            for rt in rt_list:
-                rt.run_regression = True
-                rt.final_regression = False
-                if self.duplicated_rejection_teams:
-                    rt.final_regression = True
-                elif (not self.global_estimate_only) and (
-                        model_idx == 'combined'):
-                    rt.final_regression = True
-        self._run_rejection_teams()
-        for model_idx, rt_list in self.rejection_teams.iteritems():
-            for rt in rt_list:
-                for d in rt.temp_fs.dirs:
-                    self.temp_fs._register_dir(d)
-                for f in rt.temp_fs.files:
-                    self.temp_fs._register_file(f)
-        self.rejection_teams = current_rejection_teams
-
-    def _run_final_regressions(self):
-        for model_idx, rt_list in self.rejection_teams.iteritems():
-            for rt in rt_list:
-                rt.run_regression = True
-                rt.final_regression = True
-        self._run_rejection_teams()
-
     def run(self):
         _LOG.info('Running prior summary workers...')
-        self.prior_summary_workers = self._run_prior_workers(
-                self.prior_summary_workers)
+        prior_paths, summary_workers = self._run_prior_summary_workers()
+
         _LOG.info('Merging summaries...')
-        self._merge_summaries()
-        _LOG.info('Loading summary workers for rejection...')
-        self._load_rejection_teams(self.prior_summary_workers)
+        self._merge_summaries(summary_workers)
+
         _LOG.info('Running rejection on summary worker priors...')
-        self._run_rejection_teams()
-        _LOG.debug('Purging summary worker priors...')
-        self._purge_priors(self.prior_summary_workers)
+        self._run_rejection_workers(prior_paths)
+
         _LOG.info('Number of samples generated: {0}'.format(
             self.num_samples_generated))
         _LOG.info('Number of samples summarized: {0}'.format(
             self.num_samples_summarized))
-        for i in range(len(self.prior_workers)):
+
+        for i, prior_worker_batch in enumerate(self.prior_worker_iter):
             if self.reporting_indices and (i == self.reporting_indices[0]):
                 self.reporting_indices.pop(0)
                 _LOG.info('Reporting results at iteration {0} of {1}'
-                        '...'.format((i + 1), len(self.prior_workers)))
-                self._run_interim_regressions()
+                        '...'.format((i + 1), self.num_prior_batch_iters))
+                self._run_merging_rejection_workers(remove_files = False)
+                self._run_final_rejections()
+                self._run_regression_workers(i+1, remove_files = False)
+
             _LOG.info('Running prior worker batch {0} of {1}...'.format(
-                    (i + 1), len(self.prior_workers)))
-            self.prior_workers[i] = self._run_prior_workers(
-                    self.prior_workers[i])
-            _LOG.info('Loading prior batch {0} of {1} for rejection...'.format(
-                    (i + 1), len(self.prior_workers)))
-            self._load_rejection_teams(self.prior_workers[i])
+                    (i + 1), self.num_prior_batch_iters))
+            prior_paths = self._run_prior_workers(prior_worker_batch)
+
             _LOG.info('Running rejection on prior batch {0} of {1}...'.format(
-                    (i + 1), len(self.prior_workers)))
-            self._run_rejection_teams()
-            _LOG.debug('Purging priors for batch {0} of {1}...'.format(
-                    (i + 1), len(self.prior_workers)))
-            self._purge_priors(self.prior_workers[i])
+                    (i + 1), self.num_prior_batch_iters))
+            self._run_rejection_workers(prior_paths)
+
         _LOG.info('Merging rejection team posteriors...')
-        self._merge_rejection_teams()
+        self._run_merging_rejection_workers(remove_files = True)
+
         _LOG.info('Running final rejections...')
         self._run_final_rejections()
-        self._update_num_processed()
+
         _LOG.info('Number of samples processed:')
         for k, n in self.num_samples_processed.iteritems():
             _LOG.info('    {0}: {1}'.format(k, n))
+
         _LOG.info('Running final regressions...')
-        self._run_final_regressions()
+        self._run_regression_workers(self.num_prior_batch_iters,
+                remove_files = True)
         self.finished = True
 
 
