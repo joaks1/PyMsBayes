@@ -59,8 +59,8 @@ class TempFileSystem(object):
         self.files.add(path)
 
     def _remove_file(self, path):
-        os.remove(path)
         self.files.remove(path)
+        os.remove(path)
 
     def _check_parent(self, parent):
         full_parent = self._get_full_path(parent)
