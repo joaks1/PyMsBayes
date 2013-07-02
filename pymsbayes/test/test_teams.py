@@ -1083,13 +1083,13 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertEqual(abct.num_samples_processed[2], 4000)
 
         base_dir_list = os.listdir(abct.output_dir)
-        self.assertTrue('d0' in base_dir_list)
         self.assertTrue('d1' in base_dir_list)
+        self.assertTrue('d2' in base_dir_list)
         self.assertTrue('prior-stats-summaries' in base_dir_list)
 
         for i in [1, 2]:
             for j in [1, 2, 'combined']:
-                for k in [1, 2]:
+                for k in [1]:
                     res = self.get_result_paths(abct, i, j, k)
                     self.assertTrue(os.path.isfile(res['sample']))
                     self.assertTrue(os.path.isfile(res['summary']))
@@ -1196,7 +1196,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
 
         for i in [1, 2]:
             for j in [1, 2, 'combined']:
-                for k in [1, 2]:
+                for k in [1]:
                     res1 = self.get_result_paths(abct1, i, j, k)
                     res2 = self.get_result_paths(abct2, i, j, k)
                     self.assertSameFiles([res1['sample'], res2['sample']])
