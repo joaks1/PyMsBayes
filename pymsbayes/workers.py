@@ -39,6 +39,7 @@ class Worker(object):
     def __init__(self,
             stdout_path = None,
             stderr_path = None,
+            append_stdout = True,
             tag = None):
         self.__class__.total += 1
         self.stdout_path = stdout_path
@@ -49,6 +50,7 @@ class Worker(object):
         self.exit_code = None
         self.stdout = None
         self.stderr = None
+        self.append_stdout = append_stdout
         self.tag = tag
 
     def get_stderr(self):
@@ -75,7 +77,10 @@ class Worker(object):
         _LOG.debug('Starting process with following command:\n\t'
                 '{0}'.format(' '.join(self.cmd)))
         if self.stdout_path:
-            sout = open(self.stdout_path, 'a')
+            if self.append_stdout:
+                sout = open(self.stdout_path, 'a')
+            else:
+                sout = open(self.stdout_path, 'w')
         else:
             sout = subprocess.PIPE
         if self.stderr_path:
@@ -789,6 +794,7 @@ class EuRejectWorker(Worker):
         Worker.__init__(self,
                 stdout_path = None,
                 stderr_path = None,
+                append_stdout = False,
                 tag = tag)
         self.__class__.count += 1
         self.name = self.__class__.__name__ + '-' + str(self.count)
