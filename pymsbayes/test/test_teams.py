@@ -351,6 +351,28 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                     self.temp_fs._register_dir(os.path.join(base, d))
         self.tear_down()
 
+    def get_result_paths(self, abc_team, observed_idx, model_idx, sim_idx,
+            compressed = False):
+        prefix = '{0}d{1}-{2}-s{3}-{4}'.format(abc_team.output_prefix,
+                observed_idx, abc_team.model_strings[model_idx], sim_idx,
+                abc_team.iter_count)
+        p = os.path.join(abc_team.model_dirs[observed_idx][model_idx],
+                prefix)
+        paths = {}
+        paths['sample'] = p + '-posterior-sample.txt'
+        paths['summary'] = p + '-posterior-summary.txt'
+        paths['psi'] = p + '-psi-results.txt'
+        paths['model'] = p + '-model-results.txt'
+        paths['omega'] = p + '-omega-results.txt'
+        paths['div'] = p + '-div-model-results.txt'
+        paths['glm-summary'] = p + '-glm-posterior-summary.txt'
+        paths['glm-density'] = p + '-glm-posterior-density-estimates.txt'
+        if compressed:
+            paths['sample'] += '.gz'
+            paths['glm-summary'] += '.gz'
+            paths['glm-density'] += '.gz'
+        return paths
+
     def test_abc_team(self):
         obs_worker = MsBayesWorker(
                 temp_fs = self.temp_fs,
@@ -395,35 +417,25 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertEqual(abct.num_samples_summarized, 800)
         self.assertEqual(abct.num_samples_processed[1], 2000)
 
-        self.assertTrue(os.path.isfile(
-                abct.rejection_teams[1][0].posterior_path))
-        self.assertTrue(self.get_number_of_lines(
-                abct.rejection_teams[1][0].posterior_path),
+        res = self.get_result_paths(abct, 1, 1, 1)
+
+        self.assertTrue(os.path.isfile(res['sample']))
+        self.assertTrue(os.path.isfile(res['summary']))
+        self.assertTrue(os.path.isfile(res['model']))
+        self.assertTrue(os.path.isfile(res['div']))
+        self.assertTrue(os.path.isfile(res['psi']))
+        self.assertTrue(os.path.isfile(res['omega']))
+        self.assertTrue(os.path.isfile(res['glm-summary']))
+        self.assertTrue(os.path.isfile(res['glm-density']))
+
+        self.assertTrue(self.get_number_of_lines(res['sample']),
                 num_posterior_samples + 1)
-        self.assertTrue(os.path.isfile(
-                abct.rejection_teams[1][0].div_model_results_path))
-        self.assertTrue(os.path.isfile(
-                abct.rejection_teams[1][0].psi_results_path))
-        self.assertTrue(self.get_number_of_lines(
-                abct.rejection_teams[1][0].psi_results_path),
+        self.assertTrue(self.get_number_of_lines(res['psi']),
                 num_taxon_pairs + 1)
-        self.assertTrue(os.path.isfile(
-                abct.rejection_teams[1][0].omega_results_path))
-        self.assertTrue(self.get_number_of_lines(
-                abct.rejection_teams[1][0].omega_results_path),
-                2)
-        self.assertTrue(os.path.isfile(
-                abct.rejection_teams[1][0].posterior_summary_path))
-        self.assertTrue(os.path.isfile(
-                abct.rejection_teams[1][0].regress_posterior_path))
-        self.assertTrue(self.get_number_of_lines(
-                abct.rejection_teams[1][0].regress_posterior_path),
+        self.assertTrue(self.get_number_of_lines(res['omega']), 2)
+        self.assertTrue(self.get_number_of_lines(res['glm-density']),
                 num_posterior_density_quantiles)
-        self.assertTrue(os.path.isfile(
-                abct.rejection_teams[1][0].regress_summary_path))
-        self.assertTrue(self.get_number_of_lines(
-                abct.rejection_teams[1][0].regress_summary_path),
-                20)
+        self.assertTrue(self.get_number_of_lines(res['glm-summary']), 20)
 
         MsBayesWorker.count = 1
         self.rng.seed(self.seed)
@@ -483,7 +495,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                 div_models_to_indices,
                 compresslevel = None)
         
-        self.assertSameFiles([abct.rejection_teams[1][0].posterior_path,
+        self.assertSameFiles([res['sample'],
                 new_post_path])
 
         post_out_path = self.get_test_path(prefix='pw-post-out')
@@ -506,24 +518,24 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         pw.start()
 
         self.assertSameFiles([pw.posterior_out_path, new_post_path,
-                abct.rejection_teams[1][0].posterior_path])
+                res['sample']])
         self.assertSameFiles([
-                abct.rejection_teams[1][0].regress_posterior_path,
+                res['glm-density'],
                 pw.regress_posterior_path])
         self.assertSameFiles([
-                abct.rejection_teams[1][0].regress_summary_path,
+                res['glm-summary'],
                 pw.regress_summary_path])
         self.assertSameFiles([
-                abct.rejection_teams[1][0].div_model_results_path,
+                res['div'],
                 pw.div_model_results_path])
         self.assertSameFiles([
-                abct.rejection_teams[1][0].psi_results_path,
+                res['psi'],
                 pw.psi_results_path])
         self.assertSameFiles([
-                abct.rejection_teams[1][0].omega_results_path,
+                res['omega'],
                 pw.omega_results_path])
         self.assertSameFiles([
-                abct.rejection_teams[1][0].posterior_summary_path,
+                res['summary'],
                 pw.posterior_summary_path])
 
     def test_abc_team_with_reporting(self):
@@ -572,35 +584,25 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertEqual(abct.num_samples_summarized, 800)
         self.assertEqual(abct.num_samples_processed[1], 2000)
 
-        self.assertTrue(os.path.isfile(
-                abct.rejection_teams[1][0].posterior_path))
-        self.assertTrue(self.get_number_of_lines(
-                abct.rejection_teams[1][0].posterior_path),
+        res = self.get_result_paths(abct, 1, 1, 1)
+
+        self.assertTrue(os.path.isfile(res['sample']))
+        self.assertTrue(os.path.isfile(res['summary']))
+        self.assertTrue(os.path.isfile(res['model']))
+        self.assertTrue(os.path.isfile(res['div']))
+        self.assertTrue(os.path.isfile(res['psi']))
+        self.assertTrue(os.path.isfile(res['omega']))
+        self.assertTrue(os.path.isfile(res['glm-summary']))
+        self.assertTrue(os.path.isfile(res['glm-density']))
+
+        self.assertTrue(self.get_number_of_lines(res['sample']),
                 num_posterior_samples + 1)
-        self.assertTrue(os.path.isfile(
-                abct.rejection_teams[1][0].div_model_results_path))
-        self.assertTrue(os.path.isfile(
-                abct.rejection_teams[1][0].psi_results_path))
-        self.assertTrue(self.get_number_of_lines(
-                abct.rejection_teams[1][0].psi_results_path),
+        self.assertTrue(self.get_number_of_lines(res['psi']),
                 num_taxon_pairs + 1)
-        self.assertTrue(os.path.isfile(
-                abct.rejection_teams[1][0].omega_results_path))
-        self.assertTrue(self.get_number_of_lines(
-                abct.rejection_teams[1][0].omega_results_path),
-                2)
-        self.assertTrue(os.path.isfile(
-                abct.rejection_teams[1][0].posterior_summary_path))
-        self.assertTrue(os.path.isfile(
-                abct.rejection_teams[1][0].regress_posterior_path))
-        self.assertTrue(self.get_number_of_lines(
-                abct.rejection_teams[1][0].regress_posterior_path),
+        self.assertTrue(self.get_number_of_lines(res['omega']), 2)
+        self.assertTrue(self.get_number_of_lines(res['glm-density']),
                 num_posterior_density_quantiles)
-        self.assertTrue(os.path.isfile(
-                abct.rejection_teams[1][0].regress_summary_path))
-        self.assertTrue(self.get_number_of_lines(
-                abct.rejection_teams[1][0].regress_summary_path),
-                20)
+        self.assertTrue(self.get_number_of_lines(res['glm-summary']), 20)
 
         MsBayesWorker.count = 1
         self.rng.seed(self.seed)
@@ -660,8 +662,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                 div_models_to_indices,
                 compresslevel = None)
         
-        self.assertSameFiles([abct.rejection_teams[1][0].posterior_path,
-                new_post_path])
+        self.assertSameFiles([new_post_path, res['sample']])
 
         post_out_path = self.get_test_path(prefix='pw-post-out')
         o_prefix = os.path.join(self.temp_fs.base_dir, self.test_id)
@@ -683,24 +684,24 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         pw.start()
 
         self.assertSameFiles([pw.posterior_out_path, new_post_path,
-                abct.rejection_teams[1][0].posterior_path])
+                res['sample']])
         self.assertSameFiles([
-                abct.rejection_teams[1][0].regress_posterior_path,
+                res['glm-density'],
                 pw.regress_posterior_path])
         self.assertSameFiles([
-                abct.rejection_teams[1][0].regress_summary_path,
+                res['glm-summary'],
                 pw.regress_summary_path])
         self.assertSameFiles([
-                abct.rejection_teams[1][0].div_model_results_path,
+                res['div'],
                 pw.div_model_results_path])
         self.assertSameFiles([
-                abct.rejection_teams[1][0].psi_results_path,
+                res['psi'],
                 pw.psi_results_path])
         self.assertSameFiles([
-                abct.rejection_teams[1][0].omega_results_path,
+                res['omega'],
                 pw.omega_results_path])
         self.assertSameFiles([
-                abct.rejection_teams[1][0].posterior_summary_path,
+                res['summary'],
                 pw.posterior_summary_path])
 
     def test_abc_team_repeatability(self):
@@ -773,24 +774,37 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         abct2.run()
         self.assertTrue(abct2.finished)
 
+        res1 = self.get_result_paths(abct1, 1, 1, 1)
+        res2 = self.get_result_paths(abct2, 1, 1, 1)
+
         self.assertSameFiles([
-                abct1.rejection_teams[1][0].regress_posterior_path,
-                abct2.rejection_teams[1][0].regress_posterior_path])
+                res1['sample'],
+                res2['sample'],
+                ])
         self.assertSameFiles([
-                abct1.rejection_teams[1][0].regress_summary_path,
-                abct2.rejection_teams[1][0].regress_summary_path])
+                res1['glm-density'],
+                res2['glm-density'],
+                ])
         self.assertSameFiles([
-                abct1.rejection_teams[1][0].div_model_results_path,
-                abct2.rejection_teams[1][0].div_model_results_path])
+                res1['glm-summary'],
+                res2['glm-summary'],
+                ])
         self.assertSameFiles([
-                abct1.rejection_teams[1][0].psi_results_path,
-                abct2.rejection_teams[1][0].psi_results_path])
+                res1['div'],
+                res2['div'],
+                ])
         self.assertSameFiles([
-                abct1.rejection_teams[1][0].omega_results_path,
-                abct2.rejection_teams[1][0].omega_results_path])
+                res1['psi'],
+                res2['psi'],
+                ])
         self.assertSameFiles([
-                abct1.rejection_teams[1][0].posterior_summary_path,
-                abct2.rejection_teams[1][0].posterior_summary_path])
+                res1['omega'],
+                res2['omega'],
+                ])
+        self.assertSameFiles([
+                res1['summary'],
+                res2['summary'],
+                ])
 
     def test_abc_team_multiple_models(self):
         obs_worker = MsBayesWorker(
@@ -838,36 +852,24 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertEqual(abct.num_samples_processed[2], 2000)
 
         for i in [1, 2, 'combined']:
-            for j in [0]:
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].posterior_path))
-                self.assertTrue(self.get_number_of_lines(
-                        abct.rejection_teams[i][j].posterior_path),
-                        num_posterior_samples + 1)
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].div_model_results_path))
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].psi_results_path))
-                self.assertTrue(self.get_number_of_lines(
-                        abct.rejection_teams[i][j].psi_results_path),
-                        num_taxon_pairs + 1)
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].omega_results_path))
-                self.assertTrue(self.get_number_of_lines(
-                        abct.rejection_teams[i][j].omega_results_path),
-                        2)
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].posterior_summary_path))
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].regress_posterior_path))
-                self.assertTrue(self.get_number_of_lines(
-                        abct.rejection_teams[i][j].regress_posterior_path),
-                        num_posterior_density_quantiles)
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].regress_summary_path))
-                self.assertTrue(self.get_number_of_lines(
-                        abct.rejection_teams[i][j].regress_summary_path),
-                        20)
+            res = self.get_result_paths(abct, 1, i, 1)
+            self.assertTrue(os.path.isfile(res['sample']))
+            self.assertTrue(os.path.isfile(res['summary']))
+            self.assertTrue(os.path.isfile(res['model']))
+            self.assertTrue(os.path.isfile(res['div']))
+            self.assertTrue(os.path.isfile(res['psi']))
+            self.assertTrue(os.path.isfile(res['omega']))
+            self.assertTrue(os.path.isfile(res['glm-summary']))
+            self.assertTrue(os.path.isfile(res['glm-density']))
+
+            self.assertTrue(self.get_number_of_lines(res['sample']),
+                    num_posterior_samples + 1)
+            self.assertTrue(self.get_number_of_lines(res['psi']),
+                    num_taxon_pairs + 1)
+            self.assertTrue(self.get_number_of_lines(res['omega']), 2)
+            self.assertTrue(self.get_number_of_lines(res['glm-density']),
+                    num_posterior_density_quantiles)
+            self.assertTrue(self.get_number_of_lines(res['glm-summary']), 20)
 
     def test_abc_team_multiple_models_global_vs_model_wise(self):
         obs_worker = MsBayesWorker(
@@ -938,9 +940,12 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertEqual(abct2.num_samples_summarized, 1600)
         self.assertEqual(abct2.num_samples_processed['combined'], 4000)
 
+        res1 = self.get_result_paths(abct1, 1, 'combined', 1)
+        res2 = self.get_result_paths(abct2, 1, 'combined', 1)
+
         self.assertSameSamples(files = [
-                abct1.rejection_teams['combined'][0].posterior_path,
-                abct2.rejection_teams['combined'][0].posterior_path],
+                res1['sample'],
+                res2['sample']],
                 columns_to_ignore = [0],
                 header = True,
                 places = 5,
@@ -1000,40 +1005,29 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(abct.finished)
         self.assertEqual(abct.num_samples_generated, 4000)
         self.assertEqual(abct.num_samples_summarized, 1600)
-        self.assertEqual(abct.num_samples_processed[1], 2000)
-        self.assertEqual(abct.num_samples_processed[2], 2000)
+        self.assertEqual(abct.num_samples_processed[1], 4000)
+        self.assertEqual(abct.num_samples_processed[2], 4000)
 
         for i in [1, 2, 'combined']:
-            for j in [0, 1]:
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].posterior_path))
-                self.assertTrue(self.get_number_of_lines(
-                        abct.rejection_teams[i][j].posterior_path),
+            for j in [1, 2]:
+                res = self.get_result_paths(abct, 1, i, j)
+                self.assertTrue(os.path.isfile(res['sample']))
+                self.assertTrue(os.path.isfile(res['summary']))
+                self.assertTrue(os.path.isfile(res['model']))
+                self.assertTrue(os.path.isfile(res['div']))
+                self.assertTrue(os.path.isfile(res['psi']))
+                self.assertTrue(os.path.isfile(res['omega']))
+                self.assertTrue(os.path.isfile(res['glm-summary']))
+                self.assertTrue(os.path.isfile(res['glm-density']))
+
+                self.assertTrue(self.get_number_of_lines(res['sample']),
                         num_posterior_samples + 1)
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].div_model_results_path))
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].psi_results_path))
-                self.assertTrue(self.get_number_of_lines(
-                        abct.rejection_teams[i][j].psi_results_path),
+                self.assertTrue(self.get_number_of_lines(res['psi']),
                         num_taxon_pairs + 1)
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].omega_results_path))
-                self.assertTrue(self.get_number_of_lines(
-                        abct.rejection_teams[i][j].omega_results_path),
-                        2)
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].posterior_summary_path))
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].regress_posterior_path))
-                self.assertTrue(self.get_number_of_lines(
-                        abct.rejection_teams[i][j].regress_posterior_path),
+                self.assertTrue(self.get_number_of_lines(res['omega']), 2)
+                self.assertTrue(self.get_number_of_lines(res['glm-density']),
                         num_posterior_density_quantiles)
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].regress_summary_path))
-                self.assertTrue(self.get_number_of_lines(
-                        abct.rejection_teams[i][j].regress_summary_path),
-                        20)
+                self.assertTrue(self.get_number_of_lines(res['glm-summary']), 20)
 
     def test_abc_team_multiple_models_multiple_separate_obs(self):
         obs_worker1 = MsBayesWorker(
@@ -1085,45 +1079,35 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(abct.finished)
         self.assertEqual(abct.num_samples_generated, 4000)
         self.assertEqual(abct.num_samples_summarized, 1600)
-        self.assertEqual(abct.num_samples_processed[1], 2000)
-        self.assertEqual(abct.num_samples_processed[2], 2000)
+        self.assertEqual(abct.num_samples_processed[1], 4000)
+        self.assertEqual(abct.num_samples_processed[2], 4000)
 
         base_dir_list = os.listdir(abct.output_dir)
         self.assertTrue('d0' in base_dir_list)
         self.assertTrue('d1' in base_dir_list)
         self.assertTrue('prior-stats-summaries' in base_dir_list)
 
-        for i in [1, 2, 'combined']:
-            for j in [0, 1]:
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].posterior_path))
-                self.assertTrue(self.get_number_of_lines(
-                        abct.rejection_teams[i][j].posterior_path),
-                        num_posterior_samples + 1)
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].div_model_results_path))
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].psi_results_path))
-                self.assertTrue(self.get_number_of_lines(
-                        abct.rejection_teams[i][j].psi_results_path),
-                        num_taxon_pairs + 1)
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].omega_results_path))
-                self.assertTrue(self.get_number_of_lines(
-                        abct.rejection_teams[i][j].omega_results_path),
-                        2)
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].posterior_summary_path))
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].regress_posterior_path))
-                self.assertTrue(self.get_number_of_lines(
-                        abct.rejection_teams[i][j].regress_posterior_path),
-                        num_posterior_density_quantiles)
-                self.assertTrue(os.path.isfile(
-                        abct.rejection_teams[i][j].regress_summary_path))
-                self.assertTrue(self.get_number_of_lines(
-                        abct.rejection_teams[i][j].regress_summary_path),
-                        20)
+        for i in [1, 2]:
+            for j in [1, 2, 'combined']:
+                for k in [1, 2]:
+                    res = self.get_result_paths(abct, i, j, k)
+                    self.assertTrue(os.path.isfile(res['sample']))
+                    self.assertTrue(os.path.isfile(res['summary']))
+                    self.assertTrue(os.path.isfile(res['model']))
+                    self.assertTrue(os.path.isfile(res['div']))
+                    self.assertTrue(os.path.isfile(res['psi']))
+                    self.assertTrue(os.path.isfile(res['omega']))
+                    self.assertTrue(os.path.isfile(res['glm-summary']))
+                    self.assertTrue(os.path.isfile(res['glm-density']))
+
+                    self.assertTrue(self.get_number_of_lines(res['sample']),
+                            num_posterior_samples + 1)
+                    self.assertTrue(self.get_number_of_lines(res['psi']),
+                            num_taxon_pairs + 1)
+                    self.assertTrue(self.get_number_of_lines(res['omega']), 2)
+                    self.assertTrue(self.get_number_of_lines(res['glm-density']),
+                            num_posterior_density_quantiles)
+                    self.assertTrue(self.get_number_of_lines(res['glm-summary']), 20)
 
     def test_abc_team_repeatability_multiple_models_multiple_obs(self):
         obs_worker1 = MsBayesWorker(
@@ -1141,10 +1125,6 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                 write_stats_file = True)
         obs_worker2.start()
 
-        obs_path = self.get_test_path(prefix='obs-sims')
-        merge_prior_files([obs_worker1.prior_stats_path,
-                obs_worker2.prior_stats_path], obs_path)
-
         num_taxon_pairs = 4
         num_prior_samples = 2000
         num_processors = 4
@@ -1156,7 +1136,8 @@ class ABCTeamTestCase(PyMsBayesTestCase):
 
         abct1 = ABCTeam(
                 temp_fs = self.temp_fs,
-                observed_stats_files = [obs_path],
+                observed_stats_files = [obs_worker1.prior_stats_path,
+                        obs_worker2.prior_stats_path],
                 num_taxon_pairs = num_taxon_pairs,
                 config_paths = [self.cfg_path, self.cfg_path2],
                 num_prior_samples = num_prior_samples,
@@ -1179,15 +1160,15 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(abct1.finished)
         self.assertEqual(abct1.num_samples_generated, 4000)
         self.assertEqual(abct1.num_samples_summarized, 1600)
-        self.assertEqual(abct1.num_samples_processed[1], 2000)
-        self.assertEqual(abct1.num_samples_processed[2], 2000)
-
+        self.assertEqual(abct1.num_samples_processed[1], 4000)
+        self.assertEqual(abct1.num_samples_processed[2], 4000)
 
         self.rng.seed(self.seed)
 
         abct2 = ABCTeam(
                 temp_fs = self.temp_fs,
-                observed_stats_files = [obs_path],
+                observed_stats_files = [obs_worker1.prior_stats_path,
+                        obs_worker2.prior_stats_path],
                 num_taxon_pairs = num_taxon_pairs,
                 config_paths = [self.cfg_path, self.cfg_path2],
                 num_prior_samples = num_prior_samples,
@@ -1210,23 +1191,15 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(abct2.finished)
         self.assertEqual(abct2.num_samples_generated, 4000)
         self.assertEqual(abct2.num_samples_summarized, 1600)
-        self.assertEqual(abct2.num_samples_processed[1], 2000)
-        self.assertEqual(abct2.num_samples_processed[2], 2000)
+        self.assertEqual(abct2.num_samples_processed[1], 4000)
+        self.assertEqual(abct2.num_samples_processed[2], 4000)
 
-        for i in [1, 2, 'combined']:
-            _LOG.debug('Model: {0}\n'.format(i))
-            for rt1 in abct1.rejection_teams[1]:
-                _LOG.debug('rt1: {0}\n'.format(rt1.observed_path))
-                matched = False
-                for rt2 in abct2.rejection_teams[1]:
-                    _LOG.debug('rt2: {0}\n'.format(rt2.observed_path))
-                    if rt1.index == rt2.index:
-                        matched = True
-                        self.assertSameSamples([
-                                rt1.posterior_path,
-                                rt2.posterior_path])
-                    _LOG.debug('Match: {0}\n'.format(matched))
-                self.assertTrue(matched)
+        for i in [1, 2]:
+            for j in [1, 2, 'combined']:
+                for k in [1, 2]:
+                    res1 = self.get_result_paths(abct1, i, j, k)
+                    res2 = self.get_result_paths(abct2, i, j, k)
+                    self.assertSameFiles([res1['sample'], res2['sample']])
 
 if __name__ == '__main__':
     unittest.main()
