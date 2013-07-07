@@ -435,7 +435,6 @@ class ABCTeam(object):
                                                 j, k))
                                 shutil.copy(p_path, temp_post_path)
                                 prior_paths.append(temp_post_path)
-                            else:
                             rw = EuRejectWorker(
                                     temp_fs = self.temp_fs,
                                     observed_path = obs_path,
