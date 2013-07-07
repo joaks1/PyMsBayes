@@ -426,7 +426,6 @@ class ABCTeam(object):
                         for k, p_path in enumerate(p_paths):
                             prior_paths = []
                             if os.path.exists(p_path):
-                                _LOG.debug('\n\n\n{post here!}\n\n')
                                 temp_post_path = self.temp_fs.get_file_path(
                                         parent = self.old_posterior_temp_dir,
                                         prefix = '{0}-d{1}-{2}-s{3}-{4}'.format(
@@ -437,7 +436,6 @@ class ABCTeam(object):
                                 shutil.copy(p_path, temp_post_path)
                                 prior_paths.append(temp_post_path)
                             else:
-                                _LOG.debug('\n\n\n{NO POST!}\n\n')
                             rw = EuRejectWorker(
                                     temp_fs = self.temp_fs,
                                     observed_path = obs_path,
@@ -474,7 +472,6 @@ class ABCTeam(object):
                             observed_idx,
                             j,
                             per_processor = False)
-                    _LOG.debug('\n\n\n{0}\n{1}\n\n'.format(post_paths, final_post_paths))
                     combined_post_paths = None
                     if post_paths.has_key('combined'):
                         combined_post_paths = post_paths.pop('combined')
@@ -485,8 +482,6 @@ class ABCTeam(object):
                         for k, p_path in enumerate(p_paths):
                             if os.path.exists(p_path):
                                 prior_paths.append(p_path)
-                            else:
-                                _LOG.debug('\n\n\n{0} {1} NO MERGE POST!! {2}\n\n\n'.format(observed_idx, model_idx, p_path))
                         if prior_paths:
                             rejection_workers.append(EuRejectWorker(
                                     temp_fs = self.temp_fs,
@@ -503,8 +498,6 @@ class ABCTeam(object):
                                     exe_path = self.eureject_exe_path,
                                     keep_temps = self.keep_temps,
                                     tag = model_idx))
-                        else:
-                            _LOG.debug('\n\n\n{0} {1} NO MERGE!!\n\n\n'.format(observed_idx, model_idx))
                 if rejection_workers:
                     yield rejection_workers
 
@@ -569,15 +562,6 @@ class ABCTeam(object):
                             model_indices = self.models.keys()
                         else:
                             model_indices = [model_idx]
-
-                        _LOG.debug('\n\n\n')
-                        _LOG.debug('obs_idx: {0}'.format(observed_idx))
-                        _LOG.debug('post_paths: {0}'.format(post_paths))
-                        _LOG.debug('model_idx: {0}'.format(model_idx))
-                        _LOG.debug('model_indices: {0}'.format(model_indices))
-                        _LOG.debug('models: {0}'.format(self.models.keys()))
-                        _LOG.debug('model strings: {0}'.format(self.model_strings.keys()))
-                        _LOG.debug('\n\n\n')
 
                         posterior_workers.append(PosteriorWorker(
                                 temp_fs = self.temp_fs,
@@ -754,7 +738,6 @@ class ABCTeam(object):
         _LOG.info('Number of samples summarized: {0}'.format(
             self.num_samples_summarized))
 
-        _LOG.debug('\n\n\nnum remain: {0}\n\n\n'.format(self.num_batches_remaining))
         for i, prior_worker_batch in enumerate(self.prior_worker_iter):
             if self.reporting_indices and (i == self.reporting_indices[0]):
                 self.reporting_indices.pop(0)
