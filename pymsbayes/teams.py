@@ -142,10 +142,9 @@ class ABCTeam(object):
         self.summary_dir = mk_new_dir(os.path.join(self.output_dir,
                 'prior-stats-summaries'))
         self.summary_paths = {}
-        for k, d in self.model_dirs[min(self.observed_dirs.iterkeys())].iteritems():
+        for k, v in self.model_strings.iteritems():
             self.summary_paths[k] = os.path.join(self.summary_dir,
-                    self.output_prefix + os.path.basename(d) + \
-                            '-stat-means-and-std-devs.txt')
+                    self.output_prefix + v + '-stat-means-and-std-devs.txt')
         self.num_observed = 0
         self.n_observed_map = dict(zip(self.observed_stats_paths.keys(),
                 [0 for i in self.observed_stats_paths.iterkeys()]))
@@ -660,6 +659,7 @@ class ABCTeam(object):
                 self.num_samples_processed[rej_worker.tag] += \
                         (rej_worker.num_processed - self.num_posterior_samples)
             self._purge_old_posterior_temp_dir()
+            del rej_worker_batch
         for path_list in prior_paths.itervalues():
             for p in path_list:
                 self.prior_temp_fs._remove_file(p)
