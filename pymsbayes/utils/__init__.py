@@ -5,6 +5,13 @@ import os
 import platform
 import random
 import multiprocessing
+import time
+import atexit
+try:
+    from guppy import hpy
+    HEAPY = True
+except ImportError:
+    HEAPY = False
 
 WORK_FORCE = multiprocessing.Queue()
 GLOBAL_RNG = random.Random()
@@ -44,4 +51,60 @@ def get_tool_path(name):
                 '{0!r} is not a valid tool. Valid tools include: {1}'.format(
                         name.lower(), ', '.join(TOOL_PATH_MAP.keys())))
     return TOOL_PATH_MAP[name.lower()]
+
+MEMORY_LOGGING_ENV_VAR = "PYMSBAYES_MEMORY_LOGGING_FREQUENCY"
+MEMORY_LOGGING_FREQUENCY = float(os.environ.get(MEMORY_LOGGING_ENV_VAR, 0))
+_LAST_MEMORY_LOG_TIME = time.time()
+_MEMORY_LOG_PATH = 'memory.log'
+TRACE_LINES_INTO = []
+
+def memory_trace_lines(frame, event, arg):
+    if event != 'line':
+        return
+    co = frame.f_code
+    func_name = co.co_name
+    func_line_num = frame.f_lineno
+    file_name = co.co_filename
+    hp = hpy().heap()
+    with open(_MEMORY_LOG_PATH, 'a') as out:
+        out.write('{0}: {1}: {2}\n{3}\n\n'.format(
+                file_name,
+                func_name,
+                func_line_num,
+                hp))
+    return
+
+def memory_trace_calls(frame, event, arg):
+    global _LAST_MEMORY_LOG_TIME
+    t = time.time()
+    if t - _LAST_MEMORY_LOG_TIME < MEMORY_LOGGING_FREQUENCY:
+        return
+    _LAST_MEMORY_LOG_TIME = t
+    if event != 'call':
+        return
+    co = frame.f_code
+    func_name = co.co_name
+    if func_name == 'write':
+        return
+    func_line_num = frame.f_lineno
+    file_name = co.co_filename
+    caller = frame.f_back
+    caller_line_num = caller.f_lineno
+    caller_file_name = caller.f_code.co_filename
+    hp = hpy().heap()
+    with open(_MEMORY_LOG_PATH, 'a') as out:
+        out.write('Call to {0}: {1}: {2} (from {3}: {4})\n{5}\n\n'.format(
+            file_name,
+            func_name,
+            func_line_num,
+            caller_file_name,
+            caller_line_num,
+            hp))
+    if func_name in TRACE_LINES_INTO:
+        memory_trace_lines
+    return
+
+def set_memory_trace():
+    if HEAPY and (MEMORY_LOGGING_FREQUENCY > 0):
+        sys.settrace(memory_trace_calls)
 
