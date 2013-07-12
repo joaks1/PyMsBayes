@@ -14,7 +14,7 @@ import datetime
 import logging
 
 from pymsbayes.fileio import expand_path, process_file_arg, open
-from pymsbayes.utils import WORK_FORCE, GLOBAL_RNG
+from pymsbayes.utils import WORK_FORCE, GLOBAL_RNG, set_memory_trace
 from pymsbayes.utils.messaging import get_logger, LOGGING_LEVEL_ENV_VAR
 from pymsbayes.utils.parsing import line_count
 from pymsbayes.utils.functions import (is_file, is_dir, long_division,
@@ -293,6 +293,7 @@ def main_cli():
     ##########################################################################
     ## begin analysis --- get observed summary stats
 
+    set_memory_trace() # start logging memory profile
     start_time = datetime.datetime.now()
     result_q = multiprocessing.Queue()
 
