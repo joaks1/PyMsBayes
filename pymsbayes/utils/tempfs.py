@@ -58,9 +58,15 @@ class TempFileSystem(object):
     def _register_file(self, path):
         self.files.add(path)
 
-    def _remove_file(self, path):
-        self.files.remove(path)
-        os.remove(path)
+    def remove_file(self, path):
+        if path in self.files:
+            self.files.remove(path)
+            os.remove(path)
+        elif os.path.basename(path).startswith(self.token_id):
+            os.remove(path)
+        else:
+            raise TempFSError('File {0!r} is not registered; '
+                    'cannot remove'.format(path))
 
     def _check_parent(self, parent):
         full_parent = self._get_full_path(parent)
@@ -101,23 +107,22 @@ class TempFileSystem(object):
         full_parent = self._check_parent(parent)
         return self._make_dir(parent=full_parent, prefix=prefix)
         
-    def remove_dir(self, path):
+    def clear_dir(self, path):
         full_path = self._get_full_path(path)
         if not full_path in self.dirs:
             raise TempFSError('Temp directory {0!r} is not registered; '
-                    'cannot remove'.format(full_path))
-        self.dirs.remove(full_path)
+                    'cannot clear'.format(full_path))
         for p in os.listdir(full_path):
             path = os.path.join(full_path, p)
-            if p.startswith(self.token_id):
-                self._register_file(path)
             if os.path.isfile(path):
-                if not path in self.files:
-                    raise TempFSError('File {0!r} is not registered; '
-                        'cannot remove'.format(path))
-                self._remove_file(path)
+                self.remove_file(path)
             else:
                 self.remove_dir(path)
+
+    def remove_dir(self, path):
+        full_path = self._get_full_path(path)
+        self.clear_dir(full_path)
+        self.dirs.remove(full_path)
         try:
             os.rmdir(full_path)
         except OSError, e:
