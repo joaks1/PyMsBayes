@@ -662,13 +662,11 @@ class ABCTeam(object):
             # del rej_worker_batch
         for path_list in prior_paths.itervalues():
             for p in path_list:
-                self.prior_temp_fs._remove_file(p)
+                self.prior_temp_fs.remove_file(p)
         # del prior_paths
 
     def _purge_old_posterior_temp_dir(self):
-        for fname in os.listdir(self.old_posterior_temp_dir):
-            if fname.startswith(self.temp_fs.token_id):
-                os.remove(os.path.join(self.old_posterior_temp_dir, fname))
+        self.temp_fs.clear_dir(self.old_posterior_temp_dir)
         assert os.listdir(self.old_posterior_temp_dir) == []
 
     def _run_merging_rejection_workers(self, remove_files = False):
@@ -679,8 +677,7 @@ class ABCTeam(object):
             if remove_files:
                 for rej_worker in rej_worker_batch:
                     for p in rej_worker.prior_paths:
-                        assert os.path.basename(p).startswith(self.temp_fs.token_id)
-                        os.remove(p)
+                        self.temp_fs.remove_file(p)
             # del rej_worker_batch
     
     def _run_final_rejections(self):
@@ -698,8 +695,7 @@ class ABCTeam(object):
             reg_worker_batch = self._run_workers(reg_worker_batch)
             if remove_files:
                 for reg_worker in reg_worker_batch:
-                    assert os.path.basename(reg_worker.posterior_path).startswith(self.temp_fs.token_id)
-                    os.remove(reg_worker.posterior_path)
+                    self.temp_fs.remove_file(reg_worker.posterior_path)
             # del reg_worker_batch
 
     def _merge_summaries(self, summary_workers):
