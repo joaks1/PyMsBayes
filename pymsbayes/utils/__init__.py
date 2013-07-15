@@ -93,13 +93,21 @@ def memory_trace_calls(frame, event, arg):
     caller_file_name = caller.f_code.co_filename
     hp = hpy().heap()
     with open(_MEMORY_LOG_PATH, 'a') as out:
-        out.write('Call to {0}: {1}: {2} (from {3}: {4})\n{5}\n\n'.format(
+        out.write('Call to {0}: {1}: {2} (from {3}: {4})\n'.format(
             file_name,
             func_name,
             func_line_num,
             caller_file_name,
-            caller_line_num,
-            hp))
+            caller_line_num))
+        out.write('{0}\n'.format(hp))
+        out.write('{0}\n'.format(hp.byrcs))
+        out.write('{0}\n'.format(hp[0].byrcs))
+        out.write('{0}\n'.format(hp[0].byid))
+        out.write('{0}\n'.format(hp[0].byvia))
+        out.write('{0}\n'.format(hp[0].byrcs[0].referrers.byrcs))
+        out.write('{0}\n'.format(hp[0].byrcs[0].referrers.byrcs[0].referents))
+        out.write('{0}\n'.format(hp[0].byrcs[0].referrers.byrcs[0].referents.byvia))
+        out.write('\n')
     if func_name in TRACE_LINES_INTO:
         memory_trace_lines
     return
