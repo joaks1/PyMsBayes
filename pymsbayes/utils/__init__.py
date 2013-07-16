@@ -99,18 +99,36 @@ def memory_trace_calls(frame, event, arg):
             func_line_num,
             caller_file_name,
             caller_line_num))
-        out.write('{0}\n'.format(hp))
-        out.write('{0}\n'.format(hp.byrcs))
-        out.write('{0}\n'.format(hp[0].byrcs))
-        out.write('{0}\n'.format(hp[0].byid))
-        out.write('{0}\n'.format(hp[0].byvia))
-        out.write('{0}\n'.format(hp[0].byrcs[0].referrers.byrcs))
-        out.write('{0}\n'.format(hp[0].byrcs[0].referrers.byrcs[0].referents))
-        out.write('{0}\n'.format(hp[0].byrcs[0].referrers.byrcs[0].referents.byvia))
+        dump_memory_info(out)
         out.write('\n')
     if func_name in TRACE_LINES_INTO:
         memory_trace_lines
     return
+
+def dump_memory_info(stream = None):
+    close = False
+    if not stream:
+        stream = open(_MEMORY_LOG_PATH, 'a')
+        close = True
+    hp = hpy().heap()
+    stream.write('heap:\n')
+    stream.write('{0}\n'.format(hp))
+    stream.write('heap.byrcs:\n')
+    stream.write('{0}\n'.format(hp.byrcs))
+    stream.write('heap[0].byrcs:\n')
+    stream.write('{0}\n'.format(hp[0].byrcs))
+    stream.write('heap[0].byid:\n')
+    stream.write('{0}\n'.format(hp[0].byid))
+    stream.write('heap[0].byvia:\n')
+    stream.write('{0}\n'.format(hp[0].byvia))
+    stream.write('heap[0].byrcs[0].referrers.byrcs:\n')
+    stream.write('{0}\n'.format(hp[0].byrcs[0].referrers.byrcs))
+    stream.write('heap[0].byrcs[0].referrers.byrcs[0].referents:\n')
+    stream.write('{0}\n'.format(hp[0].byrcs[0].referrers.byrcs[0].referents))
+    stream.write('heap[0].byrcs[0].referrers.byrcs[0].referents.byvia:\n')
+    stream.write('{0}\n'.format(hp[0].byrcs[0].referrers.byrcs[0].referents.byvia))
+    if close:
+        stream.close()
 
 def set_memory_trace():
     if HEAPY and (MEMORY_LOGGING_FREQUENCY > 0):
