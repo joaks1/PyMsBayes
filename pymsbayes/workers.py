@@ -212,14 +212,9 @@ class ObsSumStatsWorker(Worker):
         self.name = self.__class__.__name__ + '-' + str(self.count)
         self.temp_fs = temp_fs
         self.config_path = expand_path(config_path)
-        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
         if not output_path:
             output_path = self.config_path + '-summary-statistics.txt'
         self.output_path = expand_path(output_path)
-        self.temp_output_path = self.temp_fs.get_file_path(
-                parent = self.output_dir,
-                prefix = self.name + '-temp-summary-stats-')
-        self.stdout_path = self.temp_output_path
         if not exe_path:
             exe_path = get_tool_path('obssumstats')
         self.exe_path = expand_path(exe_path)
@@ -233,6 +228,15 @@ class ObsSumStatsWorker(Worker):
         self.stat_patterns = stat_patterns
         self.keep_temps = bool(keep_temps)
         self.header = None
+        self.output_dir = None
+        self.temp_output_path = None
+
+    def _pre_process(self):
+        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
+        self.temp_output_path = self.temp_fs.get_file_path(
+                parent = self.output_dir,
+                prefix = self.name + '-temp-summary-stats-')
+        self.stdout_path = self.temp_output_path
         self._update_cmd()
 
     def _update_cmd(self):
@@ -292,7 +296,6 @@ class MsBayesWorker(Worker):
         self.temp_fs = temp_fs
         self.sample_size = int(sample_size)
         self.config_path = expand_path(config_path)
-        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
         if not exe_path:
             cfg = MsBayesConfig(self.config_path)
             if cfg.implementation.lower() == 'new':
@@ -311,23 +314,11 @@ class MsBayesWorker(Worker):
             self.seed = get_random_int()
         else:
             self.seed = int(seed)
-        if not prior_path:
-            self.prior_path = self.temp_fs.get_file_path(
-                    parent = self.output_dir,
-                    prefix = 'prior-{0}-{1}-'.format(
-                            self.sample_size,
-                            self.seed),
-                    create = False)
-        else:
+        self.prior_path = None
+        if prior_path:
             self.prior_path = expand_path(prior_path)
-        if not header_path:
-            self.header_path = self.temp_fs.get_file_path(
-                    parent = self.output_dir,
-                    prefix = 'prior-{0}-{1}-header-'.format(
-                            self.sample_size,
-                            self.seed),
-                    create = False)
-        else:
+        self.header_path = None
+        if header_path:
             self.header_path = expand_path(header_path)
         if not schema.lower() in self.valid_schemas:
             raise ValueError(
@@ -336,12 +327,9 @@ class MsBayesWorker(Worker):
         self.schema = schema.lower()
         self.include_header = include_header
         self.prior_stats_path = None
-        if write_stats_file:
-            if stats_file_path:
-                self.prior_stats_path = expand_path(stats_file_path)
-            else:
-                self.prior_stats_path = self.prior_path + '.stats.txt'
-                self.temp_fs._register_file(self.prior_stats_path)
+        self.write_stats_file = write_stats_file
+        if self.write_stats_file and stats_file_path:
+            self.prior_stats_path = expand_path(stats_file_path)
         self.stat_patterns = stat_patterns
         self.parameter_patterns = parameter_patterns
         self.header = None
@@ -351,14 +339,36 @@ class MsBayesWorker(Worker):
         self.staging_prior_path = None
         if is_dir(staging_dir):
             self.staging_dir = staging_dir
-            self.staging_prior_path = os.path.join(staging_dir,
-                    os.path.basename(self.prior_path))
-            self.staging_prior_stats_path = self.staging_prior_path
-            if write_stats_file:
-                self.staging_prior_stats_path = self.staging_prior_path + \
-                        '.stats.txt'
         self.summary_worker = summary_worker
         self.rejection_worker = rejection_worker
+        self.output_dir = None
+
+    def _pre_process(self):
+        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
+        if not self.prior_path:
+            self.prior_path = self.temp_fs.get_file_path(
+                    parent = self.output_dir,
+                    prefix = 'prior-{0}-{1}-'.format(
+                            self.sample_size,
+                            self.seed),
+                    create = False)
+        if not self.header_path:
+            self.header_path = self.temp_fs.get_file_path(
+                    parent = self.output_dir,
+                    prefix = 'prior-{0}-{1}-header-'.format(
+                            self.sample_size,
+                            self.seed),
+                    create = False)
+        if self.write_stats_file and (not self.prior_stats_path):
+            self.prior_stats_path = self.prior_path + '.stats.txt'
+            self.temp_fs._register_file(self.prior_stats_path)
+        if self.staging_dir:
+            self.staging_prior_path = os.path.join(self.staging_dir,
+                    os.path.basename(self.prior_path))
+            self.staging_prior_stats_path = self.staging_prior_path
+            if self.write_stats_file:
+                self.staging_prior_stats_path = self.staging_prior_path + \
+                        '.stats.txt'
         self._update_cmd()
 
     def _update_cmd(self):
@@ -802,24 +812,17 @@ class EuRejectWorker(Worker):
         if not exe_path:
             exe_path = get_tool_path('eureject')
         self.exe_path = expand_path(exe_path)
-        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
-        if not stderr_path:
-            stderr_path = self.temp_fs.get_file_path(
-                    parent = self.output_dir,
-                    prefix = self.name + '-stderr-',
-                    create = False)
-        self.stderr_path = expand_path(stderr_path)
+        self.stderr_path = None
+        if stderr_path:
+            self.stderr_path = expand_path(stderr_path)
         if not summary_in_path:
             self.summary_provided = False
         else:
             self.summary_provided = True
             self.summary_in_path = expand_path(summary_in_path)
-        if not summary_out_path:
-            summary_out_path = self.temp_fs.get_file_path(
-                    parent = self.output_dir,
-                    prefix = self.name + '-summary-',
-                    create = False)
-        self.summary_out_path = expand_path(summary_out_path)
+        self.summary_out_path = None
+        if summary_out_path:
+            self.summary_out_path = expand_path(summary_out_path)
         self.observed_path = expand_path(observed_path)
         self.prior_paths = [expand_path(p) for p in prior_paths]
         if not posterior_path:
@@ -835,9 +838,20 @@ class EuRejectWorker(Worker):
         self.num_processed = None
         self.standardizing_files = None
         self.rejection_files = None
-        self._update_cmd()
+        self.output_dir = None
 
     def _pre_process(self):
+        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
+        if not self.stderr_path:
+            self.stderr_path = self.temp_fs.get_file_path(
+                    parent = self.output_dir,
+                    prefix = self.name + '-stderr-',
+                    create = False)
+        if not self.summary_out_path:
+            self.summary_out_path = self.temp_fs.get_file_path(
+                    parent = self.output_dir,
+                    prefix = self.name + '-summary-',
+                    create = False)
         self._update_cmd()
 
     def _post_process(self):
@@ -902,12 +916,6 @@ class ABCToolBoxRejectWorker(Worker):
         if not exe_path:
             exe_path = get_tool_path('abcestimator')
         self.exe_path = expand_path(exe_path)
-        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
-        self.output_prefix = os.path.join(self.output_dir, 
-                self.temp_fs.token_id + '_ABC_GLM_')
-        self.cfg_path = self.temp_fs.get_file_path(parent = self.output_dir,
-                prefix = 'cfg-',
-                create = False)
         self.observed_path = expand_path(observed_path)
         self.prior_path = expand_path(prior_path)
         if not posterior_path:
@@ -920,8 +928,17 @@ class ABCToolBoxRejectWorker(Worker):
         self.regression_worker = regression_worker
         self.max_read_sims = int(max_read_sims)
         self.keep_temps = keep_temps
+        self.output_dir = None
+        self.output_prefix = None
+        self.cfg_path = None
 
     def _pre_process(self):
+        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
+        self.output_prefix = os.path.join(self.output_dir, 
+                self.temp_fs.token_id + '_ABC_GLM_')
+        self.cfg_path = self.temp_fs.get_file_path(parent = self.output_dir,
+                prefix = 'cfg-',
+                create = False)
         self.header = parse_header(self.prior_path)
         self.parameter_indices = sorted(
                 get_parameter_indices(self.header,
@@ -999,12 +1016,6 @@ class ABCToolBoxRegressWorker(Worker):
         if not exe_path:
             exe_path = get_tool_path('abcestimator')
         self.exe_path = expand_path(exe_path)
-        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
-        self.output_prefix = os.path.join(self.output_dir, 
-                self.temp_fs.token_id + '_ABC_GLM_')
-        self.cfg_path = self.temp_fs.get_file_path(parent = self.output_dir,
-                prefix = 'cfg-',
-                create = False)
         self.observed_path = expand_path(observed_path)
         self.posterior_path = expand_path(posterior_path)
         self.parameter_indices = parameter_indices
@@ -1024,8 +1035,17 @@ class ABCToolBoxRegressWorker(Worker):
         self.compress = compress
         self.keep_temps = keep_temps
         self.failed = False
+        self.output_dir = None
+        self.output_prefix = None
+        self.cfg_path = None
 
     def _pre_process(self):
+        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
+        self.output_prefix = os.path.join(self.output_dir, 
+                self.temp_fs.token_id + '_ABC_GLM_')
+        self.cfg_path = self.temp_fs.get_file_path(parent = self.output_dir,
+                prefix = 'cfg-',
+                create = False)
         self.header = parse_header(self.posterior_path)
         if not self.num_posterior_samples:
             self.num_posterior_samples = line_count(self.posterior_path,
@@ -1170,11 +1190,6 @@ class PosteriorWorker(object):
         self.__class__.count += 1
         self.name = self.__class__.__name__ + '-' + str(self.count)
         self.temp_fs = temp_fs
-        self.temp_output_dir = self.temp_fs.create_subdir(
-                prefix = self.name + '-')
-        self.temp_posterior_path = self.temp_fs.get_file_path(
-                parent = self.temp_output_dir,
-                prefix = 'temp-posterior-')
         self.posterior_path = expand_path(posterior_path)
         self.observed_path = expand_path(observed_path)
         self.num_taxon_pairs = int(num_taxon_pairs)
@@ -1232,6 +1247,15 @@ class PosteriorWorker(object):
         self.unadjusted_summaries = {}
         self.parameter_patterns_to_remove = set()
         self.regression_failed = False
+        self.temp_output_dir = None
+        self.temp_posterior_path = None
+
+    def _pre_process(self):
+        self.temp_output_dir = self.temp_fs.create_subdir(
+                prefix = self.name + '-')
+        self.temp_posterior_path = self.temp_fs.get_file_path(
+                parent = self.temp_output_dir,
+                prefix = 'temp-posterior-')
 
     def _process_posterior_sample(self):
         post = parse_parameters(self.posterior_path)
@@ -1485,6 +1509,7 @@ class PosteriorWorker(object):
             self.temp_fs.remove_dir(self.temp_output_dir)
 
     def start(self):
+        self._pre_process()
         self._process_posterior_sample()
         self._add_div_model_column_to_posterior()
         self._prep_regression_worker()
