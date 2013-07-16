@@ -294,6 +294,7 @@ class MsBayesWorker(Worker):
         self.__class__.count += 1
         self.name = self.__class__.__name__ + '-' + str(self.count)
         self.temp_fs = temp_fs
+        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
         self.sample_size = int(sample_size)
         self.config_path = expand_path(config_path)
         if not exe_path:
@@ -314,12 +315,24 @@ class MsBayesWorker(Worker):
             self.seed = get_random_int()
         else:
             self.seed = int(seed)
-        self.prior_path = None
         if prior_path:
             self.prior_path = expand_path(prior_path)
-        self.header_path = None
+        else:
+            self.prior_path = self.temp_fs.get_file_path(
+                    parent = self.output_dir,
+                    prefix = 'prior-{0}-{1}-'.format(
+                            self.sample_size,
+                            self.seed),
+                    create = False)
         if header_path:
             self.header_path = expand_path(header_path)
+        else:
+            self.header_path = self.temp_fs.get_file_path(
+                    parent = self.output_dir,
+                    prefix = 'prior-{0}-{1}-header-'.format(
+                            self.sample_size,
+                            self.seed),
+                    create = False)
         if not schema.lower() in self.valid_schemas:
             raise ValueError(
                     'schema {0} is not valid. Options are: {1}'.format(
@@ -328,8 +341,12 @@ class MsBayesWorker(Worker):
         self.include_header = include_header
         self.prior_stats_path = None
         self.write_stats_file = write_stats_file
-        if self.write_stats_file and stats_file_path:
-            self.prior_stats_path = expand_path(stats_file_path)
+        if self.write_stats_file
+            if stats_file_path:
+                self.prior_stats_path = expand_path(stats_file_path)
+            else:
+                self.prior_stats_path = self.prior_path + '.stats.txt'
+                self.temp_fs._register_file(self.prior_stats_path)
         self.stat_patterns = stat_patterns
         self.parameter_patterns = parameter_patterns
         self.header = None
@@ -339,36 +356,17 @@ class MsBayesWorker(Worker):
         self.staging_prior_path = None
         if is_dir(staging_dir):
             self.staging_dir = staging_dir
-        self.summary_worker = summary_worker
-        self.rejection_worker = rejection_worker
-        self.output_dir = None
-
-    def _pre_process(self):
-        self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
-        if not self.prior_path:
-            self.prior_path = self.temp_fs.get_file_path(
-                    parent = self.output_dir,
-                    prefix = 'prior-{0}-{1}-'.format(
-                            self.sample_size,
-                            self.seed),
-                    create = False)
-        if not self.header_path:
-            self.header_path = self.temp_fs.get_file_path(
-                    parent = self.output_dir,
-                    prefix = 'prior-{0}-{1}-header-'.format(
-                            self.sample_size,
-                            self.seed),
-                    create = False)
-        if self.write_stats_file and (not self.prior_stats_path):
-            self.prior_stats_path = self.prior_path + '.stats.txt'
-            self.temp_fs._register_file(self.prior_stats_path)
-        if self.staging_dir:
             self.staging_prior_path = os.path.join(self.staging_dir,
                     os.path.basename(self.prior_path))
             self.staging_prior_stats_path = self.staging_prior_path
             if self.write_stats_file:
                 self.staging_prior_stats_path = self.staging_prior_path + \
                         '.stats.txt'
+        self.summary_worker = summary_worker
+        self.rejection_worker = rejection_worker
+        self._update_cmd()
+
+    def _pre_process(self):
         self._update_cmd()
 
     def _update_cmd(self):
