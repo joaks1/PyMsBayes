@@ -6,6 +6,7 @@ import copy
 import shutil
 import math
 import multiprocessing
+import logging
 import Queue
 
 from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRegressWorker,
@@ -13,8 +14,8 @@ from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRegressWorker,
 from pymsbayes.utils.parsing import (get_stat_indices, parse_header,
         DEFAULT_STAT_PATTERNS, ALL_STAT_PATTERNS)
 from pymsbayes.manager import Manager
-from pymsbayes.fileio import process_file_arg, expand_path
-from pymsbayes.utils import GLOBAL_RNG, WORK_FORCE
+from pymsbayes.fileio import process_file_arg, expand_path, FileStream
+from pymsbayes.utils import GLOBAL_RNG, WORK_FORCE, dump_memory_info
 from pymsbayes.utils.functions import (long_division, least_common_multiple,
         get_random_int, list_splitter, mk_new_dir)
 from pymsbayes.utils.stats import SampleSummaryCollection
@@ -642,6 +643,24 @@ class ABCTeam(object):
                 p_paths.extend(path_list)
             prior_paths = {'combined': p_paths}
         for i, rej_worker_batch in enumerate(self._rejection_worker_iter()):
+            if _LOG.level == logging.DEBUG:
+                with open('debug.log', 'a') as out:
+                    out.write('########################################')
+                    out.write('########################################\n')
+                    out.write('ABCTeam._run_rejection_workers iter {0}:'.format(i))
+                    out.write('MEMORY DUMP:\n')
+                    dump_memory_info(out)
+                    out.write('OPEN FILES ({0}):\n'.format(len(FileStream.open_files)))
+                    out.write('\n'.join(FileStream.open_files))
+                    out.write('REGISTERED TEMP DIRS ({0}):\n'.format(len(self.temp_fs.dirs)))
+                    out.write('\n'.join(self.temp_fs.dirs))
+                    out.write('REGISTERED TEMP FILES ({0}):\n'.format(len(self.temp_fs.files)))
+                    out.write('\n'.join(self.temp_fs.files))
+                    out.write('REGISTERED PRIOR TEMP DIRS ({0}):\n'.format(len(self.prior_temp_fs.dirs)))
+                    out.write('\n'.join(self.prior_temp_fs.dirs))
+                    out.write('REGISTERED PRIOR TEMP FILES ({0}):\n'.format(len(self.prior_temp_fs.files)))
+                    out.write('\n'.join(self.prior_temp_fs.files))
+                    out.write('\n')
             to_run = []
             for model_idx, path_list in prior_paths.iteritems():
                 if not self.duplicate_rejection_workers:
