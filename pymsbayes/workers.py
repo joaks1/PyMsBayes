@@ -341,7 +341,7 @@ class MsBayesWorker(Worker):
         self.include_header = include_header
         self.prior_stats_path = None
         self.write_stats_file = write_stats_file
-        if self.write_stats_file
+        if self.write_stats_file:
             if stats_file_path:
                 self.prior_stats_path = expand_path(stats_file_path)
             else:
