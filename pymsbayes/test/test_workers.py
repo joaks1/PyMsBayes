@@ -577,6 +577,8 @@ class EuRejectWorkerTestCase(PyMsBayesTestCase):
                 reject_worker.rejection_files)
         self.assertEqual(reject_worker.prior_paths,
                 reject_worker.standardizing_files)
+        self.assertFalse(os.path.exists(reject_worker.stderr_path))
+        self.assertFalse(os.path.exists(reject_worker.output_dir))
 
     def test_summary_only(self):
         prior_worker = workers.MsBayesWorker(
