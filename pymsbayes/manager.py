@@ -17,6 +17,8 @@ class Manager(multiprocessing.Process):
     def __init__(self,
             work_queue = None,
             result_queue = None,
+            get_timeout = 0.4,
+            put_timeout = 0.2
             log = None,
             lock = None):
         multiprocessing.Process.__init__(self)
@@ -28,6 +30,8 @@ class Manager(multiprocessing.Process):
             result_queue = multiprocessing.Queue()
         self.work_queue = work_queue
         self.result_queue = result_queue
+        self.get_timeout = get_timeout
+        self.put_timeout = put_timeout
         if not log:
             log = _LOG
         self.log = log
@@ -62,14 +66,14 @@ class Manager(multiprocessing.Process):
         worker = None
         try:
             self.send_debug('getting worker')
-            worker = self.work_queue.get(block=True, timeout=0.2)
+            worker = self.work_queue.get(block=True, timeout=self.get_timeout)
             self.send_debug('received worker {0}'.format(
                     getattr(worker, 'name', 'nameless')))
             # without blocking processes were stopping when the queue
             # was not empty, and without timeout, the processes would
             # hang waiting for jobs.
         except Queue.Empty:
-            time.sleep(0.5)
+            time.sleep(0.2)
             if not self.work_queue.empty():
                 self.send_warning('raised Queue.Empty, but queue is '
                         'not empty... trying again')
@@ -82,11 +86,11 @@ class Manager(multiprocessing.Process):
         try:
             self.send_debug('returning worker {0}'.format(
                     getattr(worker, 'name', 'nameless')))
-            self.result_queue.put(worker, block=True, timeout=0.2)
+            self.result_queue.put(worker, block=True, timeout=self.put_timeout)
             self.send_debug('worker {0} returned'.format(
                     getattr(worker, 'name', 'nameless')))
         except Queue.Full, e:
-            time.sleep(1)
+            time.sleep(0.2)
             if not self.result_queue.full():
                 self.send_warning('raised Queue.Full, but queue is '
                         'not full... trying again')
