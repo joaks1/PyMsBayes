@@ -407,7 +407,7 @@ class ABCTeam(object):
             out.write('d{0} = {1}\n'.format(idx, data_path))
         out.close()
 
-    def _rejection_worker_iter(self, max_num_workers = 100):
+    def _rejection_worker_iter(self, max_num_workers = 1000):
         for observed_idx, n_observed in self.n_observed_map.iteritems():
             for i in range(0, n_observed, max_num_workers):
                 rejection_workers = {}
@@ -457,7 +457,7 @@ class ABCTeam(object):
                                 rejection_workers[rw.tag] = [rw]
                 yield rejection_workers
 
-    def _merging_rejection_worker_iter(self, max_num_workers = 100):
+    def _merging_rejection_worker_iter(self, max_num_workers = 1000):
         for observed_idx, n_observed in self.n_observed_map.iteritems():
             for i in range(0, n_observed, max_num_workers):
                 rejection_workers = []
@@ -501,7 +501,7 @@ class ABCTeam(object):
                 if rejection_workers:
                     yield rejection_workers
 
-    def _final_rejection_worker_iter(self, max_num_workers = 100):
+    def _final_rejection_worker_iter(self, max_num_workers = 1000):
         for observed_idx, n_observed in self.n_observed_map.iteritems():
             for i in range(0, n_observed, max_num_workers):
                 rejection_workers = []
@@ -536,7 +536,7 @@ class ABCTeam(object):
                 if rejection_workers:
                     yield rejection_workers
 
-    def _regression_worker_iter(self, batch_index, max_num_workers = 100):
+    def _regression_worker_iter(self, batch_index, max_num_workers = 1000):
         for observed_idx, n_observed in self.n_observed_map.iteritems():
             for i in range(0, n_observed, max_num_workers):
                 posterior_workers = []
@@ -581,7 +581,7 @@ class ABCTeam(object):
                 if posterior_workers:
                     yield posterior_workers
     
-    def _run_workers(self, workers, queue_max = 100):
+    def _run_workers(self, workers, queue_max = 1000):
         finished = []
         for w_list in list_splitter(workers, queue_max, by_size = True):
             assert self.work_queue.empty()
