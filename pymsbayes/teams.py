@@ -679,7 +679,7 @@ class ABCTeam(object):
                 self.num_samples_processed[rej_worker.tag] += \
                         (rej_worker.num_processed - self.num_posterior_samples)
             self._purge_old_posterior_temp_dir()
-            # del rej_worker_batch
+            del rej_worker_batch
         for path_list in prior_paths.itervalues():
             for p in path_list:
                 self.prior_temp_fs.remove_file(p)
