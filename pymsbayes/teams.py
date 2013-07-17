@@ -620,7 +620,6 @@ class ABCTeam(object):
                 prior_paths[w.tag] = [str(w.prior_path)]
             summary_workers.append(copy.deepcopy(w.summary_worker))
             w.purge()
-        # del workers
         return prior_paths, summary_workers
 
     def _run_prior_workers(self, prior_worker_batch):
@@ -634,7 +633,6 @@ class ABCTeam(object):
             else:
                 prior_paths[w.tag] = [str(w.prior_path)]
             w.purge()
-        # del workers
         return prior_paths
 
     def _run_rejection_workers(self, prior_paths):
@@ -679,11 +677,9 @@ class ABCTeam(object):
                 self.num_samples_processed[rej_worker.tag] += \
                         (rej_worker.num_processed - self.num_posterior_samples)
             self._purge_old_posterior_temp_dir()
-            del rej_worker_batch
         for path_list in prior_paths.itervalues():
             for p in path_list:
                 self.prior_temp_fs.remove_file(p)
-        # del prior_paths
 
     def _purge_old_posterior_temp_dir(self):
         self.temp_fs.clear_dir(self.old_posterior_temp_dir)
@@ -698,7 +694,6 @@ class ABCTeam(object):
                 for rej_worker in rej_worker_batch:
                     for p in rej_worker.prior_paths:
                         self.temp_fs.remove_file(p)
-            # del rej_worker_batch
     
     def _run_final_rejections(self):
         if self.global_estimate_only:
@@ -707,7 +702,6 @@ class ABCTeam(object):
             return
         for i, rej_worker_batch in enumerate(self._final_rejection_worker_iter()):
             rej_worker_batch = self._run_workers(rej_worker_batch)
-            # del rej_worker_batch
 
     def _run_regression_workers(self, batch_index, remove_files = False):
         for i, reg_worker_batch in enumerate(self._regression_worker_iter(
@@ -716,7 +710,6 @@ class ABCTeam(object):
             if remove_files:
                 for reg_worker in reg_worker_batch:
                     self.temp_fs.remove_file(reg_worker.posterior_path)
-            # del reg_worker_batch
 
     def _merge_summaries(self, summary_workers):
         sum_workers = dict(zip(self.models.keys(),
