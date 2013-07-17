@@ -17,7 +17,7 @@ class Manager(multiprocessing.Process):
     def __init__(self,
             work_queue = None,
             result_queue = None,
-            get_timeout = 0.4,
+            get_timeout = 0.3,
             put_timeout = 0.2,
             log = None,
             lock = None):
