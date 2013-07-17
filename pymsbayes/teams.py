@@ -15,7 +15,8 @@ from pymsbayes.utils.parsing import (get_stat_indices, parse_header,
         DEFAULT_STAT_PATTERNS, ALL_STAT_PATTERNS)
 from pymsbayes.manager import Manager
 from pymsbayes.fileio import process_file_arg, expand_path, FileStream
-from pymsbayes.utils import GLOBAL_RNG, WORK_FORCE, dump_memory_info
+from pymsbayes.utils import (GLOBAL_RNG, WORK_FORCE, DUMP_DEBUG_INFO,
+        dump_memory_info)
 from pymsbayes.utils.functions import (long_division, least_common_multiple,
         get_random_int, list_splitter, mk_new_dir)
 from pymsbayes.utils.stats import SampleSummaryCollection
@@ -643,8 +644,8 @@ class ABCTeam(object):
                 p_paths.extend(path_list)
             prior_paths = {'combined': p_paths}
         for i, rej_worker_batch in enumerate(self._rejection_worker_iter()):
-            if _LOG.level == logging.DEBUG:
-                with open('debug.log', 'a') as out:
+            if DUMP_DEBUG_INFO:
+                with open('pymsbayes-debug.log', 'a') as out:
                     out.write('########################################')
                     out.write('########################################\n')
                     out.write('ABCTeam._run_rejection_workers iter {0}:\n'.format(i))
