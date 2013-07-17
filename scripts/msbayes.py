@@ -243,7 +243,7 @@ def main_cli():
     GLOBAL_RNG.seed(args.seed)
     observed_dir = mk_new_dir(os.path.join(base_dir, 'observed-summary-stats'))
     observed_paths = [os.path.join(observed_dir, 'observed-{0}.txt'.format(
-            i)) for i in range(len(args.observed_configs))]
+            i+1)) for i in range(len(args.observed_configs))]
     info.write('\tseed = {0}\n'.format(args.seed))
     info.write('\tnum_processors = {0}\n'.format(args.np))
     info.write('\tbandwidth = {0}\n'.format(args.bandwidth))
@@ -255,10 +255,10 @@ def main_cli():
             args.num_posterior_samples))
     info.write('\t[[observed_configs]]\n')
     for i, cfg in enumerate(args.observed_configs):
-        info.write('\t\t{0} = {1}\n'.format(i, cfg))
+        info.write('\t\t{0} = {1}\n'.format(i+1, cfg))
     info.write('\t[[observed_paths]]\n')
     for i, p in enumerate(observed_paths):
-        info.write('\t\t{0} = {1}\n'.format(i, p))
+        info.write('\t\t{0} = {1}\n'.format(i+1, p))
     info.write('\t[[column_prefixes]]\n')
     info.write('\t\tstat_patterns = {0}\n'.format(
             ', '.join([p.pattern for p in stat_patterns])))
@@ -412,7 +412,6 @@ def main_cli():
             temp_fs = temp_fs,
             observed_stats_files = observed_paths,
             num_taxon_pairs = num_taxon_pairs,
-            # model_indices_to_config_paths = models_to_configs,
             config_paths = args.prior_configs,
             num_prior_samples = args.num_prior_samples,
             num_processors = args.np,
