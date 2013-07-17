@@ -54,8 +54,10 @@ def get_tool_path(name):
 
 MEMORY_LOGGING_ENV_VAR = "PYMSBAYES_MEMORY_LOGGING_FREQUENCY"
 MEMORY_LOGGING_FREQUENCY = float(os.environ.get(MEMORY_LOGGING_ENV_VAR, 0))
+DUMP_DEBUG_INFO_ENV_VAR = "PYMSBAYES_DUMP_DEBUG_INFO"
+DUMP_DEBUG_INFO = bool(os.environ.get(DUMP_DEBUG_INFO_ENV_VAR, False))
 _LAST_MEMORY_LOG_TIME = time.time()
-_MEMORY_LOG_PATH = 'memory.log'
+_MEMORY_LOG_PATH = 'pymsbayes-memory.log'
 TRACE_LINES_INTO = []
 
 def memory_trace_lines(frame, event, arg):
