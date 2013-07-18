@@ -189,25 +189,29 @@ def parameter_density_iter(parameter_density_file,
         parameter_patterns = DIV_MODEL_PATTERNS + MODEL_PATTERNS + \
                 PSI_PATTERNS + MEAN_TAU_PATTERNS + OMEGA_PATTERNS):
     dens_file, close = process_file_arg(parameter_density_file)
-    header = parse_header(dens_file, seek = False)
-    parameter_indices = get_indices_of_patterns(header, parameter_patterns)
-    indices_to_heads = dict(zip(parameter_indices,
-            [header[i] for i in parameter_indices]))
-    heads_to_dens_tups = dict(zip([header[i] for i in parameter_indices],
-            [None for i in range(len(parameter_indices))]))
-    if not len(parameter_indices) == len(set(indices_to_heads.itervalues())):
-        dens_file.close()
-        raise ParameterParsingError('some parameters were found in multiple '
-                'columns in density file {0!r}'.format(dens_file.name))
-    for i, line in enumerate(dens_file):
-        l = line.strip().split()
-        if l:
-            for idx in parameter_indices:
-                heads_to_dens_tups[indices_to_heads[idx]] = (float(l[idx]),
-                        float(l[idx + 1]))
-            yield heads_to_dens_tups
-    if close:
-        dens_file.close()
+    try:
+        header = parse_header(dens_file, seek = False)
+        parameter_indices = get_indices_of_patterns(header, parameter_patterns)
+        indices_to_heads = dict(zip(parameter_indices,
+                [header[i] for i in parameter_indices]))
+        heads_to_dens_tups = dict(zip([header[i] for i in parameter_indices],
+                [None for i in range(len(parameter_indices))]))
+        if not len(parameter_indices) == len(set(indices_to_heads.itervalues())):
+            dens_file.close()
+            raise ParameterParsingError('some parameters were found in multiple '
+                    'columns in density file {0!r}'.format(dens_file.name))
+        for i, line in enumerate(dens_file):
+            l = line.strip().split()
+            if l:
+                for idx in parameter_indices:
+                    heads_to_dens_tups[indices_to_heads[idx]] = (float(l[idx]),
+                            float(l[idx + 1]))
+                yield heads_to_dens_tups
+    except:
+        raise
+    finally:
+        if close:
+            dens_file.close()
 
 def parse_parameter_density_file(parameter_density_file,
         parameter_patterns = DIV_MODEL_PATTERNS + MODEL_PATTERNS + \
