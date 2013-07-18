@@ -47,12 +47,12 @@ class TempFileSystem(object):
     def _register_dir(self, path):
         self.dirs.add(path)
 
-    def _get_file(self, parent, prefix, create=True):
-        if create:
-            file_desciptor, path = tempfile.mkstemp(prefix=prefix, dir=parent)
-        else:
-            path = tempfile.mktemp(prefix=prefix, dir=parent)
-        self._register_file(path)
+    def _get_file(self, parent, prefix, register = True):
+        prefix = '-'.join([self.token_id, prefix])
+        file_descriptor, path = tempfile.mkstemp(prefix=prefix, dir=parent)
+        os.close(file_descriptor)
+        if register:
+            self._register_file(path)
         return path
     
     def _register_file(self, path):
@@ -79,21 +79,20 @@ class TempFileSystem(object):
             raise TempFSError('unregistered parent: {0}'.format(full_parent))
         return full_parent
 
-    def get_file_path(self, parent=None, prefix='temp', create=False):
+    def get_file_path(self, parent=None, prefix='temp', register = True):
         """
         Get temp file path within the temp directory.
 
         `parent` must exist within temp file base directory and must
         be registered with this TempFileSystem instance.
 
-        if `create` is True, the temp file is created and its path is returned.
-        if `create` is False, a unique path is returned without creating
-        the file.
+        if `register` is True, the temp file is registered (i.e., it is added
+        to the instance's set of temp files).
         """
         if parent is None:
             parent = self.base_dir
         full_parent = self._check_parent(parent)
-        return self._get_file(parent=full_parent, prefix=prefix, create=create)
+        return self._get_file(parent=full_parent, prefix=prefix, register = register)
 
     def create_subdir(self, parent=None, prefix='temp'):
         """
