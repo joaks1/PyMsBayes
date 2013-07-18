@@ -285,6 +285,7 @@ class MsBayesWorker(Worker):
             stderr_path = None,
             staging_dir = None,
             write_stats_file = False,
+            write_header_file = True,
             stats_file_path = None,
             tag = None):
         Worker.__init__(self,
@@ -322,17 +323,10 @@ class MsBayesWorker(Worker):
                     parent = self.output_dir,
                     prefix = 'prior-{0}-{1}-'.format(
                             self.sample_size,
-                            self.seed),
-                    create = False)
+                            self.seed))
+        self.header_path = None
         if header_path:
             self.header_path = expand_path(header_path)
-        else:
-            self.header_path = self.temp_fs.get_file_path(
-                    parent = self.output_dir,
-                    prefix = 'prior-{0}-{1}-header-'.format(
-                            self.sample_size,
-                            self.seed),
-                    create = False)
         if not schema.lower() in self.valid_schemas:
             raise ValueError(
                     'schema {0} is not valid. Options are: {1}'.format(
@@ -347,6 +341,7 @@ class MsBayesWorker(Worker):
             else:
                 self.prior_stats_path = self.prior_path + '.stats.txt'
                 self.temp_fs._register_file(self.prior_stats_path)
+        self.write_header_file = write_header_file
         self.stat_patterns = stat_patterns
         self.parameter_patterns = parameter_patterns
         self.header = None
@@ -419,7 +414,12 @@ class MsBayesWorker(Worker):
                     'schema {0} is not valid. Options are: {1}'.format(
                         self.schema, ','.join(self.valid_schemas)))
         os.remove(raw_prior_path)
-        if header:
+        if header and self.write_header_file:
+            self.header_path = self.temp_fs.get_file_path(
+                    parent = self.output_dir,
+                    prefix = 'prior-{0}-{1}-header-'.format(
+                            self.sample_size,
+                            self.seed))
             out = open(self.header_path, 'w')
             out.write('{0}\n'.format('\t'.join(header)))
             out.close()
@@ -504,11 +504,9 @@ def assemble_rejection_workers(temp_fs,
     reject_workers = []
     for i, line in enumerate(obs_file):
         rej_obs_path = temp_fs.get_file_path(parent = obs_temp_dir,
-                prefix = 'observed-{0}-reject-'.format(i+1),
-                create = False)
+                prefix = 'observed-{0}-reject-'.format(i+1))
         reg_obs_path = temp_fs.get_file_path(parent = obs_temp_dir,
-                prefix = 'observed-{0}-regress-'.format(i+1),
-                create = False)
+                prefix = 'observed-{0}-regress-'.format(i+1))
         l = line.strip().split()
         if rejection_tool.lower() == 'msreject':
             with open(rej_obs_path, 'w') as out:
@@ -843,13 +841,11 @@ class EuRejectWorker(Worker):
         if not self.stderr_path:
             self.stderr_path = self.temp_fs.get_file_path(
                     parent = self.output_dir,
-                    prefix = self.name + '-stderr-',
-                    create = False)
+                    prefix = self.name + '-stderr-')
         if not self.summary_out_path:
             self.summary_out_path = self.temp_fs.get_file_path(
                     parent = self.output_dir,
-                    prefix = self.name + '-summary-',
-                    create = False)
+                    prefix = self.name + '-summary-')
         self._update_cmd()
 
     def _post_process(self):
@@ -935,8 +931,7 @@ class ABCToolBoxRejectWorker(Worker):
         self.output_prefix = os.path.join(self.output_dir, 
                 self.temp_fs.token_id + '_ABC_GLM_')
         self.cfg_path = self.temp_fs.get_file_path(parent = self.output_dir,
-                prefix = 'cfg-',
-                create = False)
+                prefix = 'cfg-')
         self.header = parse_header(self.prior_path)
         self.parameter_indices = sorted(
                 get_parameter_indices(self.header,
@@ -1042,8 +1037,7 @@ class ABCToolBoxRegressWorker(Worker):
         self.output_prefix = os.path.join(self.output_dir, 
                 self.temp_fs.token_id + '_ABC_GLM_')
         self.cfg_path = self.temp_fs.get_file_path(parent = self.output_dir,
-                prefix = 'cfg-',
-                create = False)
+                prefix = 'cfg-')
         self.header = parse_header(self.posterior_path)
         if not self.num_posterior_samples:
             self.num_posterior_samples = line_count(self.posterior_path,

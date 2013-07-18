@@ -226,8 +226,8 @@ class MergePriorTestCase(PyMsBayesTestCase):
             jobs.append(w)
         for w in jobs:
             w.start()
-        ppath = self.get_test_path(prefix='merged_prior', create=False)
-        hpath = self.get_test_path(prefix='merged_header', create=False)
+        ppath = self.get_test_path(prefix='merged_prior')
+        hpath = self.get_test_path(prefix='merged_header')
         workers.merge_priors(workers = jobs,
                 prior_path = ppath,
                 header_path = hpath,
@@ -250,7 +250,7 @@ class MergePriorTestCase(PyMsBayesTestCase):
             jobs.append(w)
         for w in jobs:
             w.start()
-        ppath = self.get_test_path(prefix='merged_prior', create=False)
+        ppath = self.get_test_path(prefix='merged_prior')
         hpath = ppath + '.header'
         self.temp_fs._register_file(hpath)
         workers.merge_priors(workers = jobs,
@@ -275,8 +275,8 @@ class MergePriorTestCase(PyMsBayesTestCase):
             jobs.append(w)
         for w in jobs:
             w.start()
-        ppath = self.get_test_path(prefix='merged_prior', create=False)
-        hpath = self.get_test_path(prefix='merged_header', create=False)
+        ppath = self.get_test_path(prefix='merged_prior')
+        hpath = self.get_test_path(prefix='merged_header')
         workers.merge_priors(workers = jobs,
                 prior_path = ppath,
                 header_path = hpath,
@@ -303,8 +303,8 @@ class MergePriorTestCase(PyMsBayesTestCase):
         for w in jobs:
             self.assertEqual(self.get_number_of_lines(w.prior_path), 11)
             self.assertEqual(self.get_number_of_header_lines(w.prior_path), 1)
-        ppath = self.get_test_path(prefix='merged_prior', create=False)
-        hpath = self.get_test_path(prefix='merged_header', create=False)
+        ppath = self.get_test_path(prefix='merged_prior')
+        hpath = self.get_test_path(prefix='merged_header')
         workers.merge_priors(workers = jobs,
                 prior_path = ppath,
                 header_path = hpath,
@@ -341,7 +341,7 @@ class MergePriorFilesTestCase(PyMsBayesTestCase):
         for w in jobs:
             self.assertEqual(self.get_number_of_lines(w.prior_path), 11)
             self.assertEqual(self.get_number_of_header_lines(w.prior_path), 1)
-        ppath = self.get_test_path(prefix='merged_prior', create=False)
+        ppath = self.get_test_path(prefix='merged_prior')
         workers.merge_prior_files(
                 paths = [w.prior_path for w in jobs],
                 dest_path = ppath)
@@ -364,7 +364,7 @@ class MergePriorFilesTestCase(PyMsBayesTestCase):
         for w in jobs:
             self.assertEqual(self.get_number_of_lines(w.prior_path), 10)
             self.assertEqual(self.get_number_of_header_lines(w.prior_path), 0)
-        ppath = self.get_test_path(prefix='merged_prior', create=False)
+        ppath = self.get_test_path(prefix='merged_prior')
         workers.merge_prior_files(
                 paths = [w.prior_path for w in jobs],
                 dest_path = ppath)
@@ -390,10 +390,8 @@ class MsRejectWorkerTestCase(PyMsBayesTestCase):
         self.msbayes_worker.start()
         self.prior_path = self.msbayes_worker.prior_path
         self.header = self.msbayes_worker.header
-        self.observed_path = self.get_test_path(prefix='test-obs',
-                create=True)
-        self.posterior_path = self.get_test_path(prefix='test-post',
-                create=False)
+        self.observed_path = self.get_test_path(prefix='test-obs')
+        self.posterior_path = self.get_test_path(prefix='test-post')
         prior = open(self.prior_path, 'rU')
         obs = open(self.observed_path, 'w')
         observed = prior.next().strip().split()
@@ -436,10 +434,8 @@ class MsRejectWorkerTestCase(PyMsBayesTestCase):
         self.msbayes_worker.start()
         self.prior_path = self.msbayes_worker.prior_path
         self.header = self.msbayes_worker.header
-        self.observed_path = self.get_test_path(prefix='test-obs',
-                create=True)
-        self.posterior_path = self.get_test_path(prefix='test-post',
-                create=False)
+        self.observed_path = self.get_test_path(prefix='test-obs')
+        self.posterior_path = self.get_test_path(prefix='test-post')
         prior = open(self.prior_path, 'rU')
         obs = open(self.observed_path, 'w')
         observed = prior.next().strip().split()
@@ -482,10 +478,8 @@ class MsRejectWorkerTestCase(PyMsBayesTestCase):
         self.msbayes_worker.start()
         self.prior_path = self.msbayes_worker.prior_path
         self.header = self.msbayes_worker.header
-        self.observed_path = self.get_test_path(prefix='test-obs',
-                create=True)
-        self.posterior_path = self.get_test_path(prefix='test-post',
-                create=False)
+        self.observed_path = self.get_test_path(prefix='test-obs')
+        self.posterior_path = self.get_test_path(prefix='test-post')
         prior = open(self.prior_path, 'rU')
         obs = open(self.observed_path, 'w')
         obs_sample = prior.next()
@@ -496,8 +490,7 @@ class MsRejectWorkerTestCase(PyMsBayesTestCase):
             observed[i] = '999999999'
         obs.write('{0}\t\n'.format('\t'.join(observed)))
         obs.close()
-        self.new_prior_path = self.get_test_path(prefix='test-prior',
-                create=True)
+        self.new_prior_path = self.get_test_path(prefix='test-prior')
         new_prior = open(self.new_prior_path, 'w')
         for i in range(2):
             new_prior.write(obs_sample)
@@ -2324,7 +2317,8 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
         self.assertTrue(post_worker.regression_failed)
         self.assertTrue(os.path.isfile(post_worker.posterior_out_path))
         self.assertFalse(is_gzipped(post_worker.posterior_out_path))
-        self.assertFalse(os.path.exists(post_worker.regress_posterior_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.regress_posterior_path), 0)
         self.assertFalse(os.path.exists(post_worker.regress_summary_path))
         self.assertTrue(os.path.isfile(post_worker.div_model_results_path))
         self.assertEqual(
