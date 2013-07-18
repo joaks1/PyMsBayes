@@ -113,6 +113,22 @@ class MsBayesWorkerTestCase(PyMsBayesTestCase):
         w.start()
         self._assert_success(w, 4, 10)
 
+    def test_purge(self):
+        w = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox')
+        self.assertIsInstance(w, workers.MsBayesWorker)
+        self.assertFalse(w.finished)
+        w.start()
+        self._assert_success(w, 4, 10)
+        self.assertTrue(os.path.exists(w.output_dir))
+        self.assertTrue(w.output_dir in self.temp_fs.dirs)
+        w.purge()
+        self.assertFalse(os.path.exists(w.output_dir))
+        self.assertFalse(w.output_dir in self.temp_fs.dirs)
+
     def test_schema_abctoolbox_write_stats(self):
         w = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
