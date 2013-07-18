@@ -427,9 +427,9 @@ class ABCTeam(object):
                         for k, p_path in enumerate(p_paths):
                             prior_paths = []
                             if os.path.exists(p_path):
-                                temp_post_path = self.temp_fs.get_file_path(
-                                        parent = self.old_posterior_temp_dir,
-                                        prefix = '{0}-d{1}-{2}-s{3}-{4}'.format(
+                                temp_post_path = os.path.join(
+                                        self.old_posterior_temp_dir,
+                                        '{0}-d{1}-{2}-s{3}-{4}-post-tmp'.format(
                                                 self.temp_fs.token_id,
                                                 observed_idx,
                                                 self.model_strings[model_idx],
