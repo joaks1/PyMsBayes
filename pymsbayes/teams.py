@@ -237,19 +237,19 @@ class ABCTeam(object):
             for model_index, config_path in self.models.iteritems():
                 prior_path = self.prior_temp_fs.get_file_path(
                         parent = self.prior_temp_fs.base_dir,
-                        prefix = 'prior-to-sum-{1}-{2}-'.format(
+                        prefix = 'prior-to-sum-{0}-{1}-'.format(
                                 self.model_strings[model_index],
                                 i + 1),
                         register = False)
                 sum_path = self.temp_fs.get_file_path(
                         parent = self.summary_temp_dir,
-                        prefix = 'summary-{1}-{2}-'.format(
+                        prefix = 'summary-{0}-{1}-'.format(
                                 model_index,
                                 i + 1),
                         register = False)
                 post_path = self.temp_fs.get_file_path(
                         parent = self.summary_temp_dir,
-                        prefix = 'posterior-{1}-{2}-'.format(
+                        prefix = 'posterior-{0}-{1}-'.format(
                                 model_index,
                                 i + 1),
                         register = False)
@@ -292,19 +292,19 @@ class ABCTeam(object):
             for model_index, config_path in self.models.iteritems():
                 prior_path = self.prior_temp_fs.get_file_path(
                         parent = self.prior_temp_fs.base_dir,
-                        prefix = 'prior-to-sum-{1}-{2}-'.format(
+                        prefix = 'prior-to-sum-{0}-{1}-'.format(
                                 self.model_strings[model_index],
                                 i + 2),
                         register = False)
                 sum_path = self.temp_fs.get_file_path(
                         parent = self.summary_temp_dir,
-                        prefix = 'summary-{1}-{2}-'.format(
+                        prefix = 'summary-{0}-{1}-'.format(
                                 model_index,
                                 i + 2),
                         register = False)
                 post_path = self.temp_fs.get_file_path(
                         parent = self.summary_temp_dir,
-                        prefix = 'posterior-{1}-{2}-'.format(
+                        prefix = 'posterior-{0}-{1}-'.format(
                                 model_index,
                                 i + 2),
                         register = False)
@@ -345,7 +345,7 @@ class ABCTeam(object):
             for model_index, config_path in self.models.iteritems():
                 prior_path = self.prior_temp_fs.get_file_path(
                         parent = self.prior_temp_fs.base_dir,
-                        prefix = 'prior-{1}-{2}-'.format(
+                        prefix = 'prior-{0}-{1}-'.format(
                                 self.model_strings[model_index],
                                 i + 1),
                         register = False)
@@ -372,7 +372,7 @@ class ABCTeam(object):
             for model_index, config_path in self.models.iteritems():
                 prior_path = self.prior_temp_fs.get_file_path(
                         parent = self.prior_temp_fs.base_dir,
-                        prefix = 'prior-{1}-{2}-'.format(
+                        prefix = 'prior-{0}-{1}-'.format(
                                 self.model_strings[model_index],
                                 i + 2),
                         register = False)
