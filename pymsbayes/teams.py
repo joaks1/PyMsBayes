@@ -8,7 +8,6 @@ import math
 import multiprocessing
 import logging
 import Queue
-import tempfile
 
 from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRegressWorker,
         EuRejectSummaryMerger, EuRejectWorker, PosteriorWorker)
@@ -236,24 +235,24 @@ class ABCTeam(object):
                 nsum = to_summarize
             to_summarize -= nsum
             for model_index, config_path in self.models.iteritems():
-                prior_path = tempfile.mktemp(
-                        prefix = '{0}-prior-to-sum-{1}-{2}-'.format(
-                                self.prior_temp_fs.token_id,
+                prior_path = self.prior_temp_fs.get_file_path(
+                        parent = self.prior_temp_fs.base_dir,
+                        prefix = 'prior-to-sum-{1}-{2}-'.format(
                                 self.model_strings[model_index],
                                 i + 1),
-                        dir = self.prior_temp_fs.base_dir)
-                sum_path = tempfile.mktemp(
-                        prefix = '{0}-summary-{1}-{2}-'.format(
-                                self.temp_fs.token_id,
+                        register = False)
+                sum_path = self.temp_fs.get_file_path(
+                        parent = self.summary_temp_dir,
+                        prefix = 'summary-{1}-{2}-'.format(
                                 model_index,
                                 i + 1),
-                        dir = self.summary_temp_dir)
-                post_path = tempfile.mktemp(
-                        prefix = '{0}-posterior-{1}-{2}-'.format(
-                                self.temp_fs.token_id,
+                        register = False)
+                post_path = self.temp_fs.get_file_path(
+                        parent = self.summary_temp_dir,
+                        prefix = 'posterior-{1}-{2}-'.format(
                                 model_index,
                                 i + 1),
-                        dir = self.summary_temp_dir)
+                        register = False)
                 sum_worker = EuRejectWorker(
                         temp_fs = self.temp_fs,
                         observed_path = self.observed_stats_paths[
@@ -279,6 +278,7 @@ class ABCTeam(object):
                         schema = 'abctoolbox',
                         stat_patterns = self.stat_patterns,
                         summary_worker = sum_worker,
+                        write_header_file = False,
                         tag = model_index)
                 yield worker
             self.num_batches_remaining -= 1
@@ -290,24 +290,24 @@ class ABCTeam(object):
             to_summarize -= nsum
             self.num_extra_samples_remaining = 0
             for model_index, config_path in self.models.iteritems():
-                prior_path = tempfile.mktemp(
-                        prefix = '{0}-prior-to-sum-{1}-{2}-'.format(
-                                self.prior_temp_fs.token_id,
+                prior_path = self.prior_temp_fs.get_file_path(
+                        parent = self.prior_temp_fs.base_dir,
+                        prefix = 'prior-to-sum-{1}-{2}-'.format(
                                 self.model_strings[model_index],
                                 i + 2),
-                        dir = self.prior_temp_fs.base_dir)
-                sum_path = tempfile.mktemp(
-                        prefix = '{0}-summary-{1}-{2}-'.format(
-                                self.temp_fs.token_id,
+                        register = False)
+                sum_path = self.temp_fs.get_file_path(
+                        parent = self.summary_temp_dir,
+                        prefix = 'summary-{1}-{2}-'.format(
                                 model_index,
                                 i + 2),
-                        dir = self.summary_temp_dir)
-                post_path = tempfile.mktemp(
-                        prefix = '{0}-posterior-{1}-{2}-'.format(
-                                self.temp_fs.token_id,
+                        register = False)
+                post_path = self.temp_fs.get_file_path(
+                        parent = self.summary_temp_dir,
+                        prefix = 'posterior-{1}-{2}-'.format(
                                 model_index,
                                 i + 2),
-                        dir = self.summary_temp_dir)
+                        register = False)
                 sum_worker = EuRejectWorker(
                         temp_fs = self.temp_fs,
                         observed_path = self.observed_stats_paths[
@@ -333,6 +333,7 @@ class ABCTeam(object):
                         schema = 'abctoolbox',
                         stat_patterns = self.stat_patterns,
                         summary_worker = sum_worker,
+                        write_header_file = False,
                         tag = model_index)
                 yield worker
 
@@ -342,12 +343,12 @@ class ABCTeam(object):
         for i in range(self.num_batches_remaining):
             n += 1
             for model_index, config_path in self.models.iteritems():
-                prior_path = tempfile.mktemp(
-                        prefix = '{0}-prior-{1}-{2}-'.format(
-                                self.prior_temp_fs.token_id,
+                prior_path = self.prior_temp_fs.get_file_path(
+                        parent = self.prior_temp_fs.base_dir,
+                        prefix = 'prior-{1}-{2}-'.format(
                                 self.model_strings[model_index],
                                 i + 1),
-                        dir = self.prior_temp_fs.base_dir)
+                        register = False)
                 seed = get_random_int(self.rng)
                 worker = MsBayesWorker(
                         temp_fs = self.prior_temp_fs,
@@ -361,6 +362,7 @@ class ABCTeam(object):
                         schema = 'abctoolbox',
                         stat_patterns = self.stat_patterns,
                         summary_worker = None,
+                        write_header_file = False,
                         tag = model_index)
                 prior_workers.append(worker)
             if n >= self.num_processors:
@@ -368,12 +370,12 @@ class ABCTeam(object):
                 yield [prior_workers.pop(0) for i in range(len(prior_workers))]
         if self.num_extra_samples_remaining > 0:
             for model_index, config_path in self.models.iteritems():
-                prior_path = tempfile.mktemp(
-                        prefix = '{0}-prior-{1}-{2}-'.format(
-                                self.prior_temp_fs.token_id,
+                prior_path = self.prior_temp_fs.get_file_path(
+                        parent = self.prior_temp_fs.base_dir,
+                        prefix = 'prior-{1}-{2}-'.format(
                                 self.model_strings[model_index],
                                 i + 2),
-                        dir = self.prior_temp_fs.base_dir)
+                        register = False)
                 seed = get_random_int(self.rng)
                 worker = MsBayesWorker(
                         temp_fs = self.prior_temp_fs,
@@ -387,6 +389,7 @@ class ABCTeam(object):
                         schema = 'abctoolbox',
                         stat_patterns = self.stat_patterns,
                         summary_worker = sum_worker,
+                        write_header_file = False,
                         tag = model_index)
                 prior_workers.append(worker)
         if prior_workers:
@@ -440,14 +443,15 @@ class ABCTeam(object):
                         for k, p_path in enumerate(p_paths):
                             prior_paths = []
                             if os.path.exists(p_path):
-                                temp_post_path = tempfile.mktemp(
+                                temp_post_path = self.temp_fs.get_file_path(
+                                        parent = self.old_posterior_temp_dir,
                                         prefix = ('{0}-d{1}-{2}-s{3}-{4}-'
                                                   'post-tmp-'.format(
                                                 self.temp_fs.token_id,
                                                 observed_idx,
                                                 self.model_strings[model_idx],
                                                 j, k)),
-                                        dir = self.old_posterior_temp_dir)
+                                        register = False)
                                 shutil.copy(p_path, temp_post_path)
                                 prior_paths.append(temp_post_path)
                             rw = EuRejectWorker(
@@ -899,8 +903,7 @@ class RejectionTeam(object):
             num_added = self.posterior_size
         self.posterior_path = self.temp_fs.get_file_path(
                 prefix = 'posterior-{0}-{1}-{2}-'.format(self.name, 
-                        self.num_rejection_runs, self.index),
-                create = False)
+                        self.num_rejection_runs, self.index))
         rw = EuRejectWorker(
                 temp_fs = self.temp_fs,
                 observed_path = self.observed_path,

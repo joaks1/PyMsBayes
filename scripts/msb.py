@@ -417,8 +417,7 @@ def main_cli():
     info.write('\t\t{0} = {1}\n'.format(observed_model_idx, observed_path))
     if args.reps > 0:
         obs_header_path = working_observed_temp_fs.get_file_path(
-                prefix = 'observed-header-',
-                create = False)
+                prefix = 'observed-header-')
         merge_priors(workers = msbayes_observed_workers,
                 prior_path = observed_path,
                 header_path = obs_header_path,
@@ -437,16 +436,14 @@ def main_cli():
             prefix = 'pymsbayes-prior-files-')
     prior_paths = {}
     prior_paths['header'] = prior_temp_fs.get_file_path(
-            prefix = 'prior-header-',
-            create = False)
+            prefix = 'prior-header-')
     include_header = False
     if args.rejection_tool == 'abctoolbox':
         include_header = True
     for mod_idx in model_indices:
         prior_path = prior_temp_fs.get_file_path(
                 prefix = 'prior-{0}-{1}-'.format(mod_idx,
-                        args.num_prior_samples),
-                create = False)
+                        args.num_prior_samples))
         merge_priors(workers = msbayes_prior_workers[mod_idx],
                 prior_path = prior_path,
                 header_path = prior_paths['header'],
@@ -466,8 +463,7 @@ def main_cli():
     if args.merge_priors:
         ntotal = args.num_prior_samples * len(args.prior_configs)
         merged_path = prior_temp_fs.get_file_path(
-                prefix = 'prior-merged-{0}-'.format(ntotal),
-                create = False)
+                prefix = 'prior-merged-{0}-'.format(ntotal))
         merge_prior_files(
                 paths = [prior_paths[i] for i in model_indices],
                 dest_path = merged_path)

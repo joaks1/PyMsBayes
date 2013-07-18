@@ -39,9 +39,8 @@ class PyMsBayesTestCase(unittest.TestCase):
         self.temp_fs.purge()
         self.assertEqual(FileStream.open_files, set())
 
-    def get_test_path(self, parent=None, prefix='temp', create=False):
-        return self.temp_fs.get_file_path(parent=parent, prefix=prefix,
-                create=create)
+    def get_test_path(self, parent=None, prefix='temp'):
+        return self.temp_fs.get_file_path(parent=parent, prefix=prefix)
 
     def get_test_subdir(self, parent=None, prefix='temp'):
         return self.temp_fs.create_subdir(parent=parent, prefix=prefix)
