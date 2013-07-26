@@ -607,6 +607,41 @@ class IntegerPartitionTestCase(unittest.TestCase):
         ip3 = IntegerPartition([0.4, 0.4, 0.4, 0.1, 0.1, 0.1, 0.1])
         self.assertRaises(ValueError, ip.update, ip3)
 
+    def test_duplicate_integers(self):
+        ip = IntegerPartition()
+        self.assertFalse(ip._initialized)
+        self.assertEqual(ip.n, 0)
+        ip.update([0.2, 0.1, 0.6, 0.4, 0.5, 0.3])
+        self.assertTrue(ip._initialized)
+        self.assertEqual(ip.n, 1)
+        self.assertEqual(ip.key, '1,1,1,1,1,1')
+        self.assertEqual(ip.integer_partition, [1,1,1,1,1,1])
+        self.assertEqual(ip._items,
+                [(1, [0.6]), (1, [0.5]), (1, [0.4]),
+                 (1, [0.3]), (1, [0.2]), (1, [0.1])])
+        self.assertEqual(list(ip.iteritems()),
+                [(1, [0.6]), (1, [0.5]), (1, [0.4]),
+                 (1, [0.3]), (1, [0.2]), (1, [0.1])])
+        ip.update([1.0, 0.4, 0.8, 0.6, 0.2, 1.2])
+        self.assertEqual(ip.n, 2)
+        self.assertEqual(ip.key, '1,1,1,1,1,1')
+        self.assertEqual(ip.integer_partition, [1,1,1,1,1,1])
+        self.assertEqual(ip._items,
+                [(1, [0.6, 1.2]), (1, [0.5, 1.0]), (1, [0.4, 0.8]),
+                 (1, [0.3, 0.6]), (1, [0.2, 0.4]), (1, [0.1, 0.2])])
+        self.assertEqual(list(ip.iteritems()),
+                [(1, [0.6, 1.2]), (1, [0.5, 1.0]), (1, [0.4, 0.8]),
+                 (1, [0.3, 0.6]), (1, [0.2, 0.4]), (1, [0.1, 0.2])])
+        self.assertEqual(list(ip.iter_item_summaries()),
+                [(1, get_summary([0.6, 1.2])),
+                 (1, get_summary([0.5, 1.0])),
+                 (1, get_summary([0.4, 0.8])),
+                 (1, get_summary([0.3, 0.6])),
+                 (1, get_summary([0.2, 0.4])),
+                 (1, get_summary([0.1, 0.2]))])
+        self.assertRaises(Exception, ip._initialize,
+                [0.1, 0.2, 0.2, 0.1, 0.2, 0.3])
+
 class IntegerPartitionCollectionTestCase(PyMsBayesTestCase):
 
     def test_default_init_and_add_element_vector(self):
