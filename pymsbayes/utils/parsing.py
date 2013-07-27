@@ -337,6 +337,21 @@ def add_div_model_column(in_file, out_file, div_models_to_indices,
     if close:
         out.close()
 
+def strip_div_model_column(in_file, out_file, compresslevel = None):
+    header = parse_header(in_file)
+    div_indices = set(get_indices_of_patterns(header, DIV_MODEL_PATTERNS))
+    indices = list(set(range(len(header))) - div_indices)
+    in_stream, close_in = process_file_arg(in_file, 'rU')
+    out_stream, close_out = process_file_arg(out_stream, 'w',
+            compresslevel=compresslevel)
+    for line_num, line in enumerate(in_stream):
+        l = line.strip().split()
+        out_stream.write('{0}\n'.format('\t'.join([l[i] for i in indices])))
+    if close_in:
+        in_stream.close()
+    if close_out:
+        out_stream.close()
+
 def parse_abctoolbox_summary_file(file_obj):
     sum_file, close = process_file_arg(file_obj, 'rU')
     header = sum_file.next().strip().split()
