@@ -89,8 +89,10 @@ class ParseParametersTestCase(PyMsBayesTestCase):
     def tearDown(self):
         self.tear_down()
 
-    def write_posterior_file(self):
-        out = open(self.posterior_path, 'w')
+    def write_posterior_file(self, path=None):
+        if not path:
+            path = self.posterior_path
+        out = open(path, 'w')
         out.write('{0}\n'.format('\t'.join([k for k, v in self.columns])))
         for i in range(3):
             line = [str(v[i]) for k, v in self.columns if len(v) > i]
@@ -156,6 +158,15 @@ class ParseParametersTestCase(PyMsBayesTestCase):
         self.update_expected()
         samples = parse_parameters(div_model_path)
         self.assertEqual(samples, self.expected)
+
+    def test_strip_div_model_column(self):
+        self.write_posterior_file()
+        self.columns.append(('PRI.div.model', [2, 1, 2]))
+        div_tmp_path = self.get_test_path(prefix = 'div-model-column')
+        self.write_posterior_file(path=div_tmp_path)
+        stripped_path = self.get_test_path(prefix = 'stripped')
+        strip_div_model_column(div_tmp_path, stripped_path)
+        self.assertSameFiles([self.posterior_path, stripped_path])
 
 class ParameterDensityIterTestCase(PyMsBayesTestCase):
     def setUp(self):

@@ -342,7 +342,7 @@ def strip_div_model_column(in_file, out_file, compresslevel = None):
     div_indices = set(get_indices_of_patterns(header, DIV_MODEL_PATTERNS))
     indices = list(set(range(len(header))) - div_indices)
     in_stream, close_in = process_file_arg(in_file, 'rU')
-    out_stream, close_out = process_file_arg(out_stream, 'w',
+    out_stream, close_out = process_file_arg(out_file, 'w',
             compresslevel=compresslevel)
     for line_num, line in enumerate(in_stream):
         l = line.strip().split()
