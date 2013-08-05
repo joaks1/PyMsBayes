@@ -534,6 +534,30 @@ class MergePriorFilesTestCase(PyMsBayesTestCase):
         self.assertRaises(PriorMergeError, workers.merge_prior_files,
                 [w2.prior_path], ppath, True)
 
+    def test_append_with_compression(self):
+        jobs = []
+        for i in range(4):
+            w = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                include_header = True)
+            jobs.append(w)
+        for w in jobs:
+            w.start()
+        ppath = self.get_test_path(prefix='merged_prior')
+        for w in jobs:
+            workers.merge_prior_files(
+                    paths = [w.prior_path],
+                    dest_path = ppath,
+                    append = True,
+                    compresslevel = 9)
+        self.assertTrue(os.path.exists(ppath))
+        self.assertTrue(is_gzipped(ppath))
+        self.assertEqual(self.get_number_of_header_lines(ppath), 1)
+        self.assertEqual(self.get_number_of_lines(ppath), 41)
+
 
 class MsRejectWorkerTestCase(PyMsBayesTestCase):
     def setUp(self):

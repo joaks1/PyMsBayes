@@ -153,7 +153,7 @@ def merge_priors(workers, prior_path, header_path=None, include_header=False):
         out.close()
     return prior_path, header_path
 
-def merge_prior_files(paths, dest_path, append = True):
+def merge_prior_files(paths, dest_path, append = True, compresslevel = None):
     h = None
     header_exists = False
     ncols = None
@@ -166,14 +166,17 @@ def merge_prior_files(paths, dest_path, append = True):
             header_exists = True
             ncols = len(h)
         else:
-            dest_stream = open(dest_path, 'rU')
+            dest_stream, d_close = process_file_arg(dest_path, mode = 'rU',
+                    compresslevel = compresslevel)
             try:
                 ncols = len(dest_stream.next().strip().split())
             except StopIteration:
                 ncols = None
             finally:
-                dest_stream.close()
-    out = open(dest_path, mode)
+                if d_close:
+                    dest_stream.close()
+    out, out_close = process_file_arg(dest_path, mode = mode,
+            compresslevel = compresslevel)
     std = None
     if ncols:
         std = out
@@ -185,7 +188,8 @@ def merge_prior_files(paths, dest_path, append = True):
                 if HEADER_PATTERN.match(line.strip()):
                     header = line.strip().split()
                     if h and h != header:
-                        out.close()
+                        if out_close:
+                            out.close()
                         if f_close:
                             f.close()
                         raise PriorMergeError('prior files {0} and {1} '
@@ -201,7 +205,8 @@ def merge_prior_files(paths, dest_path, append = True):
                             out.write(line)
                         continue
                 if len(line.strip().split()) != ncols:
-                    out.close()
+                    if out_close:
+                        out.close()
                     if f_close:
                         f.close()
                     raise PriorMergeError('prior files {0} and {1} do not '
@@ -213,7 +218,8 @@ def merge_prior_files(paths, dest_path, append = True):
                 out.write(line)
         if f_close:
             f.close()
-    out.close()
+    if out_close:
+        out.close()
 
 ##############################################################################
 ## msBayes class for generating prior files
