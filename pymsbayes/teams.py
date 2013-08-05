@@ -32,9 +32,9 @@ class ABCTeam(object):
             temp_fs,
             num_taxon_pairs,
             config_paths,
+            observed_stats_files,
             num_prior_samples,
             num_processors,
-            observed_stats_files = [],
             num_standardizing_samples = 10000,
             num_posterior_samples = 1000,
             num_posterior_density_quantiles = 1000,
@@ -54,6 +54,7 @@ class ABCTeam(object):
             keep_temps = False,
             reporting_frequency = None,
             global_estimate_only = False,
+            generate_prior_samples_only = False,
             work_queue = WORK_FORCE):
         if not rng:
             rng = GLOBAL_RNG
@@ -85,6 +86,7 @@ class ABCTeam(object):
                 'pymsbayes-output'))
         self.output_prefix = str(output_prefix)
         self.global_estimate_only = global_estimate_only
+        self.generate_prior_samples_only = generate_prior_samples_only
         self.num_taxon_pairs = num_taxon_pairs
         self.models = dict(zip(
                 [i + 1 for i in range(len(config_paths))],
@@ -765,12 +767,12 @@ class ABCTeam(object):
                     compresslevel = compresslevel)
 
     def run(self):
-        if self.observed_stats_paths:
-            _LOG.info('Running full analysis...')
-            self._run_full_analysis()
-        else:
+        if self.generate_prior_samples_only:
             _LOG.info('Generating prior samples only...')
             self._generate_prior_samples()
+        else:
+            _LOG.info('Running full analysis...')
+            self._run_full_analysis()
 
     def _process_prior_summary_workers(self,
             run_rejection = True,

@@ -538,6 +538,85 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                 res['summary'],
                 pw.posterior_summary_path])
 
+    def test_abc_team_prior_generation(self):
+        obs_worker = MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True)
+        obs_worker.start()
+
+        num_taxon_pairs = 4
+        num_prior_samples = 2000
+        num_processors = 4
+        batch_size = 200
+        num_standardizing_samples = 800
+        num_posterior_samples = 100
+        num_posterior_density_quantiles = 100
+        num_batches = num_prior_samples / batch_size
+
+        abct = ABCTeam(
+                temp_fs = self.temp_fs,
+                observed_stats_files = [obs_worker.prior_stats_path],
+                num_taxon_pairs = num_taxon_pairs,
+                config_paths = [self.cfg_path],
+                num_prior_samples = num_prior_samples,
+                num_processors = num_processors,
+                num_standardizing_samples = num_standardizing_samples,
+                num_posterior_samples = num_posterior_samples,
+                num_posterior_density_quantiles = num_posterior_density_quantiles,
+                batch_size = batch_size,
+                output_dir = self.output_dir,
+                output_prefix = self.test_id,
+                rng = self.rng,
+                abctoolbox_bandwidth = None,
+                omega_threshold = 0.01,
+                compress = True,
+                keep_temps = False,
+                global_estimate_only = False,
+                generate_prior_samples_only = True)
+        self.assertFalse(abct.finished)
+        abct.run()
+        self.assertTrue(abct.finished)
+        self.assertEqual(abct.num_samples_generated, 2000)
+        self.assertEqual(abct.num_samples_summarized, 800)
+
+        prior_path = abct._get_prior_path(1)
+
+        MsBayesWorker.count = 1
+        self.rng.seed(self.seed)
+        work_q = multiprocessing.Queue()
+        result_q = multiprocessing.Queue()
+        prior_workers = []
+        for i in range(num_batches):
+            prior_workers.append(MsBayesWorker(
+                    temp_fs = self.temp_fs,
+                    sample_size = batch_size,
+                    config_path = self.cfg_path,
+                    model_index = 1,
+                    seed = get_random_int(self.rng),
+                    schema = 'abctoolbox',
+                    tag = 1))
+        for w in prior_workers:
+            work_q.put(w)
+        managers = []
+        for i in range(num_processors):
+            m = Manager(work_queue = work_q,
+                    result_queue = result_q)
+            m.start()
+            managers.append(m)
+        for i in range(len(prior_workers)):
+            prior_workers[i] = result_q.get()
+        for m in managers:
+            m.join()
+        expected_prior_path = self.get_test_path(prefix='expected-prior')
+        merge_prior_files(
+                paths = [pw.prior_path for pw in prior_workers],
+                dest_path = expected_prior_path)
+
+        self.assertSameUnsortedFiles([prior_path, expected_prior_path])
+
     def test_abc_team_with_reporting(self):
         obs_worker = MsBayesWorker(
                 temp_fs = self.temp_fs,
