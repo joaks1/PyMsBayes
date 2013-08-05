@@ -3,6 +3,7 @@
 import unittest
 import os
 import sys
+import shutil
 
 from pymsbayes import workers
 from pymsbayes.fileio import is_gzipped
@@ -326,6 +327,46 @@ class MergePriorFilesTestCase(PyMsBayesTestCase):
     def tearDown(self):
         self.tear_down()
 
+    def test_merge_error_with_headers(self):
+        alt_cfg_path = package_paths.data_path('negros_panay.cfg')
+        w1 = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                include_header = True)
+        w1.start()
+        w2 = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = alt_cfg_path,
+                schema = 'abctoolbox',
+                include_header = True)
+        w2.start()
+        ppath = self.get_test_path(prefix='merged_prior')
+        self.assertRaises(PriorMergeError, workers.merge_prior_files,
+                [w1.prior_path, w2.prior_path], ppath, True)
+
+    def test_merge_error_without_headers(self):
+        alt_cfg_path = package_paths.data_path('negros_panay.cfg')
+        w1 = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'msreject',
+                include_header = False)
+        w1.start()
+        w2 = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = alt_cfg_path,
+                schema = 'msreject',
+                include_header = False)
+        w2.start()
+        ppath = self.get_test_path(prefix='merged_prior')
+        self.assertRaises(PriorMergeError, workers.merge_prior_files,
+                [w1.prior_path, w2.prior_path], ppath, True)
+
     def test_merge_prior_files_with_headers(self):
         jobs = []
         for i in range(4):
@@ -371,6 +412,129 @@ class MergePriorFilesTestCase(PyMsBayesTestCase):
         self.assertTrue(os.path.exists(ppath))
         self.assertEqual(self.get_number_of_header_lines(ppath), 0)
         self.assertEqual(self.get_number_of_lines(ppath), 40)
+
+    def test_append_with_headers(self):
+        jobs = []
+        for i in range(4):
+            w = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                include_header = True)
+            jobs.append(w)
+        for w in jobs:
+            w.start()
+        ppath1 = self.get_test_path(prefix='merged_prior')
+        ppath2 = self.get_test_path(prefix='merged_prior_append')
+        ppath3 = self.get_test_path(prefix='merged_prior_append_last')
+        ppath4 = self.get_test_path(prefix='merged_prior_append_each')
+        workers.merge_prior_files(
+                paths = [w.prior_path for w in jobs],
+                dest_path = ppath1,
+                append=False)
+        self.assertTrue(os.path.exists(ppath1))
+        self.assertEqual(self.get_number_of_header_lines(ppath1), 1)
+        self.assertEqual(self.get_number_of_lines(ppath1), 41)
+        workers.merge_prior_files(
+                paths = [w.prior_path for w in jobs],
+                dest_path = ppath2,
+                append=True)
+        shutil.copy(jobs[0].prior_path, ppath3)
+        for i in range(1, len(jobs)):
+            workers.merge_prior_files(
+                    paths = [jobs[i].prior_path],
+                    dest_path = ppath3,
+                    append = True)
+        for w in jobs:
+            workers.merge_prior_files(
+                    paths = [w.prior_path],
+                    dest_path = ppath4,
+                    append = True)
+        self.assertSameFiles([ppath1, ppath2, ppath3, ppath4])
+
+    def test_append_without_headers(self):
+        jobs = []
+        for i in range(4):
+            w = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'msreject',
+                include_header = False)
+            jobs.append(w)
+        for w in jobs:
+            w.start()
+        ppath1 = self.get_test_path(prefix='merged_prior')
+        ppath2 = self.get_test_path(prefix='merged_prior_append')
+        ppath3 = self.get_test_path(prefix='merged_prior_append_last')
+        ppath4 = self.get_test_path(prefix='merged_prior_append_each')
+        workers.merge_prior_files(
+                paths = [w.prior_path for w in jobs],
+                dest_path = ppath1,
+                append=False)
+        self.assertTrue(os.path.exists(ppath1))
+        self.assertEqual(self.get_number_of_header_lines(ppath1), 0)
+        self.assertEqual(self.get_number_of_lines(ppath1), 40)
+        workers.merge_prior_files(
+                paths = [w.prior_path for w in jobs],
+                dest_path = ppath2,
+                append=True)
+        shutil.copy(jobs[0].prior_path, ppath3)
+        for i in range(1, len(jobs)):
+            workers.merge_prior_files(
+                    paths = [jobs[i].prior_path],
+                    dest_path = ppath3,
+                    append = True)
+        for w in jobs:
+            workers.merge_prior_files(
+                    paths = [w.prior_path],
+                    dest_path = ppath4,
+                    append = True)
+        self.assertSameFiles([ppath1, ppath2, ppath3, ppath4])
+
+    def test_append_error_with_headers(self):
+        alt_cfg_path = package_paths.data_path('negros_panay.cfg')
+        w1 = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                include_header = True)
+        w1.start()
+        w2 = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = alt_cfg_path,
+                schema = 'abctoolbox',
+                include_header = True)
+        w2.start()
+        ppath = self.get_test_path(prefix='merged_prior')
+        shutil.copy(w1.prior_path, ppath)
+        self.assertRaises(PriorMergeError, workers.merge_prior_files,
+                [w2.prior_path], ppath, True)
+
+    def test_append_error_without_headers(self):
+        alt_cfg_path = package_paths.data_path('negros_panay.cfg')
+        w1 = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'msreject',
+                include_header = False)
+        w1.start()
+        w2 = workers.MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 10,
+                config_path = alt_cfg_path,
+                schema = 'msreject',
+                include_header = False)
+        w2.start()
+        ppath = self.get_test_path(prefix='merged_prior')
+        shutil.copy(w1.prior_path, ppath)
+        self.assertRaises(PriorMergeError, workers.merge_prior_files,
+                [w2.prior_path], ppath, True)
+
 
 class MsRejectWorkerTestCase(PyMsBayesTestCase):
     def setUp(self):
