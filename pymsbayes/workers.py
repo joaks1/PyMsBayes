@@ -153,10 +153,30 @@ def merge_priors(workers, prior_path, header_path=None, include_header=False):
         out.close()
     return prior_path, header_path
 
-def merge_prior_files(paths, dest_path):
-    out, close = process_file_arg(dest_path, 'w')
+def merge_prior_files(paths, dest_path, append = True):
     h = None
+    header_exists = False
     ncols = None
+    mode = 'a'
+    if not append:
+        mode = 'w'
+    if append and os.path.exists(dest_path):
+        h = parse_header(dest_path, strict = False)
+        if h:
+            header_exists = True
+            ncols = len(h)
+        else:
+            dest_stream = open(dest_path, 'rU')
+            try:
+                ncols = len(dest_stream.next().strip().split())
+            except StopIteration:
+                ncols = None
+            finally:
+                dest_stream.close()
+    out = open(dest_path, mode)
+    std = None
+    if ncols:
+        std = out
     for p in paths:
         header = None
         f, f_close = process_file_arg(p, 'rU')
@@ -165,16 +185,25 @@ def merge_prior_files(paths, dest_path):
                 if HEADER_PATTERN.match(line.strip()):
                     header = line.strip().split()
                     if h and h != header:
-                        raise PriorMergeError('prior files {0} and {1} have '
-                                'different headers'.format(f.name, std.name))
+                        out.close()
+                        if f_close:
+                            f.close()
+                        raise PriorMergeError('prior files {0} and {1} '
+                                'have different headers'.format(f.name,
+                                        std.name))
                 if not ncols:
                     ncols = len(line.strip().split())
                     std = f
                     if header:
-                        h = header
-                        out.write(line)
+                        if not h:
+                            h = header
+                        if not header_exists:
+                            out.write(line)
                         continue
                 if len(line.strip().split()) != ncols:
+                    out.close()
+                    if f_close:
+                        f.close()
                     raise PriorMergeError('prior files {0} and {1} do not '
                             'have the same number of columns. Cannot '
                             'merge!'.format(f.name, std.name))
@@ -184,8 +213,7 @@ def merge_prior_files(paths, dest_path):
                 out.write(line)
         if f_close:
             f.close()
-    if close:
-        out.close()
+    out.close()
 
 ##############################################################################
 ## msBayes class for generating prior files
