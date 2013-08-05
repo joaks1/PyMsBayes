@@ -42,7 +42,6 @@ class ABCTeam(object):
             output_prefix = '',
             prior_temp_dir = None,
             rng = None,
-            sort_index = None,
             report_parameters = True,
             stat_patterns = DEFAULT_STAT_PATTERNS,
             eureject_exe_path = None,
@@ -115,7 +114,6 @@ class ABCTeam(object):
                             * batch_size)) / 
                 float(self.batch_size * self.num_processors)
             ))
-        self.sort_index = sort_index
         self.report_parameters = report_parameters
         self.stat_patterns = stat_patterns
         self.eureject_exe_path = eureject_exe_path
