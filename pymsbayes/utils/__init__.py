@@ -52,6 +52,27 @@ def get_tool_path(name):
                         name.lower(), ', '.join(TOOL_PATH_MAP.keys())))
     return TOOL_PATH_MAP[name.lower()]
 
+
+class MsBayesSortIndex(object):
+    valid_values = list(range(8))
+    def __init__(self, i = 7):
+        self._set_index(i)
+
+    def _set_index(self, i):
+        i = int(i)
+        if i not in self.valid_values:
+            raise Exception('MsBayesSortIndex {0} is not valid; valid options '
+                    'are: {1}'.format(i,
+                            ','.join([str(x) for x in self.valid_values])))
+        self._i = i
+
+    def _get_index(self):
+        return self._i
+
+    current_value = property(_get_index, _set_index)
+
+MSBAYES_SORT_INDEX = MsBayesSortIndex()
+
 MEMORY_LOGGING_ENV_VAR = "PYMSBAYES_MEMORY_LOGGING_FREQUENCY"
 MEMORY_LOGGING_FREQUENCY = float(os.environ.get(MEMORY_LOGGING_ENV_VAR, 0))
 DUMP_DEBUG_INFO_ENV_VAR = "PYMSBAYES_DUMP_DEBUG_INFO"

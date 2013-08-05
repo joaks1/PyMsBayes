@@ -3,9 +3,26 @@
 import unittest
 import os
 
-from pymsbayes.utils import functions, get_tool_path, TOOL_PATH_MAP
+from pymsbayes.utils import (functions, get_tool_path, TOOL_PATH_MAP,
+        MSBAYES_SORT_INDEX)
 from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
+
+class MsBayesSortIndexTestCase(unittest.TestCase):
+    def test_valid_values(self):
+        self.assertEqual(MSBAYES_SORT_INDEX.valid_values, list(range(8)))
+
+    def test_default(self):
+        self.assertEqual(MSBAYES_SORT_INDEX.current_value, 7)
+
+    def test_set(self):
+        for i in range(8):
+            MSBAYES_SORT_INDEX.current_value = i
+            self.assertEqual(MSBAYES_SORT_INDEX.current_value, i)
+
+    def test_invalid_value(self):
+        self.assertRaises(Exception, MSBAYES_SORT_INDEX.current_value, -1)
+        self.assertRaises(Exception, MSBAYES_SORT_INDEX.current_value, 8)
 
 class GetToolPathTestCase(unittest.TestCase):
     def test_error(self):
