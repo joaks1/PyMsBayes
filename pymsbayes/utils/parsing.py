@@ -121,14 +121,20 @@ def get_patterns_from_prefixes(prefixes, ignore_case=True):
 
 def parse_header(file_obj, sep='\t', strict=True, seek=True):
     file_stream, close = process_file_arg(file_obj, 'rU')
-    header_line = file_stream.next()
+    try:
+        header_line = file_stream.next()
+    except StopIteration:
+        file_stream.close()
+        if strict:
+            raise Exception('did not find header in {0}'.format(file_stream.name))
+        else:
+            return None
     if not HEADER_PATTERN.match(header_line):
         file_stream.close()
         if strict:
             raise Exception('did not find header in {0}'.format(file_stream.name))
         else:
-            return []
-        return None
+            return None
     header = header_line.strip().split(sep)
     if close:
         file_stream.close()
