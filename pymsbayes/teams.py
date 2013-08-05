@@ -10,7 +10,8 @@ import logging
 import Queue
 
 from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRegressWorker,
-        EuRejectSummaryMerger, EuRejectWorker, PosteriorWorker)
+        EuRejectSummaryMerger, EuRejectWorker, PosteriorWorker,
+        merge_prior_files)
 from pymsbayes.utils.parsing import (get_stat_indices, parse_header,
         DEFAULT_STAT_PATTERNS, ALL_STAT_PATTERNS)
 from pymsbayes.manager import Manager
@@ -29,11 +30,11 @@ class ABCTeam(object):
     count = 0
     def __init__(self,
             temp_fs,
-            observed_stats_files,
             num_taxon_pairs,
             config_paths,
             num_prior_samples,
             num_processors,
+            observed_stats_files = [],
             num_standardizing_samples = 10000,
             num_posterior_samples = 1000,
             num_posterior_density_quantiles = 1000,
@@ -221,6 +222,11 @@ class ABCTeam(object):
         return (self.get_observed_path(observed_index, simulation_index),
                 self.get_posterior_paths(observed_index, simulation_index,
                         per_processor = per_processor))
+
+    def _get_prior_path(self, model_index):
+        return os.path.join(os.path.dirname(self.summary_paths[model_index]),
+                    ''.join([self.output_prefix, self.model_strings[model_index],
+                            '-prior-sample.txt']))
 
     def _prior_summary_worker_iter(self):
         to_summarize = self.num_standardizing_samples
@@ -747,20 +753,65 @@ class ABCTeam(object):
         for k, summary in summaries.iteritems():
             summary.write(self.summary_paths[k])
 
+    def _write_prior_samples(self, prior_path_dict):
+        compresslevel = None
+        if self.compress:
+            compresslevel = 9
+        for model_idx, prior_paths in prior_path_dict.iteritems():
+            merge_prior_files(
+                    paths = prior_paths,
+                    dest_path = self._get_prior_path(model_idx),
+                    append = True,
+                    compresslevel = compresslevel)
+
     def run(self):
+        if self.observed_stats_paths:
+            _LOG.info('Running full analysis...')
+            self._run_full_analysis()
+        else:
+            _LOG.info('Generating prior samples only...')
+            self._generate_prior_samples()
+
+    def _process_prior_summary_workers(self,
+            run_rejection = True,
+            write_priors = False):
         _LOG.info('Running prior summary workers...')
         prior_paths, summary_workers = self._run_prior_summary_workers()
 
         _LOG.info('Merging summaries...')
         self._merge_summaries(summary_workers)
 
-        _LOG.info('Running rejection on summary worker priors...')
-        self._run_rejection_workers(prior_paths)
+        if run_rejection:
+            _LOG.info('Running rejection on summary worker priors...')
+            self._run_rejection_workers(prior_paths)
+        if write_priors:
+            _LOG.info('Writing prior samples...')
+            self._write_prior_samples(prior_paths)
 
         _LOG.info('Number of samples generated: {0}'.format(
             self.num_samples_generated))
         _LOG.info('Number of samples summarized: {0}'.format(
             self.num_samples_summarized))
+
+
+    def _generate_prior_samples(self):
+        self._process_prior_summary_workers(run_rejection = False,
+                write_priors = True)
+
+        for i, prior_worker_batch in enumerate(self.prior_worker_iter):
+            _LOG.info('Running prior worker batch {0} of {1}...'.format(
+                    (i + 1), self.num_prior_batch_iters))
+            prior_paths = self._run_prior_workers(prior_worker_batch)
+
+            _LOG.info('Writing prior samples...')
+            self._write_prior_samples(prior_paths)
+            self.iter_count += 1
+
+        self.finished = True
+
+    def _run_full_analysis(self):
+        self._process_prior_summary_workers(run_rejection = True,
+                write_priors = False)
 
         for i, prior_worker_batch in enumerate(self.prior_worker_iter):
             if self.reporting_indices and (i == self.reporting_indices[0]):
