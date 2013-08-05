@@ -423,7 +423,6 @@ def main_cli():
             output_prefix = '',
             prior_temp_dir = args.staging_dir,
             rng = GLOBAL_RNG,
-            sort_index = None,
             report_parameters = True,
             stat_patterns = stat_patterns,
             abctoolbox_bandwidth = args.bandwidth,

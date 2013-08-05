@@ -14,7 +14,7 @@ from pymsbayes.fileio import (expand_path, process_file_arg, FileStream, open,
         GzipFileStream)
 from pymsbayes.config import MsBayesConfig
 from pymsbayes.utils.tempfs import TempFileSystem
-from pymsbayes.utils import get_tool_path
+from pymsbayes.utils import get_tool_path, MSBAYES_SORT_INDEX
 from pymsbayes.utils.functions import (get_random_int, get_indices_of_patterns,
         reduce_columns, is_dir)
 from pymsbayes.utils.errors import WorkerExecutionError, PriorMergeError
@@ -226,7 +226,6 @@ class ObsSumStatsWorker(Worker):
             config_path,
             output_path = None,
             exe_path = None,
-            sort_index = None,
             schema = 'abctoolbox',
             stat_patterns = DEFAULT_STAT_PATTERNS,
             stderr_path = None,
@@ -246,9 +245,7 @@ class ObsSumStatsWorker(Worker):
         if not exe_path:
             exe_path = get_tool_path('obssumstats')
         self.exe_path = expand_path(exe_path)
-        self.sort_index = None
-        if sort_index != None:
-            self.sort_index = int(sort_index)
+        self.sort_index = MSBAYES_SORT_INDEX.current_value
         self.schema = schema.lower()
         if not self.schema in self.valid_schemas:
             raise ValueError('{0} is not a valid schema, options are: '
@@ -268,9 +265,8 @@ class ObsSumStatsWorker(Worker):
         self._update_cmd()
 
     def _update_cmd(self):
-        cmd = [self.exe_path]
-        if self.sort_index != None:
-            cmd.extend(['-s', str(self.sort_index)])
+        cmd = [self.exe_path,
+               '-s', str(self.sort_index)]
         cmd.append(self.config_path)
         self.cmd = cmd
 
@@ -300,7 +296,6 @@ class MsBayesWorker(Worker):
             header_path = None,
             exe_path = None,
             model_index = None,
-            sort_index = None,
             report_parameters = True,
             seed = None,
             schema = 'msreject',
@@ -336,9 +331,7 @@ class MsBayesWorker(Worker):
         self.model_index = None
         if model_index != None:
             self.model_index = int(model_index)
-        self.sort_index = None
-        if sort_index != None:
-            self.sort_index = int(sort_index)
+        self.sort_index = MSBAYES_SORT_INDEX.current_value
         self.report_parameters = report_parameters
         if seed is None:
             self.seed = get_random_int()
@@ -396,13 +389,12 @@ class MsBayesWorker(Worker):
         cmd = [self.exe_path,
                '-r', str(self.sample_size),
                '-S', str(self.seed),
+               '-s', str(self.sort_index),
                '-c', self.config_path,]
         if self.staging_dir:
             cmd.extend(['-o', self.staging_prior_path])
         else:
             cmd.extend(['-o', self.prior_path])
-        if self.sort_index != None:
-            cmd.extend(['-s', str(self.sort_index)])
         if self.model_index != None:
             cmd.extend(['-m', str(self.model_index)])
         if self.report_parameters:

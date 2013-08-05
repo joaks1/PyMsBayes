@@ -37,7 +37,6 @@ class ObsSumStatsWorkerTestCase(PyMsBayesTestCase):
                 config_path = self.cfg_path,
                 output_path = ss_path,
                 exe_path = None,
-                sort_index = None,
                 schema = 'abctoolbox',
                 stat_patterns = DEFAULT_STAT_PATTERNS,
                 stderr_path = None,
