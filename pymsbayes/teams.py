@@ -2,6 +2,7 @@
 
 import os
 import sys
+import re
 import copy
 import shutil
 import math
@@ -28,13 +29,19 @@ _LOG = get_logger(__name__)
 
 class ABCTeam(object):
     count = 0
+    summary_file_pattern = re.compile(r'^.*m(?P<model_index>\d+)-?'
+            '(?P<combined>combined)?-stat-means-and-std-devs\.txt$')
+    prior_file_pattern = re.compile(r'^.*m(?P<model_index>\d+)-?'
+            '(?P<combined>combined)?-prior-sample\.txt$')
+
     def __init__(self,
             temp_fs,
             num_taxon_pairs,
-            config_paths,
             observed_stats_files,
-            num_prior_samples,
             num_processors,
+            config_paths = None,
+            previous_prior_dir = None,
+            num_prior_samples = 1000000,
             num_standardizing_samples = 10000,
             num_posterior_samples = 1000,
             num_posterior_density_quantiles = 1000,
@@ -53,9 +60,17 @@ class ABCTeam(object):
             compress = True,
             keep_temps = False,
             reporting_frequency = None,
+            global_estimate = True,
             global_estimate_only = False,
             generate_prior_samples_only = False,
             work_queue = WORK_FORCE):
+        if ((config_paths) and (previous_prior_dir)) or \
+                ((not config_paths) and (not previous_prior_dir)):
+            raise ValueError('`config_paths` or `previous_prior_dir` must '
+                    'be provided, but not both')
+        if global_estimate_only and (not global_estimate):
+            raise ValueError('`global_estimate_only` cannot be true if '
+                    '`global_estimate` is false`')
         if not rng:
             rng = GLOBAL_RNG
         self.rng = rng
@@ -85,38 +100,17 @@ class ABCTeam(object):
         self.output_dir = mk_new_dir(os.path.join(expand_path(output_dir),
                 'pymsbayes-output'))
         self.output_prefix = str(output_prefix)
+        self.global_estimate = global_estimate
         self.global_estimate_only = global_estimate_only
-        self.generate_prior_samples_only = generate_prior_samples_only
         self.num_taxon_pairs = num_taxon_pairs
-        self.models = dict(zip(
-                [i + 1 for i in range(len(config_paths))],
-                [expand_path(p) for p in config_paths]))
+        self.generate_prior_samples_only = generate_prior_samples_only
         self.observed_stats_paths = dict(zip(
                 [i + 1 for i in range(len(observed_stats_files))],
                 [expand_path(p) for p in observed_stats_files]))
-        self.num_prior_samples = num_prior_samples
-        self.num_processors = num_processors
-        self.num_standardizing_samples = num_standardizing_samples
-        self.num_posterior_samples = num_posterior_samples
-        self.num_posterior_density_quantiles = num_posterior_density_quantiles
-        self.batch_size = batch_size
-        self.total_samples = self.num_prior_samples * len(self.models)
-        max_samples_per_process = self.total_samples / self.num_processors
-        if max_samples_per_process < self.batch_size:
-            self.batch_size = max_samples_per_process
-        if self.batch_size < self.num_posterior_samples:
-            self.batch_size = self.num_posterior_samples
-        self.num_batches, self.num_extra_samples = long_division(
-                self.num_prior_samples, 
-                self.batch_size)
-        self.num_batches_remaining, self.num_extra_samples_remaining = \
-                self.num_batches, self.num_extra_samples
-        self.num_prior_batch_iters = int(math.ceil(
-                (self.num_prior_samples - (int(math.ceil(
-                    self.num_standardizing_samples / float(self.batch_size))) \
-                            * batch_size)) / 
-                float(self.batch_size * self.num_processors)
-            ))
+        self.observed_dirs = dict(zip(
+                self.observed_stats_paths.keys(),
+                [mk_new_dir(os.path.join(self.output_dir, 'd' + str(
+                        k))) for k in self.observed_stats_paths.iterkeys()]))
         self.report_parameters = report_parameters
         self.stat_patterns = stat_patterns
         self.eureject_exe_path = eureject_exe_path
@@ -125,15 +119,74 @@ class ABCTeam(object):
         self.abctoolbox_bandwidth = abctoolbox_bandwidth
         self.omega_threshold = omega_threshold
         self.compress = compress
-        self.observed_dirs = dict(zip(
-                self.observed_stats_paths.keys(),
-                [mk_new_dir(os.path.join(self.output_dir, 'd' + str(
-                        k))) for k in self.observed_stats_paths.iterkeys()]))
-        self.model_strings = dict(zip(self.models.keys(),
-                ['m' + str(i) for i in self.models.iterkeys()]))
-        if len(self.models) > 1:
-            self.model_strings['combined'] = 'm' + ''.join(
-                    [str(i) for i in sorted(self.models.iterkeys())])
+        self.num_processors = num_processors
+        self.num_posterior_samples = num_posterior_samples
+        self.num_posterior_density_quantiles = num_posterior_density_quantiles
+
+        self.models = None
+        self.model_strings = None
+        self.summary_dir = None
+        self.summary_paths = None
+        self.previous_prior_dir = None
+        self.use_previous_priors = False
+        if previous_prior_dir:
+            self.use_previous_priors = True
+            self.previous_prior_dir = expand_path(previous_prior_dir)
+            self._parse_previous_prior_dir()
+            self.num_prior_samples = 0
+            self.num_standardizing_samples = 0
+            self.batch_size = 0
+            self.total_samples = 0
+            self.num_batches = 0
+            self.num_extra_samples = 0
+            self.num_batches_remaining = 0
+            self.num_prior_batch_iters = 0
+            self.reporting_frequency = None
+            self.reporting_indices = None
+        else:
+            self.models = dict(zip(
+                    [i + 1 for i in range(len(config_paths))],
+                    [expand_path(p) for p in config_paths]))
+            self.model_strings = dict(zip(self.models.keys(),
+                    ['m' + str(i) for i in self.models.iterkeys()]))
+            if len(self.models) > 1:
+                self.model_strings['combined'] = 'm' + ''.join(
+                        [str(i) for i in sorted(self.models.iterkeys())]) + \
+                                '-combined'
+            self.summary_dir = mk_new_dir(os.path.join(self.output_dir,
+                    'prior-stats-summaries'))
+            self.summary_paths = {}
+            for k, v in self.model_strings.iteritems():
+                self.summary_paths[k] = os.path.join(self.summary_dir,
+                        self.output_prefix + v + '-stat-means-and-std-devs.txt')
+            self.num_prior_samples = num_prior_samples
+            self.num_standardizing_samples = num_standardizing_samples
+            self.batch_size = batch_size
+            self.total_samples = self.num_prior_samples * len(self.models)
+            max_samples_per_process = self.total_samples / self.num_processors
+            if max_samples_per_process < self.batch_size:
+                self.batch_size = max_samples_per_process
+            if self.batch_size < self.num_posterior_samples:
+                self.batch_size = self.num_posterior_samples
+            self.num_batches, self.num_extra_samples = long_division(
+                    self.num_prior_samples, 
+                    self.batch_size)
+            self.num_batches_remaining, self.num_extra_samples_remaining = \
+                    self.num_batches, self.num_extra_samples
+            self.num_prior_batch_iters = int(math.ceil(
+                    (self.num_prior_samples - (int(math.ceil(
+                        self.num_standardizing_samples / float(self.batch_size))) \
+                                * batch_size)) / 
+                    float(self.batch_size * self.num_processors)
+                ))
+            self.reporting_frequency = reporting_frequency
+            self.reporting_indices = None
+            if self.reporting_frequency and self.reporting_frequency > 0:
+                rep_indices = range(0, self.num_prior_batch_iters,
+                        self.reporting_frequency)
+                if rep_indices[-1] >= (self.num_prior_batch_iters - 1):
+                    rep_indices.pop(-1)
+                self.reporting_indices = rep_indices
         self.model_dirs = {}
         for obs_idx, obs_dir in self.observed_dirs.iteritems():
             self.model_dirs[obs_idx] = {}
@@ -142,12 +195,7 @@ class ABCTeam(object):
                         obs_dir, model_str))
         if len(self.models) < 2:
             self.global_estimate_only = False
-        self.summary_dir = mk_new_dir(os.path.join(self.output_dir,
-                'prior-stats-summaries'))
-        self.summary_paths = {}
-        for k, v in self.model_strings.iteritems():
-            self.summary_paths[k] = os.path.join(self.summary_dir,
-                    self.output_prefix + v + '-stat-means-and-std-devs.txt')
+            self.global_estimate = False
         self.num_observed = 0
         self.n_observed_map = dict(zip(self.observed_stats_paths.keys(),
                 [0 for i in self.observed_stats_paths.iterkeys()]))
@@ -156,7 +204,8 @@ class ABCTeam(object):
         self.work_queue = work_queue
         self.result_queue = multiprocessing.Queue()
         self.duplicate_rejection_workers = False
-        if (self.num_observed < 2) and (self.num_processors > 1):
+        if (self.num_observed < 2) and (self.num_processors > 1) and \
+                (not self.use_previous_priors):
             self.duplicate_rejection_workers = True
         self.num_samples_generated = 0
         self.num_samples_summarized = 0
@@ -171,14 +220,6 @@ class ABCTeam(object):
         if self.duplicate_rejection_workers:
             for model_idx in self.num_samples_processed.iterkeys():
                 self.num_samples_processed[model_idx] *= self.num_processors
-        self.reporting_frequency = reporting_frequency
-        self.reporting_indices = None
-        if self.reporting_frequency and self.reporting_frequency > 0:
-            rep_indices = range(0, self.num_prior_batch_iters,
-                    self.reporting_frequency)
-            if rep_indices[-1] >= (self.num_prior_batch_iters - 1):
-                rep_indices.pop(-1)
-            self.reporting_indices = rep_indices
         self.model_key_path = os.path.join(self.output_dir,
                 self.output_prefix + 'model-key.txt')
         self.data_key_path = os.path.join(self.output_dir,
@@ -188,6 +229,57 @@ class ABCTeam(object):
         self.prior_worker_iter = self._prior_worker_iter()
         self.iter_count = 0
         self.finished = False
+
+    def _parse_previous_prior_dir(self):
+        self.generate_prior_samples_only = False
+        self.summary_dir = self.previous_prior_dir
+        for f in os.listdir(self.previous_prior_dir):
+            m1 = self.prior_file_pattern(f)
+            m2 = self.summary_file_pattern.match(f)
+            if m1:
+                if m1.group('combined'):
+                    raise Exception('unexpected file {0} in previous prior '
+                            'directory {1}'.format(f, self.previous_prior_dir))
+                model_idx = int(m1.group('model_index'))
+                if self.models.has_key(model_idx):
+                    raise Exception('model index {0} found more than once in '
+                            'previous prior directory {1}'.format(model_idx,
+                                self.previous_prior_dir))
+                self.models[model_idx] = os.path.join(self.previous_prior_dir,
+                        f)
+                self.model_strings[model_idx] = 'm' + str(model_idx)
+            if m2:
+                if m2.group('combined'):
+                    if self.summary_paths.has_key('combined'):
+                        raise Exception('multiple combined summary files '
+                                'found in previous prior directory {0}'.format(
+                                    self.previous_prior_dir))
+                    self.model_strings['combined'] = 'm' + \
+                            m2.group('combined') + '-combined'
+                    self.summary_paths['combined'] = os.path.join(
+                            self.previous_prior_dir, f)
+                else:
+                    model_idx = int(m2.group('model_index'))
+                    if self.summary_paths.has_key(model_idx):
+                        raise Exception('summary index {0} found more than '
+                                'once in previous prior directory {1}'.format(
+                                    model_idx, self.previous_prior_dir))
+                    self.summary_paths[model_idx] = os.path.join(
+                            self.previous_prior_dir, f)
+        expected_combined_str = 'm' + ''.join(
+                [str(i) for i in sorted(self.models.iterkeys())])
+        if expected_combined_str != self.model_strings['combined']:
+            raise Exception('expecting combined string {0}, but found {1} '
+                    'in previous prior directory {2}'.format(
+                        expected_combined_str,
+                        self.model_strings['combined'],
+                        self.previous_prior_dir))
+        if (sorted(self.models.keys() + ['combined']) != sorted(
+                self.model_strings.keys())) or (sorted(
+                    self.model_strings.keys()) != sorted(
+                        self.summary_paths.keys())):
+            raise Exception('problem parsing info from previous prior '
+                    'directory {0}'.format(self.previous_prior_dir))
 
 
     def get_observed_path(self, observed_index, simulation_index):
@@ -573,11 +665,19 @@ class ABCTeam(object):
                             per_processor = False)
                     if self.global_estimate_only:
                         post_paths = {'combined': post_paths['combined']}
+                    if (not self.global_estimate) and post_paths.has_key(
+                            'combined'):
+                        post_paths.pop('combined')
                     for model_idx, p_paths in post_paths.iteritems():
                         fname_parts = os.path.basename(p_paths[0]).split('-')
-                        fname_prefix = self.output_prefix + \
-                                '-'.join(fname_parts[1:4] + \
-                                        [str(batch_index)])
+                        if model_idx == 'combined':
+                            fname_prefix = self.output_prefix + \
+                                    '-'.join(fname_parts[1:5] + \
+                                            [str(batch_index)])
+                        else:
+                            fname_prefix = self.output_prefix + \
+                                    '-'.join(fname_parts[1:4] + \
+                                            [str(batch_index)])
                         out_prefix = os.path.join(
                                 self.model_dirs[observed_idx][model_idx],
                                 fname_prefix)
@@ -720,6 +820,8 @@ class ABCTeam(object):
                         self.temp_fs.remove_file(p)
     
     def _run_final_rejections(self):
+        if not self.global_estimate:
+            return
         if self.global_estimate_only:
             return
         if len(self.models) < 2:
@@ -812,26 +914,31 @@ class ABCTeam(object):
         self.finished = True
 
     def _run_full_analysis(self):
-        self._process_prior_summary_workers(run_rejection = True,
-                write_priors = False)
+        if self.use_previous_priors:
+            _LOG.info('Running rejection on provided priors')
+            self._run_rejection_workers(self.models)
 
-        for i, prior_worker_batch in enumerate(self.prior_worker_iter):
-            if self.reporting_indices and (i == self.reporting_indices[0]):
-                self.reporting_indices.pop(0)
-                _LOG.info('Reporting results at iteration {0} of {1}'
+        else:
+            self._process_prior_summary_workers(run_rejection = True,
+                    write_priors = False)
+
+            for i, prior_worker_batch in enumerate(self.prior_worker_iter):
+                if self.reporting_indices and (i == self.reporting_indices[0]):
+                    self.reporting_indices.pop(0)
+                    _LOG.info('Reporting results at iteration {0} of {1}'
+                            '...'.format((i + 1), self.num_prior_batch_iters))
+                    self._run_merging_rejection_workers(remove_files = False)
+                    self._run_final_rejections()
+                    self._run_regression_workers(i+1, remove_files = False)
+
+                _LOG.info('Running prior worker batch {0} of {1}...'.format(
+                        (i + 1), self.num_prior_batch_iters))
+                prior_paths = self._run_prior_workers(prior_worker_batch)
+
+                _LOG.info('Running rejection on prior batch {0} of {1}'
                         '...'.format((i + 1), self.num_prior_batch_iters))
-                self._run_merging_rejection_workers(remove_files = False)
-                self._run_final_rejections()
-                self._run_regression_workers(i+1, remove_files = False)
-
-            _LOG.info('Running prior worker batch {0} of {1}...'.format(
-                    (i + 1), self.num_prior_batch_iters))
-            prior_paths = self._run_prior_workers(prior_worker_batch)
-
-            _LOG.info('Running rejection on prior batch {0} of {1}...'.format(
-                    (i + 1), self.num_prior_batch_iters))
-            self._run_rejection_workers(prior_paths)
-            self.iter_count += 1
+                self._run_rejection_workers(prior_paths)
+                self.iter_count += 1
 
         _LOG.info('Merging rejection team posteriors...')
         self._run_merging_rejection_workers(remove_files = True)
