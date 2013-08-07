@@ -667,6 +667,98 @@ class Partition(object):
             self.values[k].extend(values)
         self.n += p.n
 
+class PartitionCollection(object):
+    def __init__(self, partitions = None):
+        self.partitions = {}
+        self.n = 0
+        if partitions:
+            self.add_iter(partitions)
+
+    def add(self, partition):
+        if isinstance(partition, Partition):
+            p = partition
+        else:
+            p = Partition(partition)
+        if self.partitions.has_key(p.key):
+            self.partitions[p.key].update(p)
+        else:
+            self.partitions[p.key] = copy.deepcopy(p)
+        self.n += p.n
+
+    def add_iter(self, partitions):
+        for p in partitions:
+            self.add(p)
+
+    def keys(self):
+        return [k for k, v in self.iteritems()]
+
+    def iterkeys(self):
+        return (k for k in self.keys())
+
+    def values(self):
+        return sorted(self.partitions.values(),
+                key = lambda x : x.n,
+                reverse = True)
+
+    def itervalues(self):
+        return (v for v in self.values())
+
+    def items(self):
+        return sorted(self.partitions.iteritems(),
+                key = lambda x : x[1].n,
+                reverse = True)
+
+    def iteritems(self):
+        return ((k, v) for k, v in self.items())
+
+    def has_key(self, k):
+        return self.partitions.has_key(k)
+
+    def get(self, k, d = None):
+        return self.partitions.get(k, d)
+
+    def get_count(self, key):
+        if self.has_key(key):
+            return self.get(key).n
+        else:
+            return 0
+
+    def get_counts(self):
+        counts = {}
+        for k in self.iterkeys():
+            counts[k] = self.get_count[k]
+        return counts
+
+    def get_frequency(self, key):
+        return self.get_count(key) / float(self.n)
+
+    def get_frequencies(self):
+        freqs = {}
+        for k in self.iterkeys():
+            freqs[k] = self.get_frequency(k)
+        return freqs
+    
+    def get_summary(self):
+        stats = []
+        for k in self.iterkeys():
+            stats.append((k, {
+                    'count': self.get_count(k),
+                    'frequency': self.get_frequency(k),
+                    'string': self.get(k).value_summary_string()}))
+        return stats
+
+    def write_summary(self, file_obj):
+        out, close = process_file_arg(file_obj)
+        out.write('count\tfrequency\tdivergence_model\tdiv_age_info\n')
+        for k, v in self.iteritems():
+            out.write('{0}\t{1}\t{2}\t{3}\n'.format(
+                    v.n,
+                    self.get_frequency(v.key),
+                    v.key,
+                    v.value_summary_string()))
+        if close:
+            out.close()
+
 class IntegerPartition(object):
     def __init__(self, element_vector = None):
         self._initialized = False
