@@ -236,8 +236,11 @@ class ABCTeam(object):
     def _parse_previous_prior_dir(self):
         self.generate_prior_samples_only = False
         self.summary_dir = self.previous_prior_dir
+        self.summary_paths = {}
+        self.models = {}
+        self.model_strings = {}
         for f in os.listdir(self.previous_prior_dir):
-            m1 = self.prior_file_pattern(f)
+            m1 = self.prior_file_pattern.match(f)
             m2 = self.summary_file_pattern.match(f)
             if m1:
                 if m1.group('combined'):
@@ -258,7 +261,7 @@ class ABCTeam(object):
                                 'found in previous prior directory {0}'.format(
                                     self.previous_prior_dir))
                     self.model_strings['combined'] = 'm' + \
-                            m2.group('combined') + '-combined'
+                            m2.group('model_index') + '-combined'
                     self.summary_paths['combined'] = os.path.join(
                             self.previous_prior_dir, f)
                 else:
@@ -270,7 +273,8 @@ class ABCTeam(object):
                     self.summary_paths[model_idx] = os.path.join(
                             self.previous_prior_dir, f)
         expected_combined_str = 'm' + ''.join(
-                [str(i) for i in sorted(self.models.iterkeys())])
+                [str(i) for i in sorted(self.models.iterkeys())]) + \
+                        '-combined'
         if expected_combined_str != self.model_strings['combined']:
             raise Exception('expecting combined string {0}, but found {1} '
                     'in previous prior directory {2}'.format(
@@ -645,7 +649,7 @@ class ABCTeam(object):
                                         self.num_posterior_samples,
                                 num_standardizing_samples = 0,
                                 summary_in_path = \
-                                        self.summary_paths[model_idx],
+                                        self.summary_paths['combined'],
                                 summary_out_path = None,
                                 posterior_path = combined_post_paths[0],
                                 regression_worker = None,
@@ -762,7 +766,7 @@ class ABCTeam(object):
             w.purge()
         return prior_paths
 
-    def _run_rejection_workers(self, prior_paths):
+    def _run_rejection_workers(self, prior_paths, remove_files = True):
         if self.global_estimate_only:
             p_paths = []
             for path_list in prior_paths.itervalues():
@@ -804,9 +808,10 @@ class ABCTeam(object):
                 self.num_samples_processed[rej_worker.tag] += \
                         (rej_worker.num_processed - self.num_posterior_samples)
             self._purge_old_posterior_temp_dir()
-        for path_list in prior_paths.itervalues():
-            for p in path_list:
-                self.prior_temp_fs.remove_file(p)
+        if remove_files:
+            for path_list in prior_paths.itervalues():
+                for p in path_list:
+                    self.prior_temp_fs.remove_file(p)
 
     def _purge_old_posterior_temp_dir(self):
         self.temp_fs.clear_dir(self.old_posterior_temp_dir)
@@ -918,7 +923,9 @@ class ABCTeam(object):
     def _run_full_analysis(self):
         if self.use_previous_priors:
             _LOG.info('Running rejection on provided priors')
-            self._run_rejection_workers(self.models)
+            prior_paths = dict(zip(self.models.iterkeys(),
+                    [[self.models[k]] for k in self.models.iterkeys()]))
+            self._run_rejection_workers(prior_paths, remove_files = False)
 
         else:
             self._process_prior_summary_workers(run_rejection = True,

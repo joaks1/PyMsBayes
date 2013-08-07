@@ -5,6 +5,7 @@ import os
 import sys
 import random
 import re
+import glob
 
 from pymsbayes.teams import *
 from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRejectWorker,
@@ -1360,6 +1361,221 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                     res1 = self.get_result_paths(abct1, i, j, k)
                     res2 = self.get_result_paths(abct2, i, j, k)
                     self.assertSameFiles([res1['sample'], res2['sample']])
+
+    def test_abc_team_multiple_models_multiple_obs_previous_priors(self):
+        obs_worker1 = MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 2,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True)
+        obs_worker1.start()
+        obs_worker2 = MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 2,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True)
+        obs_worker2.start()
+
+        num_taxon_pairs = 4
+        num_prior_samples = 2000
+        num_processors = 4
+        batch_size = 200
+        num_standardizing_samples = 800
+        num_posterior_samples = 100
+        num_posterior_density_quantiles = 100
+        num_batches = num_prior_samples / batch_size
+
+        abct1 = ABCTeam(
+                temp_fs = self.temp_fs,
+                observed_stats_files = [obs_worker1.prior_stats_path,
+                        obs_worker2.prior_stats_path],
+                num_taxon_pairs = num_taxon_pairs,
+                config_paths = [self.cfg_path, self.cfg_path2],
+                num_prior_samples = num_prior_samples,
+                num_processors = num_processors,
+                num_standardizing_samples = num_standardizing_samples,
+                num_posterior_samples = num_posterior_samples,
+                num_posterior_density_quantiles = num_posterior_density_quantiles,
+                batch_size = batch_size,
+                output_dir = self.output_dir,
+                output_prefix = self.test_id,
+                rng = self.rng,
+                abctoolbox_bandwidth = None,
+                omega_threshold = 0.01,
+                reporting_frequency = None,
+                compress = False,
+                keep_temps = False,
+                global_estimate_only = False)
+        self.assertFalse(abct1.finished)
+        abct1.run()
+        self.assertTrue(abct1.finished)
+        self.assertEqual(abct1.num_samples_generated, 4000)
+        self.assertEqual(abct1.num_samples_summarized, 1600)
+        self.assertEqual(abct1.num_samples_processed[1], 8000)
+        self.assertEqual(abct1.num_samples_processed[2], 8000)
+
+        self.rng.seed(self.seed)
+
+        abct2 = ABCTeam(
+                temp_fs = self.temp_fs,
+                observed_stats_files = [obs_worker1.prior_stats_path,
+                        obs_worker2.prior_stats_path],
+                num_taxon_pairs = num_taxon_pairs,
+                config_paths = [self.cfg_path, self.cfg_path2],
+                num_prior_samples = num_prior_samples,
+                num_processors = num_processors,
+                num_standardizing_samples = num_standardizing_samples,
+                num_posterior_samples = num_posterior_samples,
+                num_posterior_density_quantiles = num_posterior_density_quantiles,
+                batch_size = batch_size,
+                output_dir = self.output_dir,
+                output_prefix = self.test_id,
+                rng = self.rng,
+                abctoolbox_bandwidth = None,
+                omega_threshold = 0.01,
+                reporting_frequency = None,
+                compress = False,
+                keep_temps = False,
+                global_estimate_only = False,
+                generate_prior_samples_only = True)
+        self.assertFalse(abct2.finished)
+        abct2.run()
+        self.assertTrue(abct2.finished)
+        self.assertEqual(abct2.num_samples_generated, 4000)
+        self.assertEqual(abct2.num_samples_summarized, 1600)
+
+        abct3 = ABCTeam(
+                temp_fs = self.temp_fs,
+                observed_stats_files = [obs_worker1.prior_stats_path,
+                        obs_worker2.prior_stats_path],
+                num_taxon_pairs = num_taxon_pairs,
+                previous_prior_dir = abct2.summary_dir,
+                num_processors = num_processors,
+                num_posterior_samples = num_posterior_samples,
+                num_posterior_density_quantiles = num_posterior_density_quantiles,
+                output_dir = self.output_dir,
+                output_prefix = self.test_id,
+                rng = self.rng,
+                abctoolbox_bandwidth = None,
+                omega_threshold = 0.01,
+                reporting_frequency = 1,
+                compress = False,
+                keep_temps = False,
+                global_estimate_only = False,
+                generate_prior_samples_only = False)
+        self.assertFalse(abct3.finished)
+        abct3.run()
+        self.assertTrue(abct3.finished)
+        self.assertEqual(abct3.num_samples_processed[1], 8000)
+        self.assertEqual(abct3.num_samples_processed[2], 8000)
+
+        for i in [1, 2]:
+            for j in [1, 2, 'combined']:
+                for k in [1, 2]:
+                    res1 = self.get_result_paths(abct1, i, j, k)
+                    res2 = self.get_result_paths(abct3, i, j, k)
+                    self.assertSameFiles([res1['sample'], res2['sample']])
+
+        observed_paths = {
+                1: dict(zip(range(1,3),
+                        [self.get_test_path(prefix='obs1') for i in range(2)])),
+                2: dict(zip(range(1,3),
+                        [self.get_test_path(prefix='obs2') for i in range(2)]))}
+        with open(obs_worker1.prior_stats_path, 'rU') as obs_stream:
+            head = obs_stream.next()
+            for i, line in enumerate(obs_stream):
+                with open(observed_paths[1][i+1], 'w') as out:
+                    out.write(head)
+                    out.write(line)
+        with open(obs_worker2.prior_stats_path, 'rU') as obs_stream:
+            head = obs_stream.next()
+            for i, line in enumerate(obs_stream):
+                with open(observed_paths[2][i+1], 'w') as out:
+                    out.write(head)
+                    out.write(line)
+
+        prior_paths = {
+                1: glob.glob(os.path.join(abct2.summary_dir,
+                        '*m1-prior-sample.txt'))[0],
+                2: glob.glob(os.path.join(abct2.summary_dir,
+                        '*m2-prior-sample.txt'))[0]}
+        summary_paths = {
+                1: glob.glob(os.path.join(abct2.summary_dir,
+                        '*m1-stat-means-and-std-devs.txt'))[0],
+                2: glob.glob(os.path.join(abct2.summary_dir,
+                        '*m2-stat-means-and-std-devs.txt'))[0],
+                'combined': glob.glob(os.path.join(abct2.summary_dir,
+                        '*m12-combined-stat-means-and-std-devs.txt'))[0]}
+
+        tmp_post_paths = {}
+        post_paths = {}
+        for i in [1, 2]: # observed_file
+            tmp_post_paths[i] = {}
+            post_paths[i] = {}
+            for j in [1, 2, 'combined']: # model
+                tmp_post_paths[i][j] = {}
+                post_paths[i][j] = {}
+                for k in [1, 2]: # simulated dataset
+                    tmp_post_paths[i][j][k] = self.get_test_path(
+                            prefix='tmp-post-d{0}-m{1}-s{2}-'.format(i,j,k))
+                    post_paths[i][j][k] = self.get_test_path(
+                            prefix='post-d{0}-m{1}-s{2}-'.format(i,j,k))
+        for i in [1, 2]: # observed_file
+            for j in [1, 2]: # model
+                for k in [1, 2]: # simulated dataset
+                    rej_worker = EuRejectWorker(
+                            temp_fs = self.temp_fs,
+                            observed_path = observed_paths[i][k],
+                            prior_paths = [prior_paths[j]],
+                            posterior_path = tmp_post_paths[i][j][k],
+                            num_posterior_samples = num_posterior_samples,
+                            num_standardizing_samples = 0,
+                            summary_in_path = summary_paths[j])
+                    rej_worker.start()
+
+                    samples = parse_parameters(tmp_post_paths[i][j][k])
+                    ipc = IntegerPartitionCollection(samples['taus'])
+                    div_models_to_indices = {}
+                    for idx, key in enumerate(ipc.iterkeys()):
+                        div_models_to_indices[key] = idx + 1
+                    add_div_model_column(tmp_post_paths[i][j][k], post_paths[i][j][k],
+                            div_models_to_indices,
+                            compresslevel = None)
+
+                    res1 = self.get_result_paths(abct1, i, j, k)
+                    res2 = self.get_result_paths(abct3, i, j, k)
+                    self.assertSameFiles([res1['sample'], res2['sample'],
+                            post_paths[i][j][k]])
+
+        for i in [1, 2]: # observed_file
+            for j in ['combined']: # model
+                for k in [1, 2]:
+                    rej_worker = EuRejectWorker(
+                            temp_fs = self.temp_fs,
+                            observed_path = observed_paths[i][k],
+                            prior_paths = [tmp_post_paths[i][1][k], tmp_post_paths[i][2][k]],
+                            posterior_path = tmp_post_paths[i][j][k],
+                            num_posterior_samples = num_posterior_samples,
+                            num_standardizing_samples = 0,
+                            summary_in_path = summary_paths['combined'])
+                    rej_worker.start()
+
+                    samples = parse_parameters(tmp_post_paths[i][j][k])
+                    ipc = IntegerPartitionCollection(samples['taus'])
+                    div_models_to_indices = {}
+                    for idx, key in enumerate(ipc.iterkeys()):
+                        div_models_to_indices[key] = idx + 1
+                    add_div_model_column(tmp_post_paths[i][j][k], post_paths[i][j][k],
+                            div_models_to_indices,
+                            compresslevel = None)
+
+                    res1 = self.get_result_paths(abct1, i, j, k)
+                    res2 = self.get_result_paths(abct3, i, j, k)
+                    self.assertSameFiles([res1['sample'], res2['sample'],
+                            post_paths[i][j][k]])
+
 
 if __name__ == '__main__':
     unittest.main()
