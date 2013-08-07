@@ -71,6 +71,9 @@ class ABCTeam(object):
         if global_estimate_only and (not global_estimate):
             raise ValueError('`global_estimate_only` cannot be true if '
                     '`global_estimate` is false`')
+        if previous_prior_dir and generate_prior_samples_only:
+            raise ValueError('`generate_prior_samples_only` must be false '
+                    'when `previous_prior_dir` is provided')
         if not rng:
             rng = GLOBAL_RNG
         self.rng = rng
@@ -896,7 +899,6 @@ class ABCTeam(object):
             self.num_samples_generated))
         _LOG.info('Number of samples summarized: {0}'.format(
             self.num_samples_summarized))
-
 
     def _generate_prior_samples(self):
         self._process_prior_summary_workers(run_rejection = False,
