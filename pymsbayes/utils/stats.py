@@ -591,6 +591,82 @@ class SampleSummaryCollection(object):
         if close:
             out.close()
 
+class Partition(object):
+    def __init__(self, element_vector = None):
+        self._initialized = False
+        self.values = {}
+        self.partition = []
+        self.key = None
+        self.n = 0
+        if element_vector:
+            self._initialize(element_vector)
+
+    def _initialize(self, element_vector):
+        if self._initialized:
+            raise Exception('cannot re-initialize Partition instance')
+        if isinstance(element_vector, Partition):
+            self._values = copy.deepcopy(element_vector._items)
+            self.partition = copy.deepcopy(
+                    element_vector.integer_partition)
+            self.key = copy.deepcopy(element_vector.key)
+            self.n = element_vector.n
+        else:
+            self.partition, self.values = self.standardize(element_vector)
+            self.key = ','.join([str(x) for x in self.partition])
+            self.n = 1
+        self._initialized = True
+
+    def standardize(self, element_vector):
+        el_map = {}
+        next_idx = 0
+        partition = []
+        values = {}
+        for i, el in enumerate(element_vector):
+            if not el_map.has_key(el):
+                el_map[el] = next_idx
+                values[next_idx] = [el]
+                next_idx += 1
+            partition.append(el_map[el])
+        return partition, values
+
+    def itervalues(self):
+        return ((k, self.values[k]) for k in sorted(self.values.iterkeys()))
+
+    def iter_value_summaries(self):
+        return ((k, get_summary(self.values[k])) for k in sorted(
+                self.values.iterkeys()))
+
+    def value_summary_string(self):
+        elements = []
+        for k, v in self.iter_value_summaries():
+            int_age = ':'.join([str(k), str(v['median'])])
+            comments = [('age_median', v['median']),
+                        ('age_mean', v['mean']),
+                        ('age_n', v['n']),
+                        ('age_range', '{{{0},{1}}}'.format(*v['range'])),
+                        ('age_hpdi_95', '{{{0},{1}}}'.format(*v['hpdi_95'])),
+                        ('age_qi_95', '{{{0},{1}}}'.format(*v['qi_95']))]
+            comment_str = ','.join(['='.join([x, str(y)]) for x, y in comments])
+            elements.append('{0}[&{1}]'.format(int_age, comment_str))
+        return ','.join(elements)
+
+    def update(self, partition):
+        if not self._initialized:
+            self._initialize(partition)
+            return
+        if isinstance(partition, Partition):
+            p = partition
+        else:
+            p = Partition(partition)
+        if p.key != self.key:
+            raise ValueError('partition passed to update method '
+                    '({0}) does not match partition of current instance '
+                    '({1})'.format(p.key, self.key))
+        for k, values in p.values.iteritems():
+            assert p.n == len(values)
+            self.values[k].extend(values)
+        self.n += p.n
+
 class IntegerPartition(object):
     def __init__(self, element_vector = None):
         self._initialized = False

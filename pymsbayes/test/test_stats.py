@@ -839,6 +839,121 @@ class SummarizeDiscreteParametersFromDensitiesTestCase(PyMsBayesTestCase):
         self.assertAlmostEqual(probs['PRI.omega'][1], 3.687050664780145e-13,
                 places=14)
 
+class PartitionTestCase(unittest.TestCase):
+
+    def test_default_init_and_update(self):
+        p = Partition()
+        self.assertFalse(p._initialized)
+        self.assertEqual(p.n, 0)
+        p.update([0.2, 0.1, 0.1, 0.2, 0.1, 0.3])
+        self.assertTrue(p._initialized)
+        self.assertEqual(p.n, 1)
+        self.assertEqual(p.key, '0,1,1,0,1,2')
+        self.assertEqual(p.partition, [0,1,1,0,1,2])
+        self.assertEqual(p.values, {0: [0.2], 1: [0.1], 2: [0.3]})
+        self.assertEqual(list(p.itervalues()),
+                [(0, [0.2]), (1, [0.1]), (2, [0.3])])
+        self.assertEqual(list(p.iter_value_summaries()),
+                [(0, get_summary([0.2])),
+                 (1, get_summary([0.1])),
+                 (2, get_summary([0.3]))])
+        self.assertEqual(p.value_summary_string(),
+                ('0:0.2[&age_median=0.2,age_mean=0.2,age_n=1,'
+                 'age_range={0.2,0.2},age_hpdi_95={0.2,0.2},'
+                 'age_qi_95={0.2,0.2}],'
+                 '1:0.1[&age_median=0.1,age_mean=0.1,age_n=1,'
+                 'age_range={0.1,0.1},age_hpdi_95={0.1,0.1},'
+                 'age_qi_95={0.1,0.1}],'
+                 '2:0.3[&age_median=0.3,age_mean=0.3,age_n=1,'
+                 'age_range={0.3,0.3},age_hpdi_95={0.3,0.3},'
+                 'age_qi_95={0.3,0.3}]'))
+        self.assertRaises(Exception, p._initialize,
+                [0.1, 0.2, 0.2, 0.1, 0.2, 0.3])
+
+    def test_init_with_element_vector(self):
+        p = Partition([0.1, 0.2, 0.2, 0.1, 0.2, 0.3, 0.2])
+        self.assertTrue(p._initialized)
+        self.assertEqual(p.n, 1)
+        self.assertEqual(p.key, '0,1,1,0,1,2,1')
+        self.assertEqual(p.partition, [0,1,1,0,1,2,1])
+        self.assertEqual(p.values, {0: [0.1], 1: [0.2], 2: [0.3]})
+        self.assertEqual(list(p.itervalues()),
+                [(0, [0.1]), (1, [0.2]), (2, [0.3])])
+        self.assertEqual(list(p.iter_value_summaries()),
+                [(0, get_summary([0.1])),
+                 (1, get_summary([0.2])),
+                 (2, get_summary([0.3]))])
+        self.assertEqual(p.value_summary_string(),
+                ('0:0.1[&age_median=0.1,age_mean=0.1,age_n=1,'
+                 'age_range={0.1,0.1},age_hpdi_95={0.1,0.1},'
+                 'age_qi_95={0.1,0.1}],'
+                 '1:0.2[&age_median=0.2,age_mean=0.2,age_n=1,'
+                 'age_range={0.2,0.2},age_hpdi_95={0.2,0.2},'
+                 'age_qi_95={0.2,0.2}],'
+                 '2:0.3[&age_median=0.3,age_mean=0.3,age_n=1,'
+                 'age_range={0.3,0.3},age_hpdi_95={0.3,0.3},'
+                 'age_qi_95={0.3,0.3}]'))
+        self.assertRaises(Exception, p._initialize,
+                [0.1, 0.2, 0.2, 0.1, 0.2, 0.3])
+
+    def test_update_with_element_vectors(self):
+        p = Partition([0.1, 0.2, 0.2, 0.1, 0.2, 0.3, 0.2])
+        self.assertEqual(p.n, 1)
+        p.update([0.5, 0.4, 0.4, 0.5, 0.4, 0.1, 0.4])
+        self.assertEqual(p.n, 2)
+        self.assertEqual(p.key, '0,1,1,0,1,2,1')
+        self.assertEqual(p.partition, [0,1,1,0,1,2,1])
+        self.assertEqual(p.values,
+                {0: [0.1, 0.5], 1: [0.2, 0.4], 2: [0.3, 0.1]})
+        self.assertEqual(list(p.itervalues()),
+                [(0, [0.1, 0.5]), (1, [0.2, 0.4]), (2, [0.3, 0.1])])
+        self.assertEqual(list(p.iter_value_summaries()),
+                [(0, get_summary([0.1, 0.5])),
+                 (1, get_summary([0.2, 0.4])),
+                 (2, get_summary([0.3, 0.1]))])
+        self.assertEqual(p.value_summary_string(),
+                ('0:0.3[&age_median=0.3,age_mean=0.3,age_n=2,'
+                 'age_range={0.1,0.5},age_hpdi_95={0.1,0.5},'
+                 'age_qi_95={0.11,0.49}],'
+                 '1:0.3[&age_median=0.3,age_mean=0.3,age_n=2,'
+                 'age_range={0.2,0.4},age_hpdi_95={0.2,0.4},'
+                 'age_qi_95={0.205,0.395}],'
+                 '2:0.2[&age_median=0.2,age_mean=0.2,age_n=2,'
+                 'age_range={0.1,0.3},age_hpdi_95={0.1,0.3},'
+                 'age_qi_95={0.105,0.295}]'))
+        self.assertRaises(ValueError, p.update,
+                [0.4, 0.4, 0.4, 0.1, 0.1, 0.1, 0.1])
+
+    def test_update_with_instance(self):
+        p = Partition([0.1, 0.2, 0.2, 0.1, 0.2, 0.3, 0.2])
+        self.assertEqual(p.n, 1)
+        p2 =  Partition([0.5, 0.4, 0.4, 0.5, 0.4, 0.1, 0.4])
+        p.update(p2)
+        self.assertEqual(p.n, 2)
+        self.assertEqual(p.key, '0,1,1,0,1,2,1')
+        self.assertEqual(p.partition, [0,1,1,0,1,2,1])
+        self.assertEqual(p.values,
+                {0: [0.1, 0.5], 1: [0.2, 0.4], 2: [0.3, 0.1]})
+        self.assertEqual(list(p.itervalues()),
+                [(0, [0.1, 0.5]), (1, [0.2, 0.4]), (2, [0.3, 0.1])])
+        self.assertEqual(list(p.iter_value_summaries()),
+                [(0, get_summary([0.1, 0.5])),
+                 (1, get_summary([0.2, 0.4])),
+                 (2, get_summary([0.3, 0.1]))])
+        self.assertEqual(p.value_summary_string(),
+                ('0:0.3[&age_median=0.3,age_mean=0.3,age_n=2,'
+                 'age_range={0.1,0.5},age_hpdi_95={0.1,0.5},'
+                 'age_qi_95={0.11,0.49}],'
+                 '1:0.3[&age_median=0.3,age_mean=0.3,age_n=2,'
+                 'age_range={0.2,0.4},age_hpdi_95={0.2,0.4},'
+                 'age_qi_95={0.205,0.395}],'
+                 '2:0.2[&age_median=0.2,age_mean=0.2,age_n=2,'
+                 'age_range={0.1,0.3},age_hpdi_95={0.1,0.3},'
+                 'age_qi_95={0.105,0.295}]'))
+        p3 = Partition([0.4, 0.4, 0.4, 0.1, 0.1, 0.1, 0.1])
+        self.assertRaises(ValueError, p.update,
+                p3)
+
 if __name__ == '__main__':
     unittest.main()
 
