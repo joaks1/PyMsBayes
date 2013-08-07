@@ -1280,7 +1280,10 @@ class PosteriorWorker(object):
         if not post.has_key('taus'):
             raise Exception('posterior sample in {0} does not contain a '
                     'divergence time vector'.format(self.posterior_path))
-        div_models = IntegerPartitionCollection(post['taus'])
+        if MSBAYES_SORT_INDEX.current_value == 0:
+            div_models = PartitionCollection(post['taus'])
+        else:
+            div_models = IntegerPartitionCollection(post['taus'])
         self.num_posterior_samples = div_models.n
         self.div_model_summary = div_models.get_summary()
         self._map_top_div_models(div_models)
@@ -1329,6 +1332,10 @@ class PosteriorWorker(object):
             self.unadjusted_summaries['PRI.model'] = get_summary(post['model'])
         self.unadjusted_summaries['PRI.div.model'] = get_summary(
                 post['div_model'])
+        if MSBAYES_SORT_INDEX.current_value == 0:
+            for i in range(len(post['taus'][0])):
+                self.unadjusted_summaries['PRI.t.' + str(i+1)] = get_summary(
+                        [v[i] for v in post['taus']])
 
     def _map_top_div_models(self, div_models):
         for i, k in enumerate(div_models.iterkeys()):
@@ -1368,6 +1375,9 @@ class PosteriorWorker(object):
         header = parse_header(self.temp_posterior_path)
         all_patterns = set(MEAN_TAU_PATTERNS + OMEGA_PATTERNS + \
                 MODEL_PATTERNS + PSI_PATTERNS + DIV_MODEL_PATTERNS)
+        # Adding tau parameters causes ABCEstimator to fail often
+        # if MSBAYES_SORT_INDEX.current_value == 0:
+        #     all_patterns.update(TAU_PATTERNS)
         parameter_patterns = sorted(list(all_patterns - \
                 self.parameter_patterns_to_remove))
         parameter_indices = sorted(get_parameter_indices(header,

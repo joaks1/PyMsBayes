@@ -6,6 +6,7 @@ import re
 
 import pymsbayes
 from pymsbayes.fileio import process_file_arg
+from pymsbayes.utils import MSBAYES_SORT_INDEX
 from pymsbayes.utils.errors import (SummaryFileParsingError,
         ParameterParsingError)
 from pymsbayes.utils.messaging import get_logger
@@ -340,7 +341,10 @@ def add_div_model_column(in_file, out_file, div_models_to_indices,
             raise ParameterParsingError('posterior file {0} does not contain '
                     'divergence time vector'.format(
                     getattr(file_obj, 'name', file_obj)))
-        ip = pymsbayes.utils.stats.IntegerPartition(parameters['taus'][0])
+        if MSBAYES_SORT_INDEX.current_value == 0:
+            ip = pymsbayes.utils.stats.Partition(parameters['taus'][0])
+        else:
+            ip = pymsbayes.utils.stats.IntegerPartition(parameters['taus'][0])
         idx = div_models_to_indices.get(ip.key, other_index)
         line.insert(0, str(idx))
         out.write('{0}\n'.format('\t'.join(line)))
