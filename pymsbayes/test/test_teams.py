@@ -1186,8 +1186,8 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                         num_posterior_density_quantiles)
                 self.assertTrue(self.get_number_of_lines(res['glm-summary']), 20)
 
-        self.assertEqual(os.path.listdir(abct.model_dirs[1]['combined'], []))
-        self.assertEqual(os.path.listdir(abct.model_dirs[2]['combined'], []))
+        self.assertEqual(os.listdir(abct.model_dirs[1]['combined'], []))
+        self.assertEqual(os.listdir(abct.model_dirs[2]['combined'], []))
 
     def test_abc_team_multiple_models_multiple_separate_obs(self):
         obs_worker1 = MsBayesWorker(
