@@ -1108,6 +1108,87 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                         num_posterior_density_quantiles)
                 self.assertTrue(self.get_number_of_lines(res['glm-summary']), 20)
 
+    def test_abc_team_multiple_models_multiple_obs_no_global(self):
+        obs_worker1 = MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True)
+        obs_worker1.start()
+        obs_worker2 = MsBayesWorker(
+                temp_fs = self.temp_fs,
+                sample_size = 1,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                write_stats_file = True)
+        obs_worker2.start()
+
+        obs_path = self.get_test_path(prefix='obs-sims')
+        merge_prior_files([obs_worker1.prior_stats_path,
+                obs_worker2.prior_stats_path], obs_path)
+
+        num_taxon_pairs = 4
+        num_prior_samples = 2000
+        num_processors = 4
+        batch_size = 200
+        num_standardizing_samples = 800
+        num_posterior_samples = 100
+        num_posterior_density_quantiles = 100
+        num_batches = num_prior_samples / batch_size
+
+        abct = ABCTeam(
+                temp_fs = self.temp_fs,
+                observed_stats_files = [obs_path],
+                num_taxon_pairs = num_taxon_pairs,
+                config_paths = [self.cfg_path, self.cfg_path2],
+                num_prior_samples = num_prior_samples,
+                num_processors = num_processors,
+                num_standardizing_samples = num_standardizing_samples,
+                num_posterior_samples = num_posterior_samples,
+                num_posterior_density_quantiles = num_posterior_density_quantiles,
+                batch_size = batch_size,
+                output_dir = self.output_dir,
+                output_prefix = self.test_id,
+                rng = self.rng,
+                abctoolbox_bandwidth = None,
+                omega_threshold = 0.01,
+                compress = False,
+                keep_temps = False,
+                global_estimate_only = False,
+                global_estimate = False)
+        self.assertFalse(abct.finished)
+        abct.run()
+        self.assertTrue(abct.finished)
+        self.assertEqual(abct.num_samples_generated, 4000)
+        self.assertEqual(abct.num_samples_summarized, 1600)
+        self.assertEqual(abct.num_samples_processed[1], 4000)
+        self.assertEqual(abct.num_samples_processed[2], 4000)
+
+        for i in [1, 2]:
+            for j in [1, 2]:
+                res = self.get_result_paths(abct, 1, i, j)
+                self.assertTrue(os.path.isfile(res['sample']))
+                self.assertTrue(os.path.isfile(res['summary']))
+                self.assertTrue(os.path.isfile(res['model']))
+                self.assertTrue(os.path.isfile(res['div']))
+                self.assertTrue(os.path.isfile(res['psi']))
+                self.assertTrue(os.path.isfile(res['omega']))
+                self.assertTrue(os.path.isfile(res['glm-summary']))
+                self.assertTrue(os.path.isfile(res['glm-density']))
+
+                self.assertTrue(self.get_number_of_lines(res['sample']),
+                        num_posterior_samples + 1)
+                self.assertTrue(self.get_number_of_lines(res['psi']),
+                        num_taxon_pairs + 1)
+                self.assertTrue(self.get_number_of_lines(res['omega']), 2)
+                self.assertTrue(self.get_number_of_lines(res['glm-density']),
+                        num_posterior_density_quantiles)
+                self.assertTrue(self.get_number_of_lines(res['glm-summary']), 20)
+
+        self.assertEqual(os.path.listdir(abct.model_dirs[1]['combined'], []))
+        self.assertEqual(os.path.listdir(abct.model_dirs[2]['combined'], []))
+
     def test_abc_team_multiple_models_multiple_separate_obs(self):
         obs_worker1 = MsBayesWorker(
                 temp_fs = self.temp_fs,
