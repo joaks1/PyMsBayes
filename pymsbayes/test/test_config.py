@@ -71,6 +71,20 @@ END SAMPLE_TBL
 """)
         cfg.seek(0)
 
+    def test_is_config(self):
+        p = {'ltheta': 0.0001,
+             'utheta': 0.1,
+             'utau': 10.0,
+             'psi': 0,
+             'umig': 0.0,
+             'urec': 0.0,
+             'atheta': 1.0,}
+        self._update_config(self.cfg, p)
+        self.assertTrue(MsBayesConfig.is_config(self.cfg))
+        cfg = StringIO()
+        cfg.write('not an\nmsbayes\nconfig file\nblah\n\n')
+        self.assertFalse(MsBayesConfig.is_config(cfg))
+
     def test_single_locus(self):
         p = {'ltheta': 0.0001,
              'utheta': 0.1,

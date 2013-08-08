@@ -33,6 +33,18 @@ class MsBayesConfig(object):
         self.theta_parameters = None
         self._parse_config(cfg_file)
 
+    @classmethod
+    def is_config(cls, cfg_file):
+        cfg_stream, close = process_file_arg(cfg_file)
+        for i, line in enumerate(cfg_stream):
+            if cls._begin_pattern.match(line.strip()):
+                if close:
+                    cfg_stream.close()
+                return True
+        if close:
+            cfg_stream.close()
+        return False
+
     def _parse_config(self, cfg):
         preamble, table = self._split_config(cfg)
         preamble.seek(0)
