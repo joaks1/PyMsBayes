@@ -36,11 +36,17 @@ class MsBayesConfig(object):
     @classmethod
     def is_config(cls, cfg_file):
         cfg_stream, close = process_file_arg(cfg_file)
-        for i, line in enumerate(cfg_stream):
-            if cls._begin_pattern.match(line.strip()):
+        for i in range(100):
+            try:
+                line = cfg_stream.next()
+                if cls._begin_pattern.match(line.strip()):
+                    if close:
+                        cfg_stream.close()
+                    return True
+            except:
                 if close:
                     cfg_stream.close()
-                return True
+                return False
         if close:
             cfg_stream.close()
         return False
