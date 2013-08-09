@@ -10,6 +10,7 @@ from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test import TestLevel, test_enabled
 from pymsbayes.utils import GLOBAL_RNG
+from pymsbayes.fileio import process_file_arg
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -23,6 +24,7 @@ class DmcTestCase(PyMsBayesTestCase):
     def setUp(self):
         self.set_up()
         self.cfg_path = package_paths.data_path('4pairs_1locus.cfg')
+        self.cfg_path2 = package_paths.data_path('4pairs_1locus_maxt5.cfg')
         self.seed = GLOBAL_RNG.randint(1, 999999999)
         self.rng = random.Random()
         self.rng.seed(self.seed)
@@ -66,6 +68,23 @@ class DmcTestCase(PyMsBayesTestCase):
         paths['prior-dir'] = os.path.join(output_dir, 'pymsbayes-results',
                 'pymsbayes-output', 'prior-stats-summaries')
         return paths
+
+    def _has_non_sorted_results(self, div_model_path):
+        length = None
+        f, close = process_file_arg(div_model_path)
+        f.next() # header
+        for line in f:
+            l = line.strip()
+            if l:
+                div_model_key = l.split()[0]
+                div_model = div_model_key.split(',')
+                if not length:
+                    length = len(div_model)
+                if length != len(div_model):
+                    f.close()
+                    return False
+        f.close()
+        return True
 
     def _exe_dmc(self, args, stdout = None, stderr = None, return_code = 0,
             output_dir = None):
@@ -196,6 +215,86 @@ class DmcTestCase(PyMsBayesTestCase):
         self.assertNotEqual(results1['prior-dir'], results3['prior-dir'])
         self.assertNotEqual(results1['sample'], results3['sample'])
         self.assertSameFiles([results1['sample'], results3['sample']])
+
+    def test_sort_index(self):
+        args = ['-o', self.cfg_path,
+                '-p', self.cfg_path,
+                '-r', 1,
+                '-n', 400,
+                '--num-posterior-samples', 200,
+                '--num-standardizing-samples', 300,
+                '-q', 100,
+                '--np', 4,
+                '--sort-index', 7,
+                '--seed', self.seed,
+                '--debug']
+        self._exe_dmc(args, return_code=0)
+        results1 = self.get_result_paths(1, 'm1', 1, 1)
+        self.assertTrue(os.path.exists(results1['prior-dir']))
+        self.assertTrue(os.path.exists(results1['sample']))
+        self.assertFalse(self._has_non_sorted_results(results1['div']))
+
+        out_dir1 = self.get_test_subdir(prefix='repeat-')
+
+        args = ['-o', self.cfg_path,
+                '-p', self.cfg_path,
+                '-r', 1,
+                '-n', 400,
+                '--num-posterior-samples', 200,
+                '--num-standardizing-samples', 300,
+                '-q', 100,
+                '--np', 4,
+                '--sort-index', 0,
+                '--seed', self.seed,
+                '--debug']
+        self._exe_dmc(args, return_code=0, output_dir = out_dir1)
+        results2 = self.get_result_paths(1, 'm1', 1, 1, output_dir = out_dir1)
+        self.assertTrue(os.path.exists(results2['prior-dir']))
+        self.assertTrue(os.path.exists(results2['sample']))
+        self.assertTrue(self._has_non_sorted_results(results2['div']))
+
+    def test_no_global_estimate(self):
+        args = ['-o', self.cfg_path,
+                '-p', self.cfg_path, self.cfg_path2,
+                '-r', 1,
+                '-n', 400,
+                '--num-posterior-samples', 200,
+                '--num-standardizing-samples', 300,
+                '-q', 100,
+                '--np', 4,
+                '--seed', self.seed,
+                '--debug']
+        self._exe_dmc(args, return_code=0)
+        results1_1 = self.get_result_paths(1, 'm1', 1, 1)
+        results1_2 = self.get_result_paths(1, 'm2', 1, 1)
+        results1_c = self.get_result_paths(1, 'm12-combined', 1, 1)
+        self.assertTrue(os.path.exists(results1_1['sample']))
+        self.assertTrue(os.path.exists(results1_2['sample']))
+        self.assertTrue(os.path.exists(results1_c['sample']))
+
+        out_dir1 = self.get_test_subdir(prefix='repeat-')
+
+        args = ['-o', self.cfg_path,
+                '-p', self.cfg_path, self.cfg_path2,
+                '-r', 1,
+                '-n', 400,
+                '--num-posterior-samples', 200,
+                '--num-standardizing-samples', 300,
+                '-q', 100,
+                '--np', 4,
+                '--no-global-estimate',
+                '--seed', self.seed,
+                '--debug']
+        self._exe_dmc(args, return_code=0, output_dir = out_dir1)
+        results2_1 = self.get_result_paths(1, 'm1', 1, 1, output_dir = out_dir1)
+        results2_2 = self.get_result_paths(1, 'm2', 1, 1, output_dir = out_dir1)
+        results2_c = self.get_result_paths(1, 'm12-combined', 1, 1, output_dir = out_dir1)
+        self.assertTrue(os.path.exists(results2_1['sample']))
+        self.assertTrue(os.path.exists(results2_2['sample']))
+        self.assertFalse(os.path.exists(results2_c['sample']))
+
+        self.assertSameFiles([results1_1['sample'], results2_1['sample']])
+        self.assertSameFiles([results1_2['sample'], results2_2['sample']])
 
 if __name__ == '__main__':
     unittest.main()
