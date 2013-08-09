@@ -277,14 +277,17 @@ class ABCTeam(object):
         expected_combined_str = 'm' + ''.join(
                 [str(i) for i in sorted(self.models.iterkeys())]) + \
                         '-combined'
-        if expected_combined_str != self.model_strings['combined']:
+        if expected_combined_str != \
+                self.model_strings.get('combined', expected_combined_str):
             raise Exception('expecting combined string {0}, but found {1} '
                     'in previous prior directory {2}'.format(
                         expected_combined_str,
                         self.model_strings['combined'],
                         self.previous_prior_dir))
-        if (sorted(self.models.keys() + ['combined']) != sorted(
-                self.model_strings.keys())) or (sorted(
+        mkeys = self.models.keys()
+        if self.model_strings.has_key('combined'):
+            mkeys.append('combined')
+        if (sorted(mkeys) != sorted(self.model_strings.keys())) or (sorted(
                     self.model_strings.keys()) != sorted(
                         self.summary_paths.keys())):
             raise Exception('problem parsing info from previous prior '
