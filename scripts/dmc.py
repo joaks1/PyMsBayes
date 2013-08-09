@@ -15,7 +15,7 @@ import datetime
 import logging
 
 from pymsbayes.fileio import expand_path, process_file_arg, open
-from pymsbayes.utils import GLOBAL_RNG, set_memory_trace
+from pymsbayes.utils import GLOBAL_RNG, set_memory_trace, MSBAYES_SORT_INDEX
 from pymsbayes.utils.messaging import get_logger, LOGGING_LEVEL_ENV_VAR
 from pymsbayes.utils.parsing import line_count
 from pymsbayes.config import MsBayesConfig
@@ -249,6 +249,8 @@ def main_cli():
     ##########################################################################
     ## handle args
 
+    MSBAYES_SORT_INDEX.set_index(args.sort_index)
+
     _LOG.setLevel(logging.INFO)
     os.environ[LOGGING_LEVEL_ENV_VAR] = "INFO"
     if args.quiet:
@@ -261,14 +263,12 @@ def main_cli():
     from pymsbayes.workers import (MsBayesWorker, merge_prior_files,
             ObsSumStatsWorker)
     from pymsbayes.teams import ABCTeam
-    from pymsbayes.utils import MSBAYES_SORT_INDEX
     from pymsbayes.utils.parsing import (get_patterns_from_prefixes,
         DEFAULT_STAT_PATTERNS, DIV_MODEL_PATTERNS, MODEL_PATTERNS, PSI_PATTERNS,
         MEAN_TAU_PATTERNS, OMEGA_PATTERNS)
     from pymsbayes.manager import Manager
     from pymsbayes.utils.tempfs import TempFileSystem
 
-    MSBAYES_SORT_INDEX.current = args.sort_index
     if len(args.observed_configs) != len(set(args.observed_configs)):
         raise ValueError('All paths to observed config files must be unique')
 
@@ -306,7 +306,8 @@ def main_cli():
     temp_fs = TempFileSystem(parent=args.temp_dir, prefix='temp-files-')
     base_temp_dir = temp_fs.base_dir
     info.write('\ttemp_directory = {0}\n'.format(base_temp_dir))
-    info.write('\tsort_index = {0}\n'.format(MSBAYES_SORT_INDEX.current_value))
+    info.write('\tsort_index = {0}\n'.format(
+            MSBAYES_SORT_INDEX.current_value()))
     if (args.reps < 1):
         info.write('\tsimulate_data = False\n')
     else:

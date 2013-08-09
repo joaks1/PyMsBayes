@@ -251,7 +251,7 @@ class ObsSumStatsWorker(Worker):
         if not exe_path:
             exe_path = get_tool_path('obssumstats')
         self.exe_path = expand_path(exe_path)
-        self.sort_index = MSBAYES_SORT_INDEX.current_value
+        self.sort_index = MSBAYES_SORT_INDEX.current_value()
         self.schema = schema.lower()
         if not self.schema in self.valid_schemas:
             raise ValueError('{0} is not a valid schema, options are: '
@@ -337,7 +337,7 @@ class MsBayesWorker(Worker):
         self.model_index = None
         if model_index != None:
             self.model_index = int(model_index)
-        self.sort_index = MSBAYES_SORT_INDEX.current_value
+        self.sort_index = MSBAYES_SORT_INDEX.current_value()
         self.report_parameters = report_parameters
         if seed is None:
             self.seed = get_random_int()
@@ -1280,7 +1280,7 @@ class PosteriorWorker(object):
         if not post.has_key('taus'):
             raise Exception('posterior sample in {0} does not contain a '
                     'divergence time vector'.format(self.posterior_path))
-        if MSBAYES_SORT_INDEX.current_value == 0:
+        if MSBAYES_SORT_INDEX.current_value() == 0:
             div_models = PartitionCollection(post['taus'])
         else:
             div_models = IntegerPartitionCollection(post['taus'])
@@ -1332,7 +1332,7 @@ class PosteriorWorker(object):
             self.unadjusted_summaries['PRI.model'] = get_summary(post['model'])
         self.unadjusted_summaries['PRI.div.model'] = get_summary(
                 post['div_model'])
-        if MSBAYES_SORT_INDEX.current_value == 0:
+        if MSBAYES_SORT_INDEX.current_value() == 0:
             for i in range(len(post['taus'][0])):
                 self.unadjusted_summaries['PRI.t.' + str(i+1)] = get_summary(
                         [v[i] for v in post['taus']])
@@ -1376,7 +1376,7 @@ class PosteriorWorker(object):
         all_patterns = set(MEAN_TAU_PATTERNS + OMEGA_PATTERNS + \
                 MODEL_PATTERNS + PSI_PATTERNS + DIV_MODEL_PATTERNS)
         # Adding tau parameters causes ABCEstimator to fail often
-        # if MSBAYES_SORT_INDEX.current_value == 0:
+        # if MSBAYES_SORT_INDEX.current_value() == 0:
         #     all_patterns.update(TAU_PATTERNS)
         parameter_patterns = sorted(list(all_patterns - \
                 self.parameter_patterns_to_remove))
