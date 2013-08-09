@@ -7,6 +7,7 @@ Main CLI for PyMsBayes package.
 import os
 import sys
 import re
+import glob
 import multiprocessing
 import random
 import argparse
@@ -276,7 +277,6 @@ def main_cli():
     previous_prior_dir = None
     if (len(args.prior_configs) == 1) and (is_dir(args.prior_configs[0])):
         previous_prior_dir = args.prior_configs.pop(0)
-        args.prior_configs = None
         previous_priors = glob.glob(os.path.join(previous_prior_dir,
                 '*-prior-sample.txt'))
         previous_sums = glob.glob(os.path.join(previous_prior_dir,
@@ -351,6 +351,7 @@ def main_cli():
         models_to_configs[model_idx] = args.prior_configs[i]
         configs_to_models[args.prior_configs[i]] = model_idx
         cfg = MsBayesConfig(args.prior_configs[i])
+        assert cfg.npairs > 0
         if not num_taxon_pairs:
             num_taxon_pairs = cfg.npairs
         else:
@@ -363,10 +364,14 @@ def main_cli():
 
     for config in args.observed_configs:
         cfg = MsBayesConfig(config)
-        if num_taxon_pairs != cfg.npairs:
-            raise ValueError('observed config {0} has {1} taxon pairs, whereas '
-                    'the prior configs have {2} pairs'.format(config,
-                            cfg.npairs, num_taxon_pairs))
+        assert cfg.npairs > 0
+        if not num_taxon_pairs:
+            num_taxon_pairs = cfg.npairs
+        else:
+            if num_taxon_pairs != cfg.npairs:
+                raise ValueError('observed config {0} has {1} taxon pairs, '
+                        'whereas the prior configs have {2} pairs'.format(
+                                config, cfg.npairs, num_taxon_pairs))
 
     ##########################################################################
     ## begin analysis --- get observed summary stats
