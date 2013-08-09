@@ -31,3 +31,7 @@ def output_stream(filename):
 
 def bin_path(exe_name):
     return os.path.join(BIN_DIR, exe_name)
+
+def script_path(filename=""):
+    return os.path.join(SCRIPTS_DIR, filename)
+
