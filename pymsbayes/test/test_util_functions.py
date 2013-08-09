@@ -19,6 +19,7 @@ class MsBayesSortIndexTestCase(unittest.TestCase):
         for i in range(8):
             MSBAYES_SORT_INDEX.set_index(i)
             self.assertEqual(MSBAYES_SORT_INDEX.current_value(), i)
+        MSBAYES_SORT_INDEX.set_index(7)
 
     def test_invalid_value(self):
         self.assertRaises(Exception, MSBAYES_SORT_INDEX.set_index, -1)

@@ -2870,6 +2870,8 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
             self.assertTrue(d['count'] <= current_count)
             current_count = d['count']
 
+        MSBAYES_SORT_INDEX.set_index(7)
+
 if __name__ == '__main__':
     unittest.main()
 
