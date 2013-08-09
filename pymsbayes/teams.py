@@ -931,6 +931,7 @@ class ABCTeam(object):
             prior_paths = dict(zip(self.models.iterkeys(),
                     [[self.models[k]] for k in self.models.iterkeys()]))
             self._run_rejection_workers(prior_paths, remove_files = False)
+            self.iter_count += 1
 
         else:
             self._process_prior_summary_workers(run_rejection = True,
