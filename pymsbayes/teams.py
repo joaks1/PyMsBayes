@@ -143,7 +143,7 @@ class ABCTeam(object):
             self.num_batches = 0
             self.num_extra_samples = 0
             self.num_batches_remaining = 0
-            self.num_prior_batch_iters = 0
+            self.num_prior_batch_iters = 1
             self.reporting_frequency = None
             self.reporting_indices = None
         else:
@@ -179,9 +179,11 @@ class ABCTeam(object):
             self.num_prior_batch_iters = int(math.ceil(
                     (self.num_prior_samples - (int(math.ceil(
                         self.num_standardizing_samples / float(self.batch_size))) \
-                                * batch_size)) / 
+                                * self.batch_size)) / 
                     float(self.batch_size * self.num_processors)
                 ))
+            if self.num_prior_batch_iters < 1:
+                self.num_prior_batch_iters = 1
             self.reporting_frequency = reporting_frequency
             self.reporting_indices = None
             if self.reporting_frequency and self.reporting_frequency > 0:
