@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 
 import os
+import sys
+import subprocess
 import unittest
 from cStringIO import StringIO
 import re
@@ -60,6 +62,35 @@ class PyMsBayesTestCase(unittest.TestCase):
             for d in dirs:
                 if d.startswith(self.test_id):
                     self.register_dir(os.path.join(path, d))
+
+    def _exe_script(self, script_name, args, stdout = None, stderr = None,
+            return_code = 0):
+        script_path = package_paths.script_path(script_name)
+        if isinstance(args, str):
+            arg_list = args.split()
+        else:
+            arg_list = args
+        arg_list = [str(x) for x in arg_list]
+        cmd = [sys.executable, script_path] + arg_list
+        _LOG.debug('Invocation:\n\t{0}'.format(' '.join(cmd)))
+        p = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+        o, e  = p.communicate()
+        exit_code = p.wait()
+        if exit_code != return_code:
+            _LOG.error("exit code {0} did not match {1}".format(exit_code,
+                    return_code))
+            _LOG.error("here is the stdout:\n{0}".format(o))
+            _LOG.error("here is the stderr:\n{0}".format(e))
+        self.assertEqual(exit_code, return_code)
+        if stdout != None:
+            if o != stdout:
+                _LOG.error("std out did not match expected:\n{0}".format(o))
+            self.assertEqual(o, stdout)
+        if stderr != None:
+            if e != stderr:
+                _LOG.error("std error did not match expected:\n{0}".format(e))
+            self.assertEqual(e, stderr)
 
     def get_expected_indices(self, num_pairs, dummy_column=True,
             parameters_reported=True):
