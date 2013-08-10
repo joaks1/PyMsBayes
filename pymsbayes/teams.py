@@ -721,6 +721,138 @@ class ABCTeam(object):
                 if posterior_workers:
                     yield posterior_workers
     
+    def _run_rejection_on_provided_priors(self, remove_files = True):
+        for k in self.num_samples_processed.iterkeys():
+            self.num_samples_processed[k] = 0
+        for observed_idx, n_observed in self.n_observed_map.iteritems():
+            for i in range(0, n_observed, self.num_processors):
+                rejection_workers = []
+                global_rejection_workers = []
+                for j in range(i, i + self.num_processors):
+                    if j >= n_observed:
+                        break
+                    obs_path, post_paths = self.get_observed_posterior_paths(
+                            observed_idx,
+                            j,
+                            per_processor = False)
+                    combined_post_paths = None
+                    if post_paths.has_key('combined'):
+                        combined_post_paths = post_paths.pop('combined')
+                        assert len(combined_post_paths) == 1
+                    if self.global_estimate_only:
+                        post_paths = {'combined': combined_post_paths}
+                        combined_post_paths = None
+                    for model_idx, p_paths in post_paths.iteritems():
+                        assert len(p_paths) == 1
+                        p_path = p_paths[0]
+                        fname_parts = os.path.basename(p_path).split('-')
+                        if model_idx == 'combined':
+                            fname_prefix = self.output_prefix + \
+                                    '-'.join(fname_parts[1:5] + \
+                                            [str(self.num_prior_batch_iters)])
+                        else:
+                            fname_prefix = self.output_prefix + \
+                                    '-'.join(fname_parts[1:4] + \
+                                            [str(self.num_prior_batch_iters)])
+                        out_prefix = os.path.join(
+                                self.model_dirs[observed_idx][model_idx],
+                                fname_prefix)
+                        post_out_path = out_prefix + '-posterior-sample.txt'
+                        if model_idx == 'combined':
+                            model_indices = self.models.keys()
+                        else:
+                            model_indices = [model_idx]
+                        pw = PosteriorWorker(
+                                temp_fs = self.temp_fs,
+                                observed_path = obs_path,
+                                posterior_path = p_path,
+                                num_taxon_pairs = self.num_taxon_pairs,
+                                posterior_out_path = post_out_path,
+                                output_prefix = out_prefix,
+                                model_indices = model_indices,
+                                abctoolbox_exe_path = self.abctoolbox_exe_path,
+                                abctoolbox_num_posterior_quantiles = \
+                                        self.num_posterior_density_quantiles,
+                                omega_threshold = self.omega_threshold,
+                                compress = self.compress,
+                                keep_temps = self.keep_temps,
+                                tag = model_idx)
+                        rw = EuRejectWorker(
+                                temp_fs = self.temp_fs,
+                                observed_path = obs_path,
+                                prior_paths = [self.models[model_idx]],
+                                num_posterior_samples = \
+                                        self.num_posterior_samples,
+                                num_standardizing_samples = 0,
+                                summary_in_path = \
+                                        self.summary_paths[model_idx],
+                                summary_out_path = None,
+                                posterior_path = p_path,
+                                regression_worker = pw,
+                                exe_path = self.eureject_exe_path,
+                                keep_temps = self.keep_temps,
+                                tag = model_idx)
+                        rejection_workers.append(rw)
+                    if combined_post_paths and self.global_estimate:
+                        p_path = combined_post_paths[0]
+                        model_idx = 'combined'
+                        fname_parts = os.path.basename(p_path).split('-')
+                        fname_prefix = self.output_prefix + \
+                                '-'.join(fname_parts[1:5] + \
+                                        [str(self.num_prior_batch_iters)])
+                        out_prefix = os.path.join(
+                                self.model_dirs[observed_idx][model_idx],
+                                fname_prefix)
+                        post_out_path = out_prefix + '-posterior-sample.txt'
+                        model_indices = self.models.keys()
+                        prior_paths = [pp[0] for pp in post_paths.itervalues()]
+                        pw = PosteriorWorker(
+                                temp_fs = self.temp_fs,
+                                observed_path = obs_path,
+                                posterior_path = p_path,
+                                num_taxon_pairs = self.num_taxon_pairs,
+                                posterior_out_path = post_out_path,
+                                output_prefix = out_prefix,
+                                model_indices = model_indices,
+                                abctoolbox_exe_path = self.abctoolbox_exe_path,
+                                abctoolbox_num_posterior_quantiles = \
+                                        self.num_posterior_density_quantiles,
+                                omega_threshold = self.omega_threshold,
+                                compress = self.compress,
+                                keep_temps = self.keep_temps,
+                                tag = model_idx)
+                        rw = EuRejectWorker(
+                                temp_fs = self.temp_fs,
+                                observed_path = obs_path,
+                                prior_paths = prior_paths,
+                                num_posterior_samples = \
+                                        self.num_posterior_samples,
+                                num_standardizing_samples = 0,
+                                summary_in_path = \
+                                        self.summary_paths[model_idx],
+                                summary_out_path = None,
+                                posterior_path = p_path,
+                                regression_worker = pw,
+                                exe_path = self.eureject_exe_path,
+                                keep_temps = self.keep_temps,
+                                tag = model_idx)
+                        global_rejection_workers.append(rw)
+                if rejection_workers:
+                    _LOG.debug('{0}\n'.format(len(rejection_workers)))
+                    rejection_workers = self._run_workers(rejection_workers)
+                    for rw in rejection_workers:
+                        self.num_samples_processed[rw.tag] += \
+                                rw.num_processed
+                if global_rejection_workers:
+                    _LOG.debug('{0}\n'.format(len(global_rejection_workers)))
+                    global_rejection_workers = self._run_workers(
+                            global_rejection_workers)
+                if remove_files:
+                    for rw in rejection_workers:
+                        self.temp_fs.remove_file(rw.posterior_path)
+                    for rw in global_rejection_workers:
+                        self.temp_fs.remove_file(rw.posterior_path)
+
     def _run_workers(self, workers, queue_max = 500):
         finished = []
         for w_list in list_splitter(workers, queue_max, by_size = True):
@@ -931,11 +1063,11 @@ class ABCTeam(object):
 
     def _run_full_analysis(self):
         if self.use_previous_priors:
-            _LOG.info('Running rejection on provided priors')
-            prior_paths = dict(zip(self.models.iterkeys(),
-                    [[self.models[k]] for k in self.models.iterkeys()]))
-            self._run_rejection_workers(prior_paths, remove_files = False)
+            _LOG.info('Running full analyses on provided priors...')
+            self._run_rejection_on_provided_priors()
             self.iter_count += 1
+            self.finished = True
+            return
 
         else:
             self._process_prior_summary_workers(run_rejection = True,
