@@ -365,8 +365,10 @@ class ABCTeam(object):
                         register = False)
                 sum_worker = EuRejectWorker(
                         temp_fs = self.temp_fs,
-                        observed_path = self.observed_stats_paths[
-                                min(self.observed_stats_paths.iterkeys())],
+                        observed_path = self.get_observed_path(
+                                observed_index = min(
+                                        self.observed_stats_paths.iterkeys()),
+                                simulation_index = 0),
                         prior_paths = [prior_path],
                         posterior_path = post_path,
                         num_posterior_samples = 0,
@@ -420,8 +422,10 @@ class ABCTeam(object):
                         register = False)
                 sum_worker = EuRejectWorker(
                         temp_fs = self.temp_fs,
-                        observed_path = self.observed_stats_paths[
-                                min(self.observed_stats_paths.iterkeys())],
+                        observed_path = self.get_observed_path(
+                                observed_index = min(
+                                        self.observed_stats_paths.iterkeys()),
+                                simulation_index = 0),
                         prior_paths = [prior_path],
                         posterior_path = post_path,
                         num_posterior_samples = 0,
