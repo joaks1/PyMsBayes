@@ -1,8 +1,15 @@
 Overview
 ========
 
-PyMsBayes is a multi-processing Python wrapper around the popular comparative
+PyMsBayes is a multi-processing Python API for approximate Bayesian computation
+(ABC), and provides a multi-processing interface to the comparative
 phylogeographic software package, msBayes.
+
+Binaries of the following tools come bundled with PyMsBayes:
+
+ *  msBayes (<http://msbayes.sourceforge.net/>)
+ *  ABCtoolbox (<http://www.cmpg.iee.unibe.ch/content/softwares__services/computer_programs/abctoolbox/index_eng.html>)
+ *  EuReject of the ABACUS package (<https://github.com/joaks1/abacus.git>)
 
 Requirements
 ============
@@ -30,18 +37,26 @@ To run the test suite, use:
 
 If you plan to develop the code, install via:
 
-    $ python setup.py develop
+$ python setup.py develop
 
 Citing PyMsBayes
 ================
 
-Any publication resulting from the use of PyMsBayes should cite the paper
-describing the msBayes package:
+If you publish results obtained using this software, please cite the software
+and the appropriate citations for the bundled tools that were used:
 
-> Huang, W., N. Takebayashi, Y. Qi, and M. J. Hickerson, 2011. MTML-msBayes:
-> Approximate Bayesian comparative phylogeographic inference from multiple taxa
-> and multiple loci with rate heterogeneity. BMC Bioinformatics 12:1.
-       
+ *  msBayes:
+
+    > Huang, W., N. Takebayashi, Y. Qi, and M. J. Hickerson, 2011.
+    > MTML-msBayes: Approximate Bayesian comparative phylogeographic
+    > inference from multiple taxa and multiple loci with rate
+    > heterogeneity. BMC Bioinformatics 12:1.
+
+ *  ABCtoolbox:
+
+    > Wegmann, D., C. Leuenberger, S. Neuenschwander, and L.
+    > Excoffier, 2010. ABCtoolbox: a versatile toolkit for approximate Bayesian
+    > computations. BMC Bioinformatics 11:116.
 
 License
 =======
