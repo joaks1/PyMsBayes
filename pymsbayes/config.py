@@ -85,6 +85,17 @@ class MsBayesConfig(object):
             if r:
                 taxa.add(r.split()[0])
         self.npairs = len(taxa)
+    
+    def _get_gamma_or_uniform_distribution(self, shape, scale):
+        if shape > 0.0 and scale > 0.0:
+            return GammaDistribution(shape, scale)
+        else:
+            a = math.fabs(shape)
+            b = math.fabs(scale)
+            if a < b:
+                return ContinuousUniformDistribution(a, b)
+            else:
+                return ContinuousUniformDistribution(b, a)
 
     def _set_priors(self, preamble):
         kwargs = self._parse_preamble(preamble)
@@ -120,15 +131,8 @@ class MsBayesConfig(object):
 
             tau_shape = float(kwargs.get('taushape', 1.0))
             tau_scale = float(kwargs.get('tauscale', 2.0))
-            if tau_shape > 0.0 and tau_scale > 0.0:
-                self.tau = GammaDistribution(tau_shape, tau_scale)
-            else:
-                a = math.fabs(tau_shape)
-                b = math.fabs(tau_scale)
-                if a < b:
-                    self.tau = ContinuousUniformDistribution(a, b)
-                else:
-                    self.tau = ContinuousUniformDistribution(b, a)
+            self.tau = self._get_gamma_or_uniform_distribution(tau_shape,
+                    tau_scale)
             theta_shape = float(kwargs.get('thetashape', 1.0))
             theta_scale = float(kwargs.get('thetascale', 0.001))
             anc_theta_shape = float(kwargs.get('ancestralthetashape', 0.0))
@@ -136,13 +140,17 @@ class MsBayesConfig(object):
             theta_params = kwargs.get('thetaparameters', '012')
             self.theta_parameters = [int(i) for i in list(theta_params)]
             self.theta = None
-            self.d_theta = GammaDistribution(theta_shape, theta_scale)
+            self.d_theta = self._get_gamma_or_uniform_distribution(theta_shape,
+                    theta_scale)
             if ((anc_theta_shape > 0.0) and (anc_theta_scale > 0.0)) and (
                     (theta_params == '001') or (theta_params == '012')):
-                self.a_theta = GammaDistribution(anc_theta_shape,
+                self.a_theta = self._get_gamma_or_uniform_distribution(
+                        anc_theta_shape,
                         anc_theta_scale)
             else:
-                self.a_theta = GammaDistribution(theta_shape, theta_scale)
+                self.a_theta = self._get_gamma_or_uniform_distribution(
+                        theta_shape,
+                        theta_scale)
             mig_shape = float(kwargs.get('migrationshape', 0.0))
             mig_scale = float(kwargs.get('migrationscale', 0.0))
             if (mig_shape > 0.0) and (mig_scale > 0.0):
