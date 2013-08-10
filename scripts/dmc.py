@@ -477,7 +477,7 @@ def main_cli():
 
         # merge simulated observed data into one file
         for i in range(len(args.observed_configs)):
-            merge_prior_files([w.prior_stats_path for w in workers[i]],
+            merge_prior_files([w.prior_path for w in workers[i]],
                     observed_paths[i])
             lc = line_count(observed_paths[i], ignore_headers=True)
             if lc != args.reps:
