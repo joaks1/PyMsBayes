@@ -1003,6 +1003,68 @@ subParamConstrain = 111111111
         for t in self.samples['taus']:
             self.assertEqual(len(set(t)), 4)
 
+    def test_new_uniform_psi_constrained_with_uniform_tau_and_theta(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
+        self.preamble = """
+concentrationShape = -1
+concentrationScale = -1
+thetaShape = 0.0
+thetaScale = 0.01
+ancestralThetaShape = 0
+ancestralThetaScale = 0.005
+thetaParameters = 012
+tauShape = 0
+tauScale = 4.0
+bottleProportionShapeA = 1
+bottleProportionShapeB = 1
+bottleProportionShared = 0
+numTauClasses = 0
+migrationShape = 0
+migrationScale = 0
+recombinationShape = 0
+recombinationScale = 0
+constrain = 0
+subParamConstrain = 111111111
+"""
+
+        self.generate_prior(sample_size=1000, batch_size=250, np=4)
+        self.assertFalse(self.samples == None)
+        d_theta = ContinuousUniformDistribution(0.0, 0.01)
+        a_theta = ContinuousUniformDistribution(0.0, 0.005)
+        tau = ContinuousUniformDistribution(0.0, 4.0)
+        not_equal_failures = 0
+        for i in range(1000):
+            for j in range(4):
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d1_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['d1_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+        self.assertTrue(not_equal_failures < 10)
+        d_theta_ss = SampleSummarizer(self.samples['all_d1_thetas'] + \
+                self.samples['all_d2_thetas'])
+        a_theta_ss = SampleSummarizer(
+                self.samples['all_a_thetas'])
+        tau_ss = SampleSummarizer(self.samples['unique_taus'])
+        self.assertAlmostEqual(tau_ss.mean, tau.mean, places=0)
+        self.assertAlmostEqual(tau_ss.variance, tau.variance, places=0)
+        self.assertAlmostEqual(d_theta_ss.mean, d_theta.mean, places=2)
+        self.assertAlmostEqual(d_theta_ss.variance, d_theta.variance, places=2)
+        self.assertAlmostEqual(a_theta_ss.mean, a_theta.mean, places=2)
+        self.assertAlmostEqual(a_theta_ss.variance, a_theta.variance, places=2)
+        psi_freqs = get_freqs(self.samples['psi'])
+        for psi, freq in psi_freqs.iteritems():
+            self.assertAlmostEqual(freq, 0.25, places=1)
+
 if __name__ == '__main__':
     unittest.main()
 
