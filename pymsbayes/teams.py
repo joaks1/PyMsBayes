@@ -838,13 +838,11 @@ class ABCTeam(object):
                                 tag = model_idx)
                         global_rejection_workers.append(rw)
                 if rejection_workers:
-                    _LOG.debug('{0}\n'.format(len(rejection_workers)))
                     rejection_workers = self._run_workers(rejection_workers)
                     for rw in rejection_workers:
                         self.num_samples_processed[rw.tag] += \
                                 rw.num_processed
                 if global_rejection_workers:
-                    _LOG.debug('{0}\n'.format(len(global_rejection_workers)))
                     global_rejection_workers = self._run_workers(
                             global_rejection_workers)
                 if remove_files:
