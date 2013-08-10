@@ -37,7 +37,7 @@ To run the test suite, use:
 
 If you plan to develop the code, install via:
 
-$ python setup.py develop
+    $ python setup.py develop
 
 Citing PyMsBayes
 ================
