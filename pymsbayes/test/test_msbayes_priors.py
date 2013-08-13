@@ -57,7 +57,6 @@ class PriorTestCase(PyMsBayesTestCase):
                     sample_size = batch_size,
                     config_path = self.cfg_path,
                     schema = 'abctoolbox')
-            WORK_FORCE.put(w)
             workers.append(w)
         if remainder > 0:
             w = MsBayesWorker(
@@ -65,22 +64,11 @@ class PriorTestCase(PyMsBayesTestCase):
                     sample_size = remainder,
                     config_path = self.cfg_path,
                     schema = 'abctoolbox')
-            WORK_FORCE.put(w)
             workers.append(w)
 
-        result_q = multiprocessing.Queue()
-        managers = []
-        for i in range(np):
-            m = Manager(work_queue = WORK_FORCE,
-                    result_queue = result_q)
-            m.start()
-            managers.append(m)
-        for i in range(len(workers)):
-            workers[i] = result_q.get()
-        for m in managers:
-            m.join()
-        assert WORK_FORCE.empty()
-        assert result_q.empty()
+        workers = Manager.run_workers(
+            workers = workers,
+            num_processors = np)
         
         merge_prior_files([w.prior_path for w in workers], self.prior_path)
         self.samples = parse_parameters(self.prior_path, include_thetas=True)
@@ -1285,6 +1273,154 @@ subParamConstrain = 111111111
         self.assertAlmostEqual(d_theta_ss.variance, d_theta.variance, places=2)
         self.assertAlmostEqual(a_theta_ss.mean, a_theta.mean, places=1)
         self.assertAlmostEqual(a_theta_ss.variance, a_theta.variance, places=1)
+
+    def test_old_case_insensitive(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
+        self.preamble = """
+Uppertheta = 0.1
+LowerthetA = 0.0001
+UPPERTAU = 10.0
+lowertau = 5.0
+NUMTaucLasses = 0
+uppermig = 0
+UPPERREC = 0
+upperAncPoPsIze = 1.0
+constraiN = 0
+SUBParaMconstrain = 111111111
+"""
+
+        self.generate_prior(sample_size=1000, batch_size=250, np=4)
+        self.assertFalse(self.samples == None)
+        theta = ContinuousUniformDistribution(0.0001, 0.1)
+        tau = ContinuousUniformDistribution(5.0, 10.0)
+        a_theta_ss = SampleSummarizer(self.samples['all_a_thetas'])
+        d_theta_ss = SampleSummarizer(self.samples['mean_d_thetas'])
+        tau_ss = SampleSummarizer(self.samples['unique_taus'])
+        self.assertAlmostEqual(tau_ss.mean, tau.mean, places=1)
+        self.assertAlmostEqual(tau_ss.variance, tau.variance, places=0)
+        self.assertAlmostEqual(a_theta_ss.mean, theta.mean, places=2)
+        self.assertAlmostEqual(d_theta_ss.mean, theta.mean, places=2)
+        self.assertAlmostEqual(a_theta_ss.variance, theta.variance, places=4)
+        self.assertAlmostEqual(d_theta_ss.variance, theta.variance, places=4)
+        psi_freqs = get_freqs(self.samples['psi'])
+        for psi, freq in psi_freqs.iteritems():
+            self.assertAlmostEqual(freq, 0.25, places=1)
+
+    def test_new_case_insensitive(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
+        self.preamble = """
+CONCENTRATIONsHAPE = -1
+CONCENTRATIONsCALE = -1
+thetashape = 2.0
+THETASCALE = 0.001
+ANCESTRALtHETAsHAPE = 0
+ANCESTRALTHETASCALE = 0
+thetaparameters = 012
+TAUSHAPE = 0
+tauscale = 4.0
+BOTTLEpROPORTIONsHAPEa = 1
+BOTTLEpROPORTIONsHAPEb = 1
+bottleproportionshared = 0
+NUMTAUCLASSES = 0
+MIGRATIONsHAPE = 0
+MIGRATIONsCALE = 0
+RECOMBINATIONSHAPE = 0
+recombinationscale = 0
+CONSTRAIN = 0
+SUBPARAMCONSTRAIN = 111111111
+"""
+
+        self.generate_prior(sample_size=1000, batch_size=250, np=4)
+        self.assertFalse(self.samples == None)
+        d_theta = GammaDistribution(2.0, 0.001)
+        a_theta = GammaDistribution(2.0, 0.001)
+        not_equal_failures = 0
+        for i in range(1000):
+            for j in range(4):
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d1_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['a_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+                if self.samples['d1_thetas'][i][j] == \
+                        self.samples['d2_thetas'][i][j]:
+                    not_equal_failures += 1
+        self.assertTrue(not_equal_failures < 10)
+        d_theta_ss = SampleSummarizer(self.samples['all_d1_thetas'] + \
+                self.samples['all_d2_thetas'])
+        a_theta_ss = SampleSummarizer(
+                self.samples['all_a_thetas'])
+        self.assertAlmostEqual(d_theta_ss.mean, d_theta.mean, places=2)
+        self.assertAlmostEqual(d_theta_ss.variance, d_theta.variance, places=2)
+        self.assertAlmostEqual(a_theta_ss.mean, a_theta.mean, places=2)
+        self.assertAlmostEqual(a_theta_ss.variance, a_theta.variance, places=2)
+
+    def test_old_invalid_error(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
+        self.preamble = """
+Uppertheta = 0.1
+LowerthetA = 0.0001
+UPPERTAU = 10.0
+lowertauu= 5.0
+NUMTaucLasses = 0
+uppermig = 0
+UPPERREC = 0
+upperAncPoPsIze = 1.0
+constraiN = 0
+SUBParaMconstrain = 111111111
+"""
+
+        self.assertRaises(WorkerExecutionError, self.generate_prior,
+                sample_size=1000, batch_size=250, np=4)
+
+    def test_new_invalid_error(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
+        self.preamble = """
+CONCENTRATIONsHAPE = -1
+CONCENTRATIONsCALE = -1
+thetashape = 2.0
+THETASCALE = 0.001
+ANCESTRALtHETAsHAPE = 0
+ANCESTRALTHETASCALE = 0
+thetaparameters = 012
+TAUSHAPE = 0
+tauscale = 4.0
+BOTTLEpROPORTIONsHAPEa = 1
+BOTTLEpROPORTIONsHAPEb = 1
+bottleproportionshared = 0
+NUMTAUCLASSES = 0
+MIGRATIONsHAPE = 0
+MIGRATIONsCALE = 0
+RECOMBINATIONSHAPE = 0
+recombinationscale = 0
+CONSTRAIN = 0
+SUBPARAMCONSTRAN = 111111111
+"""
+
+        self.assertRaises(WorkerExecutionError, self.generate_prior,
+                sample_size=1000, batch_size=250, np=4)
+
 
 if __name__ == '__main__':
     unittest.main()
