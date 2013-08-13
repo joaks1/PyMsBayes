@@ -62,8 +62,7 @@ class ABCTeam(object):
             reporting_frequency = None,
             global_estimate = True,
             global_estimate_only = False,
-            generate_prior_samples_only = False,
-            work_queue = WORK_FORCE):
+            generate_prior_samples_only = False):
         if ((config_paths) and (previous_prior_dir)) or \
                 ((not config_paths) and (not previous_prior_dir)):
             raise ValueError('`config_paths` or `previous_prior_dir` must '
@@ -206,8 +205,6 @@ class ABCTeam(object):
                 [0 for i in self.observed_stats_paths.iterkeys()]))
         self._parse_observed_paths()
         self.keep_temps = keep_temps
-        self.work_queue = work_queue
-        self.result_queue = multiprocessing.Queue()
         self.duplicate_rejection_workers = False
         if (self.num_observed < 2) and (self.num_processors > 1) and \
                 (not self.use_previous_priors):
@@ -852,30 +849,10 @@ class ABCTeam(object):
                         self.temp_fs.remove_file(rw.posterior_path)
 
     def _run_workers(self, workers, queue_max = 500):
-        finished = []
-        for w_list in list_splitter(workers, queue_max, by_size = True):
-            assert self.work_queue.empty()
-            assert self.result_queue.empty()
-            for w in w_list:
-                self.work_queue.put(w)
-            managers = []
-            for i in range(self.num_processors):
-                m = Manager(work_queue = self.work_queue,
-                        result_queue = self.result_queue)
-                managers.append(m)
-            for i in range(len(managers)):
-                managers[i].start()
-            for i in range(len(w_list)):
-                _LOG.debug('{0}: getting result...'.format(self.name))
-                w_list[i] = self.result_queue.get()
-                _LOG.debug('{0}: got result {1}'.format(self.name,
-                        getattr(w_list[i], 'name', 'nameless')))
-            for i in range(len(managers)):
-                managers[i].join()
-            assert self.work_queue.empty()
-            assert self.result_queue.empty()
-            finished.extend(w_list)
-        return finished
+        return Manager.run_workers(
+            workers = workers,
+            num_processors = self.num_processors,
+            queue_max = queue_max)
 
     def _run_prior_summary_workers(self):
         workers = self._run_workers(list(self.prior_summary_worker_iter))
