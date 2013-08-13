@@ -7,6 +7,7 @@ import Queue
 import time
 
 from pymsbayes.utils import WORK_FORCE
+from pymsbayes.utils.functions import list_splitter
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -115,4 +116,46 @@ class Manager(multiprocessing.Process):
         if self.killed:
             self.send_error('manager was killed!')
         self.send_debug('end run')
+
+    @classmethod
+    def run_workers(cls,
+            workers,
+            num_processors,
+            get_timeout = 0.4,
+            put_timeout = 0.2,
+            queue_max = 500):
+        work_queue = WORK_FORCE
+        result_queue = multiprocessing.Queue()
+        finished = []
+        for w_list in list_splitter(workers, queue_max, by_size = True):
+            assert work_queue.empty()
+            assert result_queue.empty()
+            for w in w_list:
+                work_queue.put(w)
+            managers = []
+            for i in range(num_processors):
+                m = cls(work_queue = work_queue,
+                        result_queue = result_queue,
+                        get_timeout = get_timeout,
+                        put_timeout = put_timeout)
+                managers.append(m)
+            for i in range(len(managers)):
+                managers[i].start()
+            for i in range(len(w_list)):
+                _LOG.debug('Manager.run_workers: getting result...')
+                w_list[i] = result_queue.get()
+                _LOG.debug('Manager.run_workers: got result {0}'.format(
+                        getattr(w_list[i], 'name', 'nameless')))
+            for i in range(len(managers)):
+                managers[i].join()
+            for w in w_list:
+                if getattr(w, "error", None):
+                    _LOG.error('Worker {0} returned with an error:\n{1}'.format(
+                            getattr(w, 'name', 'nameless'),
+                            w.trace_back))
+                    raise w.error
+            assert work_queue.empty()
+            assert result_queue.empty()
+            finished.extend(w_list)
+        return finished
 
