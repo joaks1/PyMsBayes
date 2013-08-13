@@ -51,6 +51,8 @@ class Worker(object):
         self.stdout = None
         self.stderr = None
         self.append_stdout = append_stdout
+        self.error = None
+        self.trace_back = None
         self.tag = tag
 
     def get_stderr(self):
@@ -66,6 +68,15 @@ class Worker(object):
         return msg
 
     def start(self):
+        try:
+            self._start()
+        except Exception as e:
+            self.error = e
+            f = StringIO()
+            traceback.print_exc(file=f)
+            self.trace_back = f.getvalue()
+
+    def _start(self):
         try:
             self._pre_process()
         except:
