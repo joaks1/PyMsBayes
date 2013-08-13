@@ -379,8 +379,6 @@ def main_cli():
 
     set_memory_trace() # start logging memory profile
     start_time = datetime.datetime.now()
-    job_q = multiprocessing.Queue()
-    result_q = multiprocessing.Queue()
 
     obs_temp_dir = base_temp_dir
     if args.staging_dir:
@@ -398,20 +396,12 @@ def main_cli():
                     output_path = observed_paths[i],
                     schema = 'abctoolbox',
                     stat_patterns = stat_patterns)
-            job_q.put(ss_worker)
             obs_workers.append(ss_worker)
-        managers = []
-        for i in range(args.np):
-            m = Manager(work_queue = job_q,
-                    result_queue = result_q)
-            m.start()
-            managers.append(m)
-        for i in range(len(obs_workers)):
-            obs_workers[i] = result_q.get()
-        for m in managers:
-            m.join()
-        assert job_q.empty()
-        assert result_q.empty()
+
+        obs_workers = Manager.run_workers(
+            workers = obs_workers,
+            num_processors = args.np)
+
     else:
         _LOG.info('Simulating summary statistics from observed configs...')
         num_observed_workers = min([args.reps, args.np])
@@ -438,7 +428,6 @@ def main_cli():
                         write_stats_file = True,
                         staging_dir = None,
                         tag = idx)
-                job_q.put(worker)
                 msbayes_workers.append(worker)
             if remainder > 0:
                 worker = MsBayesWorker(
@@ -453,22 +442,12 @@ def main_cli():
                         write_stats_file = True,
                         staging_dir = None,
                         tag = idx)
-                job_q.put(worker)
                 msbayes_workers.append(worker)
 
         # run parallel msbayes processes
-        msbayes_managers = []
-        for i in range(args.np):
-            m = Manager(work_queue = job_q,
-                    result_queue = result_q)
-            m.start()
-            msbayes_managers.append(m)
-        for i in range(len(msbayes_workers)):
-            msbayes_workers[i] = result_q.get()
-        for m in msbayes_managers:
-            m.join()
-        assert job_q.empty()
-        assert result_q.empty()
+        msbayes_workers = Manager.run_workers(
+            workers = msbayes_workers,
+            num_processors = args.np)
 
         workers = dict(zip(range(len(args.observed_configs)),
                 [[] for i in range(len(args.observed_configs))]))
@@ -518,8 +497,7 @@ def main_cli():
             keep_temps = args.keep_temps,
             global_estimate_only = False,
             global_estimate = not args.no_global_estimate,
-            generate_prior_samples_only = args.generate_samples_only,
-            work_queue = job_q)
+            generate_prior_samples_only = args.generate_samples_only)
     abc_team.run()
 
     stop_time = datetime.datetime.now()
