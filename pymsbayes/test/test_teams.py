@@ -440,8 +440,6 @@ class ABCTeamTestCase(PyMsBayesTestCase):
 
         MsBayesWorker.count = 1
         self.rng.seed(self.seed)
-        work_q = multiprocessing.Queue()
-        result_q = multiprocessing.Queue()
         prior_workers = []
         for i in range(num_batches):
             prior_workers.append(MsBayesWorker(
@@ -452,18 +450,9 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                     seed = get_random_int(self.rng),
                     schema = 'abctoolbox',
                     tag = 1))
-        for w in prior_workers:
-            work_q.put(w)
-        managers = []
-        for i in range(num_processors):
-            m = Manager(work_queue = work_q,
-                    result_queue = result_q)
-            m.start()
-            managers.append(m)
-        for i in range(len(prior_workers)):
-            prior_workers[i] = result_q.get()
-        for m in managers:
-            m.join()
+        prior_workers = Manager.run_workers(
+                workers = prior_workers,
+                num_processors = num_processors)
         post_path = self.get_test_path(prefix='sum-post')
         sum_out_path = self.get_test_path(prefix='summary')
         sum_worker = EuRejectWorker(
@@ -587,8 +576,6 @@ class ABCTeamTestCase(PyMsBayesTestCase):
 
         MsBayesWorker.count = 1
         self.rng.seed(self.seed)
-        work_q = multiprocessing.Queue()
-        result_q = multiprocessing.Queue()
         prior_workers = []
         for i in range(num_batches):
             prior_workers.append(MsBayesWorker(
@@ -599,18 +586,9 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                     seed = get_random_int(self.rng),
                     schema = 'abctoolbox',
                     tag = 1))
-        for w in prior_workers:
-            work_q.put(w)
-        managers = []
-        for i in range(num_processors):
-            m = Manager(work_queue = work_q,
-                    result_queue = result_q)
-            m.start()
-            managers.append(m)
-        for i in range(len(prior_workers)):
-            prior_workers[i] = result_q.get()
-        for m in managers:
-            m.join()
+        prior_workers = Manager.run_workers(
+                workers = prior_workers,
+                num_processors = num_processors)
         expected_prior_path = self.get_test_path(prefix='expected-prior')
         merge_prior_files(
                 paths = [pw.prior_path for pw in prior_workers],
@@ -686,8 +664,6 @@ class ABCTeamTestCase(PyMsBayesTestCase):
 
         MsBayesWorker.count = 1
         self.rng.seed(self.seed)
-        work_q = multiprocessing.Queue()
-        result_q = multiprocessing.Queue()
         prior_workers = []
         for i in range(num_batches):
             prior_workers.append(MsBayesWorker(
@@ -698,18 +674,9 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                     seed = get_random_int(self.rng),
                     schema = 'abctoolbox',
                     tag = 1))
-        for w in prior_workers:
-            work_q.put(w)
-        managers = []
-        for i in range(num_processors):
-            m = Manager(work_queue = work_q,
-                    result_queue = result_q)
-            m.start()
-            managers.append(m)
-        for i in range(len(prior_workers)):
-            prior_workers[i] = result_q.get()
-        for m in managers:
-            m.join()
+        prior_workers = Manager.run_workers(
+                workers = prior_workers,
+                num_processors = num_processors)
         post_path = self.get_test_path(prefix='sum-post')
         sum_out_path = self.get_test_path(prefix='summary')
         sum_worker = EuRejectWorker(
