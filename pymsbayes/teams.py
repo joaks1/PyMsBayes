@@ -981,7 +981,7 @@ class ABCTeam(object):
         for k, summary in summaries.iteritems():
             summary.write(self.summary_paths[k])
 
-    def _write_prior_samples(self, prior_path_dict):
+    def _write_prior_samples(self, prior_path_dict, remove_files = True):
         compresslevel = None
         if self.compress:
             compresslevel = 9
@@ -991,9 +991,10 @@ class ABCTeam(object):
                     dest_path = self._get_prior_path(model_idx),
                     append = True,
                     compresslevel = compresslevel)
-        for path_list in prior_path_dict.itervalues():
-            for p in path_list:
-                self.prior_temp_fs.remove_file(p)
+        if remove_files:
+            for path_list in prior_path_dict.itervalues():
+                for p in path_list:
+                    self.prior_temp_fs.remove_file(p)
 
     def run(self):
         if self.generate_prior_samples_only:
