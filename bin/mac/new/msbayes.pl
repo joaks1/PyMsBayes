@@ -281,26 +281,25 @@ while (<RAND>) {
     # This means one set of simulations are done.
     # Processing this line to prepare 'prior columns' for the final output
     my ($tauClassSetting, $realizedNumTauClass);
-    if (/setting:\s+(\d+)\s+realizedNumTauClasses:\s+(\d+)\s+tauTbl:,([\d\.,]+)\s+psiTbl:,([\d\.,]+)\s+d1ThetaTbl:,([\d\.,]+)\s+d2ThetaTbl:,([\d\.,]+)\s+aThetaTbl:,([\d\.,]+)/) {
+    if (/setting:\s+(\d+)\s+realizedNumTauClasses:\s+(\d+)\s+tauTbl:,([\d\.,]+)\s+d1ThetaTbl:,([\d\.,]+)\s+d2ThetaTbl:,([\d\.,]+)\s+aThetaTbl:,([\d\.,]+)/) {
 	$tauClassSetting = $1;
 	$realizedNumTauClass = $2; # this is not actually used
 	my @tauTbl = split /\s*,\s*/, $3;
-	my @psiTbl = split /\s*,\s*/, $4;
-	my @d1ThetaTbl = split /\s*,\s*/, $5;
-	my @d2ThetaTbl = split /\s*,\s*/, $6;
-	my @aThetaTbl = split /\s*,\s*/, $7;
+	my @d1ThetaTbl = split /\s*,\s*/, $4;
+	my @d2ThetaTbl = split /\s*,\s*/, $5;
+	my @aThetaTbl = split /\s*,\s*/, $6;
 	
 	# prep header
 	if ($prepPriorHeader){ 
 	    my $headString = "PRI.numTauClass";
-	    if ($mspriorConf{numTauClasses} > 0) {
-		for my $suffix (1..$mspriorConf{numTauClasses}) {
-		    $headString .= "\tPRI.Tau.$suffix";
-		}
-		for my $suffix (1..$mspriorConf{numTauClasses}) {
-		    $headString .= "\tPRI.Psi.$suffix";
-		}
-	    }
+	    # if ($mspriorConf{numTauClasses} > 0) {
+		# for my $suffix (1..$mspriorConf{numTauClasses}) {
+		    # $headString .= "\tPRI.Tau.$suffix";
+		# }
+		# for my $suffix (1..$mspriorConf{numTauClasses}) {
+		    # $headString .= "\tPRI.Psi.$suffix";
+		# }
+	    # }
         if (defined($opt_p)) {
             for my $suffix (1..$mspriorConf{numTaxonPairs}){
                 $headString .= "\tPRI.t.$suffix";
@@ -329,13 +328,13 @@ while (<RAND>) {
 	my @tmpPrior = ($mspriorConf{numTauClasses});
 
 	# conversion of tau
-	if ($mspriorConf{numTauClasses} > 0) {
-	    #PRI.Tau.1 PRi.Tau.2 ... PRI.Tau.numTauClasses
-	    #PRI.Psi.1 PRi.Psi.2 ... PRI.Psi.numTauClasses
-	    push @tmpPrior, @tauTbl, @psiTbl;
-	}
+	# if ($mspriorConf{numTauClasses} > 0) {
+	#     #PRI.Tau.1 PRi.Tau.2 ... PRI.Tau.numTauClasses
+	#     #PRI.Psi.1 PRi.Psi.2 ... PRI.Psi.numTauClasses
+	#     push @tmpPrior, @tauTbl, @psiTbl;
+	# }
     if (defined($opt_p)) {
-        push @tmpPrior, GetTauVector(\@tauTbl, \@psiTbl), @d1ThetaTbl, @d2ThetaTbl, @aThetaTbl;
+        push @tmpPrior, @tauTbl, @d1ThetaTbl, @d2ThetaTbl, @aThetaTbl;
     }
     if (defined($opt_m)){
         push @tmpPrior, $opt_m;
@@ -343,7 +342,8 @@ while (<RAND>) {
 	
 	# PRI.Psi PRI.var.t PRI.E.t PRI.omega 
 	#  (= #tauClasses, Var, Mean, weirdCV of tau)
-	push @tmpPrior, SummarizeTau(\@tauTbl, \@psiTbl);
+    push @tmpPrior, $realizedNumTauClass;
+	push @tmpPrior, SummarizeTau(\@tauTbl);
 
 	push @priorCache, join("\t", @tmpPrior);
 
@@ -651,22 +651,19 @@ sub MkNewMspriorBatchConf {
 ###############################################################################
 
 sub SummarizeTau {
-    my ($tauArrRef, $cntArrRef)  = @_;
-    
-    my $numTauClasses = scalar(@$tauArrRef); # num elements = Psi
-    
-    my ($sum, $ss, $n) = (0,0,0);
-    foreach my $index (0..($numTauClasses-1)) {
-	$n += $$cntArrRef[$index];
-	$sum += $$tauArrRef[$index] * $$cntArrRef[$index];
-	$ss += ($$tauArrRef[$index] ** 2) * $$cntArrRef[$index];	
+    my ($tauArr) = @_;
+    my ($sum, $ss) = (0,0);
+    my $n = scalar(@$tauArr);
+    foreach my $i (0..($n - 1)) {
+	    $sum += $$tauArr[$i];
+	    $ss += ($$tauArr[$i] ** 2);	
     }
     
     my $mean = $sum / $n;
     my $var = ($n==1) ? 'NA': ($ss -  $n * ($mean ** 2)) / ($n-1); # estimated, or sample var
     my $dispersionIndex = ($n==1 || $mean == 0) ? 'NA': $var/$mean;
     
-    return ($numTauClasses, $var, $mean, $dispersionIndex);
+    return ($var, $mean, $dispersionIndex);
 }
 
 sub GetTauVector {
