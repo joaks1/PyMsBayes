@@ -10,10 +10,12 @@ from pymsbayes.workers import *
 from pymsbayes.manager import *
 from pymsbayes.utils.probability import *
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
+from pymsbayes.test.support import package_paths
 from pymsbayes.test import TestLevel, test_enabled
 from pymsbayes.utils.parsing import parse_parameters
 from pymsbayes.utils.functions import long_division
-from pymsbayes.utils.stats import mode_list
+from pymsbayes.utils.stats import mode_list, SampleSummarizer
+from pymsbayes.utils import MSBAYES_SORT_INDEX
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -47,8 +49,10 @@ class PriorTestCase(PyMsBayesTestCase):
             else:
                 out.write('{0}\n{1}\n'.format(self.preamble, SAMPLE_TABLE))
 
-    def generate_prior(self, sample_size=1000, batch_size=250, np=4):
-        self.write_cfg()
+    def generate_prior(self, sample_size=1000, batch_size=250, np=4,
+            write_config = True, parse = True):
+        if write_config:
+            self.write_cfg()
         num_batches, remainder = long_division(sample_size, batch_size)
         workers = []
         for i in range(num_batches):
@@ -71,7 +75,13 @@ class PriorTestCase(PyMsBayesTestCase):
             num_processors = np)
         
         merge_prior_files([w.prior_path for w in workers], self.prior_path)
-        self.samples = parse_parameters(self.prior_path, include_thetas=True)
+        if parse:
+            self.parse_draws()
+
+    def parse_draws(self, sample_file = None):
+        if not sample_file:
+            sample_file = self.prior_path
+        self.samples = parse_parameters(sample_file, include_thetas=True)
         self.samples['unique_taus'] = []
         self.samples['all_a_thetas'] = []
         self.samples['all_d1_thetas'] = []
@@ -88,6 +98,18 @@ class PriorTestCase(PyMsBayesTestCase):
                 mean_d_theta = (self.samples['d1_thetas'][i][j] + \
                         self.samples['d2_thetas'][i][j]) / 2
                 self.samples['mean_d_thetas'].append(mean_d_theta)
+
+    def taus_are_valid(self):
+        for i in range(len(self.samples)):
+            ss = SampleSummarizer(self.samples['taus'][i])
+            self.assertAlmostEqual(ss.mean, self.samples['mean_tau'][i],
+                    places=5)
+            self.assertAlmostEqual((ss.variance / ss.mean),
+                    self.samples['omega'][i],
+                    places=5)
+            self.assertEqual(len(set(self.samples['taus'][i])),
+                    self.samples['psi'][i])
+
 
     def test_old_unconstrained(self):
         if not test_enabled(
@@ -125,6 +147,7 @@ subParamConstrain = 111111111
         psi_freqs = get_freqs(self.samples['psi'])
         for psi, freq in psi_freqs.iteritems():
             self.assertAlmostEqual(freq, 0.25, places=1)
+        self.taus_are_valid()
 
     def test_old_constrained(self):
         if not test_enabled(
@@ -162,6 +185,7 @@ subParamConstrain = 111111111
         self.assertEqual(self.samples['psi'], [4]*1000)
         for t in self.samples['taus']:
             self.assertEqual(len(set(t)), 4)
+        self.taus_are_valid()
 
     def test_new_uniform_theta000(self):
         if not test_enabled(
@@ -214,6 +238,7 @@ subParamConstrain = 111111111
                 self.assertAlmostEqual(freq, 2/float(5), places=1)
             else:
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
+        self.taus_are_valid()
 
     def test_new_uniform_theta001(self):
         if not test_enabled(
@@ -273,6 +298,7 @@ subParamConstrain = 111111111
                 self.assertAlmostEqual(freq, 2/float(5), places=1)
             else:
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
+        self.taus_are_valid()
 
     def test_new_uniform_theta011(self):
         if not test_enabled(
@@ -332,6 +358,7 @@ subParamConstrain = 111111111
                 self.assertAlmostEqual(freq, 2/float(5), places=1)
             else:
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
+        self.taus_are_valid()
 
     def test_new_uniform_theta010(self):
         if not test_enabled(
@@ -391,6 +418,7 @@ subParamConstrain = 111111111
                 self.assertAlmostEqual(freq, 2/float(5), places=1)
             else:
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
+        self.taus_are_valid()
 
     def test_new_uniform_theta012(self):
         if not test_enabled(
@@ -455,6 +483,7 @@ subParamConstrain = 111111111
                 self.assertAlmostEqual(freq, 2/float(5), places=1)
             else:
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
+        self.taus_are_valid()
 
     def test_new_uniform_constrained(self):
         if not test_enabled(
@@ -513,6 +542,7 @@ subParamConstrain = 111111111
         self.assertEqual(self.samples['psi'], [4]*1000)
         for t in self.samples['taus']:
             self.assertEqual(len(set(t)), 4)
+        self.taus_are_valid()
 
     def test_new_uniform_with_uniform_tau(self):
         if not test_enabled(
@@ -574,6 +604,7 @@ subParamConstrain = 111111111
                 self.assertAlmostEqual(freq, 2/float(5), places=1)
             else:
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
+        self.taus_are_valid()
 
     def test_new_uniform_constrained_with_uniform_tau(self):
         if not test_enabled(
@@ -632,6 +663,7 @@ subParamConstrain = 111111111
         self.assertEqual(self.samples['psi'], [4]*1000)
         for t in self.samples['taus']:
             self.assertEqual(len(set(t)), 4)
+        self.taus_are_valid()
 
     def test_new_uniform_psi(self):
         if not test_enabled(
@@ -690,6 +722,7 @@ subParamConstrain = 111111111
         psi_freqs = get_freqs(self.samples['psi'])
         for psi, freq in psi_freqs.iteritems():
             self.assertAlmostEqual(freq, 0.25, places=1)
+        self.taus_are_valid()
 
     def test_new_dpp_clustered(self):
         if not test_enabled(
@@ -750,6 +783,7 @@ subParamConstrain = 111111111
         self.assertEqual(self.samples['psi'], [1]*1000)
         for t in self.samples['taus']:
             self.assertEqual(len(set(t)), 1)
+        self.taus_are_valid()
 
     def test_new_dpp_dispersed(self):
         if not test_enabled(
@@ -810,6 +844,7 @@ subParamConstrain = 111111111
         self.assertEqual(self.samples['psi'], [4]*1000)
         for t in self.samples['taus']:
             self.assertEqual(len(set(t)), 4)
+        self.taus_are_valid()
 
     def test_new_dpp_2(self):
         if not test_enabled(
@@ -873,6 +908,7 @@ subParamConstrain = 111111111
         psi_freqs = get_freqs(self.samples['psi'])
         self.assertAlmostEqual(psi_freqs[2], 0.46078, places=1)
         self.assertEqual(mode_list(self.samples['psi']), [2])
+        self.taus_are_valid()
 
     def test_new_dpp_2_with_uniform_tau(self):
         if not test_enabled(
@@ -933,6 +969,7 @@ subParamConstrain = 111111111
         psi_freqs = get_freqs(self.samples['psi'])
         self.assertAlmostEqual(psi_freqs[2], 0.46078, places=1)
         self.assertEqual(mode_list(self.samples['psi']), [2])
+        self.taus_are_valid()
 
     def test_new_dpp_constrained_with_uniform_tau(self):
         if not test_enabled(
@@ -993,6 +1030,7 @@ subParamConstrain = 111111111
         self.assertEqual(self.samples['psi'], [4]*1000)
         for t in self.samples['taus']:
             self.assertEqual(len(set(t)), 4)
+        self.taus_are_valid()
 
     def test_new_uniform_psi_constrained_with_uniform_tau_and_theta(self):
         if not test_enabled(
@@ -1055,6 +1093,7 @@ subParamConstrain = 111111111
         psi_freqs = get_freqs(self.samples['psi'])
         for psi, freq in psi_freqs.iteritems():
             self.assertAlmostEqual(freq, 0.25, places=1)
+        self.taus_are_valid()
 
     def test_new_ancestral_theta_default(self):
         if not test_enabled(
@@ -1108,6 +1147,7 @@ subParamConstrain = 111111111
         self.assertAlmostEqual(d_theta_ss.variance, d_theta.variance, places=2)
         self.assertAlmostEqual(a_theta_ss.mean, a_theta.mean, places=2)
         self.assertAlmostEqual(a_theta_ss.variance, a_theta.variance, places=2)
+        self.taus_are_valid()
 
     def test_new_ancestral_theta_zero(self):
         if not test_enabled(
@@ -1163,6 +1203,7 @@ subParamConstrain = 111111111
         self.assertAlmostEqual(d_theta_ss.variance, d_theta.variance, places=2)
         self.assertAlmostEqual(a_theta_ss.mean, a_theta.mean, places=2)
         self.assertAlmostEqual(a_theta_ss.variance, a_theta.variance, places=2)
+        self.taus_are_valid()
 
     def test_new_ancestral_theta_gamma(self):
         if not test_enabled(
@@ -1218,6 +1259,7 @@ subParamConstrain = 111111111
         self.assertAlmostEqual(d_theta_ss.variance, d_theta.variance, places=2)
         self.assertAlmostEqual(a_theta_ss.mean, a_theta.mean, places=2)
         self.assertAlmostEqual(a_theta_ss.variance, a_theta.variance, places=2)
+        self.taus_are_valid()
 
     def test_new_ancestral_theta_uniform(self):
         if not test_enabled(
@@ -1273,6 +1315,7 @@ subParamConstrain = 111111111
         self.assertAlmostEqual(d_theta_ss.variance, d_theta.variance, places=2)
         self.assertAlmostEqual(a_theta_ss.mean, a_theta.mean, places=1)
         self.assertAlmostEqual(a_theta_ss.variance, a_theta.variance, places=1)
+        self.taus_are_valid()
 
     def test_old_case_insensitive(self):
         if not test_enabled(
@@ -1310,6 +1353,7 @@ SUBParaMconstrain = 111111111
         psi_freqs = get_freqs(self.samples['psi'])
         for psi, freq in psi_freqs.iteritems():
             self.assertAlmostEqual(freq, 0.25, places=1)
+        self.taus_are_valid()
 
     def test_new_case_insensitive(self):
         if not test_enabled(
@@ -1365,6 +1409,7 @@ SUBPARAMCONSTRAIN = 111111111
         self.assertAlmostEqual(d_theta_ss.variance, d_theta.variance, places=2)
         self.assertAlmostEqual(a_theta_ss.mean, a_theta.mean, places=2)
         self.assertAlmostEqual(a_theta_ss.variance, a_theta.variance, places=2)
+        self.taus_are_valid()
 
     def test_old_invalid_error(self):
         if not test_enabled(
@@ -1421,6 +1466,217 @@ SUBPARAMCONSTRAN = 111111111
         self.assertRaises(WorkerExecutionError, self.generate_prior,
                 sample_size=1000, batch_size=250, np=4)
 
+
+    def test_old_no_sort(self):
+        MSBAYES_SORT_INDEX.set_index(0)
+        self.cfg_path = package_paths.data_path('negros_panay_3pairs.cfg')
+        np = 4
+        batch_size = 10000
+        sample_size = 40000
+        post_size = 100
+        self.generate_prior(
+                sample_size = sample_size,
+                batch_size = batch_size,
+                np = np,
+                write_config = False,
+                parse = False)
+        obs_path = self.get_test_path(prefix='observed')
+        obs_worker = ObsSumStatsWorker(
+            temp_fs = self.temp_fs,
+            config_path = self.cfg_path,
+            output_path = obs_path,
+            schema = 'abctoolbox',
+            keep_temps = False)
+        obs_worker.start()
+        post_path = self.get_test_path(prefix='posterior')
+        ew = EuRejectWorker(
+            temp_fs = self.temp_fs,
+            observed_path = obs_worker.output_path,
+            prior_paths = [self.prior_path],
+            num_posterior_samples = post_size,
+            num_standardizing_samples = sample_size,
+            summary_in_path = None,
+            summary_out_path = None,
+            posterior_path = post_path,
+            regression_worker = None,
+            keep_temps = False)
+        ew.start()
+        self.parse_draws(post_path)
+        t = [0.0, 0.0, 0.0]
+        n = 0
+        for t_list in self.samples['taus']:
+            assert len(t_list) == 3
+            for i in range(len(t_list)):
+                t[i] += t_list[i]
+            n += 1
+        assert n == post_size
+        assert len(t) == 3
+        for i in range(len(t)):
+            t[i] = t[i] / n
+        _LOG.debug('{0}'.format(t))
+        self.assertTrue(t[0] > t[1])
+        self.assertTrue(t[0] < t[2])
+        self.taus_are_valid()
+        MSBAYES_SORT_INDEX.set_index(7)
+
+    def test_new_uniform_no_sort(self):
+        MSBAYES_SORT_INDEX.set_index(0)
+        self.cfg_path = package_paths.data_path(
+                'negros_panay_3pairs_new_uniform.cfg')
+        np = 4
+        batch_size = 10000
+        sample_size = 40000
+        post_size = 100
+        self.generate_prior(
+                sample_size = sample_size,
+                batch_size = batch_size,
+                np = np,
+                write_config = False,
+                parse = False)
+        obs_path = self.get_test_path(prefix='observed')
+        obs_worker = ObsSumStatsWorker(
+            temp_fs = self.temp_fs,
+            config_path = self.cfg_path,
+            output_path = obs_path,
+            schema = 'abctoolbox',
+            keep_temps = False)
+        obs_worker.start()
+        post_path = self.get_test_path(prefix='posterior')
+        ew = EuRejectWorker(
+            temp_fs = self.temp_fs,
+            observed_path = obs_worker.output_path,
+            prior_paths = [self.prior_path],
+            num_posterior_samples = post_size,
+            num_standardizing_samples = sample_size,
+            summary_in_path = None,
+            summary_out_path = None,
+            posterior_path = post_path,
+            regression_worker = None,
+            keep_temps = False)
+        ew.start()
+        self.parse_draws(post_path)
+        t = [0.0, 0.0, 0.0]
+        n = 0
+        for t_list in self.samples['taus']:
+            assert len(t_list) == 3
+            for i in range(len(t_list)):
+                t[i] += t_list[i]
+            n += 1
+        assert n == post_size
+        assert len(t) == 3
+        for i in range(len(t)):
+            t[i] = t[i] / n
+        _LOG.debug('{0}'.format(t))
+        self.assertTrue(t[0] > t[1])
+        self.assertTrue(t[0] < t[2])
+        self.taus_are_valid()
+        MSBAYES_SORT_INDEX.set_index(7)
+
+    def test_new_dpp_no_sort(self):
+        MSBAYES_SORT_INDEX.set_index(0)
+        self.cfg_path = package_paths.data_path(
+                'negros_panay_3pairs_new_dpp.cfg')
+        np = 4
+        batch_size = 10000
+        sample_size = 40000
+        post_size = 100
+        self.generate_prior(
+                sample_size = sample_size,
+                batch_size = batch_size,
+                np = np,
+                write_config = False,
+                parse = False)
+        obs_path = self.get_test_path(prefix='observed')
+        obs_worker = ObsSumStatsWorker(
+            temp_fs = self.temp_fs,
+            config_path = self.cfg_path,
+            output_path = obs_path,
+            schema = 'abctoolbox',
+            keep_temps = False)
+        obs_worker.start()
+        post_path = self.get_test_path(prefix='posterior')
+        ew = EuRejectWorker(
+            temp_fs = self.temp_fs,
+            observed_path = obs_worker.output_path,
+            prior_paths = [self.prior_path],
+            num_posterior_samples = post_size,
+            num_standardizing_samples = sample_size,
+            summary_in_path = None,
+            summary_out_path = None,
+            posterior_path = post_path,
+            regression_worker = None,
+            keep_temps = False)
+        ew.start()
+        self.parse_draws(post_path)
+        t = [0.0, 0.0, 0.0]
+        n = 0
+        for t_list in self.samples['taus']:
+            assert len(t_list) == 3
+            for i in range(len(t_list)):
+                t[i] += t_list[i]
+            n += 1
+        assert n == post_size
+        assert len(t) == 3
+        for i in range(len(t)):
+            t[i] = t[i] / n
+        _LOG.debug('{0}'.format(t))
+        self.assertTrue(t[0] > t[1])
+        self.assertTrue(t[0] < t[2])
+        self.taus_are_valid()
+        MSBAYES_SORT_INDEX.set_index(7)
+
+    def test_new_ushaped_no_sort(self):
+        MSBAYES_SORT_INDEX.set_index(0)
+        self.cfg_path = package_paths.data_path(
+                'negros_panay_3pairs_new_ushaped.cfg')
+        np = 4
+        batch_size = 10000
+        sample_size = 40000
+        post_size = 100
+        self.generate_prior(
+                sample_size = sample_size,
+                batch_size = batch_size,
+                np = np,
+                write_config = False,
+                parse = False)
+        obs_path = self.get_test_path(prefix='observed')
+        obs_worker = ObsSumStatsWorker(
+            temp_fs = self.temp_fs,
+            config_path = self.cfg_path,
+            output_path = obs_path,
+            schema = 'abctoolbox',
+            keep_temps = False)
+        obs_worker.start()
+        post_path = self.get_test_path(prefix='posterior')
+        ew = EuRejectWorker(
+            temp_fs = self.temp_fs,
+            observed_path = obs_worker.output_path,
+            prior_paths = [self.prior_path],
+            num_posterior_samples = post_size,
+            num_standardizing_samples = sample_size,
+            summary_in_path = None,
+            summary_out_path = None,
+            posterior_path = post_path,
+            regression_worker = None,
+            keep_temps = False)
+        ew.start()
+        self.parse_draws(post_path)
+        t = [0.0, 0.0, 0.0]
+        n = 0
+        for t_list in self.samples['taus']:
+            assert len(t_list) == 3
+            for i in range(len(t_list)):
+                t[i] += t_list[i]
+            n += 1
+        assert n == post_size
+        assert len(t) == 3
+        for i in range(len(t)):
+            t[i] = t[i] / n
+        _LOG.debug('{0}'.format(t))
+        self.assertTrue(t[0] > t[1])
+        self.assertTrue(t[0] < t[2])
+        self.taus_are_valid()
+        MSBAYES_SORT_INDEX.set_index(7)
 
 if __name__ == '__main__':
     unittest.main()
