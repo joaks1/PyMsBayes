@@ -1,11 +1,12 @@
 from setuptools import setup, find_packages
 import sys, os
-import glob
 
 import pymsbayes.utils
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-SCRIPTS = glob.glob(os.path.join(BASE_DIR, 'scripts', '*.py'))
+SCRIPTS_DIR = os.path.relpath(os.path.join(BASE_DIR, 'scripts'), BASE_DIR)
+SCRIPTS = [os.path.join(SCRIPTS_DIR, f) for f in os.listdir(
+        SCRIPTS_DIR) if f.endswith('.py')]
 
 version = '0.1'
 
