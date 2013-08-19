@@ -314,6 +314,9 @@ def main_cli():
         info.write('\tsimulate_data = True\n')
     stat_patterns = DEFAULT_STAT_PATTERNS
     if args.stat_prefixes:
+        for i in range(len(args.stat_prefixes)):
+            if not args.stat_prefixes[i].endswith('.'):
+                args.stat_prefixes[i] += '.'
         stat_patterns = get_patterns_from_prefixes(
                 args.stat_prefixes,
                 ignore_case=True)
