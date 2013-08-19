@@ -25,19 +25,15 @@ Clone Git repository and install using:
 
     $ git clone git://github.com/joaks1/PyMsBayes.git
     $ cd PyMsBayes
-    $ python setup.py install
+    $ python setup.py develop
 
 If the install fails due to a permission error, try:
 
-    $ sudo python setup.py install
+    $ sudo python setup.py develop
 
 To run the test suite, use:
 
     $ python setup.py test
-
-If you plan to develop the code, install via:
-
-    $ python setup.py develop
 
 Citing PyMsBayes
 ================
