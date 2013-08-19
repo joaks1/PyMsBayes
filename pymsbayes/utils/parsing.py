@@ -33,6 +33,8 @@ def get_indices_of_strings(target_list, string_list, sort=True):
     
 def reduce_columns(in_file, out_file, column_indices, sep='\t',
         extra_tab=False):
+    if not column_indices:
+        raise Exception('no column indices to retain')
     in_stream, close_in = process_file_arg(in_file, 'rU')
     out_stream, close_out = process_file_arg(out_file, 'w')
     line_iter = iter(in_stream)
@@ -113,7 +115,7 @@ def line_count(file_obj, ignore_headers=False):
 def get_patterns_from_prefixes(prefixes, ignore_case=True):
     patterns = []
     for prefix in prefixes:
-        pattern_str = r'\s*{0}.*\s*'.format(prefix.replace('.', '\.'))
+        pattern_str = r'^\s*{0}\d+\s*$'.format(prefix.replace('.', '\.'))
         if ignore_case:
             patterns.append(re.compile(pattern_str, re.IGNORECASE))
         else:
