@@ -1225,7 +1225,6 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                     self.assertTrue(os.path.isfile(res['div']))
                     self.assertTrue(os.path.isfile(res['psi']))
                     self.assertTrue(os.path.isfile(res['omega']))
-                    self.assertTrue(os.path.isfile(res['glm-summary']))
                     self.assertTrue(os.path.isfile(res['glm-density']))
 
                     self.assertTrue(self.get_number_of_lines(res['sample']),
@@ -1235,7 +1234,9 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                     self.assertTrue(self.get_number_of_lines(res['omega']), 2)
                     self.assertTrue(self.get_number_of_lines(res['glm-density']),
                             num_posterior_density_quantiles)
-                    self.assertTrue(self.get_number_of_lines(res['glm-summary']), 20)
+                    if os.path.isfile(res['glm-summary']):
+                        self.assertTrue(self.get_number_of_lines(
+                                res['glm-summary']), 20)
 
     def test_abc_team_repeatability_multiple_models_multiple_obs(self):
         obs_worker1 = MsBayesWorker(
