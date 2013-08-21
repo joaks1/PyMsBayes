@@ -436,7 +436,7 @@ ancestralThetaShape = 1
 ancestralThetaScale = 0.02
 thetaParameters = 012
 tauShape = 4.0
-tauScale = 3.0
+tauScale = 1.0
 bottleProportionShapeA = 0
 bottleProportionShapeB = 0
 bottleProportionShared = 1
@@ -453,7 +453,7 @@ subParamConstrain = 111111111
         self.assertFalse(self.samples == None)
         a_theta = GammaDistribution(1, 0.02)
         theta = GammaDistribution(0.5, 0.01)
-        tau = GammaDistribution(4.0, 3.0)
+        tau = GammaDistribution(4.0, 1.0)
         not_equal_failures = 0
         for i in range(1000):
             for j in range(4):
@@ -501,7 +501,7 @@ ancestralThetaShape = 0
 ancestralThetaScale = 0
 thetaParameters = 012
 tauShape = 2.0
-tauScale = 5.0
+tauScale = 1.5
 bottleProportionShapeA = 0
 bottleProportionShapeB = 0
 bottleProportionShared = 1
@@ -517,7 +517,7 @@ subParamConstrain = 111111111
         self.generate_prior(sample_size=1000, batch_size=250, np=4)
         self.assertFalse(self.samples == None)
         theta = GammaDistribution(1.0, 0.01)
-        tau = GammaDistribution(2.0, 5.0)
+        tau = GammaDistribution(2.0, 1.5)
         not_equal_failures = 0
         for i in range(1000):
             for j in range(4):
