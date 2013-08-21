@@ -364,6 +364,186 @@ class GetDictFromSpreadsheetTestCase(unittest.TestCase):
         self.assertRaises(Exception, get_dict_from_spreadsheets,
                 [s1, s2], sep = sep)
 
+class GetStatsByTimeTestCase(unittest.TestCase):
+
+    def test_tab_with_head(self):
+        sep = '\t'
+        header = ['PRI.t.1', 'PRI.t.2', 'pi.1', 'pi.2', 'pi.net.1', 'pi.net.2']
+        d = dict(zip(header, [
+                ['1.1','5.3','3.1', '2.7', '6.5'],
+                ['1.3','5.1','3.3', '2.8', '6.3'],
+                ['0.2', '0.12', '0.11', '0.33', '0.29'],
+                ['0.21', '0.11', '0.21', '0.31', '0.27'],
+                ['0.003', '0.0033', '0.0003', '0.01', '0.0031'],
+                ['0.001', '0.0043', '0.0002', '0.0', '0.0036']]))
+        expected = {'PRI.t': [], 'pi': [], 'pi.net': []}
+        for i in range(len(d.values()[0])):
+            expected['PRI.t'].extend([float(d['PRI.t.1'][i]),
+                    float(d['PRI.t.2'][i])])
+            expected['pi'].extend([float(d['pi.1'][i]), float(d['pi.2'][i])])
+            expected['pi.net'].extend([float(d['pi.net.1'][i]),
+                    float(d['pi.net.2'][i])])
+        s1 = StringIO()
+        s2 = StringIO()
+        s1.write('{0}\n'.format(sep.join(header)))
+        s2.write('{0}\n'.format(sep.join(header)))
+        for i in range(3):
+            s1.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        for i in range(3, len(d.values()[0])):
+            s2.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        _LOG.debug('\nTesting get_stats_by_time with spreadsheets:\n'
+                '{0}\n{1}'.format(s1.getvalue(), s2.getvalue()))
+        s1.seek(0)
+        s2.seek(0)
+        ret = get_stats_by_time([s1, s2], sep = sep)
+        self.assertEqual(expected, ret)
+
+    def test_error_missing_stat_column(self):
+        sep = '\t'
+        header = ['PRI.t.1', 'PRI.t.2', 'pi.1', 'pi.net.1', 'pi.net.2']
+        d = dict(zip(header, [
+                ['1.1','5.3','3.1', '2.7', '6.5'],
+                ['1.3','5.1','3.3', '2.8', '6.3'],
+                ['0.2', '0.12', '0.11', '0.33', '0.29'],
+                ['0.003', '0.0033', '0.0003', '0.01', '0.0031'],
+                ['0.001', '0.0043', '0.0002', '0.0', '0.0036']]))
+        s1 = StringIO()
+        s2 = StringIO()
+        s1.write('{0}\n'.format(sep.join(header)))
+        s2.write('{0}\n'.format(sep.join(header)))
+        for i in range(3):
+            s1.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        for i in range(3, len(d.values()[0])):
+            s2.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        _LOG.debug('\nTesting get_stats_by_time with spreadsheets:\n'
+                '{0}\n{1}'.format(s1.getvalue(), s2.getvalue()))
+        s1.seek(0)
+        s2.seek(0)
+        self.assertRaises(Exception, get_stats_by_time, [s1, s2], sep = sep)
+
+    def test_error_extra_stat_column(self):
+        sep = '\t'
+        header = ['PRI.t.1', 'PRI.t.2', 'pi.1', 'pi.2', 'pi.net.1', 'pi.net.2',
+                    'pi.net.3']
+        d = dict(zip(header, [
+                ['1.1','5.3','3.1', '2.7', '6.5'],
+                ['1.3','5.1','3.3', '2.8', '6.3'],
+                ['0.2', '0.12', '0.11', '0.33', '0.29'],
+                ['0.21', '0.11', '0.21', '0.31', '0.27'],
+                ['0.003', '0.0033', '0.0003', '0.01', '0.0031'],
+                ['0.003', '0.0033', '0.0003', '0.01', '0.0031'],
+                ['0.001', '0.0043', '0.0002', '0.0', '0.0036']]))
+        s1 = StringIO()
+        s2 = StringIO()
+        s1.write('{0}\n'.format(sep.join(header)))
+        s2.write('{0}\n'.format(sep.join(header)))
+        for i in range(3):
+            s1.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        for i in range(3, len(d.values()[0])):
+            s2.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        _LOG.debug('\nTesting get_stats_by_time with spreadsheets:\n'
+                '{0}\n{1}'.format(s1.getvalue(), s2.getvalue()))
+        s1.seek(0)
+        s2.seek(0)
+        self.assertRaises(Exception, get_stats_by_time, [s1, s2], sep = sep)
+
+    def test_missing_tau_column(self):
+        sep = '\t'
+        header = ['PRI.t.1', 'pi.1', 'pi.2', 'pi.net.1', 'pi.net.2']
+        d = dict(zip(header, [
+                ['1.3','5.1','3.3', '2.8', '6.3'],
+                ['0.2', '0.12', '0.11', '0.33', '0.29'],
+                ['0.21', '0.11', '0.21', '0.31', '0.27'],
+                ['0.003', '0.0033', '0.0003', '0.01', '0.0031'],
+                ['0.001', '0.0043', '0.0002', '0.0', '0.0036']]))
+        s1 = StringIO()
+        s2 = StringIO()
+        s1.write('{0}\n'.format(sep.join(header)))
+        s2.write('{0}\n'.format(sep.join(header)))
+        for i in range(3):
+            s1.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        for i in range(3, len(d.values()[0])):
+            s2.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        _LOG.debug('\nTesting get_stats_by_time with spreadsheets:\n'
+                '{0}\n{1}'.format(s1.getvalue(), s2.getvalue()))
+        s1.seek(0)
+        s2.seek(0)
+        self.assertRaises(Exception, get_stats_by_time, [s1, s2], sep = sep)
+
+    def test_error_extra_tau_column(self):
+        sep = '\t'
+        header = ['PRI.t.1', 'PRI.t.2', 'PRI.t.3', 'pi.1', 'pi.2', 'pi.net.1',
+                'pi.net.2']
+        d = dict(zip(header, [
+                ['1.1','5.3','3.1', '2.7', '6.5'],
+                ['1.3','5.1','3.3', '2.8', '6.3'],
+                ['1.3','5.1','3.3', '2.8', '6.3'],
+                ['0.2', '0.12', '0.11', '0.33', '0.29'],
+                ['0.21', '0.11', '0.21', '0.31', '0.27'],
+                ['0.003', '0.0033', '0.0003', '0.01', '0.0031'],
+                ['0.001', '0.0043', '0.0002', '0.0', '0.0036']]))
+        s1 = StringIO()
+        s2 = StringIO()
+        s1.write('{0}\n'.format(sep.join(header)))
+        s2.write('{0}\n'.format(sep.join(header)))
+        for i in range(3):
+            s1.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        for i in range(3, len(d.values()[0])):
+            s2.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        _LOG.debug('\nTesting get_stats_by_time with spreadsheets:\n'
+                '{0}\n{1}'.format(s1.getvalue(), s2.getvalue()))
+        s1.seek(0)
+        s2.seek(0)
+        self.assertRaises(Exception, get_stats_by_time, [s1, s2], sep = sep)
+
+    def test_error_stat_numbers(self):
+        sep = '\t'
+        header = ['PRI.t.1', 'PRI.t.2', 'pi.1', 'pi.3', 'pi.net.1', 'pi.net.2']
+        d = dict(zip(header, [
+                ['1.1','5.3','3.1', '2.7', '6.5'],
+                ['1.3','5.1','3.3', '2.8', '6.3'],
+                ['0.2', '0.12', '0.11', '0.33', '0.29'],
+                ['0.21', '0.11', '0.21', '0.31', '0.27'],
+                ['0.003', '0.0033', '0.0003', '0.01', '0.0031'],
+                ['0.001', '0.0043', '0.0002', '0.0', '0.0036']]))
+        s1 = StringIO()
+        s2 = StringIO()
+        s1.write('{0}\n'.format(sep.join(header)))
+        s2.write('{0}\n'.format(sep.join(header)))
+        for i in range(3):
+            s1.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        for i in range(3, len(d.values()[0])):
+            s2.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        _LOG.debug('\nTesting get_stats_by_time with spreadsheets:\n'
+                '{0}\n{1}'.format(s1.getvalue(), s2.getvalue()))
+        s1.seek(0)
+        s2.seek(0)
+        self.assertRaises(Exception, get_stats_by_time, [s1, s2], sep = sep)
+
+    def test_error_tau_numbers(self):
+        sep = '\t'
+        header = ['PRI.t.1', 'PRI.t.3', 'pi.1', 'pi.2', 'pi.net.1', 'pi.net.2']
+        d = dict(zip(header, [
+                ['1.1','5.3','3.1', '2.7', '6.5'],
+                ['1.3','5.1','3.3', '2.8', '6.3'],
+                ['0.2', '0.12', '0.11', '0.33', '0.29'],
+                ['0.21', '0.11', '0.21', '0.31', '0.27'],
+                ['0.003', '0.0033', '0.0003', '0.01', '0.0031'],
+                ['0.001', '0.0043', '0.0002', '0.0', '0.0036']]))
+        s1 = StringIO()
+        s2 = StringIO()
+        s1.write('{0}\n'.format(sep.join(header)))
+        s2.write('{0}\n'.format(sep.join(header)))
+        for i in range(3):
+            s1.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        for i in range(3, len(d.values()[0])):
+            s2.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        _LOG.debug('\nTesting get_stats_by_time with spreadsheets:\n'
+                '{0}\n{1}'.format(s1.getvalue(), s2.getvalue()))
+        s1.seek(0)
+        s2.seek(0)
+        self.assertRaises(Exception, get_stats_by_time, [s1, s2], sep = sep)
+
 if __name__ == '__main__':
     unittest.main()
 

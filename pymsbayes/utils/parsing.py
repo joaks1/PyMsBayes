@@ -176,6 +176,46 @@ def get_dict_from_spreadsheets(spreadsheets, sep = '\t', header = None):
             d[k].append(row_dict[k])
     return d
 
+def get_stats_by_time(spreadsheets, sep = '\t', header = None):
+    tau_pattern = re.compile(r'^\s*(?P<prefix>PRI\.t)\.(?P<index>\d+)\s*$')
+    stat_pattern = re.compile(r'^\s*(?!PRI)(?P<prefix>\S+)\.(?P<index>\d+)\s*$')
+    tau_keys = []
+    ss_iter = spreadsheet_iter(spreadsheets, sep = sep, header = header)
+    row_dict = ss_iter.next()
+    tau_keys = [k for k in row_dict.iterkeys() if tau_pattern.match(k)]
+    stat_keys = [k for k in row_dict.iterkeys() if stat_pattern.match(k)]
+    taxon_indices = sorted([int(k.split('.')[-1]) for k in tau_keys])
+    ntaxa = max(taxon_indices)
+    if taxon_indices != range(1, ntaxa + 1):
+        raise Exception('unexpected taxon indices for tau parameters:\n\t'
+                '{0}'.format(', '.join([str(i) for i in taxon_indices])))
+    tau_prefixes = set()
+    tau_prefixes.update([tau_pattern.match(k).group(
+            'prefix') for k in tau_keys])
+    if len(tau_prefixes) != 1:
+        raise Exception('unexpected prefixes for tau parameters:\n\t'
+                '{0}'.format(', '.join(tau_prefixes)))
+    stat_prefixes = set()
+    stat_prefixes.update([stat_pattern.match(k).group(
+            'prefix') for k in stat_keys])
+    for prefix in stat_prefixes:
+        pattern = get_patterns_from_prefixes([prefix + '.'])[0]
+        indices = sorted([int(
+                k.split('.')[-1]) for k in stat_keys if pattern.match(k)])
+        if indices != taxon_indices:
+            raise Exception('unexpected taxon indices for stat {0!r}:\n\t'
+                    '{1}'.format(prefix, ', '.join([str(i) for i in indices])))
+    keys = list(tau_prefixes) + list(stat_prefixes)
+    d = dict(zip(keys, [[] for i in range(len(keys))]))
+    for k in d.iterkeys():
+        for i in range(1, ntaxa + 1):
+            d[k].append(float(row_dict['.'.join([k, str(i)])]))
+    for row_dict in ss_iter:
+        for k in d.iterkeys():
+            for i in range(1, ntaxa + 1):
+                d[k].append(float(row_dict['.'.join([k, str(i)])]))
+    return d
+
 def get_parameter_indices(header_list, parameter_patterns=PARAMETER_PATTERNS):
     return get_indices_of_patterns(header_list, parameter_patterns)
 
