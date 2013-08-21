@@ -117,6 +117,24 @@ END SAMPLE_TBL
         self.assertSameDistributions(c.theta, ContinuousUniformDistribution(0.0001,0.1))
         self.assertSameDistributions(c.d_theta, BetaDistribution(1,1,2))
 
+    def test_single_locus_round_trip(self):
+        p = {'ltheta': 0.0001,
+             'utheta': 0.1,
+             'utau': 10.0,
+             'psi': 0,
+             'umig': 0.0,
+             'urec': 0.0,
+             'atheta': 1.0,}
+        self._update_config(self.cfg, p)
+        _LOG.debug('testing config:\n\n{0}\n'.format(self.cfg.getvalue()))
+        c = MsBayesConfig(self.cfg)
+        s = StringIO()
+        c.write(s)
+        _LOG.debug('written config:\n\n{0}\n'.format(s.getvalue()))
+        s.seek(0)
+        c2 = MsBayesConfig(s)
+        self.assertSameConfigs([c, c2])
+
     def test_multi_locus(self):
         p = {'ltheta': 0.0001,
              'utheta': 0.1,
@@ -148,6 +166,24 @@ END SAMPLE_TBL
         self.assertSameDistributions(c.a_theta, ContinuousUniformDistribution(0.0001,0.1))
         self.assertSameDistributions(c.theta, ContinuousUniformDistribution(0.0001,0.1))
         self.assertSameDistributions(c.d_theta, BetaDistribution(1,1,2))
+
+    def test_multi_locus_round_trip(self):
+        p = {'ltheta': 0.0001,
+             'utheta': 0.1,
+             'utau': 10.0,
+             'psi': 0,
+             'umig': 0.0,
+             'urec': 0.0,
+             'atheta': 1.0,}
+        self._update_config(self.cfg, p, multi_locus=True)
+        _LOG.debug('testing config:\n\n{0}\n'.format(self.cfg.getvalue()))
+        c = MsBayesConfig(self.cfg)
+        s = StringIO()
+        c.write(s)
+        _LOG.debug('written config:\n\n{0}\n'.format(s.getvalue()))
+        s.seek(0)
+        c2 = MsBayesConfig(s)
+        self.assertSameConfigs([c, c2])
 
     def test_new_implementation(self):
         p = {'c_shape': 2,
@@ -186,6 +222,31 @@ END SAMPLE_TBL
         self.assertSameDistributions(c.migration, GammaDistribution(1.5, 0.1))
         self.assertSameDistributions(c.a_theta, GammaDistribution(1, 0.01))
         self.assertSameDistributions(c.d_theta, GammaDistribution(2, 0.002))
+
+    def test_new_implementation_round_trip(self):
+        p = {'c_shape': 2,
+             'c_scale': 5,
+             'theta_shape': 2.0,
+             'theta_scale': 0.002,
+             'tau_shape': 1.0,
+             'tau_scale': 5.0,
+             'a_theta_shape': 1,
+             'a_theta_scale': 0.01,
+             'theta_params': '001',
+             'migration_shape': 1.5,
+             'migration_scale': 0.1,
+             'recombination_shape': 0.0,
+             'recombination_scale': 0.0,
+             'psi': 0,}
+        self._update_config(self.cfg, p, new_impl=True)
+        _LOG.debug('testing config:\n\n{0}\n'.format(self.cfg.getvalue()))
+        c = MsBayesConfig(self.cfg)
+        s = StringIO()
+        c.write(s)
+        _LOG.debug('written config:\n\n{0}\n'.format(s.getvalue()))
+        s.seek(0)
+        c2 = MsBayesConfig(s)
+        self.assertSameConfigs([c, c2])
 
 if __name__ == '__main__':
     unittest.main()

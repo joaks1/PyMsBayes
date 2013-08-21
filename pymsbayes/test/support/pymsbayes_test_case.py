@@ -168,13 +168,51 @@ class PyMsBayesTestCase(unittest.TestCase):
         c1 = configs.pop(0)
         for c2 in cfgs:
             self.assertEqual(c1.npairs, c2.npairs)
-            self.assertSameDistributions(c1.psi, c2.psi)
-            self.assertSameDistributions(c1.tau, c2.tau)
-            self.assertSameDistributions(c1.theta, c2.theta)
-            self.assertSameDistributions(c1.a_theta, c2.a_theta)
-            self.assertSameDistributions(c1.d_theta, c2.d_theta)
-            self.assertSameDistributions(c1.recombination, c2.recombination)
-            self.assertSameDistributions(c1.migration, c2.migration)
+            self.assertEqual(c1.implementation, c2.implementation)
+            self.assertEqual(c1.div_model_prior, c2.div_model_prior)
+            self.assertEqual(c1.bottle_proportion_shared,
+                    c2.bottle_proportion_shared)
+            self.assertEqual(c1.theta_parameters, c2.theta_parameters)
+            self.assertEqual(c1.taxa, c2.taxa)
+            self.assertEqual(c1.sample_table, c2.sample_table)
+            if c1.psi:
+                self.assertSameDistributions(c1.psi, c2.psi)
+            else:
+                self.assertEqual(c1.psi, c2.psi)
+            if c1.tau:
+                self.assertSameDistributions(c1.tau, c2.tau)
+            else:
+                self.assertEqual(c1.tau, c2.tau)
+            if c1.theta:
+                self.assertSameDistributions(c1.theta, c2.theta)
+            else:
+                self.assertEqual(c1.theta, c2.theta)
+            if c1.a_theta:
+                self.assertSameDistributions(c1.a_theta, c2.a_theta)
+            else:
+                self.assertEqual(c1.a_theta, c2.a_theta)
+            if c1.d_theta:
+                self.assertSameDistributions(c1.d_theta, c2.d_theta)
+            else:
+                self.assertEqual(c1.d_theta, c2.d_theta)
+            if c1.recombination:
+                self.assertSameDistributions(c1.recombination, c2.recombination)
+            else:
+                self.assertEqual(c1.recombination, c2.recombination)
+            if c1.migration:
+                self.assertSameDistributions(c1.migration, c2.migration)
+            else:
+                self.assertEqual(c1.migration, c2.migration)
+            if c1.dpp_concentration:
+                self.assertSameDistributions(c1.dpp_concentration,
+                        c2.dpp_concentration)
+            else:
+                self.assertEqual(c1.dpp_concentration, c2.dpp_concentration)
+            if c1.bottle_proportion:
+                self.assertSameDistributions(c1.bottle_proportion,
+                        c2.bottle_proportion)
+            else:
+                self.assertEqual(c1.bottle_proportion, c2.bottle_proportion)
 
     def get_parameter_summaries_from_msbayes_workers(self, msbayes_workers,
             shuffle_taus=True):
