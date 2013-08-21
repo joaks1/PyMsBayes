@@ -3,6 +3,7 @@
 import unittest
 import os
 import sys
+from cStringIO import StringIO
 
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test.support import package_paths
@@ -238,6 +239,130 @@ class ParseAbctoolboxSummaryFileTestCase(PyMsBayesTestCase):
                 0.00152915)
         self.assertAlmostEqual(summaries['PRI.E.t']['quantile_99_lower_bound'],
                 0.0317952)
+
+class GetDictFromSpreadsheetTestCase(unittest.TestCase):
+
+    def test_tab_with_head(self):
+        sep = '\t'
+        header = ['PRI.Psi', 'pi.net.1', 'pi.net.2']
+        d = dict(zip(header, [['1','5','3', '2', '6'],
+                ['0.2', '0.12', '0.11', '0.33', '0.29'],
+                ['0.001', '0.0043', '0.0002', '0.0', '0.0036']]))
+        s1 = StringIO()
+        s2 = StringIO()
+        s1.write('{0}\n'.format(sep.join(header)))
+        s2.write('{0}\n'.format(sep.join(header)))
+        for i in range(3):
+            s1.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        for i in range(3, len(d.values()[0])):
+            s2.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        _LOG.debug('\nTesting get_dict_from_spreadsheet with spreadsheets:\n'
+                '{0}\n{1}'.format(s1.getvalue(), s2.getvalue()))
+        s1.seek(0)
+        s2.seek(0)
+        ret = get_dict_from_spreadsheets([s1, s2], sep = sep)
+        self.assertEqual(d, ret)
+
+    def test_tab_without_head(self):
+        sep = '\t'
+        header = ['PRI.Psi', 'pi.net.1', 'pi.net.2']
+        d = dict(zip(header, [['1','5','3', '2', '6'],
+                ['0.2', '0.12', '0.11', '0.33', '0.29'],
+                ['0.001', '0.0043', '0.0002', '0.0', '0.0036']]))
+        s1 = StringIO()
+        s2 = StringIO()
+        for i in range(3):
+            s1.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        for i in range(3, len(d.values()[0])):
+            s2.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        _LOG.debug('\nTesting get_dict_from_spreadsheet with spreadsheets:\n'
+                '{0}\n{1}'.format(s1.getvalue(), s2.getvalue()))
+        s1.seek(0)
+        s2.seek(0)
+        ret = get_dict_from_spreadsheets([s1, s2], sep = sep, header = header)
+        self.assertEqual(d, ret)
+
+    def test_comma_with_head(self):
+        sep = ','
+        header = ['PRI.Psi', 'pi.net.1', 'pi.net.2']
+        d = dict(zip(header, [['1','5','3', '2', '6'],
+                ['0.2', '0.12', '0.11', '0.33', '0.29'],
+                ['0.001', '0.0043', '0.0002', '0.0', '0.0036']]))
+        s1 = StringIO()
+        s2 = StringIO()
+        s1.write('{0}\n'.format(sep.join(header)))
+        s2.write('{0}\n'.format(sep.join(header)))
+        for i in range(3):
+            s1.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        for i in range(3, len(d.values()[0])):
+            s2.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        _LOG.debug('\nTesting get_dict_from_spreadsheet with spreadsheets:\n'
+                '{0}\n{1}'.format(s1.getvalue(), s2.getvalue()))
+        s1.seek(0)
+        s2.seek(0)
+        ret = get_dict_from_spreadsheets([s1, s2], sep = sep)
+        self.assertEqual(d, ret)
+
+    def test_comma_without_head(self):
+        sep = ','
+        header = ['PRI.Psi', 'pi.net.1', 'pi.net.2']
+        d = dict(zip(header, [['1','5','3', '2', '6'],
+                ['0.2', '0.12', '0.11', '0.33', '0.29'],
+                ['0.001', '0.0043', '0.0002', '0.0', '0.0036']]))
+        s1 = StringIO()
+        s2 = StringIO()
+        for i in range(3):
+            s1.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        for i in range(3, len(d.values()[0])):
+            s2.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        _LOG.debug('\nTesting get_dict_from_spreadsheet with spreadsheets:\n'
+                '{0}\n{1}'.format(s1.getvalue(), s2.getvalue()))
+        s1.seek(0)
+        s2.seek(0)
+        ret = get_dict_from_spreadsheets([s1, s2], sep = sep, header = header)
+        self.assertEqual(d, ret)
+
+    def test_error_mismatch_headers(self):
+        sep = '\t'
+        header = ['PRI.Psi', 'pi.net.1', 'pi.net.2']
+        header2 = ['PRI_Psi', 'pi.net.1', 'pi.net.2']
+        d = dict(zip(header, [['1','5','3', '2', '6'],
+                ['0.2', '0.12', '0.11', '0.33', '0.29'],
+                ['0.001', '0.0043', '0.0002', '0.0', '0.0036']]))
+        s1 = StringIO()
+        s2 = StringIO()
+        s1.write('{0}\n'.format(sep.join(header)))
+        s2.write('{0}\n'.format(sep.join(header2)))
+        for i in range(3):
+            s1.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        for i in range(3, len(d.values()[0])):
+            s2.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        _LOG.debug('\nTesting get_dict_from_spreadsheet with spreadsheets:\n'
+                '{0}\n{1}'.format(s1.getvalue(), s2.getvalue()))
+        s1.seek(0)
+        s2.seek(0)
+        self.assertRaises(Exception, get_dict_from_spreadsheets,
+                [s1, s2], sep = sep)
+
+    def test_error_missing_header(self):
+        sep = '\t'
+        header = ['PRI.Psi', 'pi.net.1', 'pi.net.2']
+        d = dict(zip(header, [['1','5','3', '2', '6'],
+                ['0.2', '0.12', '0.11', '0.33', '0.29'],
+                ['0.001', '0.0043', '0.0002', '0.0', '0.0036']]))
+        s1 = StringIO()
+        s2 = StringIO()
+        s1.write('{0}\n'.format(sep.join(header)))
+        for i in range(3):
+            s1.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        for i in range(3, len(d.values()[0])):
+            s2.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        _LOG.debug('\nTesting get_dict_from_spreadsheet with spreadsheets:\n'
+                '{0}\n{1}'.format(s1.getvalue(), s2.getvalue()))
+        s1.seek(0)
+        s2.seek(0)
+        self.assertRaises(Exception, get_dict_from_spreadsheets,
+                [s1, s2], sep = sep)
 
 if __name__ == '__main__':
     unittest.main()

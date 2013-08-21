@@ -146,6 +146,36 @@ def parse_header(file_obj, sep='\t', strict=True, seek=True):
             file_stream.seek(0)
     return header
 
+def spreadsheet_iter(spreadsheets, sep = '\t', header = None):
+    head_line = False
+    if not header:
+        head_line = True
+        header = parse_header(spreadsheets[0], sep = sep)
+    d = dict(zip(header, [[] for i in range(len(header))]))
+    for sheet_idx, ss in enumerate(spreadsheets):
+        file_stream, close = process_file_arg(ss, 'rU')
+        if head_line:
+            h = file_stream.next().strip().split(sep)
+            if header != h:
+                raise Exception('headers do not match')
+        for row_idx, row in enumerate(file_stream):
+            r = [el.strip() for el in row.strip().split(sep)]
+            if len(r) != len(header):
+                raise Exception('row {0} of spreadsheet {1} has {2} columns, '
+                        'header has {3}'.format(row_idx + 1, sheet_idx + 1,
+                                len(r), len(header)))
+            yield dict(zip(header, r))
+
+def get_dict_from_spreadsheets(spreadsheets, sep = '\t', header = None):
+    ss_iter = spreadsheet_iter(spreadsheets, sep = sep, header = header)
+    row_dict = ss_iter.next()
+    d = dict(zip(row_dict.iterkeys(),
+            [[row_dict[k]] for k in row_dict.iterkeys()]))
+    for row_dict in ss_iter:
+        for k in row_dict.iterkeys():
+            d[k].append(row_dict[k])
+    return d
+
 def get_parameter_indices(header_list, parameter_patterns=PARAMETER_PATTERNS):
     return get_indices_of_patterns(header_list, parameter_patterns)
 
