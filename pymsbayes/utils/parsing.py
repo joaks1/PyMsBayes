@@ -165,6 +165,8 @@ def spreadsheet_iter(spreadsheets, sep = '\t', header = None):
                         'header has {3}'.format(row_idx + 1, sheet_idx + 1,
                                 len(r), len(header)))
             yield dict(zip(header, r))
+        if close:
+            file_stream.close()
 
 def get_dict_from_spreadsheets(spreadsheets, sep = '\t', header = None):
     ss_iter = spreadsheet_iter(spreadsheets, sep = sep, header = header)
