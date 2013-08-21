@@ -31,6 +31,10 @@ class MsBayesConfig(object):
         self.implementation = 'old'
         self.div_model_prior = None
         self.theta_parameters = None
+        self.bottle_proportion = None
+        self.bottle_proportion_shared = None
+        self.taxa = set()
+        self.sample_table = []
         self._parse_config(cfg_file)
 
     @classmethod
@@ -79,12 +83,14 @@ class MsBayesConfig(object):
         return preamble, table
 
     def _parse_table(self, table):
-        taxa = set()
+        self.taxa = set()
+        self.sample_table = []
         for i, row in enumerate(table):
-            r = row.strip()
+            r = row.strip().split()
             if r:
-                taxa.add(r.split()[0])
-        self.npairs = len(taxa)
+                self.taxa.add(r[0])
+            self.sample_table.append(r)
+        self.npairs = len(self.taxa)
     
     def _get_gamma_or_uniform_distribution(self, shape, scale):
         if shape > 0.0 and scale > 0.0:
@@ -96,6 +102,11 @@ class MsBayesConfig(object):
                 return ContinuousUniformDistribution(a, b)
             else:
                 return ContinuousUniformDistribution(b, a)
+
+    def _get_gamma_or_uniform_settings(self, distribution):
+        if isinstance(distribution, GammaDistribution):
+            return distribution.shape, distribution.scale
+        return -distribution.minimum, -distribution.maximum
 
     def _set_priors(self, preamble):
         kwargs = self._parse_preamble(preamble)
@@ -128,6 +139,7 @@ class MsBayesConfig(object):
             else:
                 self.div_model_prior = 'psi'
                 self.dpp_concentration = None
+                self.psi = DiscreteUniformDistribution(1, self.npairs)
 
             tau_shape = float(kwargs.get('taushape', 1.0))
             tau_scale = float(kwargs.get('tauscale', 2.0))
@@ -163,6 +175,14 @@ class MsBayesConfig(object):
                 self.recombination = GammaDistribution(rec_shape, rec_scale)
             else:
                 self.recombination = ContinuousUniformDistribution(0.0, 0.0)
+            bottle_a = float(kwargs.get('bottleProportionShapeA', 0.0))
+            bottle_b = float(kwargs.get('bottleProportionShapeB', 0.0))
+            if (bottle_a > 0.0) and (bottle_b > 0.0):
+                self.bottle_proportion = BetaDistribution(bottle_a, bottle_b)
+            else:
+                self.bottle_proportion = None
+            bottle_shared = int(kwargs.get('bottleProportionShared', 0))
+            self.bottle_proportion_shared = bool(bottle_shared)
             return
 
         ltau = float(kwargs.get('lowertau', 0.0))
@@ -195,4 +215,92 @@ class MsBayesConfig(object):
         for tup in cfg.items('preamble'):
             d[tup[0].lower()] = tup[1]
         return d
+
+    def _get_old_settings(self):
+        d = {}
+        d['upperTheta'] = self.theta.maximum
+        d['lowerTheta'] = self.theta.minimum
+        d['upperTau'] = self.tau.maximum
+        d['lowerTau'] = self.tau.minimum
+        d['upperAncPopSize'] = self.a_theta.maximum /self.theta.maximum
+        if self.div_model_prior.lower() == 'constrained':
+            assert self.psi.maximum == self.psi.minimum
+            d['numTauClasses'] = self.psi.maximum
+        else:
+            d['numTauClasses'] = 0
+        d['upperMig'] = self.migration.maximum
+        d['upperRec'] = self.recombination.maximum
+        d['constrain'] = 0
+        d['subParamConstrain'] = '111111111'
+        return d
+    
+    def _get_new_settings(self):
+        d = {}
+        if self.dpp_concentration:
+            d['concentrationShape'] = self.dpp_concentration.shape
+            d['concentrationScale'] = self.dpp_concentration.scale
+        elif self.div_model_prior.lower() == 'psi':
+            d['concentrationShape'] = -1.0
+            d['concentrationScale'] = -1.0
+        else:
+            d['concentrationShape'] = 0.0
+            d['concentrationScale'] = 0.0
+        d['thetaShape'], d['thetaScale'] = \
+                self._get_gamma_or_uniform_settings(self.d_theta)
+        d['ancestralThetaShape'], d['ancestralThetaScale'] = \
+                self._get_gamma_or_uniform_settings(self.a_theta)
+        d['thetaParameters'] = ''.join([str(x) for x in self.theta_parameters])
+        d['tauShape'], d['tauScale'] = \
+                self._get_gamma_or_uniform_settings(self.tau)
+        if self.bottle_proportion:
+            d['bottleProportionShapeA'] = self.bottle_proportion.alpha
+            d['bottleProportionShapeB'] = self.bottle_proportion.beta
+        else:
+            d['bottleProportionShapeA'] = 0.0
+            d['bottleProportionShapeB'] = 0.0
+        if self.bottle_proportion_shared:
+            d['bottleProportionShared'] = 1
+        else:
+            d['bottleProportionShared'] = 0
+        if self.div_model_prior.lower() == 'constrained':
+            assert self.psi.maximum == self.psi.minimum
+            d['numTauClasses'] = self.psi.maximum
+        else:
+            d['numTauClasses'] = 0
+        d['migrationShape'], d['migrationScale'] = \
+                self._get_gamma_or_uniform_settings(self.migration)
+        d['recombinationShape'], d['recombinationScale'] = \
+                self._get_gamma_or_uniform_settings(self.recombination)
+        d['constrain'] = 0
+        d['subParamConstrain'] = '111111111'
+        return d
+
+    def get_settings(self):
+        if self.implementation.lower() == 'old':
+            return self._get_old_settings()
+        return self._get_new_settings()
+
+    def get_preamble(self):
+        s = StringIO()
+        settings = self.get_settings()
+        for k in sorted(settings.iterkeys()):
+            s.write('{0} = {1}\n'.format(k, settings[k]))
+        return s.getvalue()
+
+    def get_sample_table(self):
+        s = StringIO()
+        s.write('BEGIN SAMPLE_TBL\n')
+        for row in self.sample_table:
+            s.write('{0}\n'.format('\t'.join(row)))
+        s.write('END SAMPLE_TBL\n')
+        return s.getvalue()
+    
+    def __str__(self):
+        return '\n'.join([self.get_preamble() + self.get_sample_table()])
+
+    def write(self, file_obj):
+        out, close = process_file_arg(file_obj, 'w')
+        out.write(self.__str__())
+        if close:
+            out.close()
 
