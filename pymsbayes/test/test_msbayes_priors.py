@@ -740,7 +740,7 @@ ancestralThetaShape = 0
 ancestralThetaScale = 0
 thetaParameters = 012
 tauShape = 1.0
-tauScale = 5.0
+tauScale = 0.7
 bottleProportionShapeA = 0
 bottleProportionShapeB = 0
 bottleProportionShared = 1
@@ -756,7 +756,7 @@ subParamConstrain = 111111111
         self.generate_prior(sample_size=1000, batch_size=250, np=4)
         self.assertFalse(self.samples == None)
         theta = GammaDistribution(1.0, 0.01)
-        tau = GammaDistribution(1.0, 5.0)
+        tau = GammaDistribution(1.0, 0.7)
         not_equal_failures = 0
         for i in range(1000):
             for j in range(4):
@@ -775,9 +775,7 @@ subParamConstrain = 111111111
                 self.samples['all_a_thetas'])
         tau_ss = SampleSummarizer(self.samples['unique_taus'])
         self.assertAlmostEqual(tau_ss.mean, tau.mean, places=0)
-        self.assertTrue(math.fabs(tau_ss.variance - tau.variance) < 3.0,
-                msg='unique tau variance is {0}; expecting {1}'.format(
-                        tau_ss.variance, tau.variance))
+        self.assertAlmostEqual(tau_ss.variance, tau.variance, places=1)
         self.assertAlmostEqual(d_theta_ss.mean, theta.mean, places=2)
         self.assertAlmostEqual(d_theta_ss.variance, theta.variance, places=2)
         self.assertEqual(self.samples['psi'], [1]*1000)
