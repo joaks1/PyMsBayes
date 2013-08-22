@@ -14,15 +14,8 @@ import argparse
 import datetime
 import logging
 
-from pymsbayes.fileio import expand_path, process_file_arg, open
-from pymsbayes.utils import GLOBAL_RNG, set_memory_trace, MSBAYES_SORT_INDEX
-from pymsbayes.utils.messaging import get_logger, LOGGING_LEVEL_ENV_VAR
-from pymsbayes.utils.parsing import line_count
-from pymsbayes.config import MsBayesConfig
-from pymsbayes.utils.functions import (is_file, is_dir, long_division,
-        mk_new_dir)
-
-_LOG = get_logger(__name__)
+from pymsbayes.utils.argparse_utils import (arg_is_dir, arg_is_path,
+        arg_is_config)
 
 _program_info = {
     'name': os.path.basename(__file__),
@@ -31,53 +24,6 @@ _program_info = {
     'description': __doc__,
     'copyright': 'Copyright (C) 2013 Jamie Oaks',
     'license': 'GNU GPL version 3 or later',}
-
-class InfoLogger(object):
-    def __init__(self, path):
-        self.path = path
-
-    def write(self, msg, log_func=None):
-        out = open(self.path, 'a')
-        out.write(msg)
-        out.close()
-        if log_func:
-            log_func(msg)
-
-def arg_is_path(path):
-    try:
-        if not os.path.exists(path):
-            raise
-    except:
-        msg = 'path {0!r} does not exist'.format(path)
-        raise argparse.ArgumentTypeError(msg)
-    return expand_path(path)
-
-def arg_is_file(path):
-    try:
-        if not is_file(path):
-            raise
-    except:
-        msg = '{0!r} is not a file'.format(path)
-        raise argparse.ArgumentTypeError(msg)
-    return expand_path(path)
-
-def arg_is_config(path):
-    try:
-        if not MsBayesConfig.is_config(path):
-            raise
-    except:
-        msg = '{0!r} is not an msBayes config file'.format(path)
-        raise argparse.ArgumentTypeError(msg)
-    return expand_path(path)
-
-def arg_is_dir(path):
-    try:
-        if not is_dir(path):
-            raise
-    except:
-        msg = '{0!r} is not a directory'.format(path)
-        raise argparse.ArgumentTypeError(msg)
-    return expand_path(path)
 
 def main_cli():
     description = '{name} {version}'.format(**_program_info)
@@ -249,25 +195,30 @@ def main_cli():
     ##########################################################################
     ## handle args
 
-    MSBAYES_SORT_INDEX.set_index(args.sort_index)
+    from pymsbayes.utils.messaging import (get_logger, LOGGING_LEVEL_ENV_VAR,
+            InfoLogger)
 
-    _LOG.setLevel(logging.INFO)
     os.environ[LOGGING_LEVEL_ENV_VAR] = "INFO"
     if args.quiet:
-        _LOG.setLevel(logging.WARNING)
         os.environ[LOGGING_LEVEL_ENV_VAR] = "WARNING"
     if args.debug:
-        _LOG.setLevel(logging.DEBUG)
         os.environ[LOGGING_LEVEL_ENV_VAR] = "DEBUG"
+    log = get_logger()
 
     from pymsbayes.workers import (MsBayesWorker, merge_prior_files,
             ObsSumStatsWorker)
     from pymsbayes.teams import ABCTeam
+    from pymsbayes.utils.functions import (is_file, is_dir, long_division,
+            mk_new_dir)
     from pymsbayes.utils.parsing import (get_patterns_from_prefixes,
-        DEFAULT_STAT_PATTERNS, DIV_MODEL_PATTERNS, MODEL_PATTERNS, PSI_PATTERNS,
-        MEAN_TAU_PATTERNS, OMEGA_PATTERNS)
+            DEFAULT_STAT_PATTERNS, DIV_MODEL_PATTERNS, MODEL_PATTERNS,
+            PSI_PATTERNS, MEAN_TAU_PATTERNS, OMEGA_PATTERNS, line_count)
     from pymsbayes.manager import Manager
     from pymsbayes.utils.tempfs import TempFileSystem
+    from pymsbayes.config import MsBayesConfig
+    from pymsbayes.utils import GLOBAL_RNG, set_memory_trace, MSBAYES_SORT_INDEX
+
+    MSBAYES_SORT_INDEX.set_index(args.sort_index)
 
     if len(args.observed_configs) != len(set(args.observed_configs)):
         raise ValueError('All paths to observed config files must be unique')
@@ -300,18 +251,18 @@ def main_cli():
         args.temp_dir = base_dir
     info = InfoLogger(os.path.join(base_dir, args.output_prefix + \
             'pymsbayes-info.txt'))
-    info.write('[pymsbayes]\n'.format(base_dir))
-    info.write('\tversion = {version}\n'.format(**_program_info))
-    info.write('\toutput_directory = {0}\n'.format(base_dir))
+    info.write('[pymsbayes]'.format(base_dir))
+    info.write('\tversion = {version}'.format(**_program_info))
+    info.write('\toutput_directory = {0}'.format(base_dir))
     temp_fs = TempFileSystem(parent=args.temp_dir, prefix='temp-files-')
     base_temp_dir = temp_fs.base_dir
-    info.write('\ttemp_directory = {0}\n'.format(base_temp_dir))
-    info.write('\tsort_index = {0}\n'.format(
+    info.write('\ttemp_directory = {0}'.format(base_temp_dir))
+    info.write('\tsort_index = {0}'.format(
             MSBAYES_SORT_INDEX.current_value()))
     if (args.reps < 1):
-        info.write('\tsimulate_data = False\n')
+        info.write('\tsimulate_data = False')
     else:
-        info.write('\tsimulate_data = True\n')
+        info.write('\tsimulate_data = True')
     stat_patterns = DEFAULT_STAT_PATTERNS
     if args.stat_prefixes:
         for i in range(len(args.stat_prefixes)):
@@ -329,23 +280,25 @@ def main_cli():
     observed_paths = [os.path.join(observed_dir, args.output_prefix + \
             'observed-{0}.txt'.format(i+1)) for i in range(len(
                     args.observed_configs))]
-    info.write('\tseed = {0}\n'.format(args.seed))
-    info.write('\tnum_processors = {0}\n'.format(args.np))
-    info.write('\tbandwidth = {0}\n'.format(args.bandwidth))
-    info.write('\tposterior_quantiles = {0}\n'.format(
+    info.write('\tseed = {0}'.format(args.seed))
+    info.write('\tnum_processors = {0}'.format(args.np))
+    info.write('\tnum_prior_samples = {0}'.format(
+            args.num_prior_samples))
+    info.write('\tnum_standardizing_samples = {0}'.format(
+            args.num_posterior_samples))
+    info.write('\tbandwidth = {0}'.format(args.bandwidth))
+    info.write('\tposterior_quantiles = {0}'.format(
             args.num_posterior_quantiles))
-    info.write('\tposterior_sample_size = {0}\n'.format(
+    info.write('\tposterior_sample_size = {0}'.format(
             args.num_posterior_samples))
-    info.write('\tnum_standardizing_samples = {0}\n'.format(
-            args.num_posterior_samples))
-    info.write('\t\tstat_patterns = {0}\n'.format(
+    info.write('\t\tstat_patterns = {0}'.format(
             ', '.join([p.pattern for p in stat_patterns])))
-    info.write('\t[[observed_configs]]\n')
+    info.write('\t[[observed_configs]]')
     for i, cfg in enumerate(args.observed_configs):
-        info.write('\t\t{0} = {1}\n'.format(i + 1, cfg))
-    info.write('\t[[observed_paths]]\n')
+        info.write('\t\t{0} = {1}'.format(i + 1, cfg))
+    info.write('\t[[observed_paths]]')
     for i, p in enumerate(observed_paths):
-        info.write('\t\t{0} = {1}\n'.format(i + 1, p))
+        info.write('\t\t{0} = {1}'.format(i + 1, p))
 
     models_to_configs = {}
     configs_to_models = {}
@@ -362,9 +315,9 @@ def main_cli():
             if num_taxon_pairs != cfg.npairs:
                 raise ValueError('prior configs have different numbers of '
                         'taxon pairs')
-    info.write('\t[[prior_configs]]\n')
+    info.write('\t[[prior_configs]]')
     for model_idx, cfg in models_to_configs.iteritems():
-        info.write('\t\t{0} = {1}\n'.format(model_idx, cfg))
+        info.write('\t\t{0} = {1}'.format(model_idx, cfg))
 
     for config in args.observed_configs:
         cfg = MsBayesConfig(config)
@@ -390,7 +343,7 @@ def main_cli():
             prefix = 'observed-temps-')
 
     if args.reps < 1:
-        _LOG.info('Calculating summary statistics from sequence data...')
+        log.info('Calculating summary statistics from sequence data...')
         obs_workers = []
         for i, cfg in enumerate(args.observed_configs):
             ss_worker = ObsSumStatsWorker(
@@ -406,7 +359,7 @@ def main_cli():
             num_processors = args.np)
 
     else:
-        _LOG.info('Simulating summary statistics from observed configs...')
+        log.info('Simulating summary statistics from observed configs...')
         num_observed_workers = min([args.reps, args.np])
         if args.reps <= args.np:
             observed_batch_size = 1
@@ -428,7 +381,7 @@ def main_cli():
                         schema = schema,
                         include_header = True,
                         stat_patterns = stat_patterns,
-                        write_stats_file = True,
+                        write_stats_file = False,
                         staging_dir = None,
                         tag = idx)
                 msbayes_workers.append(worker)
@@ -442,7 +395,7 @@ def main_cli():
                         schema = schema,
                         include_header = True,
                         stat_patterns = stat_patterns,
-                        write_stats_file = True,
+                        write_stats_file = False,
                         staging_dir = None,
                         tag = idx)
                 msbayes_workers.append(worker)
@@ -469,7 +422,7 @@ def main_cli():
                         '({3})'.format(lc, args.observed_configs[i],
                             observed_paths[i], args.reps))
     if not args.keep_temps:
-        _LOG.debug('purging observed temps...')
+        log.debug('purging observed temps...')
         observed_temp_fs.purge()
 
     ##########################################################################
@@ -504,15 +457,15 @@ def main_cli():
     abc_team.run()
 
     stop_time = datetime.datetime.now()
-    _LOG.info('Done!')
-    info.write('\t[[run_stats]]\n', _LOG.info)
-    info.write('\t\tstart_time = {0}\n'.format(str(start_time)), _LOG.info)
-    info.write('\t\tstop_time = {0}\n'.format(str(stop_time)), _LOG.info)
-    info.write('\t\ttotal_duration = {0}\n'.format(str(stop_time - start_time)),
-            _LOG.info)
+    log.info('Done!')
+    info.write('\t[[run_stats]]', log.info)
+    info.write('\t\tstart_time = {0}'.format(str(start_time)), log.info)
+    info.write('\t\tstop_time = {0}'.format(str(stop_time)), log.info)
+    info.write('\t\ttotal_duration = {0}'.format(str(stop_time - start_time)),
+            log.info)
 
     if not args.keep_temps:
-        _LOG.debug('purging temps...')
+        log.debug('purging temps...')
         temp_fs.purge()
 
 if __name__ == '__main__':
