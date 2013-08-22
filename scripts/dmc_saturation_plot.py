@@ -99,19 +99,24 @@ def main_cli():
 
     from pymsbayes.workers import MsBayesWorker
     from pymsbayes.utils.parsing import (get_patterns_from_prefixes,
-            DEFAULT_STAT_PATTERNS, get_stats_by_time)
+            DEFAULT_STAT_PATTERNS, get_stats_by_time, dict_line_iter)
     from pymsbayes.manager import Manager
     from pymsbayes.utils.tempfs import TempFileSystem
     from pymsbayes.utils import probability
     from pymsbayes.utils.functions import long_division
     from pymsbayes.config import MsBayesConfig
     from pymsbayes.utils import GLOBAL_RNG, MSBAYES_SORT_INDEX
+    from pymsbayes.fileio import process_file_arg
 
     MSBAYES_SORT_INDEX.set_index(0)
 
     if not args.output_dir:
         args.output_dir = os.path.dirname(args.config)
     info = InfoLogger(os.path.join(args.output_dir, 'pymsbayes-info.txt'))
+
+    stats_by_time_path = os.path.join(args.output_dir, 'stats-by-time.txt')
+    if args.compress:
+        stats_by_time_path += '.gz'
 
     if not args.temp_dir:
         args.temp_dir = args.output_dir
@@ -127,6 +132,9 @@ def main_cli():
     if not args.seed:
         args.seed = random.randint(1, 999999999)
     GLOBAL_RNG.seed(args.seed)
+    compress_level = None
+    if args.compress:
+        compress_level = 9
 
     cfg = MsBayesConfig(args.config)
     num_taxon_pairs = cfg.npairs
@@ -139,15 +147,17 @@ def main_cli():
     info.write('[pymsbayes]', log.info)
     info.write('\tprogram_name = {name}'.format(**_program_info), log.info)
     info.write('\tversion = {version}'.format(**_program_info), log.info)
-    info.write('\toutput_directory = {0}'.format(args.output_dir), log.info)
-    info.write('\ttemp_directory = {0}'.format(temp_fs.base_dir), log.info)
+    info.write('\tinvocation = {0!r}'.format(' '.join(sys.argv)), log.info)
+    info.write('\toutput_directory = {0!r}'.format(args.output_dir), log.info)
+    info.write('\ttemp_directory = {0!r}'.format(temp_fs.base_dir), log.info)
     info.write('\tsort_index = {0}'.format(
             MSBAYES_SORT_INDEX.current_value()), log.info)
-    info.write('\tstat_patterns = {0}'.format(
+    info.write('\tstat_patterns = {0!r}'.format(
             ', '.join([p.pattern for p in stat_patterns])), log.info)
     info.write('\tseed = {0}'.format(args.seed), log.info)
     info.write('\tnum_prior_samples = {0}'.format(args.num_prior_samples),
             log.info)
+    info.write('\tstats_by_time_path = {0!r}'.format(stats_by_time_path))
 
     info.write('\t[[config]]', log.debug)
     info.write('{0}'.format(str(cfg)), log.debug)
@@ -183,7 +193,16 @@ def main_cli():
             num_processors = args.np)
     log.info('Parsing samples...')
     stats_by_time = get_stats_by_time([w.prior_path for w in workers])
-    sys.stderr.write('{0}\n'.format(stats_by_time))
+    stat_keys = stats_by_time.keys()
+    stat_keys.remove('PRI.t')
+    header = ['PRI.t'] + sorted(stat_keys)
+    log.info('Writing stats-by-time matrix...')
+    out, close = process_file_arg(stats_by_time_path, 'w',
+            compresslevel = compress_level)
+    for row in dict_line_iter(stats_by_time, sep = '\t', header = header):
+        out.write(row)
+    if close:
+        out.close()
 
     stop_time = datetime.datetime.now()
     log.info('Done!')
