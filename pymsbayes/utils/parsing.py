@@ -168,6 +168,15 @@ def spreadsheet_iter(spreadsheets, sep = '\t', header = None):
         if close:
             file_stream.close()
 
+def dict_line_iter(d, sep = '\t', header = None):
+    if not header:
+        header = sorted(d.iterkeys())
+    if sorted(header) != sorted(d.iterkeys()):
+        raise ValueError('header does not match dict keys')
+    yield '{0}\n'.format(sep.join(header))
+    for i in range(len(d[header[0]])):
+        yield '{0}\n'.format(sep.join([str(d[h][i]) for h in header]))
+
 def get_dict_from_spreadsheets(spreadsheets, sep = '\t', header = None):
     ss_iter = spreadsheet_iter(spreadsheets, sep = sep, header = header)
     row_dict = ss_iter.next()

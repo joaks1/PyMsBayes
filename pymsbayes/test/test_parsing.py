@@ -544,6 +544,41 @@ class GetStatsByTimeTestCase(unittest.TestCase):
         s2.seek(0)
         self.assertRaises(Exception, get_stats_by_time, [s1, s2], sep = sep)
 
+class DictLineIterTestCase(unittest.TestCase):
+
+    def test_tab_with_head(self):
+        sep = '\t'
+        header = ['PRI.Psi', 'pi.net.1', 'pi.net.2']
+        d = dict(zip(header, [['1','5','3', '2', '6'],
+                ['0.2', '0.12', '0.11', '0.33', '0.29'],
+                ['0.001', '0.0043', '0.0002', '0.0', '0.0036']]))
+        s = StringIO()
+        s.write('{0}\n'.format(sep.join(header)))
+        for i in range(len(d.values()[0])):
+            s.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        s.seek(0)
+        r = StringIO()
+        for row in dict_line_iter(d, sep = sep, header = header):
+            r.write(row)
+        self.assertEqual(s.getvalue(), r.getvalue())
+
+    def test_tab_without_head(self):
+        sep = '\t'
+        header = ['PRI.Psi', 'pi.net.1', 'pi.net.2']
+        header = sorted(header)
+        d = dict(zip(header, [['1','5','3', '2', '6'],
+                ['0.2', '0.12', '0.11', '0.33', '0.29'],
+                ['0.001', '0.0043', '0.0002', '0.0', '0.0036']]))
+        s = StringIO()
+        s.write('{0}\n'.format(sep.join(header)))
+        for i in range(len(d.values()[0])):
+            s.write('{0}\n'.format(sep.join([d[h][i] for h in header])))
+        s.seek(0)
+        r = StringIO()
+        for row in dict_line_iter(d, sep = sep):
+            r.write(row)
+        self.assertEqual(s.getvalue(), r.getvalue())
+
 if __name__ == '__main__':
     unittest.main()
 
