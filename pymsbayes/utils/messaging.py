@@ -28,7 +28,7 @@ def get_logging_level(level=None):
 def get_env_logging_level():
     return get_logging_level(os.environ.get(LOGGING_LEVEL_ENV_VAR, None))
 
-def get_logger(name = 'pymsbayes', level=None):
+def get_logger(name = 'pymsbayes', level = None):
     if level:
         l = get_logging_level(level)
     else:
@@ -39,3 +39,15 @@ def get_logger(name = 'pymsbayes', level=None):
     h.setLevel(l)
     log.addHandler(h)
     return log
+
+class InfoLogger(object):
+    def __init__(self, path):
+        self.path = path
+
+    def write(self, msg, log_func = None):
+        out = open(self.path, 'a')
+        out.write(msg + os.linesep)
+        out.close()
+        if log_func:
+            log_func(msg)
+
