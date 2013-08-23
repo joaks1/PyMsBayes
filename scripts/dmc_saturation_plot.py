@@ -7,12 +7,15 @@ Main CLI for PyMsBayes package.
 import os
 import sys
 import re
+import math
 import glob
 import multiprocessing
 import random
 import argparse
 import datetime
 import logging
+import matplotlib
+import matplotlib.pyplot as plt
 
 from pymsbayes.utils.argparse_utils import arg_is_dir, arg_is_config
 
@@ -204,6 +207,37 @@ def main_cli():
     if close:
         out.close()
 
+    log.info('Creating plots...')
+    # TODO: wrap up and generalize plotting code and move into plotting module
+    axis_labels = {'pi': r'$\pi$',
+                   'pi.net': r'$\pi_{net}$',
+                   'wattTheta': r'$\theta_W$',
+                   'tajD.denom': r'$SD(\pi - \theta_W)$'}
+    fig = plt.figure()
+    ncols = 2
+    nrows = get_num_rows(len(stat_keys))
+    for i, k in enumerate(stat_keys):
+        if fig.axes:
+            ax = fig.add_subplot(nrows, ncols, i + 1, sharex = fig.axes[0])
+        else:
+            ax = fig.add_subplot(nrows, ncols, i + 1)
+        ax.plot(stats_by_time['PRI.t'], stats_by_time[k])
+        ax.set_ylabel(axis_labels[k])
+    plt.setp([a.lines for a in fig.axes],
+            marker = 'o',
+            linestyle='',
+            markerfacecolor = 'none',
+            markeredgecolor = '0.4',
+            markeredgewidth = 0.7)
+    fig.suptitle(r'Divergence time $\tau$ in $4N_C$ generations',
+            verticalalignment = 'bottom',
+            y = 0.001)
+    fig.tight_layout(pad = 0.25, # out side margin
+                     h_pad = None, # height padding between subplots
+                     w_pad = None, # width padding between subplots
+                     rect = (0,0.05,1,1))
+    fig.savefig('plot.pdf')
+
     stop_time = datetime.datetime.now()
     log.info('Done!')
     info.write('\t[[run_stats]]', log.info)
@@ -215,6 +249,9 @@ def main_cli():
     if not args.keep_temps:
         log.debug('purging temps...')
         temp_fs.purge()
+
+def get_num_rows(n, ncols = 2):
+    return int(math.ceil(n / float(ncols)))
 
 if __name__ == '__main__':
     main_cli()
