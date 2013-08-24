@@ -452,6 +452,7 @@ class ABCTeam(object):
     def _prior_worker_iter(self):
         n = 0
         prior_workers = []
+        i = -1
         for i in range(self.num_batches_remaining):
             n += 1
             for model_index, config_path in self.models.iteritems():
