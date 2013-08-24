@@ -333,6 +333,7 @@ class ABCTeam(object):
 
     def _prior_summary_worker_iter(self):
         to_summarize = self.num_standardizing_samples
+        i = -1
         for i in range(self.num_batches):
             if to_summarize <= 0:
                 break
@@ -527,11 +528,13 @@ class ABCTeam(object):
     def _write_keys(self):
         out, close = process_file_arg(self.model_key_path, 'w')
         for idx, cfg_path in self.models.iteritems():
-            out.write('m{0} = {1}\n'.format(idx, cfg_path))
+            out.write('m{0} = {1}\n'.format(idx, os.path.relpath(cfg_path,
+                    os.path.dirname(self.model_key_path))))
         out.close()
         out, close = process_file_arg(self.data_key_path, 'w')
         for idx, data_path in self.observed_stats_paths.iteritems():
-            out.write('d{0} = {1}\n'.format(idx, data_path))
+            out.write('d{0} = {1}\n'.format(idx, os.path.relpath(data_path,
+                    os.path.dirname(self.data_key_path))))
         out.close()
 
     def _rejection_worker_iter(self, max_num_workers = 500):
