@@ -249,8 +249,9 @@ def main_cli():
     base_dir = mk_new_dir(os.path.join(args.output_dir, 'pymsbayes-results'))
     if not args.temp_dir:
         args.temp_dir = base_dir
-    info = InfoLogger(os.path.join(base_dir, args.output_prefix + \
-            'pymsbayes-info.txt'))
+    info_path = os.path.join(base_dir, args.output_prefix + \
+            'pymsbayes-info.txt')
+    info = InfoLogger(info_path)
     info.write('[pymsbayes]'.format(base_dir))
     info.write('\tversion = {version}'.format(**_program_info))
     info.write('\toutput_directory = {0}'.format(base_dir))
@@ -295,10 +296,12 @@ def main_cli():
             ', '.join([p.pattern for p in stat_patterns])))
     info.write('\t[[observed_configs]]')
     for i, cfg in enumerate(args.observed_configs):
-        info.write('\t\t{0} = {1}'.format(i + 1, cfg))
+        info.write('\t\t{0} = {1}'.format(i + 1, os.path.relpath(cfg,
+                os.path.dirname(info_path))))
     info.write('\t[[observed_paths]]')
     for i, p in enumerate(observed_paths):
-        info.write('\t\t{0} = {1}'.format(i + 1, p))
+        info.write('\t\t{0} = {1}'.format(i + 1, os.path.relpath(p,
+                os.path.dirname(info_path))))
 
     models_to_configs = {}
     configs_to_models = {}
@@ -317,7 +320,8 @@ def main_cli():
                         'taxon pairs')
     info.write('\t[[prior_configs]]')
     for model_idx, cfg in models_to_configs.iteritems():
-        info.write('\t\t{0} = {1}'.format(model_idx, cfg))
+        info.write('\t\t{0} = {1}'.format(model_idx, os.path.relpath(cfg,
+                os.path.dirname(info_path))))
 
     for config in args.observed_configs:
         cfg = MsBayesConfig(config)
