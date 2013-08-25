@@ -895,7 +895,7 @@ class EuRejectWorker(Worker):
     def _parse_stderr(self):
         se = self.get_stderr()
         if not se:
-            raise WorkerExecutionError('unexpected std error from '
+            raise WorkerExecutionError('no std error from '
                     '{0}: {1}'.format(self.name, se))
         m = self.stderr_pattern.search(se)
         if m is None:
