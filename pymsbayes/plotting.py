@@ -18,8 +18,69 @@ except ImportError:
     _LOG.warning('matplotlib could not be imported; '
             'plotting functionality not supported')
 
+class ScatterData(object):
+    def __init__(self, x, y,
+            marker = 'o',
+            markerfacecolor = 'none',
+            markeredgecolor = '0.35',
+            markeredgewidth = 0.7,
+            linestyle = '',
+            zorder = 1,
+            **kwargs):
+        self.x = x
+        self.y = y
+        self.marker = marker
+        self.markerfacecolor = markerfacecolor
+        self.markeredgecolor = markeredgecolor
+        self.markeredgewidth = markeredgewidth
+        self.linestyle = linestyle
+        self.zorder = zorder
+        self.kwargs = kwargs
+
+class VerticalLine(object):
+    def __init__(self, x,
+            ymin = 0,
+            ymax = 1,
+            color = '0.5',
+            label = None,
+            linestyle = '--',
+            linewidth = 1.0,
+            zorder = 0,
+            **kwargs):
+        self.x = x
+        self.ymin = ymin
+        self.ymax = ymax
+        self.color = color
+        self.label = label
+        self.linestyle = linestyle
+        self.linewidth = linewidth
+        self.zorder = zorder
+        self.kwargs = kwargs
+
+class HorizontalLine(object):
+    def __init__(self, y,
+            xmin = 0,
+            xmax = 1,
+            color = '0.5',
+            label = None,
+            linestyle = '--',
+            linewidth = 1.0,
+            zorder = 0,
+            **kwargs):
+        self.y = y
+        self.xmin = xmin
+        self.xmax = xmax
+        self.color = color
+        self.label = label
+        self.linestyle = linestyle
+        self.linewidth = linewidth
+        self.zorder = zorder
+        self.kwargs = kwargs
+
 class ScatterPlot(object):
-    def __init__(self, x = None, y = None,
+    def __init__(self, scatter_data_list = [],
+            vertical_lines = [],
+            horizontal_lines = [],
             plot_label = None,
             x_label = None,
             y_label = None,
@@ -31,8 +92,9 @@ class ScatterPlot(object):
             marker_edge_color = '0.35',
             marker_edge_width = 0.7,
             position = (1,1,1)):
-        self.x = x
-        self.y = y
+        self.scatter_data_list = list(scatter_data_list)
+        self.vertical_lines = list(vertical_lines)
+        self.horizontal_lines = list(horizontal_lines)
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot(*position)
         self._plot_label = plot_label
@@ -85,13 +147,23 @@ class ScatterPlot(object):
         # using `plot` method rather than `scatter`, because the `collections`
         # attribute created by `scatter` seems difficult to adjust after the
         # initial creation. Whereas `lines` are easy to manipulate.
-        l = self.ax.plot(self.x, self.y)
-        plt.setp(l, #self.ax.lines,
-                marker = self.marker,
-                linestyle = '',
-                markerfacecolor = self.marker_face_color,
-                markeredgecolor = self.marker_edge_color,
-                markeredgewidth = self.marker_edge_width)
+        for d in self.scatter_data_list:
+            self._plot_scatter_data(d)
+        for v in self.vertical_lines:
+            self._plot_v_line(v)
+        for h in self.horizontal_lines:
+            self._plot_h_line(h)
+
+    def _plot_scatter_data(self, d):
+        l = self.ax.plot(d.x, d.y)
+        plt.setp(l,
+                marker = d.marker,
+                linestyle = d.linestyle,
+                markerfacecolor = d.markerfacecolor,
+                markeredgecolor = d.markeredgecolor,
+                markeredgewidth = d.markeredgewidth,
+                zorder = d.zorder,
+                **d.kwargs)
 
     def append_plot(self):
         self._plot()
@@ -313,20 +385,37 @@ class ScatterPlot(object):
     def is_first_col(self):
         return self.ax.is_first_col()
 
-    def add_v_line(self, x, ymin = 0, ymax = 1, color = '0.5', label = None,
-            linestyle = '-', linewidth = 1.0, zorder = 0, **kwargs):
-        self.ax.axvline(x = x, ymin = ymin, ymax = ymax, color = color,
-                label = label, linestyle = linestyle, linewidth = linewidth,
-                **kwargs)
+    def _plot_v_line(self, v):
+        self.ax.axvline(x = v.x, 
+                ymin = v.ymin,
+                ymax = v.ymax, 
+                color = v.color,
+                label = v.label,
+                linestyle = v.linestyle,
+                linewidth = v.linewidth,
+                **v.kwargs)
 
-    def add_h_line(self, y, xmin = 0, xmax = 1, color = '0.5', label = None,
-            linestyle = '-', linewidth = 1.0, zorder = 0, **kwargs):
-        self.ax.axhline(y = y, xmin = xmin, xmax = xmax, color = color,
-                label = label, linestyle = linestyle, linewidth = linewidth,
-                **kwargs)
+    def add_v_line(self, vertical_line_object):
+        self.vertical_lines.append(vertical_line_object)
+        self._plot_v_line(vertical_line_object)
+
+    def _plot_h_line(self, h):
+        self.ax.axhline(y = h.y, 
+                xmin = h.xmin,
+                xmax = h.xmax, 
+                color = h.color,
+                label = h.label,
+                linestyle = h.linestyle,
+                linewidth = h.linewidth,
+                **h.kwargs)
+
+    def add_h_line(self, horizontal_line_object):
+        self.horizontal_lines.append(horizontal_line_object)
+        self._plot_h_line(horizontal_line_object)
 
     def savefig(self, *args, **kwargs):
         self.fig.savefig(*args, **kwargs)
+
 
 class PlotGrid(object):
     valid_label_schemas = ['uppercase', 'lowercase', 'numbers']
@@ -451,13 +540,18 @@ def saturation_plot(d, x_key = 'PRI.t', y_keys = None, y_labels = {},
                        'wattTheta': r'$\theta_W$',
                        'tajD.denom': r'$SD(\pi - \theta_W)$'}
     subplots = []
+    v_lines = []
+    for x in vertical_line_positions:
+        v_lines.append(VerticalLine(x))
     for i, y in enumerate(y_keys):
         y_lab = y_labels.get(y, y)
-        sp = ScatterPlot(x = d[x_key], y = d[y],
+        scatter_data = ScatterData(x = d[x_key], y = d[y])
+        sp = ScatterPlot(scatter_data_list = [scatter_data],
+                vertical_lines = v_lines,
                 y_label = y_lab)
         subplots.append(sp)
 
-    grid = PlotGrid(subplots = subplots,
+    return PlotGrid(subplots = subplots,
             num_columns = num_columns,
             share_x = True,
             share_y = False,
@@ -465,8 +559,3 @@ def saturation_plot(d, x_key = 'PRI.t', y_keys = None, y_labels = {},
             title = r'Divergence time $\tau$ in $4N_C$ generations',
             title_top = False)
     
-    for sp in grid.subplots:
-        for x in vertical_line_positions:
-            sp.add_v_line(x, linestyle = '--', color = '0.6', zorder=0)
-    return grid
-        
