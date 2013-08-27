@@ -47,7 +47,7 @@ def main_cli():
             default = multiprocessing.cpu_count(),
             help = ('The maximum number of processes to run in parallel. The '
                     'default is the number of CPUs available on the machine.'))
-    parser.add_argument('--output-dir',
+    parser.add_argument('-o', '--output-dir',
             action = 'store',
             type = arg_is_dir,
             help = ('The directory in which all output files will be written. '
@@ -61,12 +61,13 @@ def main_cli():
     parser.add_argument('-s', '--stat-prefixes',
             nargs = '*',
             type = str,
+            default = ['pi', 'pi.net', 'wattTheta', 'tajD.denom'],
             help = ('Prefixes of summary statistics to use in the analyses. '
                     'The prefixes should be separated by spaces. '
-                    'Default: `-s pi. wattTheta. pi.net. tajD.denom.`.'))
+                    'Default: `-s pi pi.net wattTheta tajD.denom`.'))
     parser.add_argument('--compress',
             action = 'store_true',
-            help = 'Compress large results files.')
+            help = 'Compress plot data file.')
     parser.add_argument('--keep-temps',
             action = 'store_true',
             help = 'Keep all temporary files.')
@@ -110,6 +111,7 @@ def main_cli():
     from pymsbayes.config import MsBayesConfig
     from pymsbayes.utils import GLOBAL_RNG, MSBAYES_SORT_INDEX
     from pymsbayes.fileio import process_file_arg
+    from pymsbayes.plotting import MATPLOTLIB_AVAILABLE, saturation_plot
 
     MSBAYES_SORT_INDEX.set_index(0)
 
@@ -120,18 +122,15 @@ def main_cli():
     stats_by_time_path = os.path.join(args.output_dir, 'stats-by-time.txt')
     if args.compress:
         stats_by_time_path += '.gz'
+    plot_path = os.path.join(args.output_dir, 'saturation-plot.pdf')
 
     if not args.temp_dir:
         args.temp_dir = args.output_dir
     temp_fs = TempFileSystem(parent=args.temp_dir, prefix='temp-files-')
-    stat_patterns = DEFAULT_STAT_PATTERNS
-    if args.stat_prefixes:
-        for i in range(len(args.stat_prefixes)):
-            if not args.stat_prefixes[i].endswith('.'):
-                args.stat_prefixes[i] += '.'
-        stat_patterns = get_patterns_from_prefixes(
-                args.stat_prefixes,
-                ignore_case=True)
+    args.stat_prefixes = [s.rstrip('.') for s in args.stat_prefixes]
+    stat_patterns = get_patterns_from_prefixes(
+            [s + '.' for s in args.stat_prefixes],
+            ignore_case=True)
     if not args.seed:
         args.seed = random.randint(1, 999999999)
     GLOBAL_RNG.seed(args.seed)
@@ -198,7 +197,11 @@ def main_cli():
     stats_by_time = get_stats_by_time([w.prior_path for w in workers])
     stat_keys = stats_by_time.keys()
     stat_keys.remove('PRI.t')
-    header = ['PRI.t'] + sorted(stat_keys)
+    for prefix in args.stat_prefixes:
+        if not prefix in stat_keys:
+            raise Exception('stat prefix {0!r} not found in simulated stats:'
+                    '\n\t{1}'.format(prefix, ', '.join(stat_keys)))
+    header = ['PRI.t'] + args.stat_prefixes
     log.info('Writing stats-by-time matrix...')
     out, close = process_file_arg(stats_by_time_path, 'w',
             compresslevel = compress_level)
@@ -208,35 +211,47 @@ def main_cli():
         out.close()
 
     log.info('Creating plots...')
-    # TODO: wrap up and generalize plotting code and move into plotting module
-    axis_labels = {'pi': r'$\pi$',
+
+    if not MATPLOTLIB_AVAILABLE:
+        _LOG.warning(
+                '`matplotlib` could not be imported, so the plot can not be\n'
+                'produced. The data to create the plot can be found in:\n\t'
+                '{0!r}'.format(stats_by_time_path))
+    else:
+        y_labels = {'pi': r'$\pi$',
                    'pi.net': r'$\pi_{net}$',
                    'wattTheta': r'$\theta_W$',
                    'tajD.denom': r'$SD(\pi - \theta_W)$'}
-    fig = plt.figure()
-    ncols = 2
-    nrows = get_num_rows(len(stat_keys))
-    for i, k in enumerate(stat_keys):
-        if fig.axes:
-            ax = fig.add_subplot(nrows, ncols, i + 1, sharex = fig.axes[0])
-        else:
-            ax = fig.add_subplot(nrows, ncols, i + 1)
-        ax.plot(stats_by_time['PRI.t'], stats_by_time[k])
-        ax.set_ylabel(axis_labels[k])
-    plt.setp([a.lines for a in fig.axes],
-            marker = 'o',
-            linestyle='',
-            markerfacecolor = 'none',
-            markeredgecolor = '0.4',
-            markeredgewidth = 0.7)
-    fig.suptitle(r'Divergence time $\tau$ in $4N_C$ generations',
-            verticalalignment = 'bottom',
-            y = 0.001)
-    fig.tight_layout(pad = 0.25, # out side margin
-                     h_pad = None, # height padding between subplots
-                     w_pad = None, # width padding between subplots
-                     rect = (0,0.05,1,1))
-    fig.savefig('plot.pdf')
+        fig = saturation_plot(stats_by_time,
+                x_key = 'PRI.t',
+                y_keys = args.stat_prefixes,
+                y_labels = y_labels,
+                num_columns = 2)
+        fig.savefig(plot_path)
+        # fig = plt.figure()
+        # ncols = 2
+        # nrows = get_num_rows(len(stat_keys))
+        # for i, k in enumerate(stat_keys):
+        #     if fig.axes:
+        #         ax = fig.add_subplot(nrows, ncols, i + 1, sharex = fig.axes[0])
+        #     else:
+        #         ax = fig.add_subplot(nrows, ncols, i + 1)
+        #     ax.plot(stats_by_time['PRI.t'], stats_by_time[k])
+        #     ax.set_ylabel(y_labels[k])
+        # plt.setp([a.lines for a in fig.axes],
+        #         marker = 'o',
+        #         linestyle='',
+        #         markerfacecolor = 'none',
+        #         markeredgecolor = '0.4',
+        #         markeredgewidth = 0.7)
+        # fig.suptitle(r'Divergence time $\tau$ in $4N_C$ generations',
+        #         verticalalignment = 'bottom',
+        #         y = 0.001)
+        # fig.tight_layout(pad = 0.25, # out side margin
+        #                  h_pad = None, # height padding between subplots
+        #                  w_pad = None, # width padding between subplots
+        #                  rect = (0,0.05,1,1))
+        # fig.savefig(plot_path)
 
     stop_time = datetime.datetime.now()
     log.info('Done!')
