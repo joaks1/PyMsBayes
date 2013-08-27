@@ -28,12 +28,13 @@ class ScatterPlot(object):
             right_text = None,
             marker = 'o',
             marker_face_color = 'none',
-            marker_edge_color = '0.4',
-            marker_edge_width = 0.7):
+            marker_edge_color = '0.35',
+            marker_edge_width = 0.7,
+            position = (1,1,1)):
         self.x = x
         self.y = y
         self.fig = plt.figure()
-        self.ax = self.fig.add_subplot(1, 1, 1)
+        self.ax = self.fig.add_subplot(*position)
         self._plot_label = plot_label
         self._x_label = x_label
         self._y_label = y_label
@@ -64,13 +65,13 @@ class ScatterPlot(object):
         self.marker_edge_width = marker_edge_width
         self.shared_x_ax = None
         self.shared_y_ax = None
-        self.reset_plot()
+        self._plot()
+        self._reset_text_objects()
 
     def clear(self):
         self.ax.clear()
 
     def reset_plot(self):
-        # self.clear()
         self._new_instance()
         self._plot()
         self._reset_text_objects()
@@ -84,14 +85,14 @@ class ScatterPlot(object):
         # using `plot` method rather than `scatter`, because the `collections`
         # attribute created by `scatter` seems difficult to adjust after the
         # initial creation. Whereas `lines` are easy to manipulate.
-        self.ax.plot(self.x, self.y)
-        plt.setp(self.ax.lines,
+        l = self.ax.plot(self.x, self.y)
+        plt.setp(l, #self.ax.lines,
                 marker = self.marker,
                 linestyle = '',
                 markerfacecolor = self.marker_face_color,
                 markeredgecolor = self.marker_edge_color,
                 markeredgewidth = self.marker_edge_width)
-                
+
     def append_plot(self):
         self._plot()
         self.adjust_text_objects()
@@ -297,6 +298,7 @@ class ScatterPlot(object):
 
     def change_geometry(self, numrows, numcols, num):
         self.ax.change_geometry(numrows = numrows, numcols = numcols, num = num)
+        self.reset_plot()
 
     def set_figure(self, fig):
         self.fig = fig
@@ -311,6 +313,18 @@ class ScatterPlot(object):
     def is_first_col(self):
         return self.ax.is_first_col()
 
+    def add_v_line(self, x, ymin = 0, ymax = 1, color = '0.5', label = None,
+            linestyle = '-', linewidth = 1.0, zorder = 0, **kwargs):
+        self.ax.axvline(x = x, ymin = ymin, ymax = ymax, color = color,
+                label = label, linestyle = linestyle, linewidth = linewidth,
+                **kwargs)
+
+    def add_h_line(self, y, xmin = 0, xmax = 1, color = '0.5', label = None,
+            linestyle = '-', linewidth = 1.0, zorder = 0, **kwargs):
+        self.ax.axhline(y = y, xmin = xmin, xmax = xmax, color = color,
+                label = label, linestyle = linestyle, linewidth = linewidth,
+                **kwargs)
+
     def savefig(self, *args, **kwargs):
         self.fig.savefig(*args, **kwargs)
 
@@ -324,7 +338,6 @@ class PlotGrid(object):
             label_schema = 'uppercase',
             title = None,
             title_top = True):
-        self.subplots = subplots
         self.num_columns = num_columns
         self._set_label_schema(label_schema)
         self.share_x = share_x
@@ -336,6 +349,9 @@ class PlotGrid(object):
         self.title = title
         self.title_top = title_top
         self.fig = plt.figure()
+        self.subplots = subplots
+        for sp in self.subplots:
+            sp.set_figure(self.fig)
         self.reset_figure()
 
     def _get_label_schema(self):
@@ -377,10 +393,10 @@ class PlotGrid(object):
         nrows = self.get_num_rows()
         ncols = self.num_columns
         for i, subplot in enumerate(self.subplots):
-            subplot.set_figure(self.fig)
+            if subplot.get_figure() != self.fig:
+                subplot.set_figure(self.fig)
             subplot.change_geometry(numrows = nrows, numcols = ncols,
                     num = i + 1)
-            subplot.reset_plot()
             subplot.plot_label_size = self.plot_label_size
             subplot.plot_label_weight = self.plot_label_weight
             subplot.plot_label_style = self.plot_label_style
@@ -396,29 +412,31 @@ class PlotGrid(object):
                 subplot.ax.tick_params(labelbottom = False)
             if self.share_y and (not subplot.is_first_col()):
                 subplot.ax.tick_params(labelleft = False)
-        self.fig.tight_layout(pad = 0.25, # outside margin
-                h_pad = 1.0, # vertical padding between subplots
-                w_pad = None, # horizontal padding between subplots
-                rect = (0,0.05,1,0.945)) # available space on figure
+        rect = (0, 0, 1, 0.98)
         if self.title:
             if self.title_top:
                 self.fig.suptitle(self.title,
                         verticalalignment = 'top',
                         horizontalalignment = 'center',
                         y = 0.999)
+                rect = (0, 0, 1, 0.94)
             else:
                 self.fig.suptitle(self.title,
                         verticalalignment = 'bottom',
                         horizontalalignment = 'center',
                         y = 0.001)
+                rect = (0, 0.04, 1, 0.98)
+        self.fig.tight_layout(pad = 0.25, # outside margin
+                h_pad = 0.8, # vertical padding between subplots
+                w_pad = None, # horizontal padding between subplots
+                rect = rect) # available space on figure
 
     def savefig(self, *args, **kwargs):
-        self.reset_figure()
         self.fig.savefig(*args, **kwargs)
 
 
 def saturation_plot(d, x_key = 'PRI.t', y_keys = None, y_labels = {},
-        num_columns = 2):
+        num_columns = 2, vertical_line_positions = []):
     if not d.has_key(x_key):
         raise ValueError('`x_key` {0!r} is not in data dict'.format(x_key))
     if not y_keys:
@@ -439,11 +457,16 @@ def saturation_plot(d, x_key = 'PRI.t', y_keys = None, y_labels = {},
                 y_label = y_lab)
         subplots.append(sp)
 
-    return PlotGrid(subplots = subplots,
+    grid = PlotGrid(subplots = subplots,
             num_columns = num_columns,
             share_x = True,
             share_y = False,
             label_schema = 'uppercase',
             title = r'Divergence time $\tau$ in $4N_C$ generations',
             title_top = False)
+    
+    for sp in grid.subplots:
+        for x in vertical_line_positions:
+            sp.add_v_line(x, linestyle = '--', color = '0.6', zorder=0)
+    return grid
         

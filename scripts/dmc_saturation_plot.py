@@ -65,6 +65,12 @@ def main_cli():
             help = ('Prefixes of summary statistics to use in the analyses. '
                     'The prefixes should be separated by spaces. '
                     'Default: `-s pi pi.net wattTheta tajD.denom`.'))
+    parser.add_argument('--vertical-lines',
+            nargs = '*',
+            type = float,
+            default = [],
+            help = ('Positions along x-axis where vertical lines are to be '
+                    'drawn. Default is to draw no vertical lines.'))
     parser.add_argument('--compress',
             action = 'store_true',
             help = 'Compress plot data file.')
@@ -226,7 +232,8 @@ def main_cli():
                 x_key = 'PRI.t',
                 y_keys = args.stat_prefixes,
                 y_labels = y_labels,
-                num_columns = 2)
+                num_columns = 2,
+                vertical_line_positions = args.vertical_lines)
         fig.savefig(plot_path)
         # fig = plt.figure()
         # ncols = 2
