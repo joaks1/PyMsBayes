@@ -426,7 +426,10 @@ class PlotGrid(object):
             share_y = False,
             label_schema = 'uppercase',
             title = None,
-            title_top = True):
+            title_top = True,
+            height = 6.0,
+            width = 8.0,
+            auto_height = True):
         self.num_columns = num_columns
         self._set_label_schema(label_schema)
         self.share_x = share_x
@@ -437,11 +440,41 @@ class PlotGrid(object):
         self.plot_label_suffix = ''
         self.title = title
         self.title_top = title_top
-        self.fig = plt.figure()
+        self._width = width
+        self._height = height
+        self.fig = plt.figure(figsize = self.size)
         self.subplots = subplots
+        self.auto_height = auto_height
         for sp in self.subplots:
             sp.set_figure(self.fig)
         self.reset_figure()
+
+    def _get_size(self):
+        return (self._width, self._height)
+
+    def _set_size(self, width_height_tup):
+        self._width, self._height = width_height_tup
+        self.fig.set_size_inches(self._get_size())
+
+    size = property(_get_size, _set_size)
+
+    def _get_width(self):
+        return self._width
+
+    def _set_width(self, width):
+        self._width = width
+        self.size = self.size
+
+    width = property(_get_width, _set_width)
+
+    def _get_height(self):
+        return self._height
+
+    def _set_height(self, height):
+        self._height = height
+        self.size = self.size
+
+    height = property(_get_height, _set_height)
 
     def _get_label_schema(self):
         return self._label_schema
@@ -477,10 +510,12 @@ class PlotGrid(object):
                     self.label_schema))
 
     def reset_figure(self):
-        self.fig = plt.figure()
-        plot_labels = self.get_plot_labels()
         nrows = self.get_num_rows()
         ncols = self.num_columns
+        if self.auto_height:
+            self.height = (self.width / (ncols * 1.1)) * nrows
+        self.fig = plt.figure(figsize = (self.width, self.height))
+        plot_labels = self.get_plot_labels()
         for i, subplot in enumerate(self.subplots):
             if subplot.get_figure() != self.fig:
                 subplot.set_figure(self.fig)
@@ -501,24 +536,25 @@ class PlotGrid(object):
                 subplot.ax.tick_params(labelbottom = False)
             if self.share_y and (not subplot.is_first_col()):
                 subplot.ax.tick_params(labelleft = False)
-        rect = (0, 0, 1, 0.98)
+        rect = (0, 0, 1, 0.975)
         if self.title:
             if self.title_top:
                 self.fig.suptitle(self.title,
                         verticalalignment = 'top',
                         horizontalalignment = 'center',
                         y = 0.999)
-                rect = (0, 0, 1, 0.94)
+                rect = (0, 0, 1, 0.92)
             else:
                 self.fig.suptitle(self.title,
                         verticalalignment = 'bottom',
                         horizontalalignment = 'center',
                         y = 0.001)
-                rect = (0, 0.04, 1, 0.98)
-        self.fig.tight_layout(pad = 0.25, # outside margin
-                h_pad = 0.8, # vertical padding between subplots
-                w_pad = None, # horizontal padding between subplots
-                rect = rect) # available space on figure
+                rect = (0, 0.06, 1, 0.975)
+        if self.subplots:
+            self.fig.tight_layout(pad = 0.25, # outside margin
+                    h_pad = 0.8, # vertical padding between subplots
+                    w_pad = None, # horizontal padding between subplots
+                    rect = rect) # available space on figure
 
     def savefig(self, *args, **kwargs):
         self.fig.savefig(*args, **kwargs)
@@ -550,6 +586,9 @@ def saturation_plot(d, x_key = 'PRI.t', y_keys = None, y_labels = {},
                 vertical_lines = v_lines,
                 y_label = y_lab)
         subplots.append(sp)
+
+    if len(subplots) < 2:
+        num_columns = 1
 
     return PlotGrid(subplots = subplots,
             num_columns = num_columns,
