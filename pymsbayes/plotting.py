@@ -25,7 +25,7 @@ class ScatterData(object):
             markeredgecolor = '0.35',
             markeredgewidth = 0.7,
             linestyle = '',
-            zorder = 1,
+            zorder = 100,
             **kwargs):
         self.x = x
         self.y = y
