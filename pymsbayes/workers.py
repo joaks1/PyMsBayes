@@ -8,7 +8,6 @@ import time
 import shutil
 import traceback
 from cStringIO import StringIO
-from configobj import ConfigObj
 
 from pymsbayes.fileio import (expand_path, process_file_arg, FileStream, open,
         GzipFileStream)
