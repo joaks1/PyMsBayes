@@ -1,0 +1,65 @@
+[PRI.model]
+    modes = 3
+    mode_glm = nan
+    median = 3
+    median_glm = nan
+    mean = 3.0
+    mean_glm = nan
+    n = 100
+    range = 3, 3
+    HPD_95_interval = 3, 3
+    HPD_95_interval_glm = nan, nan
+    quantile_95_interval = 3.0, 3.0
+    quantile_95_interval_glm = nan, nan
+[PRI.div.model]
+    modes = 1
+    mode_glm = nan
+    median = 1
+    median_glm = nan
+    mean = 1.0
+    mean_glm = nan
+    n = 100
+    range = 1, 1
+    HPD_95_interval = 1, 1
+    HPD_95_interval_glm = nan, nan
+    quantile_95_interval = 1.0, 1.0
+    quantile_95_interval_glm = nan, nan
+[PRI.omega]
+    modes = (0.0, 0.295240753422)
+    mode_glm = 0.240575
+    median = 0.415783250342
+    median_glm = 0.416381
+    mean = 0.661228394281
+    mean_glm = 0.144872
+    n = 100
+    range = 0.000763053751522, 3.39239599042
+    HPD_95_interval = 0.000763053751522, 2.05954900913
+    HPD_95_interval_glm = 0.000879984, 1.02841
+    quantile_95_interval = 0.0236522201793, 2.82330733386
+    quantile_95_interval_glm = 0.00781081, 1.18091
+[PRI.Psi]
+    modes = 3
+    mode_glm = nan
+    median = 3
+    median_glm = nan
+    mean = 3.0
+    mean_glm = nan
+    n = 100
+    range = 3, 3
+    HPD_95_interval = 3, 3
+    HPD_95_interval_glm = nan, nan
+    quantile_95_interval = 3.0, 3.0
+    quantile_95_interval_glm = nan, nan
+[PRI.E.t]
+    modes = (0.232351447806, 0.464702895612)
+    mode_glm = 0.285036
+    median = 0.699623650623
+    median_glm = 0.405952
+    mean = 0.777340442619
+    mean_glm = 0.232872
+    n = 100
+    range = 0.106604877793, 2.06934665993
+    HPD_95_interval = 0.16168994291, 1.63267337212
+    HPD_95_interval_glm = 0.106688, 0.879723
+    quantile_95_interval = 0.212353367648, 1.79731401978
+    quantile_95_interval_glm = 0.114496, 0.954534

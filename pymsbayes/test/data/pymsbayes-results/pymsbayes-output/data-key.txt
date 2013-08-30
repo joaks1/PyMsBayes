@@ -1,0 +1,3 @@
+d1 = ../observed-summary-stats/observed-1.txt
+d2 = ../observed-summary-stats/observed-2.txt
+d3 = ../observed-summary-stats/observed-3.txt

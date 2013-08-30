@@ -1,0 +1,3 @@
+m1 = ../../negros_panay_3pairs_new_dpp.cfg
+m2 = ../../negros_panay_3pairs_new_uniform.cfg
+m3 = ../../negros_panay_3pairs_new_ushaped.cfg

@@ -1,0 +1,4 @@
+num_of_div_events	estimated_prob	glm_adjusted_prob
+1	0.0	nan
+2	0.0	nan
+3	1.0	nan

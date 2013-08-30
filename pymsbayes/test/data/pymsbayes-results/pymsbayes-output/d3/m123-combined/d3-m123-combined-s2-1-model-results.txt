@@ -1,0 +1,4 @@
+model	estimated_prob	glm_adjusted_prob
+1	0.33	0.26723236206
+2	0.36	0.541687013782
+3	0.31	0.191080624158

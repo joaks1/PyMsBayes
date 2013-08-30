@@ -1,0 +1,2 @@
+model	estimated_prob	glm_adjusted_prob
+3	1.0	nan
