@@ -579,6 +579,17 @@ class DictLineIterTestCase(unittest.TestCase):
             r.write(row)
         self.assertEqual(s.getvalue(), r.getvalue())
 
+class ParseOmegaResultsFileTestCase(unittest.TestCase):
+    def test_parse_omega_file(self):
+        omega_results_path = os.path.join(package_paths.TEST_DATA_DIR,
+                'pymsbayes-results', 'pymsbayes-output', 'd1', 'm3',
+                'd1-m3-s1-1-omega-results.txt')
+        results = parse_omega_results_file(omega_results_path)
+        self.assertEqual(len(results), 3)
+        self.assertAlmostEqual(results['threshold'], 0.01)
+        self.assertAlmostEqual(results['prob_less'], 0.02)
+        self.assertAlmostEqual(results['prob_less_glm'], 0.0235768970431)
+
 if __name__ == '__main__':
     unittest.main()
 

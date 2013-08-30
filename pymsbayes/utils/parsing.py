@@ -3,6 +3,9 @@
 import sys
 import os
 import re
+import glob
+
+from configobj import ConfigObj
 
 import pymsbayes
 from pymsbayes.fileio import process_file_arg
@@ -493,4 +496,206 @@ def parse_summary_file(file_obj):
                         'std_deviation': std_devs[i],
                         'n': sample_sizes[i]}
     return d, header
+
+##############################################################################
+## results parsing
+
+class DMCSimulationResults(object):
+    result_file_name_pattern = re.compile(r'^d(?P<observed_index>\d+)-'
+            'm(?P<prior_index>\d+)-s(?P<sim_index>\d+)-(?P<result_index>\d+)-'
+            '(?P<contents>[a-zA-Z-]+).(?P<extension>[a-zA-Z.]+)$')
+
+    def __init__(self, info_path):
+        self.info_path = expand_path(info_path)
+        self.results_dir = os.path.dirname(self.info_path)
+        self.output_dir = os.path.join(self.results_dir, 'pymsbayes-output')
+        self.observed_configs = {}
+        self.observed_paths = {}
+        self.observed_config_to_index = {}
+        self.observed_config_to_path = {}
+        self.prior_configs = {}
+        self.prior_paths = {}
+        self.prior_config_to_index = {}
+        self.prior_config_to_path = {}
+        self._parse_info_file()
+    
+    def _parse_info_file(self):
+        c = ConfigObj(self.info_path)
+        settings = c.get('pymsbayes', None)
+        if not settings:
+            raise Exception('{0!r} is not a valid pymsbayes info file'.format(
+                    self.info_path))
+        if not set(['observed_configs', 'observed_paths',
+                'prior_configs']).issubset(
+                        set(settings.keys())):
+            raise Exception('info file {0!r} is missing path information')
+        for k in settings['observed_configs'].iterkeys():
+            self.observed_configs[int(k)] = os.path.abspath(os.path.join(
+                    self.results_dir,
+                    settings['observed_configs'][k]))
+            self.observed_paths[int(k)] = os.path.abspath(os.path.join(
+                    self.results_dir,
+                    settings['observed_paths'][k]))
+            config_name = os.path.splitext(os.path.basename(
+                    self.observed_configs[int(k)]))[0]
+            if self.observed_config_to_index.has_key(config_name):
+                raise Exception('observed config files do not have unique '
+                        'names')
+            self.observed_config_to_index[config_name] = int(k)
+            self.observed_config_to_path[config_name] = self.observed_paths[
+                    int(k)]
+        for k, v in settings['prior_configs'].iteritems():
+            self.prior_configs[int(k)] = os.path.abspath(os.path.join(
+                    self.results_dir, v))
+            config_name = os.path.splitext(os.path.basename(
+                    self.prior_configs[int(k)]))[0]
+            if self.prior_config_to_index.has_key(config_name):
+                raise Exception('prior config files do not have unique names')
+            self.prior_config_to_index[config_name] = int(k)
+            self.prior_config_to_path[config_name] = self.prior_paths[int(k)]
+        omx = max(self.observed_paths.iterkeys())
+        pmx = max(self.prior_paths.iterkeys())
+        assert sorted[self.observed_paths.keys()] == list(range(omx))
+        assert sorted[sefl.prior_paths.keys()] == list(range(pmx))
+        self.final_result_index = max(self.get_result_indices(1, 1, 1))
+
+    def get_result_dir(observed_index, prior_index):
+        return os.path.join(self.output_dir, 'd' + str(observed_index),
+                'm' + str(prior_index))
+
+    def get_result_file_prefix(observed_index, prior_index, sim_index):
+        return 'd{0}-m{1}-s{2}-'.format(observed_index, prior_index, sim_index)
+
+    def get_result_path_prefix(observed_index, prior_index, sim_index):
+        return os.path.join(self.get_result_dir(observed_index, prior_index),
+                self.get_result_file_prefix(observed_index, prior_index,
+                        sim_index))
+
+    def get_result_indices(self, observed_index, prior_index, sim_index):
+        prefix = self.get_result_path_prefix(observed_index, prior_index,
+                sim_index)
+        pattern = prefix + '*-posterior-sample*'
+        result_files = [os.path.basename(x) for x in glob.glob(pattern)]
+        result_indices = []
+        for f  in result_files:
+            m = self.result_file_name_pattern.match(f)
+            result_indices.append(int(m.group(result_index)))
+        result_indices.sort()
+        return result_indices
+
+    def result_iter(self, observed_index, prior_index):
+        path_iter = self.result_path_iter(observed_index, prior_index)
+        for i, true_params, paths in enumerate(path_iter):
+            summary = parse_posterior_summary_file(paths['summary'])
+            results = {}
+            tau_true = float(true_params['PRI.E.t'])
+            tau_mode_min = float(summary['PRI.E.t']['modes'][0].strip('()'))
+            tau_mode_max = float(summary['PRI.E.t']['modes'][1].strip('()'))
+            tau_mode = (tau_mode_min + tau_mode_max) / float(2)
+            tau_median = float(summary['PRI.E.t']['median'])
+            tau_mode_glm = float(summary['PRI.E.t']['mode_glm'])
+            results['mean_tau'] = {'true': tau_true,
+                    'mode': tau_mode,
+                    'median': tau_median,
+                    'mode_glm': tau_mode_glm}
+            omega_true = float(true_params['PRI.omega'])
+            omega_mode_min = float(summary['PRI.omega']['modes'][0].strip('()'))
+            omega_mode_max = float(summary['PRI.omega']['modes'][1].strip('()'))
+            omega_mode = (omega_mode_min + omega_mode_max) / float(2)
+            omega_median = float(summary['PRI.omega']['median'])
+            omega_mode_glm = float(summary['PRI.omega']['mode_glm'])
+            omega_results = parse_omega_results_file(paths['omega'])
+            results['omega'] = {'true': omega_true,
+                    'mode': omega_mode,
+                    'median': omega_median,
+                    'mode_glm': omega_mode_glm}
+            results['omega'].update(omega_results)
+            psi_true = int(true_params['PRI.Psi'])
+            psi_mode = summary['PRI.Psi']['modes']
+            if not isinstance(psi_mode, str):
+                psi_mode = psi_mode[0]
+            psi_mode = int(psi_mode)
+            psi_mode_glm = float(summary['PRI.Psi']['mode_glm'])
+            psi_results = parse_psi_results_file(paths['psi'])
+            results['psi'] = {'true': psi_true,
+                    'mode': psi_mode,
+                    'mode_glm': psi_mode_glm,
+                    'probs': psi_results}
+            model_true = int(true_params['PRI.model'])
+            model_mode = summary['PRI.model']['modes']
+            if not isinstance(model_mode, str):
+                model_mode = model_mode[0]
+            model_mode = int(model_mode)
+            model_mode_glm = float(summary['PRI.model']['mode_glm'])
+            model_results = parse_model_results_file(paths['model'])
+            results['model'] = {'true': model_true,
+                    'mode': model_mode,
+                    'mode_glm': model_mode_glm,
+                    'probs': model_results}
+            yield results
+
+    def result_path_iter(self, observed_index, prior_index):
+        out_dir = self.get_result_dir(observed_index, prior_index)
+        if not os.path.isdir(out_dir):
+            raise Exception('expected result direcory {0!r} does not '
+                    'exist'.format(out_dir))
+        observed_stream, close = process_file_arg(
+                self.observed_paths[observed_index])
+        header = parse_header(observed_stream, sep = '\t', scrict = True,
+                seek = False)
+        parameter_indices = get_indices_of_patterns(header, PARAMETER_PATTERNS)
+        for i, line in enumerate(observed_stream):
+            l = line.strip.split()
+            true_params = dict(zip([header[x] for x in parameter_indices],
+                    [l[x] for x in parameter_indices]))
+            result_prefix = '{0}{1}-'.format(self.get_result_path_prefix(
+                    observed_index, prior_index, i + 1), 
+                    self.final_result_index)
+            summary_path = result_prefix + 'posterior-summary.txt'
+            psi_path = result_prefix + 'psi-results.txt'
+            omega_path = result_prefix + 'omega-results.txt'
+            div_model_path = result_prefix + 'div-model-results.txt'
+            model_path = result_prefix + 'model-results.txt'
+            paths = {'summary': summary_path,
+                     'psi': psi_path,
+                     'omega': omega_path,
+                     'div-model': div_model_path,
+                     'model': model_path}
+            yield true_params, paths
+        observed_stream.close()
+        
+def parse_omega_results_file(file_obj):
+    s_iter = spreadsheet_iter([file_obj], sep = '\t')
+    for i, d in enumerate(s_iter):
+        pass
+    assert i == 0
+    threshold = float(d['omega_thresh'])
+    prob_less = float(d['prob_less_than'])
+    prob_less_glm = float(d['glm_prob_less_than'])
+    return {'threshold': threshold,
+            'prob_less': prob_less,
+            'prob_less_glm': prob_less_glm}
+
+def parse_psi_results_file(file_obj):
+    s_iter = spreadsheet_iter([file_obj], sep = '\t')
+    results = {}
+    for d in s_iter:
+        psi = int(d['num_of_div_events'])
+        prob = float(d['estimated_prob'])
+        prob_glm = float(d['glm_adjusted_prob'])
+        results[psi] = {'prob': prob, 'prob_glm': prob_glm}
+    return results
+
+def parse_model_results_file(file_obj):
+    s_iter = spreadsheet_iter([file_obj], sep = '\t')
+    results = {}
+    for d in s_iter:
+        model = int(d['model'])
+        prob = float(d['estimated_prob'])
+        prob_glm = float(d['glm_adjusted_prob'])
+        results[model] = {'prob': prob, 'prob_glm': prob_glm}
+    return results
+
+def parse_posterior_summary_file(file_obj):
+    return ConfigObj(file_obj)
 
