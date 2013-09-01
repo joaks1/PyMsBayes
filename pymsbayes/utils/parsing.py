@@ -585,7 +585,7 @@ class DMCSimulationResults(object):
 
     def result_iter(self, observed_index, prior_index):
         path_iter = self.result_path_iter(observed_index, prior_index)
-        for i, true_params, paths in enumerate(path_iter):
+        for i, (true_params, paths) in enumerate(path_iter):
             summary = parse_posterior_summary_file(paths['summary'])
             results = {}
             tau_true = float(true_params['PRI.E.t'])
@@ -634,6 +634,35 @@ class DMCSimulationResults(object):
                     'probs': model_results}
             yield results
 
+    def result_to_flat_dict(self, result):
+        d = {'mean_tau_true': result['mean_tau']['true'],
+             'mean_tau_mode': result['mean_tau']['mode'],
+             'mean_tau_median': result['mean_tau']['median'],
+             'mean_tau_mode_glm': result['mean_tau']['mode_glm'],
+             'omega_true': result['omega']['true'],
+             'omega_mode': result['omega']['mode'],
+             'omega_median': result['omega']['median'],
+             'omega_mode_glm': result['omega']['mode_glm'],
+             'psi_true': result['psi']['true'],
+             'psi_mode': result['psi']['mode'],
+             'psi_mode_glm': result['psi']['mode_glm'],
+             'model_true': result['model']['true'],
+             'model_mode': result['model']['mode'],
+             'model_mode_glm': result['model']['mode_glm']}
+        for i in result['psi']['probs'].iterkeys():
+            d['psi_{0}_prob'.format(i)] = result['psi']['probs'][i]['prob']
+            d['psi_{0}_prob_glm'.format(i)] = result['psi']['probs'][i][
+                    'prob_glm']
+        for i in result['model']['probs'].iterkeys():
+            d['model_{0}_prob'.format(i)] = result['model']['probs'][i]['prob']
+            d['model_{0}_prob_glm'.format(i)] = result['model']['probs'][i][
+                    'prob_glm']
+        return d
+
+    def flat_result_iter(self, observed_index, prior_index):
+        for r in self.result_iter(observed_index, prior_index):
+            yield self.result_to_flat_dict(r)
+
     def result_path_iter(self, observed_index, prior_index):
         out_dir = self.get_result_dir(observed_index, prior_index)
         if not os.path.isdir(out_dir):
@@ -641,11 +670,11 @@ class DMCSimulationResults(object):
                     'exist'.format(out_dir))
         observed_stream, close = process_file_arg(
                 self.observed_paths[observed_index])
-        header = parse_header(observed_stream, sep = '\t', scrict = True,
+        header = parse_header(observed_stream, sep = '\t', strict = True,
                 seek = False)
         parameter_indices = get_indices_of_patterns(header, PARAMETER_PATTERNS)
         for i, line in enumerate(observed_stream):
-            l = line.strip.split()
+            l = line.strip().split()
             true_params = dict(zip([header[x] for x in parameter_indices],
                     [l[x] for x in parameter_indices]))
             result_prefix = '{0}{1}-'.format(self.get_result_path_prefix(

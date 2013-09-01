@@ -663,9 +663,20 @@ class DMCSimulationResultsTestCase(unittest.TestCase):
     def setUp(self):
         self.info_path = os.path.join(package_paths.TEST_DATA_DIR,
                 'pymsbayes-results', 'pymsbayes-info.txt')
-        self.prior_configs = 
-        self.observed_configs = 
-        self.observed_paths = 
+        self.prior_configs = {
+            1: package_paths.data_path('negros_panay_3pairs_new_dpp.cfg'),
+            2: package_paths.data_path('negros_panay_3pairs_new_uniform.cfg'),
+            3: package_paths.data_path('negros_panay_3pairs_new_ushaped.cfg'),
+        }
+        self.observed_configs = self.prior_configs
+        self.observed_paths = {
+            1: os.path.join(package_paths.TEST_DATA_DIR, 'pymsbayes-results',
+                    'observed-summary-stats', 'observed-1.txt'),
+            2: os.path.join(package_paths.TEST_DATA_DIR, 'pymsbayes-results',
+                    'observed-summary-stats', 'observed-2.txt'),
+            3: os.path.join(package_paths.TEST_DATA_DIR, 'pymsbayes-results',
+                    'observed-summary-stats', 'observed-3.txt'),
+        }
 
     def test_init(self):
         results = DMCSimulationResults(self.info_path)
@@ -681,7 +692,212 @@ class DMCSimulationResultsTestCase(unittest.TestCase):
         self.assertEqual(sorted(results.prior_configs.keys()), range(1, 4))
         self.assertEqual(sorted(results.prior_config_to_index.values()),
                 range(1, 4))
+        self.assertEqual(results.prior_configs, self.prior_configs)
+        self.assertEqual(results.observed_configs, self.observed_configs)
+        self.assertEqual(results.observed_paths, self.observed_paths)
 
+    def test_result_path_iter(self):
+        results = DMCSimulationResults(self.info_path)
+        expected_1_params = {'PRI.t.1': '2.26089234797',
+                'PRI.t.2': '0.90622191875',
+                'PRI.t.3': '2.04808328054',
+                'PRI.d1Theta.1': '0.000191',
+                'PRI.d1Theta.2': '0.001532',
+                'PRI.d1Theta.3': '0.000721',
+                'PRI.d2Theta.1': '0.003364',
+                'PRI.d2Theta.2': '0.000612',
+                'PRI.d2Theta.3': '0.000010',
+                'PRI.aTheta.1': '0.000277',
+                'PRI.aTheta.2': '0.001659',
+                'PRI.aTheta.3': '0.000411',
+                'PRI.model': '1',
+                'PRI.Psi': '3',
+                'PRI.var.t': '0.530711173422072',
+                'PRI.E.t': '1.73839918242',
+                'PRI.omega': '0.305287288897178'}
+        expected_1_paths = {
+                'summary': os.path.join(package_paths.TEST_DATA_DIR,
+                        'pymsbayes-results', 'pymsbayes-output', 'd1', 'm1',
+                        'd1-m1-s1-1-posterior-summary.txt'),
+                'psi': os.path.join(package_paths.TEST_DATA_DIR,
+                        'pymsbayes-results', 'pymsbayes-output', 'd1', 'm1',
+                        'd1-m1-s1-1-psi-results.txt'),
+                'omega': os.path.join(package_paths.TEST_DATA_DIR,
+                        'pymsbayes-results', 'pymsbayes-output', 'd1', 'm1',
+                        'd1-m1-s1-1-omega-results.txt'),
+                'div-model': os.path.join(package_paths.TEST_DATA_DIR,
+                        'pymsbayes-results', 'pymsbayes-output', 'd1', 'm1',
+                        'd1-m1-s1-1-div-model-results.txt'),
+                'model': os.path.join(package_paths.TEST_DATA_DIR,
+                        'pymsbayes-results', 'pymsbayes-output', 'd1', 'm1',
+                        'd1-m1-s1-1-model-results.txt'),
+                }
+        rp_iter = results.result_path_iter(1, 1)
+        params, paths = rp_iter.next()
+        for params2, paths2 in rp_iter:
+            pass
+        self.assertEqual(paths, expected_1_paths)
+        self.assertEqual(params, expected_1_params)
+        expected_2_params = {'PRI.t.1': '0.34052413242',
+                'PRI.t.2': '0.78091068192',
+                'PRI.t.3': '2.60540618445',
+                'PRI.d1Theta.1': '0.000209',
+                'PRI.d1Theta.2': '0.000539',
+                'PRI.d1Theta.3': '0.002246',
+                'PRI.d2Theta.1': '0.001421',
+                'PRI.d2Theta.2': '0.002391',
+                'PRI.d2Theta.3': '0.000322',
+                'PRI.aTheta.1': '0.000631',
+                'PRI.aTheta.2': '0.000846',
+                'PRI.aTheta.3': '0.000169',
+                'PRI.model': '1',
+                'PRI.Psi': '3',
+                'PRI.var.t': '1.44206914355672',
+                'PRI.E.t': '1.24228033293',
+                'PRI.omega': '1.16082425627355'}
+        expected_2_paths = {
+                'summary': os.path.join(package_paths.TEST_DATA_DIR,
+                        'pymsbayes-results', 'pymsbayes-output', 'd1', 'm1',
+                        'd1-m1-s3-1-posterior-summary.txt'),
+                'psi': os.path.join(package_paths.TEST_DATA_DIR,
+                        'pymsbayes-results', 'pymsbayes-output', 'd1', 'm1',
+                        'd1-m1-s3-1-psi-results.txt'),
+                'omega': os.path.join(package_paths.TEST_DATA_DIR,
+                        'pymsbayes-results', 'pymsbayes-output', 'd1', 'm1',
+                        'd1-m1-s3-1-omega-results.txt'),
+                'div-model': os.path.join(package_paths.TEST_DATA_DIR,
+                        'pymsbayes-results', 'pymsbayes-output', 'd1', 'm1',
+                        'd1-m1-s3-1-div-model-results.txt'),
+                'model': os.path.join(package_paths.TEST_DATA_DIR,
+                        'pymsbayes-results', 'pymsbayes-output', 'd1', 'm1',
+                        'd1-m1-s3-1-model-results.txt'),
+                }
+        self.assertEqual(paths2, expected_2_paths)
+        self.assertEqual(params2, expected_2_params)
+
+        expected_params = {'PRI.t.1': '3.62588223655',
+                'PRI.t.2': '0.35823047011',
+                'PRI.t.3': '1.57901021456',
+                'PRI.d1Theta.1': '0.000623',
+                'PRI.d1Theta.2': '0.000730',
+                'PRI.d1Theta.3': '0.000031',
+                'PRI.d2Theta.1': '0.001571',
+                'PRI.d2Theta.2': '0.000739',
+                'PRI.d2Theta.3': '0.000103',
+                'PRI.aTheta.1': '0.000193',
+                'PRI.aTheta.2': '0.000413',
+                'PRI.aTheta.3': '0.000278',
+                'PRI.model': '2',
+                'PRI.Psi': '3',
+                'PRI.var.t': '2.72625605426388',
+                'PRI.E.t': '1.85437430707333',
+                'PRI.omega': '1.47017570501535'}
+        expected_paths = {
+                'summary': os.path.join(package_paths.TEST_DATA_DIR,
+                        'pymsbayes-results', 'pymsbayes-output', 'd2', 'm123-combined',
+                        'd2-m123-combined-s3-1-posterior-summary.txt'),
+                'psi': os.path.join(package_paths.TEST_DATA_DIR,
+                        'pymsbayes-results', 'pymsbayes-output', 'd2', 'm123-combined',
+                        'd2-m123-combined-s3-1-psi-results.txt'),
+                'omega': os.path.join(package_paths.TEST_DATA_DIR,
+                        'pymsbayes-results', 'pymsbayes-output', 'd2', 'm123-combined',
+                        'd2-m123-combined-s3-1-omega-results.txt'),
+                'div-model': os.path.join(package_paths.TEST_DATA_DIR,
+                        'pymsbayes-results', 'pymsbayes-output', 'd2', 'm123-combined',
+                        'd2-m123-combined-s3-1-div-model-results.txt'),
+                'model': os.path.join(package_paths.TEST_DATA_DIR,
+                        'pymsbayes-results', 'pymsbayes-output', 'd2', 'm123-combined',
+                        'd2-m123-combined-s3-1-model-results.txt'),
+                }
+        rp_iter = results.result_path_iter(2, '123-combined')
+        for params, paths in rp_iter:
+            pass
+        self.assertEqual(paths, expected_paths)
+        self.assertEqual(params, expected_params)
+
+    def test_result_iter(self):
+        results = DMCSimulationResults(self.info_path)
+        exp = {'mean_tau': {'true': 1.85437430707333,
+                            'mode': ((0.827072720697 + 1.1027636276) / 2),
+                            'median': 1.22432526401,
+                            'mode_glm': 1.26272},
+               'omega': {'true': 1.47017570501535,
+                         'mode': (0.262383550541 / 2),
+                         'median': 0.564675991641,
+                         'mode_glm': 0.239378},
+               'psi': {'true': 3,
+                       'mode': 3,
+                       'mode_glm': float('nan'),
+                       'probs': {1: {'prob': 0.0, 'prob_glm': float('nan')},
+                                 2: {'prob': 0.0, 'prob_glm': float('nan')},
+                                 3: {'prob': 1.0, 'prob_glm': float('nan')}}},
+               'model': {'true': 2,
+                         'mode': 3,
+                         'mode_glm': 2.93939,
+                         'probs': {1: {'prob': 0.29, 'prob_glm': 0.240650683366},
+                                   2: {'prob': 0.31, 'prob_glm': 0.485304802115},
+                                   3: {'prob': 0.4, 'prob_glm': 0.274044514518}}}}
+        r_iter = results.result_iter(2, '123-combined')
+        for results in r_iter:
+            pass
+        for k in exp['mean_tau'].iterkeys():
+            self.assertAlmostEqual(results['mean_tau'][k], exp['mean_tau'][k])
+        for k in exp['omega'].iterkeys():
+            self.assertAlmostEqual(results['mean_tau'][k], exp['mean_tau'][k])
+        for k in ['true', 'mode']:
+            self.assertEqual(results['psi'][k], exp['psi'][k])
+            self.assertEqual(results['model'][k], exp['model'][k])
+        self.assertTrue(math.isnan(exp['psi']['mode_glm']))
+        self.assertTrue(math.isnan(results['psi']['mode_glm']))
+        self.assertAlmostEqual(results['model']['mode_glm'],
+                exp['model']['mode_glm'])
+        l = 'probs'
+        for k in ['psi', 'model']:
+            for i in range(1, 4):
+                for p in ['prob', 'prob_glm']:
+                    if math.isnan(exp[k][l][i][p]):
+                        self.assertTrue(math.isnan(results[k][l][i][p]))
+                    else:
+                        self.assertAlmostEqual(results[k][l][i][p],
+                                exp[k][l][i][p])
+    def test_flat_result_iter(self):
+        results = DMCSimulationResults(self.info_path)
+        exp = {'mean_tau_true': 1.85437430707333,
+               'mean_tau_mode': ((0.827072720697 + 1.1027636276) / 2),
+               'mean_tau_median': 1.22432526401,
+               'mean_tau_mode_glm': 1.26272,
+               'omega_true': 1.47017570501535,
+               'omega_mode': (0.262383550541 / 2),
+               'omega_median': 0.564675991641,
+               'omega_mode_glm': 0.239378,
+               'psi_true': 3,
+               'psi_mode': 3,
+               'psi_mode_glm': float('nan'),
+               'psi_1_prob': 0.0,
+               'psi_1_prob_glm': float('nan'),
+               'psi_2_prob': 0.0,
+               'psi_2_prob_glm': float('nan'),
+               'psi_3_prob': 1.0,
+               'psi_3_prob_glm': float('nan'),
+               'model_true': 2,
+               'model_mode': 3,
+               'model_mode_glm': 2.93939,
+               'model_1_prob': 0.29,
+               'model_1_prob_glm': 0.240650683366,
+               'model_2_prob': 0.31,
+               'model_2_prob_glm': 0.485304802115,
+               'model_3_prob': 0.4,
+               'model_3_prob_glm': 0.274044514518}
+        r_iter = results.flat_result_iter(2, '123-combined')
+        for results in r_iter:
+            pass
+        for k in exp.iterkeys():
+            if math.isnan(exp[k]):
+                self.assertTrue(math.isnan(results[k]))
+            elif isinstance(exp[k], float):
+                self.assertAlmostEqual(exp[k], results[k])
+            else:
+                self.assertEqual(exp[k], results[k])
 
 if __name__ == '__main__':
     unittest.main()
