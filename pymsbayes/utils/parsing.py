@@ -8,7 +8,7 @@ import glob
 from configobj import ConfigObj
 
 import pymsbayes
-from pymsbayes.fileio import process_file_arg
+from pymsbayes.fileio import process_file_arg, expand_path
 from pymsbayes.utils import MSBAYES_SORT_INDEX
 from pymsbayes.utils.errors import (SummaryFileParsingError,
         ParameterParsingError)
@@ -514,7 +514,6 @@ class DMCSimulationResults(object):
         self.observed_config_to_index = {}
         self.observed_config_to_path = {}
         self.prior_configs = {}
-        self.prior_paths = {}
         self.prior_config_to_index = {}
         self.prior_config_to_path = {}
         self._parse_info_file()
@@ -549,24 +548,25 @@ class DMCSimulationResults(object):
                     self.results_dir, v))
             config_name = os.path.splitext(os.path.basename(
                     self.prior_configs[int(k)]))[0]
+            _LOG.debug(config_name)
             if self.prior_config_to_index.has_key(config_name):
                 raise Exception('prior config files do not have unique names')
             self.prior_config_to_index[config_name] = int(k)
-            self.prior_config_to_path[config_name] = self.prior_paths[int(k)]
+            self.prior_config_to_path[config_name] = self.prior_configs[int(k)]
         omx = max(self.observed_paths.iterkeys())
-        pmx = max(self.prior_paths.iterkeys())
-        assert sorted[self.observed_paths.keys()] == list(range(omx))
-        assert sorted[sefl.prior_paths.keys()] == list(range(pmx))
+        pmx = max(self.prior_configs.iterkeys())
+        assert sorted(self.observed_paths.keys()) == list(range(1, omx + 1))
+        assert sorted(self.prior_configs.keys()) == list(range(1, pmx + 1))
         self.final_result_index = max(self.get_result_indices(1, 1, 1))
 
-    def get_result_dir(observed_index, prior_index):
+    def get_result_dir(self, observed_index, prior_index):
         return os.path.join(self.output_dir, 'd' + str(observed_index),
                 'm' + str(prior_index))
 
-    def get_result_file_prefix(observed_index, prior_index, sim_index):
+    def get_result_file_prefix(self, observed_index, prior_index, sim_index):
         return 'd{0}-m{1}-s{2}-'.format(observed_index, prior_index, sim_index)
 
-    def get_result_path_prefix(observed_index, prior_index, sim_index):
+    def get_result_path_prefix(self, observed_index, prior_index, sim_index):
         return os.path.join(self.get_result_dir(observed_index, prior_index),
                 self.get_result_file_prefix(observed_index, prior_index,
                         sim_index))
@@ -577,9 +577,9 @@ class DMCSimulationResults(object):
         pattern = prefix + '*-posterior-sample*'
         result_files = [os.path.basename(x) for x in glob.glob(pattern)]
         result_indices = []
-        for f  in result_files:
+        for f in result_files:
             m = self.result_file_name_pattern.match(f)
-            result_indices.append(int(m.group(result_index)))
+            result_indices.append(int(m.group('result_index')))
         result_indices.sort()
         return result_indices
 
@@ -666,12 +666,20 @@ class DMCSimulationResults(object):
         
 def parse_omega_results_file(file_obj):
     s_iter = spreadsheet_iter([file_obj], sep = '\t')
+    i = -1
     for i, d in enumerate(s_iter):
         pass
-    assert i == 0
-    threshold = float(d['omega_thresh'])
-    prob_less = float(d['prob_less_than'])
-    prob_less_glm = float(d['glm_prob_less_than'])
+    if i != 0:
+        raise Exception('too many lines in omega results file {0!r}'.format(
+                file_obj))
+    try:
+        threshold = float(d['omega_thresh'])
+        prob_less = float(d['prob_less_than'])
+        prob_less_glm = float(d['glm_prob_less_than'])
+    except Exception:
+        _LOG.error('bad format of omega results file {0!r}'.format(
+                file_obj))
+        raise
     return {'threshold': threshold,
             'prob_less': prob_less,
             'prob_less_glm': prob_less_glm}
@@ -680,9 +688,14 @@ def parse_psi_results_file(file_obj):
     s_iter = spreadsheet_iter([file_obj], sep = '\t')
     results = {}
     for d in s_iter:
-        psi = int(d['num_of_div_events'])
-        prob = float(d['estimated_prob'])
-        prob_glm = float(d['glm_adjusted_prob'])
+        try:
+            psi = int(d['num_of_div_events'])
+            prob = float(d['estimated_prob'])
+            prob_glm = float(d['glm_adjusted_prob'])
+        except Exception:
+            _LOG.error('bad format of psi results file {0!r}'.format(
+                    file_obj))
+            raise
         results[psi] = {'prob': prob, 'prob_glm': prob_glm}
     return results
 
@@ -690,9 +703,14 @@ def parse_model_results_file(file_obj):
     s_iter = spreadsheet_iter([file_obj], sep = '\t')
     results = {}
     for d in s_iter:
-        model = int(d['model'])
-        prob = float(d['estimated_prob'])
-        prob_glm = float(d['glm_adjusted_prob'])
+        try:
+            model = int(d['model'])
+            prob = float(d['estimated_prob'])
+            prob_glm = float(d['glm_adjusted_prob'])
+        except Exception:
+            _LOG.error('bad format of model results file {0!r}'.format(
+                    file_obj))
+            raise
         results[model] = {'prob': prob, 'prob_glm': prob_glm}
     return results
 

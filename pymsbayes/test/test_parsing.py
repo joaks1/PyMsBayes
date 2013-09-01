@@ -3,6 +3,7 @@
 import unittest
 import os
 import sys
+import math
 from cStringIO import StringIO
 
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
@@ -589,6 +590,98 @@ class ParseOmegaResultsFileTestCase(unittest.TestCase):
         self.assertAlmostEqual(results['threshold'], 0.01)
         self.assertAlmostEqual(results['prob_less'], 0.02)
         self.assertAlmostEqual(results['prob_less_glm'], 0.0235768970431)
+
+    def test_line_number_exception(self):
+        s = StringIO()
+        s.write('omega_thresh\tprob_less_than\tglm_prob_less_than\n'
+                '0.01\t0.912\t0.989123\n'
+                '0.01\t0.912\t0.989123\n')
+        s.seek(0)
+        self.assertRaises(Exception, parse_omega_results_file, s)
+        s = StringIO()
+        s.write('omega_thresh\tprob_less_than\tglm_prob_less_than\n')
+        s.seek(0)
+        self.assertRaises(Exception, parse_omega_results_file, s)
+    
+    def test_bad_header(self):
+        s = StringIO()
+        s.write('thresh\tprob_less_than\tglm_prob_less_than\n'
+                '0.01\t0.912\t0.989123\n')
+        s.seek(0)
+        self.assertRaises(Exception, parse_omega_results_file, s)
+
+class ParsePsiResultsFileTestCase(unittest.TestCase):
+    def test_parse_psi_file(self):
+        psi_results_path = os.path.join(package_paths.TEST_DATA_DIR,
+                'pymsbayes-results', 'pymsbayes-output', 'd1', 'm3',
+                'd1-m3-s1-1-psi-results.txt')
+        results = parse_psi_results_file(psi_results_path)
+        self.assertIsInstance(results, dict)
+        self.assertEqual(len(results), 3)
+        self.assertEqual(sorted(results.keys()), list(range(1, 4)))
+        self.assertEqual(sorted(results[1].keys()), sorted(['prob', 'prob_glm']))
+        self.assertAlmostEqual(results[1]['prob'], 0.0)
+        self.assertAlmostEqual(results[2]['prob'], 0.0)
+        self.assertAlmostEqual(results[3]['prob'], 1.0)
+        for i in range(1, 4):
+            self.assertTrue(math.isnan(results[i]['prob_glm']))
+
+    def test_bad_header(self):
+        s = StringIO()
+        s.write('num_of_dievents\testimated_prob\tglm_adjusted_prob\n'
+                '1\t0.12\t0.23\n'
+                '2\t0.88\t0.77\n')
+        s.seek(0)
+        self.assertRaises(Exception, parse_psi_results_file, s)
+
+    def test_bad_value(self):
+        s = StringIO()
+        s.write('num_of_div_events\testimated_prob\tglm_adjusted_prob\n'
+                '1\t0.12\t0.23\n'
+                '2\t0.88\tbogus\n')
+        s.seek(0)
+        self.assertRaises(Exception, parse_psi_results_file, s)
+
+class ParseModelResultsFile(unittest.TestCase):
+    def test_parse_model_file(self):
+        model_results_path = os.path.join(package_paths.TEST_DATA_DIR,
+                'pymsbayes-results', 'pymsbayes-output', 'd1', 'm123-combined',
+                'd1-m123-combined-s1-1-model-results.txt')
+        results = parse_model_results_file(model_results_path)
+        self.assertIsInstance(results, dict)
+        self.assertEqual(len(results), 3)
+        self.assertEqual(sorted(results.keys()), list(range(1, 4)))
+        self.assertEqual(sorted(results[1].keys()), sorted(['prob', 'prob_glm']))
+        self.assertAlmostEqual(results[1]['prob'], 0.36)
+        self.assertAlmostEqual(results[2]['prob'], 0.32)
+        self.assertAlmostEqual(results[3]['prob'], 0.32)
+        self.assertAlmostEqual(results[1]['prob_glm'], 0.316788773658)
+        self.assertAlmostEqual(results[2]['prob_glm'], 0.470006429464)
+        self.assertAlmostEqual(results[3]['prob_glm'], 0.213204796878)
+
+class DMCSimulationResultsTestCase(unittest.TestCase):
+    def setUp(self):
+        self.info_path = os.path.join(package_paths.TEST_DATA_DIR,
+                'pymsbayes-results', 'pymsbayes-info.txt')
+        self.prior_configs = 
+        self.observed_configs = 
+        self.observed_paths = 
+
+    def test_init(self):
+        results = DMCSimulationResults(self.info_path)
+        self.assertIsInstance(results, DMCSimulationResults)
+        self.assertEqual(results.info_path, self.info_path)
+        self.assertEqual(results.results_dir, os.path.dirname(self.info_path))
+        self.assertEqual(results.output_dir, os.path.join(
+                os.path.dirname(self.info_path), 'pymsbayes-output'))
+        self.assertEqual(sorted(results.observed_configs.keys()), range(1, 4))
+        self.assertEqual(sorted(results.observed_paths.keys()), range(1, 4))
+        self.assertEqual(sorted(results.observed_config_to_index.values()),
+                range(1, 4))
+        self.assertEqual(sorted(results.prior_configs.keys()), range(1, 4))
+        self.assertEqual(sorted(results.prior_config_to_index.values()),
+                range(1, 4))
+
 
 if __name__ == '__main__':
     unittest.main()
