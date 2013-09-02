@@ -586,53 +586,57 @@ class DMCSimulationResults(object):
     def result_iter(self, observed_index, prior_index):
         path_iter = self.result_path_iter(observed_index, prior_index)
         for i, (true_params, paths) in enumerate(path_iter):
-            summary = parse_posterior_summary_file(paths['summary'])
-            results = {}
-            tau_true = float(true_params['PRI.E.t'])
-            tau_mode_min = float(summary['PRI.E.t']['modes'][0].strip('()'))
-            tau_mode_max = float(summary['PRI.E.t']['modes'][1].strip('()'))
-            tau_mode = (tau_mode_min + tau_mode_max) / float(2)
-            tau_median = float(summary['PRI.E.t']['median'])
-            tau_mode_glm = float(summary['PRI.E.t']['mode_glm'])
-            results['mean_tau'] = {'true': tau_true,
-                    'mode': tau_mode,
-                    'median': tau_median,
-                    'mode_glm': tau_mode_glm}
-            omega_true = float(true_params['PRI.omega'])
-            omega_mode_min = float(summary['PRI.omega']['modes'][0].strip('()'))
-            omega_mode_max = float(summary['PRI.omega']['modes'][1].strip('()'))
-            omega_mode = (omega_mode_min + omega_mode_max) / float(2)
-            omega_median = float(summary['PRI.omega']['median'])
-            omega_mode_glm = float(summary['PRI.omega']['mode_glm'])
-            omega_results = parse_omega_results_file(paths['omega'])
-            results['omega'] = {'true': omega_true,
-                    'mode': omega_mode,
-                    'median': omega_median,
-                    'mode_glm': omega_mode_glm}
-            results['omega'].update(omega_results)
-            psi_true = int(true_params['PRI.Psi'])
-            psi_mode = summary['PRI.Psi']['modes']
-            if not isinstance(psi_mode, str):
-                psi_mode = psi_mode[0]
-            psi_mode = int(psi_mode)
-            psi_mode_glm = float(summary['PRI.Psi']['mode_glm'])
-            psi_results = parse_psi_results_file(paths['psi'])
-            results['psi'] = {'true': psi_true,
-                    'mode': psi_mode,
-                    'mode_glm': psi_mode_glm,
-                    'probs': psi_results}
-            model_true = int(true_params['PRI.model'])
-            model_mode = summary['PRI.model']['modes']
-            if not isinstance(model_mode, str):
-                model_mode = model_mode[0]
-            model_mode = int(model_mode)
-            model_mode_glm = float(summary['PRI.model']['mode_glm'])
-            model_results = parse_model_results_file(paths['model'])
-            results['model'] = {'true': model_true,
-                    'mode': model_mode,
-                    'mode_glm': model_mode_glm,
-                    'probs': model_results}
-            yield results
+            yield self.get_results_from_params_and_result_paths(
+                    true_params, paths)
+
+    def get_results_from_params_and_result_paths(self, true_params, paths):
+        summary = parse_posterior_summary_file(paths['summary'])
+        results = {}
+        tau_true = float(true_params['PRI.E.t'])
+        tau_mode_min = float(summary['PRI.E.t']['modes'][0].strip('()'))
+        tau_mode_max = float(summary['PRI.E.t']['modes'][1].strip('()'))
+        tau_mode = (tau_mode_min + tau_mode_max) / float(2)
+        tau_median = float(summary['PRI.E.t']['median'])
+        tau_mode_glm = float(summary['PRI.E.t']['mode_glm'])
+        results['mean_tau'] = {'true': tau_true,
+                'mode': tau_mode,
+                'median': tau_median,
+                'mode_glm': tau_mode_glm}
+        omega_true = float(true_params['PRI.omega'])
+        omega_mode_min = float(summary['PRI.omega']['modes'][0].strip('()'))
+        omega_mode_max = float(summary['PRI.omega']['modes'][1].strip('()'))
+        omega_mode = (omega_mode_min + omega_mode_max) / float(2)
+        omega_median = float(summary['PRI.omega']['median'])
+        omega_mode_glm = float(summary['PRI.omega']['mode_glm'])
+        omega_results = parse_omega_results_file(paths['omega'])
+        results['omega'] = {'true': omega_true,
+                'mode': omega_mode,
+                'median': omega_median,
+                'mode_glm': omega_mode_glm}
+        results['omega'].update(omega_results)
+        psi_true = int(true_params['PRI.Psi'])
+        psi_mode = summary['PRI.Psi']['modes']
+        if not isinstance(psi_mode, str):
+            psi_mode = psi_mode[0]
+        psi_mode = int(psi_mode)
+        psi_mode_glm = float(summary['PRI.Psi']['mode_glm'])
+        psi_results = parse_psi_results_file(paths['psi'])
+        results['psi'] = {'true': psi_true,
+                'mode': psi_mode,
+                'mode_glm': psi_mode_glm,
+                'probs': psi_results}
+        model_true = int(true_params['PRI.model'])
+        model_mode = summary['PRI.model']['modes']
+        if not isinstance(model_mode, str):
+            model_mode = model_mode[0]
+        model_mode = int(model_mode)
+        model_mode_glm = float(summary['PRI.model']['mode_glm'])
+        model_results = parse_model_results_file(paths['model'])
+        results['model'] = {'true': model_true,
+                'mode': model_mode,
+                'mode_glm': model_mode_glm,
+                'probs': model_results}
+        return results
 
     def result_to_flat_dict(self, result):
         d = {'mean_tau_true': result['mean_tau']['true'],
