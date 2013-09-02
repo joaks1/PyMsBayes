@@ -54,13 +54,14 @@ and the appropriate citations for the bundled tools that were used:
     > Excoffier, 2010. ABCtoolbox: a versatile toolkit for approximate Bayesian
     > computations. BMC Bioinformatics 11:116.
 
-ACKNOWLEDGEMENTS
+Acknowledgements
 ================
 
 This software greatly benefited from funding provided to Jamie Oaks from the
 National Science Foundation (DEB 1011423), University of Kansas (KU) Office of
 Graduate Studies, Society of Systematic Biologists, Sigma Xi Scientific
-Research Society, and the KU Biodiversity Institute.
+Research Society, KU Ecology and Evolutionary Biology Department, and the KU
+Biodiversity Institute.
 
 License
 =======
