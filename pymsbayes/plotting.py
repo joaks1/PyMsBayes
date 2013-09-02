@@ -37,6 +37,83 @@ class ScatterData(object):
         self.zorder = zorder
         self.kwargs = kwargs
 
+    def plot(self, ax):
+        l = ax.plot(self.x, self.y)
+        plt.setp(l,
+                marker = self.marker,
+                linestyle = self.linestyle,
+                markerfacecolor = self.markerfacecolor,
+                markeredgecolor = self.markeredgecolor,
+                markeredgewidth = self.markeredgewidth,
+                zorder = self.zorder,
+                **self.kwargs)
+        return l
+
+class HistData(object):
+    def __init__(self, x,
+            normed = True,
+            bins = 10,
+            range = None,
+            cumulative = False,
+            histtype = 'bar',
+            align = 'mid',
+            orientation = 'vertical',
+            rwidth = None,
+            log = False,
+            color = None,
+            edgecolor = 0.5,
+            facecolor = 0.5,
+            fill = True,
+            hatch = None,
+            label = None,
+            linestyle = None,
+            linewidth = None,
+            zorder = 10,
+            **kwargs):
+        self.x = x
+        self.normed = normed
+        self.bins = bins
+        self.range = range
+        self.cumulative = cumulative
+        self.histtype = histtype
+        self.align = align
+        self.orientation = orientation
+        self.rwidth = rwidth
+        self.log = log
+        self.color = color
+        self.edgecolor = edgecolor
+        self.facecolor = facecolor
+        self.fill = fill
+        self.hatch = hatch
+        self.label = label
+        self.linestyle = linestyle
+        self.linewidth = linewidth
+        self.zorder = zorder
+        self.kwargs = kwargs
+
+    def plot(self, ax):
+        n, bins, patches = ax.hist(self.x,
+                normed = self.normed,
+                bins = self.bins,
+                range = self.range,
+                cumulative = self.cumulative,
+                histtype = self.histtype,
+                align = self.align,
+                orientation = self.orientation,
+                rwidth = self.rwidth,
+                log = self.log,
+                color = self.color,
+                edgecolor = self.edgecolor,
+                facecolor = self.facecolor,
+                fill = self.fill,
+                hatch = self.hatch,
+                label = self.label,
+                linestyle = self.linestyle,
+                linewidth = self.linewidth,
+                zorder = self.zorder,
+                **self.kwargs)
+        return n, bins, patches
+
 class VerticalLine(object):
     def __init__(self, x,
             ymin = 0,
@@ -56,6 +133,16 @@ class VerticalLine(object):
         self.linewidth = linewidth
         self.zorder = zorder
         self.kwargs = kwargs
+
+    def plot(self, ax):
+        ax.axvline(x = self.x, 
+                ymin = self.ymin,
+                ymax = self.ymax, 
+                color = self.color,
+                label = self.label,
+                linestyle = self.linestyle,
+                linewidth = self.linewidth,
+                **self.kwargs)
 
 class HorizontalLine(object):
     def __init__(self, y,
@@ -77,8 +164,19 @@ class HorizontalLine(object):
         self.zorder = zorder
         self.kwargs = kwargs
 
+    def plot(self, ax):
+        ax.axhline(y = self.y, 
+                xmin = self.xmin,
+                xmax = self.xmax, 
+                color = self.color,
+                label = self.label,
+                linestyle = self.linestyle,
+                linewidth = self.linewidth,
+                **self.kwargs)
+
 class ScatterPlot(object):
     def __init__(self, scatter_data_list = [],
+            hist_data_list = [],
             vertical_lines = [],
             horizontal_lines = [],
             plot_label = None,
@@ -87,12 +185,10 @@ class ScatterPlot(object):
             left_text = None,
             center_text = None,
             right_text = None,
-            marker = 'o',
-            marker_face_color = 'none',
-            marker_edge_color = '0.35',
-            marker_edge_width = 0.7,
-            position = (1,1,1)):
+            position = (1,1,1),
+            identity_line = False):
         self.scatter_data_list = list(scatter_data_list)
+        self.hist_data_list = list(hist_data_list)
         self.vertical_lines = list(vertical_lines)
         self.horizontal_lines = list(horizontal_lines)
         self.fig = plt.figure()
@@ -121,12 +217,12 @@ class ScatterPlot(object):
         self.right_text_size = 14.0
         self.right_text_weight = 'normal'
         self.right_text_style = 'normal'
-        self.marker = marker
-        self.marker_face_color = marker_face_color
-        self.marker_edge_color = marker_edge_color
-        self.marker_edge_width = marker_edge_width
         self.shared_x_ax = None
         self.shared_y_ax = None
+        self.identity_line = identity_line
+        self.identity_color = '0.5'
+        self.identity_style = '-'
+        self.identity_width = 1.0
         self._plot()
         self._reset_text_objects()
 
@@ -149,21 +245,28 @@ class ScatterPlot(object):
         # initial creation. Whereas `lines` are easy to manipulate.
         for d in self.scatter_data_list:
             self._plot_scatter_data(d)
+        for h in self.hist_data_list:
+            self._plot_hist_data(h)
         for v in self.vertical_lines:
             self._plot_v_line(v)
         for h in self.horizontal_lines:
             self._plot_h_line(h)
+        if self.identity_line:
+            mn = self.get_minimum()
+            mx = self.get_maximum()
+            l = self.ax.plot([mn, mx], [mn, mx]) 
+            plt.setp(l,
+                    color = self.identity_color,
+                    linestyle = self.identity_style,
+                    linewidth = self.identity_width,
+                    marker = '',
+                    zorder = 0)
 
     def _plot_scatter_data(self, d):
-        l = self.ax.plot(d.x, d.y)
-        plt.setp(l,
-                marker = d.marker,
-                linestyle = d.linestyle,
-                markerfacecolor = d.markerfacecolor,
-                markeredgecolor = d.markeredgecolor,
-                markeredgewidth = d.markeredgewidth,
-                zorder = d.zorder,
-                **d.kwargs)
+        l = d.plot(self.ax)
+
+    def _plot_hist_data(self, h):
+        n, bins, patches = h.plot(self.ax)
 
     def append_plot(self):
         self._plot()
@@ -180,6 +283,21 @@ class ScatterPlot(object):
     def get_x_center(self):
         xmin, xmax = self.ax.get_xlim()
         return xmin + (math.fabs(xmax - xmin) * 0.5)
+
+    def get_origin(self):
+        xmin, xmax = self.ax.get_xlim()
+        ymin, ymax = self.ax.get_ylim()
+        return xmin, ymin
+
+    def get_minimum(self):
+        xmin, xmax = self.ax.get_xlim()
+        ymin, ymax = self.ax.get_ylim()
+        return min([xmin, ymin])
+
+    def get_maximum(self):
+        xmin, xmax = self.ax.get_xlim()
+        ymin, ymax = self.ax.get_ylim()
+        return max([xmax, ymax])
 
     def remove_text_object(self, text_obj):
         if text_obj and (text_obj in self.ax.texts):
@@ -386,28 +504,14 @@ class ScatterPlot(object):
         return self.ax.is_first_col()
 
     def _plot_v_line(self, v):
-        self.ax.axvline(x = v.x, 
-                ymin = v.ymin,
-                ymax = v.ymax, 
-                color = v.color,
-                label = v.label,
-                linestyle = v.linestyle,
-                linewidth = v.linewidth,
-                **v.kwargs)
+        v.plot(self.ax)
 
     def add_v_line(self, vertical_line_object):
         self.vertical_lines.append(vertical_line_object)
         self._plot_v_line(vertical_line_object)
 
     def _plot_h_line(self, h):
-        self.ax.axhline(y = h.y, 
-                xmin = h.xmin,
-                xmax = h.xmax, 
-                color = h.color,
-                label = h.label,
-                linestyle = h.linestyle,
-                linewidth = h.linewidth,
-                **h.kwargs)
+        h.plot(self.ax)
 
     def add_h_line(self, horizontal_line_object):
         self.horizontal_lines.append(horizontal_line_object)
