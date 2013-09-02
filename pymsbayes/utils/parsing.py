@@ -513,6 +513,7 @@ class DMCSimulationResults(object):
         self.observed_paths = {}
         self.observed_config_to_index = {}
         self.observed_config_to_path = {}
+        self.observed_index_to_prior_index = {}
         self.prior_configs = {}
         self.prior_config_to_index = {}
         self.prior_config_to_path = {}
@@ -557,6 +558,13 @@ class DMCSimulationResults(object):
         pmx = max(self.prior_configs.iterkeys())
         assert sorted(self.observed_paths.keys()) == list(range(1, omx + 1))
         assert sorted(self.prior_configs.keys()) == list(range(1, pmx + 1))
+        for i, obs_cfg in self.observed_configs.iteritems():
+            if obs_cfg in self.prior_configs.values():
+                n = os.path.splitext(os.path.basename(obs_cfg))[0]
+                self.observed_index_to_prior_index[i] = \
+                        self.prior_config_to_index[n]
+            else:
+                self.observed_index_to_prior_index[i] = -1
         self.final_result_index = max(self.get_result_indices(1, 1, 1))
 
     def get_result_dir(self, observed_index, prior_index):
@@ -668,6 +676,7 @@ class DMCSimulationResults(object):
             yield self.result_to_flat_dict(r)
 
     def result_path_iter(self, observed_index, prior_index):
+        true_model = self.observed_index_to_prior_index[observed_index]
         out_dir = self.get_result_dir(observed_index, prior_index)
         if not os.path.isdir(out_dir):
             raise Exception('expected result direcory {0!r} does not '
@@ -681,6 +690,7 @@ class DMCSimulationResults(object):
             l = line.strip().split()
             true_params = dict(zip([header[x] for x in parameter_indices],
                     [l[x] for x in parameter_indices]))
+            true_params['PRI.model'] = str(true_model)
             result_prefix = '{0}{1}-'.format(self.get_result_path_prefix(
                     observed_index, prior_index, i + 1), 
                     self.final_result_index)
