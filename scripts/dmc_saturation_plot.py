@@ -14,8 +14,6 @@ import random
 import argparse
 import datetime
 import logging
-import matplotlib
-import matplotlib.pyplot as plt
 
 from pymsbayes.utils.argparse_utils import arg_is_dir, arg_is_config
 
@@ -117,7 +115,7 @@ def main_cli():
     from pymsbayes.config import MsBayesConfig
     from pymsbayes.utils import GLOBAL_RNG, MSBAYES_SORT_INDEX
     from pymsbayes.fileio import process_file_arg
-    from pymsbayes.plotting import MATPLOTLIB_AVAILABLE, saturation_plot
+    from pymsbayes.plotting import MATPLOTLIB_AVAILABLE, SaturationPlotGrid
 
     MSBAYES_SORT_INDEX.set_index(0)
 
@@ -228,12 +226,13 @@ def main_cli():
                    'pi.net': r'$\pi_{net}$',
                    'wattTheta': r'$\theta_W$',
                    'tajD.denom': r'$SD(\pi - \theta_W)$'}
-        fig = saturation_plot(stats_by_time,
+        spg = SaturationPlotGrid(stats_by_time,
                 x_key = 'PRI.t',
                 y_keys = args.stat_prefixes,
                 y_labels = y_labels,
                 num_columns = 2,
                 vertical_line_positions = args.vertical_lines)
+        fig = spg.create_grid()
         fig.savefig(plot_path)
         # fig = plt.figure()
         # ncols = 2

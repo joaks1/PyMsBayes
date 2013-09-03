@@ -663,42 +663,125 @@ class PlotGrid(object):
     def savefig(self, *args, **kwargs):
         self.fig.savefig(*args, **kwargs)
 
+class PsiPowerPlotGrid(object):
+    valid_tau_distributions = ['gamma', 'uniform']
+    def __init__(self,
+            tau_tuples,
+            num_taxon_pairs,
+            tau_distribution = 'uniform',
+            num_columns = 2):
+        self.tau_distribution = tau_distribution.lower()
+        if not self.tau_distribution in self.valid_tau_distributions:
+            raise ValueError('invalid tau distribution argument {0!r}; '
+                    'valid options:\n\t{1}'.format(self.tau_distribution,
+                            ', '.join(self.valid_tau_distributions)))
+        self.tau_tuples = sorted(tau_tuples, key = lambda x : x[1])
+        self.num_taxon_pairs = num_taxon_pairs
+        self.tau_estimates = []
+        self.num_columns = num_columns
+        self.subplots = []
+        self.plot_grid = None
+        self.x_title = r'$\hat{\Psi}$'
+        self.y_title = 'Density'
+        self.bins = range(self.num_taxon_pairs + 1)
+        self.populate_subplots()
 
-def saturation_plot(d, x_key = 'PRI.t', y_keys = None, y_labels = {},
-        num_columns = 2, vertical_line_positions = []):
-    if not d.has_key(x_key):
-        raise ValueError('`x_key` {0!r} is not in data dict'.format(x_key))
-    if not y_keys:
-        y_keys = d.keys()
-        y_keys.pop(x_key)
-    for y in y_keys:
-        if not d.has_key(y):
-            raise ValueError('y key {0!r} is not in data dict'.format(y_key))
-    if not y_labels:
-        y_labels = {'pi': r'$\pi$',
-                       'pi.net': r'$\pi_{net}$',
-                       'wattTheta': r'$\theta_W$',
-                       'tajD.denom': r'$SD(\pi - \theta_W)$'}
-    subplots = []
-    v_lines = []
-    for x in vertical_line_positions:
-        v_lines.append(VerticalLine(x))
-    for i, y in enumerate(y_keys):
-        y_lab = y_labels.get(y, y)
-        scatter_data = ScatterData(x = d[x_key], y = d[y])
-        sp = ScatterPlot(scatter_data_list = [scatter_data],
-                vertical_lines = v_lines,
-                y_label = y_lab)
-        subplots.append(sp)
+    def prep_estimates(self):
+        for tup in self.tau_tuples:
+            if not len(tup) == 3:
+                raise ValueError('tau tuples must be tuples of length 3:\n\t'
+                        '(0) tau distribution parameter 1, (1) tau '
+                        'distribution parameter 2, and (3) the collection '
+                        'of tau estimates')
+                estimates = list(tup[2])
+                if self.tau_distribution == 'uniform':
+                    dist = r'$\tau \sim U({0}, {1})$'.format(*tup)
+                elif tup[0] == 1:
+                    dist = r'$\tau \sim Exp({0})$'.format(float(1) / tup[1])
+                else:
+                    dist = r'$\tau \sim \Gamma({0}, {1})$'.format(*tup)
+                prob_1 = esimates.count(1) / float(len(estimates))
+                p = r'$p(\hat{\Psi} = 1) = {0}'.format(prob_1)
+                self.tau_estimates.append((dist, estimates, p))
 
-    if len(subplots) < 2:
-        num_columns = 1
+    def populate_subplots(self):
+        self.prep_estimates()
+        for dist, estimates, prob in self.tau_estimates:
+            hd = HistData(x = estimates,
+                    normed = True,
+                    bins = self.bins,
+                    histtype = 'bar',
+                    align = 'mid',
+                    orientation = 'vertical')
+            hist = ScatterPlot(hist_data_list = [hd],
+                    y_label = self.y_title)
+            self.subplots.append(hist)
 
-    return PlotGrid(subplots = subplots,
-            num_columns = num_columns,
-            share_x = True,
-            share_y = False,
-            label_schema = 'uppercase',
-            title = r'Divergence time $\tau$ in $4N_C$ generations',
-            title_top = False)
-    
+    def create_grid(self):
+        if len(self.subplots) < 2:
+            self.num_columns = 1
+        self.plot_grid = PlotGrid(subplots = self.subplots,
+                num_columns = self.num_columns,
+                share_x = True,
+                share_y = True,
+                label_schema = 'uppercase',
+                title = self.x_title,
+                title_top = False)
+        return self.plot_grid
+
+class SaturationPlotGrid(object):
+    def __init__(self, d,
+            x_key = 'PRI.t',
+            y_keys = None,
+            y_labels = {},
+            num_columns = 2,
+            vertical_line_positions = [],
+            label_schema = 'uppercase'):
+        if not d.has_key(x_key):
+            raise ValueError('`x_key` {0!r} is not in data dict'.format(x_key))
+        self.d = d
+        self.x_key = x_key
+        self.y_keys = y_keys
+        if not self.y_keys:
+            self.y_keys = d.keys()
+            self.y_keys.pop(self.x_key)
+        for y in self.y_keys:
+            if not self.d.has_key(y):
+                raise ValueError('y key {0!r} is not in data dict'.format(y))
+        self.y_labels = y_labels
+        if not self.y_labels:
+            self.y_labels = {'pi': r'$\pi$',
+                             'pi.net': r'$\pi_{net}$',
+                             'wattTheta': r'$\theta_W$',
+                             'tajD.denom': r'$SD(\pi - \theta_W)$'}
+        self.num_columns = num_columns
+        self.v_lines = []
+        for x in vertical_line_positions:
+            self.v_lines.append(VerticalLine(x))
+        self.label_schema = label_schema
+        self.subplots = []
+        self.plot_grid = None
+        self.x_title = r'Divergence time $\tau$ in $4N_C$ generations'
+        self.populate_subplots()
+
+    def populate_subplots(self):
+        for i, y in enumerate(self.y_keys):
+            y_lab = self.y_labels.get(y, y)
+            scatter_data = ScatterData(x = self.d[self.x_key], y = self.d[y])
+            sp = ScatterPlot(scatter_data_list = [scatter_data],
+                    vertical_lines = self.v_lines,
+                    y_label = y_lab)
+            self.subplots.append(sp)
+
+    def create_grid(self):
+        if len(self.subplots) < 2:
+            self.num_columns = 1
+        self.plot_grid = PlotGrid(subplots = self.subplots,
+                num_columns = self.num_columns,
+                share_x = True,
+                share_y = False,
+                label_schema = self.label_schema,
+                title = self.x_title,
+                title_top = False)
+        return self.plot_grid
+
