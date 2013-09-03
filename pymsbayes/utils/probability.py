@@ -144,6 +144,8 @@ class GammaDistribution(Distribution):
             yield self.draw(rng)
 
     def __str__(self):
+        if self.shape == 1:
+            return 'Exp({0})'.format(1 / self._scale)
         return 'Gamma({0},{1})'.format(self._shape, self._scale)
 
 class BetaDistribution(Distribution):
