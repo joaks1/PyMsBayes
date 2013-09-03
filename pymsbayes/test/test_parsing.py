@@ -903,6 +903,60 @@ class DMCSimulationResultsTestCase(unittest.TestCase):
             else:
                 self.assertEqual(exp[k], results[k])
 
+    def test_write_result_summaries(self):
+        results = DMCSimulationResults(self.info_path)
+        results.write_result_summaries()
+        prior_keys = results.prior_index_to_config.keys()
+        if results.combined_prior_index:
+            prior_keys.append(results.combined_prior_index)
+        for i in results.observed_index_to_path.iterkeys():
+            for j in prior_keys:
+                p = os.path.join(results.get_result_dir(i, j),
+                        'results.txt.gz')
+                self.assertTrue(os.path.exists(p))
+        p = os.path.join(results.get_result_dir(2, '123-combined'),
+                'results.txt.gz')
+        for r in spreadsheet_iter([p]):
+            pass
+        exp = {'mean_tau_true': 1.85437430707333,
+               'mean_tau_mode': ((0.827072720697 + 1.1027636276) / 2),
+               'mean_tau_median': 1.22432526401,
+               'mean_tau_mode_glm': 1.26272,
+               'omega_true': 1.47017570501535,
+               'omega_mode': (0.262383550541 / 2),
+               'omega_median': 0.564675991641,
+               'omega_mode_glm': 0.239378,
+               'psi_true': 3,
+               'psi_mode': 3,
+               'psi_mode_glm': float('nan'),
+               'psi_1_prob': 0.0,
+               'psi_1_prob_glm': float('nan'),
+               'psi_2_prob': 0.0,
+               'psi_2_prob_glm': float('nan'),
+               'psi_3_prob': 1.0,
+               'psi_3_prob_glm': float('nan'),
+               'model_true': 2,
+               'model_mode': 3,
+               'model_mode_glm': 2.93939,
+               'model_1_prob': 0.29,
+               'model_1_prob_glm': 0.240650683366,
+               'model_2_prob': 0.31,
+               'model_2_prob_glm': 0.485304802115,
+               'model_3_prob': 0.4,
+               'model_3_prob_glm': 0.274044514518}
+        for k in exp.iterkeys():
+            if math.isnan(exp[k]):
+                self.assertTrue(math.isnan(float(r[k])))
+            elif isinstance(exp[k], float):
+                self.assertAlmostEqual(exp[k], float(r[k]))
+            else:
+                self.assertEqual(exp[k], int(r[k]))
+        for i in results.observed_index_to_path.iterkeys():
+            for j in prior_keys:
+                p = os.path.join(results.get_result_dir(i, j),
+                        'results.txt.gz')
+                os.remove(p)
+
 if __name__ == '__main__':
     unittest.main()
 

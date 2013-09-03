@@ -517,6 +517,20 @@ class DMCSimulationResults(object):
         self.prior_index_to_config = {}
         self.prior_config_to_index = {}
         self._parse_info_file()
+        combined_prior_index = '{0}-combined'.format(''.join(
+                [str(i) for i in sorted(self.prior_index_to_config.keys())]))
+        combined_prior_results = True
+        for i in self.observed_index_to_path.iterkeys():
+            prefix = self.get_result_path_prefix(i, combined_prior_index, 1)
+            pattern = prefix + '*-posterior-sample*'
+            files = glob.glob(pattern)
+            if not files:
+                combined_prior_results = False
+                break
+        self.combined_prior_index = None
+        if combined_prior_results:
+            self.combined_prior_index = combined_prior_index
+        self.compresslevel = 9
     
     def _parse_info_file(self):
         c = ConfigObj(self.info_path)
@@ -561,6 +575,13 @@ class DMCSimulationResults(object):
     def get_result_dir(self, observed_index, prior_index):
         return os.path.join(self.output_dir, 'd' + str(observed_index),
                 'm' + str(prior_index))
+
+    def get_result_summary_path(self, observed_index, prior_index):
+        fname = 'results.txt'
+        if self.compresslevel:
+            fname += '.gz'
+        return os.path.join(self.get_result_dir(observed_index, prior_index),
+                fname)
 
     def get_result_file_prefix(self, observed_index, prior_index, sim_index):
         return 'd{0}-m{1}-s{2}-'.format(observed_index, prior_index, sim_index)
@@ -697,6 +718,26 @@ class DMCSimulationResults(object):
                      'model': model_path}
             yield true_params, paths
         observed_stream.close()
+
+    def write_result_summaries(self, prior_indices = None, sep = '\t'):
+        if not prior_indices:
+            prior_indices = self.prior_index_to_config.keys()
+            if self.combined_prior_index:
+                prior_indices.append(self.combined_prior_index)
+        for prior_idx in prior_indices:
+            for observed_idx in self.observed_index_to_path.iterkeys():
+                out_path = self.get_result_summary_path(observed_idx, prior_idx)
+                out, close = process_file_arg(out_path, 'w',
+                        compresslevel = self.compresslevel)
+                keys = []
+                for i, r in enumerate(self.flat_result_iter(observed_idx,
+                        prior_idx)):
+                    if i == 0:
+                        keys = r.keys()
+                        out.write('{0}\n'.format(sep.join(keys)))
+                    out.write('{0}\n'.format(sep.join([str(r[k
+                            ]) for k in keys])))
+                out.close()
         
 def parse_omega_results_file(file_obj):
     s_iter = spreadsheet_iter([file_obj], sep = '\t')
