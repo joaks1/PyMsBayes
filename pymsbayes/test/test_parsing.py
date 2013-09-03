@@ -685,16 +685,20 @@ class DMCSimulationResultsTestCase(unittest.TestCase):
         self.assertEqual(results.results_dir, os.path.dirname(self.info_path))
         self.assertEqual(results.output_dir, os.path.join(
                 os.path.dirname(self.info_path), 'pymsbayes-output'))
-        self.assertEqual(sorted(results.observed_configs.keys()), range(1, 4))
-        self.assertEqual(sorted(results.observed_paths.keys()), range(1, 4))
+        self.assertEqual(sorted(results.observed_index_to_config.keys()),
+                range(1, 4))
+        self.assertEqual(sorted(results.observed_index_to_path.keys()),
+                range(1, 4))
         self.assertEqual(sorted(results.observed_config_to_index.values()),
                 range(1, 4))
-        self.assertEqual(sorted(results.prior_configs.keys()), range(1, 4))
+        self.assertEqual(sorted(results.prior_index_to_config.keys()),
+                range(1, 4))
         self.assertEqual(sorted(results.prior_config_to_index.values()),
                 range(1, 4))
-        self.assertEqual(results.prior_configs, self.prior_configs)
-        self.assertEqual(results.observed_configs, self.observed_configs)
-        self.assertEqual(results.observed_paths, self.observed_paths)
+        self.assertEqual(results.prior_index_to_config, self.prior_configs)
+        self.assertEqual(results.observed_index_to_config,
+                self.observed_configs)
+        self.assertEqual(results.observed_index_to_path, self.observed_paths)
 
     def test_result_path_iter(self):
         results = DMCSimulationResults(self.info_path)

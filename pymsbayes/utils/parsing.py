@@ -509,14 +509,13 @@ class DMCSimulationResults(object):
         self.info_path = expand_path(info_path)
         self.results_dir = os.path.dirname(self.info_path)
         self.output_dir = os.path.join(self.results_dir, 'pymsbayes-output')
-        self.observed_configs = {}
-        self.observed_paths = {}
+        self.observed_index_to_path = {}
+        self.observed_path_to_index = {}
+        self.observed_index_to_config = {}
         self.observed_config_to_index = {}
-        self.observed_config_to_path = {}
         self.observed_index_to_prior_index = {}
-        self.prior_configs = {}
+        self.prior_index_to_config = {}
         self.prior_config_to_index = {}
-        self.prior_config_to_path = {}
         self._parse_info_file()
     
     def _parse_info_file(self):
@@ -530,41 +529,33 @@ class DMCSimulationResults(object):
                         set(settings.keys())):
             raise Exception('info file {0!r} is missing path information')
         for k in settings['observed_configs'].iterkeys():
-            self.observed_configs[int(k)] = os.path.abspath(os.path.join(
-                    self.results_dir,
-                    settings['observed_configs'][k]))
-            self.observed_paths[int(k)] = os.path.abspath(os.path.join(
+            self.observed_index_to_config[int(k)] = os.path.abspath(
+                    os.path.join(self.results_dir,
+                            settings['observed_configs'][k]))
+            self.observed_index_to_path[int(k)] = os.path.abspath(os.path.join(
                     self.results_dir,
                     settings['observed_paths'][k]))
-            config_name = os.path.splitext(os.path.basename(
-                    self.observed_configs[int(k)]))[0]
-            if self.observed_config_to_index.has_key(config_name):
-                raise Exception('observed config files do not have unique '
-                        'names')
-            self.observed_config_to_index[config_name] = int(k)
-            self.observed_config_to_path[config_name] = self.observed_paths[
-                    int(k)]
         for k, v in settings['prior_configs'].iteritems():
-            self.prior_configs[int(k)] = os.path.abspath(os.path.join(
+            self.prior_index_to_config[int(k)] = os.path.abspath(os.path.join(
                     self.results_dir, v))
-            config_name = os.path.splitext(os.path.basename(
-                    self.prior_configs[int(k)]))[0]
-            _LOG.debug(config_name)
-            if self.prior_config_to_index.has_key(config_name):
-                raise Exception('prior config files do not have unique names')
-            self.prior_config_to_index[config_name] = int(k)
-            self.prior_config_to_path[config_name] = self.prior_configs[int(k)]
-        omx = max(self.observed_paths.iterkeys())
-        pmx = max(self.prior_configs.iterkeys())
-        assert sorted(self.observed_paths.keys()) == list(range(1, omx + 1))
-        assert sorted(self.prior_configs.keys()) == list(range(1, pmx + 1))
-        for i, obs_cfg in self.observed_configs.iteritems():
-            if obs_cfg in self.prior_configs.values():
-                n = os.path.splitext(os.path.basename(obs_cfg))[0]
-                self.observed_index_to_prior_index[i] = \
-                        self.prior_config_to_index[n]
-            else:
-                self.observed_index_to_prior_index[i] = -1
+        omx = max(self.observed_index_to_path.iterkeys())
+        pmx = max(self.prior_index_to_config.iterkeys())
+        assert sorted(self.observed_index_to_path.keys()) == list(range(1,
+                omx + 1))
+        assert sorted(self.prior_index_to_config.keys()) == list(range(1,
+                pmx + 1))
+        self.observed_path_to_index = dict(zip([self.observed_index_to_path[
+                k] for k in self.observed_index_to_path.iterkeys()],
+                self.observed_index_to_path.iterkeys()))
+        self.observed_config_to_index = dict(zip([self.observed_index_to_config[
+                k] for k in self.observed_index_to_config.iterkeys()],
+                self.observed_index_to_config.iterkeys()))
+        self.prior_config_to_index = dict(zip([self.prior_index_to_config[
+                k] for k in self.prior_index_to_config.iterkeys()],
+                self.prior_index_to_config.iterkeys()))
+        for i, obs_cfg in self.observed_index_to_config.iteritems():
+            self.observed_index_to_prior_index[i] = \
+                    self.prior_config_to_index.get(obs_cfg, -1)
         self.final_result_index = max(self.get_result_indices(1, 1, 1))
 
     def get_result_dir(self, observed_index, prior_index):
@@ -682,7 +673,7 @@ class DMCSimulationResults(object):
             raise Exception('expected result direcory {0!r} does not '
                     'exist'.format(out_dir))
         observed_stream, close = process_file_arg(
-                self.observed_paths[observed_index])
+                self.observed_index_to_path[observed_index])
         header = parse_header(observed_stream, sep = '\t', strict = True,
                 seek = False)
         parameter_indices = get_indices_of_patterns(header, PARAMETER_PATTERNS)
