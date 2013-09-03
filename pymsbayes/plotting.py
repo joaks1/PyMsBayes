@@ -664,18 +664,14 @@ class PlotGrid(object):
         self.fig.savefig(*args, **kwargs)
 
 class PsiPowerPlotGrid(object):
-    valid_tau_distributions = ['gamma', 'uniform']
     def __init__(self,
-            tau_tuples,
+            observed_config_to_estimates,
             num_taxon_pairs,
-            tau_distribution = 'uniform',
             num_columns = 2):
         self.tau_distribution = tau_distribution.lower()
-        if not self.tau_distribution in self.valid_tau_distributions:
-            raise ValueError('invalid tau distribution argument {0!r}; '
-                    'valid options:\n\t{1}'.format(self.tau_distribution,
-                            ', '.join(self.valid_tau_distributions)))
-        self.tau_tuples = sorted(tau_tuples, key = lambda x : x[1])
+        self.config_estimates_tups = sorted(
+            [(c, list(e)) for c, e in observed_config_to_estimates.iteritems()],
+            key = lambda x : x[0].tau.mean)
         self.num_taxon_pairs = num_taxon_pairs
         self.tau_estimates = []
         self.num_columns = num_columns
@@ -686,27 +682,11 @@ class PsiPowerPlotGrid(object):
         self.bins = range(self.num_taxon_pairs + 1)
         self.populate_subplots()
 
-    def prep_estimates(self):
-        for tup in self.tau_tuples:
-            if not len(tup) == 3:
-                raise ValueError('tau tuples must be tuples of length 3:\n\t'
-                        '(0) tau distribution parameter 1, (1) tau '
-                        'distribution parameter 2, and (3) the collection '
-                        'of tau estimates')
-                estimates = list(tup[2])
-                if self.tau_distribution == 'uniform':
-                    dist = r'$\tau \sim U({0}, {1})$'.format(*tup)
-                elif tup[0] == 1:
-                    dist = r'$\tau \sim Exp({0})$'.format(float(1) / tup[1])
-                else:
-                    dist = r'$\tau \sim \Gamma({0}, {1})$'.format(*tup)
-                prob_1 = esimates.count(1) / float(len(estimates))
-                p = r'$p(\hat{\Psi} = 1) = {0}'.format(prob_1)
-                self.tau_estimates.append((dist, estimates, p))
-
     def populate_subplots(self):
-        self.prep_estimates()
-        for dist, estimates, prob in self.tau_estimates:
+        for cfg, estimates in self.config_estimates_tups:
+            dist = r'$\tau \sim {0}$'.format(str(cfg.tau))
+            p = estimates.count(1) / float(len(estimates))
+            prob = r'$p(\hat{\Psi} = 1) = {0}'.format(p)
             hd = HistData(x = estimates,
                     normed = True,
                     bins = self.bins,
@@ -714,7 +694,9 @@ class PsiPowerPlotGrid(object):
                     align = 'mid',
                     orientation = 'vertical')
             hist = ScatterPlot(hist_data_list = [hd],
-                    y_label = self.y_title)
+                    y_label = self.y_title,
+                    left_text = dist,
+                    right_test = prob)
             self.subplots.append(hist)
 
     def create_grid(self):
