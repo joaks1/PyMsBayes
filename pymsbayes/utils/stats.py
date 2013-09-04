@@ -17,6 +17,9 @@ from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
 
+def almost_equal(a, b, places = 7):
+    return round(a - b, places) == 0
+
 def freq_less_than(values, zero_threshold = 0.01):
     count = 0
     total = 0
