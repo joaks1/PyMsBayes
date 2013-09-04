@@ -5,6 +5,7 @@ import sys
 import math
 import string
 
+from pymsbayes.utils.stats import get_freqs, almost_equal
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -61,8 +62,8 @@ class HistData(object):
             rwidth = None,
             log = False,
             color = None,
-            edgecolor = 0.5,
-            facecolor = 0.5,
+            edgecolor = '0.5',
+            facecolor = '0.5',
             fill = True,
             hatch = None,
             label = None,
@@ -174,6 +175,29 @@ class HorizontalLine(object):
                 linewidth = self.linewidth,
                 **self.kwargs)
 
+class Ticks(object):
+    def __init__(self,
+            ticks,
+            minor = False,
+            labels = None,
+            **kwargs):
+        self.ticks = ticks
+        self.labels = labels
+        self.minor = minor
+        self.kwargs = kwargs
+
+    def set_x(self, ax):
+        ax.set_xticks(ticks = self.ticks, minor = self.minor)
+        if self.labels:
+            ax.set_xticklabels(labels = self.labels,
+                    **self.kwargs)
+
+    def set_y(self, ax):
+        ax.set_yticks(ticks = self.ticks, minor = self.minor)
+        if self.labels:
+            ax.set_yticklabels(labels = self.labels,
+                    **self.kwargs)
+
 class ScatterPlot(object):
     def __init__(self, scatter_data_list = [],
             hist_data_list = [],
@@ -186,6 +210,10 @@ class ScatterPlot(object):
             center_text = None,
             right_text = None,
             position = (1,1,1),
+            xlim = (None, None),
+            ylim = (None, None),
+            xticks_obj = None,
+            yticks_obj = None,
             identity_line = False):
         self.scatter_data_list = list(scatter_data_list)
         self.hist_data_list = list(hist_data_list)
@@ -219,6 +247,12 @@ class ScatterPlot(object):
         self.right_text_style = 'normal'
         self.shared_x_ax = None
         self.shared_y_ax = None
+        self.xlim_left = xlim[0]
+        self.xlim_right = xlim[1]
+        self.ylim_bottom = ylim[0]
+        self.ylim_top = ylim[1]
+        self.xticks_obj = xticks_obj
+        self.yticks_obj = yticks_obj
         self.identity_line = identity_line
         self.identity_color = '0.5'
         self.identity_style = '-'
@@ -261,6 +295,12 @@ class ScatterPlot(object):
                     linewidth = self.identity_width,
                     marker = '',
                     zorder = 0)
+        self.ax.set_xlim(left = self.xlim_left, right = self.xlim_right)
+        self.ax.set_ylim(bottom = self.ylim_bottom, top = self.ylim_top)
+        if self.xticks_obj:
+            self.xticks_obj.set_x(self.ax)
+        if self.yticks_obj:
+            self.yticks_obj.set_y(self.ax)
 
     def _plot_scatter_data(self, d):
         l = d.plot(self.ax)
@@ -457,11 +497,15 @@ class ScatterPlot(object):
 
     def set_xlim(self, left = None, right = None, emit = True, auto = False,
             **kwargs):
+        self.xlim_left = left
+        self.xlim_right = right
         self.ax.set_xlim(left = left, right = right, emit = emit, auto = auto,
                 **kwargs)
 
     def set_ylim(self, bottom = None, top = None, emit = True, auto = False,
             **kwargs):
+        self.ylim_bottom = bottom
+        self.ylim_top = top
         self.ax.set_xlim(bottom = bottom, top = top, emit = emit, auto = auto,
                 **kwargs)
 
@@ -482,7 +526,7 @@ class ScatterPlot(object):
 
     def get_ymax(self):
         return self.get_ylim()[-1]
-    
+
     def get_geometry(self):
         return self.ax.get_geometry()
 
@@ -668,7 +712,6 @@ class PsiPowerPlotGrid(object):
             observed_config_to_estimates,
             num_taxon_pairs,
             num_columns = 2):
-        self.tau_distribution = tau_distribution.lower()
         self.config_estimates_tups = sorted(
             [(c, list(e)) for c, e in observed_config_to_estimates.iteritems()],
             key = lambda x : x[0].tau.mean)
@@ -679,24 +722,40 @@ class PsiPowerPlotGrid(object):
         self.plot_grid = None
         self.x_title = r'$\hat{\Psi}$'
         self.y_title = 'Density'
-        self.bins = range(self.num_taxon_pairs + 1)
+        self.bins = range(1, self.num_taxon_pairs + 2)
         self.populate_subplots()
 
     def populate_subplots(self):
         for cfg, estimates in self.config_estimates_tups:
             dist = r'$\tau \sim {0}$'.format(str(cfg.tau))
             p = estimates.count(1) / float(len(estimates))
-            prob = r'$p(\hat{\Psi} = 1) = {0}'.format(p)
+            prob = r'$p(\hat{{\Psi}} = 1) = {0}$'.format(p)
             hd = HistData(x = estimates,
                     normed = True,
                     bins = self.bins,
                     histtype = 'bar',
                     align = 'mid',
                     orientation = 'vertical')
+            freqs = get_freqs(estimates)
+            s = ScatterPlot()
+            f, bins, patches = hd.plot(s.ax)
+            for i, v in enumerate(f):
+                assert almost_equal(v, freqs.get(i + 1, 0))
+            tick_labels = []
+            for x in self.bins[0:-1]:
+                if x % 2:
+                    tick_labels.append(str(x))
+                else:
+                    tick_labels.append('')
+            xticks_obj = Ticks(ticks = self.bins,
+                    labels = tick_labels,
+                    horizontalalignment = 'left')
             hist = ScatterPlot(hist_data_list = [hd],
-                    y_label = self.y_title,
+                    # y_label = self.y_title,
                     left_text = dist,
-                    right_test = prob)
+                    right_text = prob,
+                    xticks_obj = xticks_obj)
+            hist.set_xlim(left = (self.bins[0]), right = (self.bins[-1]))
             self.subplots.append(hist)
 
     def create_grid(self):
@@ -705,7 +764,7 @@ class PsiPowerPlotGrid(object):
         self.plot_grid = PlotGrid(subplots = self.subplots,
                 num_columns = self.num_columns,
                 share_x = True,
-                share_y = True,
+                share_y = False,
                 label_schema = 'uppercase',
                 title = self.x_title,
                 title_top = False)
