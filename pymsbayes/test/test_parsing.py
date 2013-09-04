@@ -828,7 +828,10 @@ class DMCSimulationResultsTestCase(unittest.TestCase):
                'omega': {'true': 1.47017570501535,
                          'mode': (0.262383550541 / 2),
                          'median': 0.564675991641,
-                         'mode_glm': 0.239378},
+                         'mode_glm': 0.239378,
+                         'threshold': 0.01,
+                         'prob_less': 0.01,
+                         'prob_less_glm': 0.028137104656},
                'psi': {'true': 3,
                        'mode': 3,
                        'mode_glm': float('nan'),
@@ -847,7 +850,7 @@ class DMCSimulationResultsTestCase(unittest.TestCase):
         for k in exp['mean_tau'].iterkeys():
             self.assertAlmostEqual(results['mean_tau'][k], exp['mean_tau'][k])
         for k in exp['omega'].iterkeys():
-            self.assertAlmostEqual(results['mean_tau'][k], exp['mean_tau'][k])
+            self.assertAlmostEqual(results['omega'][k], exp['omega'][k])
         for k in ['true', 'mode']:
             self.assertEqual(results['psi'][k], exp['psi'][k])
             self.assertEqual(results['model'][k], exp['model'][k])
@@ -874,6 +877,9 @@ class DMCSimulationResultsTestCase(unittest.TestCase):
                'omega_mode': (0.262383550541 / 2),
                'omega_median': 0.564675991641,
                'omega_mode_glm': 0.239378,
+               'omega_threshold': 0.01,
+               'omega_prob_less': 0.01,
+               'omega_prob_less_glm': 0.028137104656,
                'psi_true': 3,
                'psi_mode': 3,
                'psi_mode_glm': float('nan'),
@@ -926,6 +932,9 @@ class DMCSimulationResultsTestCase(unittest.TestCase):
                'omega_mode': (0.262383550541 / 2),
                'omega_median': 0.564675991641,
                'omega_mode_glm': 0.239378,
+               'omega_threshold': 0.01,
+               'omega_prob_less': 0.01,
+               'omega_prob_less_glm': 0.028137104656,
                'psi_true': 3,
                'psi_mode': 3,
                'psi_mode_glm': float('nan'),
