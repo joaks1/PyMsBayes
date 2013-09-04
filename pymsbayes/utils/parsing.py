@@ -570,7 +570,10 @@ class DMCSimulationResults(object):
         for i, obs_cfg in self.observed_index_to_config.iteritems():
             self.observed_index_to_prior_index[i] = \
                     self.prior_config_to_index.get(obs_cfg, -1)
-        self.final_result_index = max(self.get_result_indices(1, 1, 1))
+        self.final_result_index = 1
+        result_indices = self.get_result_path_prefix(1, 1, 1)
+        if result_indices:
+            self.final_result_index = max(result_indices)
 
     def get_result_dir(self, observed_index, prior_index):
         return os.path.join(self.output_dir, 'd' + str(observed_index),
