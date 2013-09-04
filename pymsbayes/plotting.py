@@ -198,6 +198,36 @@ class Ticks(object):
             ax.set_yticklabels(labels = self.labels,
                     **self.kwargs)
 
+class TextObj(object):
+    def __init__(self, x, y, s,
+            rotation = 'horizontal',
+            horizontalalignment = 'center',
+            verticalalignment = 'bottom',
+            weight = 'normal',
+            style = 'normal',
+            size = 14,
+            **kwargs):
+        self.x = x
+        self.y = y
+        self.s = s
+        self.rotation = rotation
+        self.horizontalalignment = horizontalalignment
+        self.verticalalignment = verticalalignment
+        self.weight = weight
+        self.style = style
+        self.size = size
+        self.kwargs = kwargs
+
+    def add_to_figure(self, fig):
+        fig.text(x = self.x, y = self.y, s = self.s,
+                horizontalalignment = self.horizontalalignment,
+                verticalalignment = self.verticalalignment,
+                rotation = self.rotation,
+                weight = self.weight,
+                style = self.style,
+                size = self.size,
+                **self.kwargs)
+
 class ScatterPlot(object):
     def __init__(self, scatter_data_list = [],
             hist_data_list = [],
@@ -214,7 +244,8 @@ class ScatterPlot(object):
             ylim = (None, None),
             xticks_obj = None,
             yticks_obj = None,
-            identity_line = False):
+            identity_line = False,
+            tab = 0.06):
         self.scatter_data_list = list(scatter_data_list)
         self.hist_data_list = list(hist_data_list)
         self.vertical_lines = list(vertical_lines)
@@ -257,6 +288,7 @@ class ScatterPlot(object):
         self.identity_color = '0.5'
         self.identity_style = '-'
         self.identity_width = 1.0
+        self.tab = tab
         self._plot()
         self._reset_text_objects()
 
@@ -318,7 +350,7 @@ class ScatterPlot(object):
 
     def get_tab_indent(self):
         xmin, xmax = self.ax.get_xlim()
-        return xmin + (math.fabs(xmax - xmin) * 0.06)
+        return xmin + (math.fabs(xmax - xmin) * self.tab)
 
     def get_x_center(self):
         xmin, xmax = self.ax.get_xlim()
@@ -575,6 +607,7 @@ class PlotGrid(object):
             label_schema = 'uppercase',
             title = None,
             title_top = True,
+            y_title = None,
             height = 6.0,
             width = 8.0,
             auto_height = True):
@@ -593,6 +626,22 @@ class PlotGrid(object):
         self.fig = plt.figure(figsize = self.size)
         self.subplots = subplots
         self.auto_height = auto_height
+        self.y_title = None
+        if y_title:
+            self.y_title = TextObj(x = 0.001, y = 0.5,
+                    s = y_title,
+                    rotation = 'vertical',
+                    horizontalalignment = 'left',
+                    verticalalignment = 'center',
+                    size = 14)
+        self.perimeter_padding = 0.25
+        self.padding_between_vertical = 0.8
+        self.padding_between_horizontal = None
+        self.margin_left = 0
+        self.margin_right = 1
+        self.margin_bottom = 0
+        self.margin_top = 0.975
+        self.auto_adjust_margins = True
         for sp in self.subplots:
             sp.set_figure(self.fig)
         self.reset_figure()
@@ -684,24 +733,32 @@ class PlotGrid(object):
                 subplot.ax.tick_params(labelbottom = False)
             if self.share_y and (not subplot.is_first_col()):
                 subplot.ax.tick_params(labelleft = False)
-        rect = (0, 0, 1, 0.975)
+        rect = [0, 0, 1, 0.975]
         if self.title:
             if self.title_top:
                 self.fig.suptitle(self.title,
                         verticalalignment = 'top',
                         horizontalalignment = 'center',
                         y = 0.999)
-                rect = (0, 0, 1, 0.92)
+                if self.auto_adjust_margins:
+                    self.margin_top -= 0.55
             else:
                 self.fig.suptitle(self.title,
                         verticalalignment = 'bottom',
                         horizontalalignment = 'center',
                         y = 0.001)
-                rect = (0, 0.06, 1, 0.975)
+                if self.auto_adjust_margins:
+                    self.margin_bottom += 0.06
+        if self.y_title:
+            self.y_title.add_to_figure(self.fig)
+            if self.auto_adjust_margins:
+                self.margin_left += 0.02
         if self.subplots:
-            self.fig.tight_layout(pad = 0.25, # outside margin
-                    h_pad = 0.8, # vertical padding between subplots
-                    w_pad = None, # horizontal padding between subplots
+            rect = (self.margin_left, self.margin_bottom, self.margin_right,
+                    self.margin_top)
+            self.fig.tight_layout(pad = self.perimeter_padding,
+                    h_pad = self.padding_between_vertical,
+                    w_pad = self.padding_between_horizontal,
                     rect = rect) # available space on figure
 
     def savefig(self, *args, **kwargs):
@@ -711,18 +768,41 @@ class PsiPowerPlotGrid(object):
     def __init__(self,
             observed_config_to_estimates,
             num_taxon_pairs,
-            num_columns = 2):
+            num_columns = 2,
+            x_title = r'$\hat{\Psi}$',
+            y_title = 'Density',
+            width = 8,
+            height = 9,
+            auto_height = False,
+            auto_adjust_margins = False,
+            margin_left = 0.02,
+            margin_bottom = 0.02,
+            margin_right = 1,
+            margin_top = 0.98,
+            padding_between_horizontal = 0.5,
+            padding_between_vertical = 1.0,
+            tab = 0.08):
         self.config_estimates_tups = sorted(
             [(c, list(e)) for c, e in observed_config_to_estimates.iteritems()],
             key = lambda x : x[0].tau.mean)
         self.num_taxon_pairs = num_taxon_pairs
-        self.tau_estimates = []
         self.num_columns = num_columns
         self.subplots = []
         self.plot_grid = None
-        self.x_title = r'$\hat{\Psi}$'
-        self.y_title = 'Density'
+        self.x_title = x_title
+        self.y_title = y_title
+        self.width = width
+        self.height = height
+        self.auto_height = auto_height
+        self.auto_adjust_margins = auto_adjust_margins
+        self.margin_left = margin_left
+        self.margin_right = margin_right
+        self.margin_bottom = margin_bottom
+        self.margin_top = margin_top
+        self.padding_between_horizontal = padding_between_horizontal
+        self.padding_between_vertical = padding_between_vertical
         self.bins = range(1, self.num_taxon_pairs + 2)
+        self.tab = tab
         self.populate_subplots()
 
     def populate_subplots(self):
@@ -735,7 +815,8 @@ class PsiPowerPlotGrid(object):
                     bins = self.bins,
                     histtype = 'bar',
                     align = 'mid',
-                    orientation = 'vertical')
+                    orientation = 'vertical',
+                    zorder = 0)
             freqs = get_freqs(estimates)
             s = ScatterPlot()
             f, bins, patches = hd.plot(s.ax)
@@ -751,10 +832,10 @@ class PsiPowerPlotGrid(object):
                     labels = tick_labels,
                     horizontalalignment = 'left')
             hist = ScatterPlot(hist_data_list = [hd],
-                    # y_label = self.y_title,
                     left_text = dist,
                     right_text = prob,
-                    xticks_obj = xticks_obj)
+                    xticks_obj = xticks_obj,
+                    tab = self.tab)
             hist.set_xlim(left = (self.bins[0]), right = (self.bins[-1]))
             self.subplots.append(hist)
 
@@ -767,7 +848,20 @@ class PsiPowerPlotGrid(object):
                 share_y = False,
                 label_schema = 'uppercase',
                 title = self.x_title,
-                title_top = False)
+                title_top = False,
+                y_title = self.y_title,
+                width = self.width,
+                height = self.height,
+                auto_height = self.auto_height)
+        self.plot_grid.auto_adjust_margins = self.auto_adjust_margins
+        self.plot_grid.margin_left = self.margin_left
+        self.plot_grid.margin_bottom = self.margin_bottom
+        self.plot_grid.margin_right = self.margin_right
+        self.plot_grid.margin_top = self.margin_top
+        self.plot_grid.padding_between_horizontal = \
+                self.padding_between_horizontal
+        self.plot_grid.padding_between_vertical = self.padding_between_vertical
+        self.plot_grid.reset_figure()
         return self.plot_grid
 
 class SaturationPlotGrid(object):
