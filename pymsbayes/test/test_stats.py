@@ -642,6 +642,144 @@ class IntegerPartitionTestCase(unittest.TestCase):
         self.assertRaises(Exception, ip._initialize,
                 [0.1, 0.2, 0.2, 0.1, 0.2, 0.3])
 
+    def test_cumulative_number_of_int_partitions_by_k(self):
+        c = IntegerPartition.cumulative_number_of_int_partitions_by_k(1)
+        self.assertEqual(c, [1])
+        c = IntegerPartition.cumulative_number_of_int_partitions_by_k(2)
+        self.assertEqual(c, [1,2])
+        c = IntegerPartition.cumulative_number_of_int_partitions_by_k(3)
+        self.assertEqual(c, [1,2,3])
+        c = IntegerPartition.cumulative_number_of_int_partitions_by_k(4)
+        self.assertEqual(c, [1,3,4,5])
+        c = IntegerPartition.cumulative_number_of_int_partitions_by_k(5)
+        self.assertEqual(c, [1,3,5,6,7])
+        c = IntegerPartition.cumulative_number_of_int_partitions_by_k(7)
+        self.assertEqual(c, [1,4,8,11,13,14,15])
+
+    def test_cumulative_frequency_of_int_partitions_by_k(self):
+        c = IntegerPartition.cumulative_frequency_of_int_partitions_by_k(1)
+        e = [1.0]
+        self.assertEqual(len(c), len(e))
+        for i in range(len(c)):
+            self.assertAlmostEqual(c[i], e[i])
+
+        c = IntegerPartition.cumulative_frequency_of_int_partitions_by_k(2)
+        t = float(2)
+        e = [1/t, 2/t]
+        self.assertEqual(len(c), len(e))
+        for i in range(len(c)):
+            self.assertAlmostEqual(c[i], e[i])
+
+        c = IntegerPartition.cumulative_frequency_of_int_partitions_by_k(3)
+        t = float(3)
+        e = [1/t, 2/t, 3/t]
+        self.assertEqual(len(c), len(e))
+        for i in range(len(c)):
+            self.assertAlmostEqual(c[i], e[i])
+
+        c = IntegerPartition.cumulative_frequency_of_int_partitions_by_k(4)
+        t = float(5)
+        e = [1/t, 3/t, 4/t, 5/t]
+        self.assertEqual(len(c), len(e))
+        for i in range(len(c)):
+            self.assertAlmostEqual(c[i], e[i])
+
+        c = IntegerPartition.cumulative_frequency_of_int_partitions_by_k(5)
+        t = float(7)
+        e = [1/t, 3/t, 5/t, 6/t, 7/t]
+        self.assertEqual(len(c), len(e))
+        for i in range(len(c)):
+            self.assertAlmostEqual(c[i], e[i])
+
+        c = IntegerPartition.cumulative_frequency_of_int_partitions_by_k(7)
+        t = float(15)
+        e = [1/t, 4/t, 8/t, 11/t, 13/t, 14/t, 15/t]
+        self.assertEqual(len(c), len(e))
+        for i in range(len(c)):
+            self.assertAlmostEqual(c[i], e[i])
+
+    def test_number_of_int_partitions_by_k(self):
+        c = IntegerPartition.number_of_int_partitions_by_k(1)
+        self.assertEqual(c, [1])
+        c = IntegerPartition.number_of_int_partitions_by_k(2)
+        self.assertEqual(c, [1,1])
+        c = IntegerPartition.number_of_int_partitions_by_k(3)
+        self.assertEqual(c, [1,1,1])
+        c = IntegerPartition.number_of_int_partitions_by_k(4)
+        self.assertEqual(c, [1,2,1,1])
+        c = IntegerPartition.number_of_int_partitions_by_k(5)
+        self.assertEqual(c, [1,2,2,1,1])
+        c = IntegerPartition.number_of_int_partitions_by_k(7)
+        self.assertEqual(c, [1,3,4,3,2,1,1])
+
+    def test_frequency_of_int_partitions_by_k(self):
+        c = IntegerPartition.frequency_of_int_partitions_by_k(1)
+        e = [1.0]
+        self.assertEqual(len(c), len(e))
+        for i in range(len(c)):
+            self.assertAlmostEqual(c[i], e[i])
+
+        c = IntegerPartition.frequency_of_int_partitions_by_k(2)
+        t = float(2)
+        e = [1/t, 1/t]
+        self.assertEqual(len(c), len(e))
+        for i in range(len(c)):
+            self.assertAlmostEqual(c[i], e[i])
+
+        c = IntegerPartition.frequency_of_int_partitions_by_k(3)
+        t = float(3)
+        e = [1/t, 1/t, 1/t]
+        self.assertEqual(len(c), len(e))
+        for i in range(len(c)):
+            self.assertAlmostEqual(c[i], e[i])
+
+        c = IntegerPartition.frequency_of_int_partitions_by_k(4)
+        t = float(5)
+        e = [1/t, 2/t, 1/t, 1/t]
+        self.assertEqual(len(c), len(e))
+        for i in range(len(c)):
+            self.assertAlmostEqual(c[i], e[i])
+
+        c = IntegerPartition.frequency_of_int_partitions_by_k(5)
+        t = float(7)
+        e = [1/t, 2/t, 2/t, 1/t, 1/t]
+        self.assertEqual(len(c), len(e))
+        for i in range(len(c)):
+            self.assertAlmostEqual(c[i], e[i])
+
+        c = IntegerPartition.frequency_of_int_partitions_by_k(7)
+        t = float(15)
+        e = [1/t, 3/t, 4/t, 3/t, 2/t, 1/t, 1/t]
+        self.assertEqual(len(c), len(e))
+        for i in range(len(c)):
+            self.assertAlmostEqual(c[i], e[i])
+
+    def test_number_of_int_partitions(self):
+        c = IntegerPartition.number_of_int_partitions(1)
+        self.assertEqual(c, 1)
+        c = IntegerPartition.number_of_int_partitions(2)
+        self.assertEqual(c, 2)
+        c = IntegerPartition.number_of_int_partitions(3)
+        self.assertEqual(c, 3)
+        c = IntegerPartition.number_of_int_partitions(4)
+        self.assertEqual(c, 5)
+        c = IntegerPartition.number_of_int_partitions(5)
+        self.assertEqual(c, 7)
+        c = IntegerPartition.number_of_int_partitions(7)
+        self.assertEqual(c, 15)
+        c = IntegerPartition.number_of_int_partitions(22)
+        self.assertEqual(c, 1002)
+
+    def test_uniform_prior_probability(self):
+        ip = IntegerPartition([0,1,2,3,4,5,6,])
+        e = 1/float(15)
+        self.assertEqual(ip.uniform_prior_probability(), e)
+        ip = IntegerPartition([0,0,0,0,1,0,1,])
+        self.assertEqual(ip.uniform_prior_probability(), e)
+        ip = IntegerPartition()
+        self.assertEqual(ip.uniform_prior_probability(num_elements = 7), e)
+
+
 class IntegerPartitionCollectionTestCase(PyMsBayesTestCase):
 
     def test_default_init_and_add_element_vector(self):
@@ -953,6 +1091,133 @@ class PartitionTestCase(unittest.TestCase):
         p3 = Partition([0.4, 0.4, 0.4, 0.1, 0.1, 0.1, 0.1])
         self.assertRaises(ValueError, p.update,
                 p3)
+
+    def test_dirichlet_process_prior_probability(self):
+        p = Partition([0])
+        self.assertAlmostEqual(p.dirichlet_process_prior_probability(
+                alpha = 1.0, log = False), 1.0)
+        p1 = Partition([0, 0])
+        p2 = Partition([0, 1])
+        alpha = 1.0
+        total_prob = p1.dirichlet_process_prior_probability(alpha, False) + \
+                p2.dirichlet_process_prior_probability(alpha, False)
+        self.assertAlmostEqual(total_prob, 1.0)
+        p1 = Partition([0, 0])
+        p2 = Partition([0, 1])
+        alpha = 0.2
+        total_prob = p1.dirichlet_process_prior_probability(alpha, False) + \
+                p2.dirichlet_process_prior_probability(alpha, False)
+        self.assertAlmostEqual(total_prob, 1.0)
+
+        alpha = 1.0
+        parts = [Partition([0, 0, 0]), Partition([0, 0, 1]),
+                Partition([0, 1, 0]), Partition([0, 1, 1]),
+                Partition([0, 1, 2])]
+        probs = [p.dirichlet_process_prior_probability(alpha,
+                False) for p in parts]
+        self.assertAlmostEqual(sum(probs), 1.0)
+        alpha = 0.2
+        probs = [p.dirichlet_process_prior_probability(alpha,
+                False) for p in parts]
+        self.assertAlmostEqual(sum(probs), 1.0)
+        alpha = 10.0
+        probs = [p.dirichlet_process_prior_probability(alpha,
+                False) for p in parts]
+        self.assertAlmostEqual(sum(probs), 1.0)
+
+        alpha = 1.0
+        parts = [Partition([0, 0, 0, 0]),
+                 Partition([0, 0, 0, 1]),
+                 Partition([0, 0, 1, 0]),
+                 Partition([0, 1, 0, 0]),
+                 Partition([0, 1, 1, 0]),
+                 Partition([0, 1, 0, 1]),
+                 Partition([0, 0, 1, 1]),
+                 Partition([0, 1, 1, 1]),
+                 Partition([0, 1, 2, 0]),
+                 Partition([0, 1, 2, 1]),
+                 Partition([0, 1, 2, 2]),
+                 Partition([0, 1, 1, 2]),
+                 Partition([0, 1, 0, 2]),
+                 Partition([0, 0, 1, 2]),
+                 Partition([0, 1, 2, 3])]
+        probs = [p.dirichlet_process_prior_probability(alpha,
+                False) for p in parts]
+        self.assertAlmostEqual(sum(probs), 1.0)
+
+        alpha = 0.1
+        probs = [p.dirichlet_process_prior_probability(alpha,
+                False) for p in parts]
+        self.assertAlmostEqual(sum(probs), 1.0)
+
+        alpha = 12.0
+        probs = [p.dirichlet_process_prior_probability(alpha,
+                False) for p in parts]
+        self.assertAlmostEqual(sum(probs), 1.0)
+
+    def test_integer_partition_uniform_prior_probability(self):
+        p = Partition([0, 0, 0, 0, 0, 0, 0])
+        self.assertAlmostEqual(1 / float(15),
+                p.integer_partition_uniform_prior_probability())
+        p = Partition([0] * 22)
+        self.assertAlmostEqual(1 / float(1002),
+                p.integer_partition_uniform_prior_probability())
+
+    def test_dirichlet_process_draw_n5_a3(self):
+        part = Partition([0, 0, 0, 0, 0])
+        alpha = 3.0
+        reps = 100000
+        num_equal = 0
+        for i in range(reps):
+            p = part.dirichlet_process_draw(alpha) 
+            r = GLOBAL_RNG.sample(p, 2)
+            if r[0] == r[1]:
+                num_equal += 1
+        expected = 1.0 / (1.0 + alpha)
+        observed = num_equal / float(reps)
+        self.assertAlmostEqual(expected, observed, places = 2)
+
+        part = Partition()
+        alpha = 3.0
+        reps = 100000
+        num_equal = 0
+        for i in range(reps):
+            p = part.dirichlet_process_draw(alpha, num_elements = 5) 
+            r = GLOBAL_RNG.sample(p, 2)
+            if r[0] == r[1]:
+                num_equal += 1
+        expected = 1.0 / (1.0 + alpha)
+        observed = num_equal / float(reps)
+        self.assertAlmostEqual(expected, observed, places = 2)
+
+    def test_dirichlet_process_draw_n5_a9(self):
+        part = Partition()
+        alpha = 9.0
+        reps = 100000
+        num_equal = 0
+        for i in range(reps):
+            p = part.dirichlet_process_draw(alpha, num_elements = 5) 
+            r = GLOBAL_RNG.sample(p, 2)
+            if r[0] == r[1]:
+                num_equal += 1
+        expected = 1.0 / (1.0 + alpha)
+        observed = num_equal / float(reps)
+        self.assertAlmostEqual(expected, observed, places = 2)
+
+    def test_dirichlet_process_draw_n10_a01(self):
+        part = Partition()
+        alpha = 0.1
+        reps = 100000
+        num_equal = 0
+        for i in range(reps):
+            p = part.dirichlet_process_draw(alpha, num_elements = 10) 
+            r = GLOBAL_RNG.sample(p, 2)
+            if r[0] == r[1]:
+                num_equal += 1
+        expected = 1.0 / (1.0 + alpha)
+        observed = num_equal / float(reps)
+        self.assertAlmostEqual(expected, observed, places = 2)
+            
 
 class PartitionCollectionTestCase(PyMsBayesTestCase):
 

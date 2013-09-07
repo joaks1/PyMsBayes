@@ -9,6 +9,7 @@ import decimal
 import fractions
 from cStringIO import StringIO
 
+from pymsbayes.utils import GLOBAL_RNG
 from pymsbayes.fileio import process_file_arg
 from pymsbayes.utils.parsing import (parse_summary_file, MODEL_PATTERNS,
         PSI_PATTERNS, DIV_MODEL_PATTERNS, OMEGA_PATTERNS,
@@ -670,6 +671,64 @@ class Partition(object):
             self.values[k].extend(values)
         self.n += p.n
 
+    def dirichlet_process_prior_probability(self, alpha, log = False):
+        alpha = float(alpha)
+        assert alpha > 0.0
+        probs = [1.0]
+        num_subsets = 1
+        subset_counts = [1]
+        elements = [0]
+        for i in range(1, len(self.partition)):
+            el = self.partition[i]
+            if el not in elements:
+                probs.append((alpha / (alpha + i)))
+                elements.append(num_subsets)
+                subset_counts.append(1)
+                num_subsets += 1
+                continue
+            probs.append((subset_counts[el] / (alpha + i)))
+            subset_counts[el] += 1
+        log_prob = sum(map(math.log, probs))
+        if log:
+            return log_prob
+        return math.exp(log_prob)
+
+    def integer_partition_uniform_prior_probability(self):
+        ip = IntegerPartition()
+        return ip.uniform_prior_probability(num_elements = len(self.partition))
+
+    def dirichlet_process_draw(self, alpha, num_elements = None, rng = None):
+        if not num_elements:
+            num_elements = len(self.partition)
+        assert num_elements > 0
+        alpha = float(alpha)
+        assert alpha > 0.0
+        if not rng:
+            rng = GLOBAL_RNG
+        elements = [0]
+        subset_counts = [1]
+        num_subsets = 1
+        for i in range(1, num_elements):
+            new_subset_prob = (alpha / (alpha + i))
+            u = rng.random()
+            u -= new_subset_prob
+            if u < 0.0:
+                elements.append(num_subsets)
+                subset_counts.append(1)
+                num_subsets += 1
+                continue
+            for j in range(num_subsets):
+                subset_prob = (subset_counts[j] / (alpha + i))
+                u -= subset_prob
+                if u < 0.0:
+                    elements.append(j)
+                    subset_counts[j] += 1
+                    break
+            if u > 0.0:
+                elements.append(num_subsets - 1)
+                subset_counts[num_subsets - 1] += 1
+        return elements
+
 class PartitionCollection(object):
     def __init__(self, partitions = None):
         self.partitions = {}
@@ -829,6 +888,49 @@ class IntegerPartition(object):
             assert ip.n == len(ip._items[i][1])
             self._items[i][1].extend(ip._items[i][1])
         self.n += ip.n
+
+    def uniform_prior_probability(self, num_elements = None):
+        if not num_elements:
+            num_elements = sum(self.integer_partition)
+        assert num_elements > 0
+        return float(1) / IntegerPartition.number_of_int_partitions(
+                num_elements)
+
+    @classmethod
+    def cumulative_number_of_int_partitions_by_k(cls, num_elements):
+        assert num_elements > 0
+        table = [[0] * (num_elements + 1) for i in range(num_elements + 1)]
+        for i in range(1, num_elements + 1):
+            table[0][i] = 1
+        for i in range(1, num_elements + 1):
+            for j in range(1, num_elements + 1):
+                if i - j < 0:
+                    table[i][j] = table[i][j-1]
+                    continue
+                table[i][j] = table[i][j-1] + table[i-j][j]
+        return table[num_elements][1:]
+    
+    @classmethod
+    def number_of_int_partitions_by_k(cls, num_elements):
+        c = cls.cumulative_number_of_int_partitions_by_k(num_elements)
+        return [c[0]] + [c[i] - c[i-1] for i in range(1, num_elements)]
+    
+    @classmethod
+    def number_of_int_partitions(cls, num_elements):
+        return cls.cumulative_number_of_int_partitions_by_k(num_elements)[-1]
+    
+    @classmethod
+    def cumulative_frequency_of_int_partitions_by_k(cls, num_elements):
+        c = cls.cumulative_number_of_int_partitions_by_k(num_elements)
+        t = float(c[-1])
+        return [x / t for x in c] 
+    
+    @classmethod
+    def frequency_of_int_partitions_by_k(cls, num_elements):
+        n = cls.number_of_int_partitions_by_k(num_elements)
+        t = float(sum(n))
+        return [x / t for x in n]
+    
 
 class IntegerPartitionCollection(object):
     def __init__(self, integer_partitions = None):
