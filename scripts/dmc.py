@@ -179,6 +179,16 @@ def main_cli():
             default = '',
             help = ('Prefix to use at beginning of output files. The default '
                     'is no prefix.'))
+    parser.add_argument('--start-from',
+            action = 'store',
+            type = int,
+            default = 0,
+            help = ('The simulation index at which to begin analyses. Must be '
+                    'used in combination with the number of simulation '
+                    'replicates (`-r`/`--reps`), and must be a positive '
+                    'integer that is less than the number of simulation '
+                    'replicates. This option can be useful if an analysis '
+                    'needs to be restarted.'))
     parser.add_argument('--version',
             action = 'version',
             version = '%(prog)s ' + _program_info['version'],
@@ -223,6 +233,14 @@ def main_cli():
     if len(args.observed_configs) != len(set(args.observed_configs)):
         raise ValueError('All paths to observed config files must be unique')
 
+    if args.start_from:
+        if not args.reps:
+            raise ValueError('The `start-from` option must be used in '
+                    'combination with the `--reps` option')
+        if args.reps < args.start_from:
+            raise ValueError('The `start-from` option must be less than '
+                    'the number of simulation reps (`--reps`)')
+        
     # vet prior-configs option
     using_previous_priors = False
     previous_prior_dir = None

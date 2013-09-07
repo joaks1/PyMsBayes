@@ -62,7 +62,8 @@ class ABCTeam(object):
             reporting_frequency = None,
             global_estimate = True,
             global_estimate_only = False,
-            generate_prior_samples_only = False):
+            generate_prior_samples_only = False,
+            start_from_observed_index = 0):
         if ((config_paths) and (previous_prior_dir)) or \
                 ((not config_paths) and (not previous_prior_dir)):
             raise ValueError('`config_paths` or `previous_prior_dir` must '
@@ -124,6 +125,7 @@ class ABCTeam(object):
         self.num_processors = num_processors
         self.num_posterior_samples = num_posterior_samples
         self.num_posterior_density_quantiles = num_posterior_density_quantiles
+        self.start_from = start_from_observed_index
 
         self.models = None
         self.model_strings = None
@@ -540,7 +542,7 @@ class ABCTeam(object):
 
     def _rejection_worker_iter(self, max_num_workers = 500):
         for observed_idx, n_observed in self.n_observed_map.iteritems():
-            for i in range(0, n_observed, max_num_workers):
+            for i in range(self.start_from, n_observed, max_num_workers):
                 rejection_workers = {}
                 for j in range(i, i + max_num_workers):
                     if j >= n_observed:
@@ -592,7 +594,7 @@ class ABCTeam(object):
 
     def _merging_rejection_worker_iter(self, max_num_workers = 500):
         for observed_idx, n_observed in self.n_observed_map.iteritems():
-            for i in range(0, n_observed, max_num_workers):
+            for i in range(self.start_from, n_observed, max_num_workers):
                 rejection_workers = []
                 for j in range(i, i + max_num_workers):
                     if j >= n_observed:
@@ -636,7 +638,7 @@ class ABCTeam(object):
 
     def _final_rejection_worker_iter(self, max_num_workers = 500):
         for observed_idx, n_observed in self.n_observed_map.iteritems():
-            for i in range(0, n_observed, max_num_workers):
+            for i in range(self.start_from, n_observed, max_num_workers):
                 rejection_workers = []
                 for j in range(i, i + max_num_workers):
                     if j >= n_observed:
@@ -671,7 +673,7 @@ class ABCTeam(object):
 
     def _regression_worker_iter(self, batch_index, max_num_workers = 500):
         for observed_idx, n_observed in self.n_observed_map.iteritems():
-            for i in range(0, n_observed, max_num_workers):
+            for i in range(self.start_from, n_observed, max_num_workers):
                 posterior_workers = []
                 for j in range(i, i + max_num_workers):
                     if j >= n_observed:
@@ -726,7 +728,7 @@ class ABCTeam(object):
         for k in self.num_samples_processed.iterkeys():
             self.num_samples_processed[k] = 0
         for observed_idx, n_observed in self.n_observed_map.iteritems():
-            for i in range(0, n_observed, self.num_processors):
+            for i in range(self.start_from, n_observed, self.num_processors):
                 rejection_workers = []
                 global_rejection_workers = []
                 for j in range(i, i + self.num_processors):
