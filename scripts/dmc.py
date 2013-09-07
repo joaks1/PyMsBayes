@@ -233,13 +233,9 @@ def main_cli():
     if len(args.observed_configs) != len(set(args.observed_configs)):
         raise ValueError('All paths to observed config files must be unique')
 
-    if args.start_from:
-        if not args.reps:
-            raise ValueError('The `start-from` option must be used in '
-                    'combination with the `--reps` option')
-        if args.reps < args.start_from:
-            raise ValueError('The `start-from` option must be less than '
-                    'the number of simulation reps (`--reps`)')
+    if args.start_from > args.reps:
+        raise ValueError('The `start-from` option cannot be greater than '
+                'the number of simulation reps (`--reps`)')
         
     # vet prior-configs option
     using_previous_priors = False
@@ -475,7 +471,8 @@ def main_cli():
             keep_temps = args.keep_temps,
             global_estimate_only = False,
             global_estimate = not args.no_global_estimate,
-            generate_prior_samples_only = args.generate_samples_only)
+            generate_prior_samples_only = args.generate_samples_only,
+            start_from_observed_index = args.start_from)
     abc_team.run()
 
     stop_time = datetime.datetime.now()
