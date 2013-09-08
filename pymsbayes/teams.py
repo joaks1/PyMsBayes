@@ -8,13 +8,14 @@ import shutil
 import math
 import multiprocessing
 import logging
+import glob
 import Queue
 
 from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRegressWorker,
         EuRejectSummaryMerger, EuRejectWorker, PosteriorWorker,
         merge_prior_files)
 from pymsbayes.utils.parsing import (get_stat_indices, parse_header,
-        DEFAULT_STAT_PATTERNS, ALL_STAT_PATTERNS)
+        DEFAULT_STAT_PATTERNS, ALL_STAT_PATTERNS, parse_model_key_file)
 from pymsbayes.manager import Manager
 from pymsbayes.fileio import process_file_arg, expand_path, FileStream
 from pymsbayes.utils import (GLOBAL_RNG, WORK_FORCE, DUMP_DEBUG_INFO,
@@ -129,6 +130,7 @@ class ABCTeam(object):
 
         self.models = None
         self.model_strings = None
+        self.model_samples = None
         self.summary_dir = None
         self.summary_paths = None
         self.previous_prior_dir = None
@@ -205,25 +207,11 @@ class ABCTeam(object):
         self.num_observed = 0
         self.n_observed_map = dict(zip(self.observed_stats_paths.keys(),
                 [0 for i in self.observed_stats_paths.iterkeys()]))
-        self._parse_observed_paths()
+        self.num_samples_processed = None
         self.keep_temps = keep_temps
         self.duplicate_rejection_workers = False
-        if (self.num_observed < 2) and (self.num_processors > 1) and \
-                (not self.use_previous_priors):
-            self.duplicate_rejection_workers = True
         self.num_samples_generated = 0
         self.num_samples_summarized = 0
-        if not self.global_estimate_only:
-            self.num_samples_processed = dict(zip(self.models.keys(),
-                    [self.num_posterior_samples * \
-                            self.num_observed for i in range(len(
-                                    self.models.keys()))]))
-        else:
-            self.num_samples_processed = {
-                    'combined': self.num_posterior_samples * self.num_observed}
-        if self.duplicate_rejection_workers:
-            for model_idx in self.num_samples_processed.iterkeys():
-                self.num_samples_processed[model_idx] *= self.num_processors
         self.model_key_path = os.path.join(self.output_dir,
                 self.output_prefix + 'model-key.txt')
         self.data_key_path = os.path.join(self.output_dir,
@@ -238,7 +226,14 @@ class ABCTeam(object):
         self.generate_prior_samples_only = False
         self.summary_dir = self.previous_prior_dir
         self.summary_paths = {}
-        self.models = {}
+        model_key_pattern = os.path.abspath(os.path.join(
+                os.path.dirname(self.summary_dir),
+                '*model-key.txt'))
+        model_key_path = glob.glob(model_key_pattern)
+        assert len(model_key_path) == 1
+        model_key_path = model_key_path[0]
+        self.models = parse_model_key_file(model_key_path)
+        self.model_samples = {}
         self.model_strings = {}
         for f in os.listdir(self.previous_prior_dir):
             m1 = self.prior_file_pattern.match(f)
@@ -248,11 +243,12 @@ class ABCTeam(object):
                     raise Exception('unexpected file {0} in previous prior '
                             'directory {1}'.format(f, self.previous_prior_dir))
                 model_idx = int(m1.group('model_index'))
-                if self.models.has_key(model_idx):
+                if self.model_samples.has_key(model_idx):
                     raise Exception('model index {0} found more than once in '
                             'previous prior directory {1}'.format(model_idx,
                                 self.previous_prior_dir))
-                self.models[model_idx] = os.path.join(self.previous_prior_dir,
+                self.model_samples[model_idx] = os.path.join(
+                        self.previous_prior_dir,
                         f)
                 self.model_strings[model_idx] = 'm' + str(model_idx)
             if m2:
@@ -274,7 +270,7 @@ class ABCTeam(object):
                     self.summary_paths[model_idx] = os.path.join(
                             self.previous_prior_dir, f)
         expected_combined_str = 'm' + ''.join(
-                [str(i) for i in sorted(self.models.iterkeys())]) + \
+                [str(i) for i in sorted(self.model_samples.iterkeys())]) + \
                         '-combined'
         if expected_combined_str != \
                 self.model_strings.get('combined', expected_combined_str):
@@ -283,7 +279,11 @@ class ABCTeam(object):
                         expected_combined_str,
                         self.model_strings['combined'],
                         self.previous_prior_dir))
-        mkeys = self.models.keys()
+        mkeys = self.model_samples.keys()
+        if sorted(mkeys) != sorted(self.models.keys()):
+            raise Exception('problem parsing info from previous prior '
+                    'directory {0} and model key file {1}'.format(
+                        self.previous_prior_dir, model_key_path))
         if self.model_strings.has_key('combined'):
             mkeys.append('combined')
         if (sorted(mkeys) != sorted(self.model_strings.keys())) or (sorted(
@@ -291,7 +291,6 @@ class ABCTeam(object):
                         self.summary_paths.keys())):
             raise Exception('problem parsing info from previous prior '
                     'directory {0}'.format(self.previous_prior_dir))
-
 
     def get_observed_path(self, observed_index, simulation_index):
         return os.path.join(self.observed_temp_dir, 
@@ -527,6 +526,20 @@ class ABCTeam(object):
                         '\t'.join([str(l[idx]) for idx in all_stat_indices])))
             if close:
                 obs_file.close()
+        if (self.num_observed < 2) and (self.num_processors > 1) and \
+                (not self.use_previous_priors):
+            self.duplicate_rejection_workers = True
+        if not self.global_estimate_only:
+            self.num_samples_processed = dict(zip(self.models.keys(),
+                    [self.num_posterior_samples * \
+                            self.num_observed for i in range(len(
+                                    self.models.keys()))]))
+        else:
+            self.num_samples_processed = {
+                    'combined': self.num_posterior_samples * self.num_observed}
+        if self.duplicate_rejection_workers:
+            for model_idx in self.num_samples_processed.iterkeys():
+                self.num_samples_processed[model_idx] *= self.num_processors
 
     def _write_keys(self):
         out, close = process_file_arg(self.model_key_path, 'w')
@@ -783,7 +796,7 @@ class ABCTeam(object):
                         rw = EuRejectWorker(
                                 temp_fs = self.temp_fs,
                                 observed_path = obs_path,
-                                prior_paths = [self.models[model_idx]],
+                                prior_paths = [self.model_samples[model_idx]],
                                 num_posterior_samples = \
                                         self.num_posterior_samples,
                                 num_standardizing_samples = 0,
@@ -1003,6 +1016,7 @@ class ABCTeam(object):
                     self.prior_temp_fs.remove_file(p)
 
     def run(self):
+        self._parse_observed_paths()
         if self.generate_prior_samples_only:
             _LOG.info('Generating prior samples only...')
             self._generate_prior_samples()
