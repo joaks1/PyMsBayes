@@ -813,5 +813,18 @@ def parse_data_key_file(path):
     f.close()
     return observed_paths
 
-
+def parse_model_key_file(path):
+    wd = os.path.dirname(path)
+    f, close = process_file_arg(path)
+    model_paths = {}
+    for line in f:
+        l = line.strip().split('=')
+        if len(l) != 2:
+            raise Exception('unexpected line {0!r} in model key file'.format(
+                line))
+        model_index = l[0].strip().strip('m')
+        p = os.path.abspath(os.path.join(wd, l[1].strip()))
+        model_paths[int(model_index)] = p
+    f.close()
+    return model_paths
 
