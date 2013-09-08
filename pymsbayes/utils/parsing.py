@@ -798,3 +798,20 @@ def parse_model_results_file(file_obj):
 def parse_posterior_summary_file(file_obj):
     return ConfigObj(file_obj)
 
+def parse_data_key_file(path):
+    wd = os.path.dirname(path)
+    f, close = process_file_arg(path)
+    observed_paths = {}
+    for line in f:
+        l = line.strip().split('=')
+        if len(l) != 2:
+            raise Exception('unexpected line {0!r} in data key file'.format(
+                line))
+        observed_index = l[0].strip().strip('d')
+        p = os.path.abspath(os.path.join(wd, l[1].strip()))
+        observed_paths[int(observed_index)] = p
+    f.close()
+    return observed_paths
+
+
+

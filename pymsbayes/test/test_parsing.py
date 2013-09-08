@@ -966,6 +966,21 @@ class DMCSimulationResultsTestCase(unittest.TestCase):
                         'results.txt.gz')
                 os.remove(p)
 
+class ParseDataKeyFile(unittest.TestCase):
+    def test_parse_data_key_file(self):
+        data_key_path = os.path.join(package_paths.TEST_DATA_DIR,
+                'pymsbayes-results', 'pymsbayes-output', 'data-key.txt')
+        data_key_dir = os.path.dirname(data_key_path)
+        expected = {
+                1: os.path.abspath(os.path.join(data_key_dir,
+                    '../observed-summary-stats/observed-1.txt')),
+                2: os.path.abspath(os.path.join(data_key_dir,
+                    '../observed-summary-stats/observed-2.txt')),
+                3: os.path.abspath(os.path.join(data_key_dir,
+                    '../observed-summary-stats/observed-3.txt'))}
+        observed_paths = parse_data_key_file(data_key_path)
+        self.assertEqual(observed_paths, expected)
+
 if __name__ == '__main__':
     unittest.main()
 
