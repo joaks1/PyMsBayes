@@ -299,7 +299,8 @@ def main_cli():
         args.seed = random.randint(1, 999999999)
     GLOBAL_RNG.seed(args.seed)
     if args.data_key_path:
-        observed_paths = parse_data_key_file(args.data_key_path)
+        observed_map = parse_data_key_file(args.data_key_path)
+        observed_paths = [observed_map[k] for k in sorted(observed_map.keys())]
     else:
         observed_dir = mk_new_dir(os.path.join(base_dir,
                 'observed-summary-stats'))
