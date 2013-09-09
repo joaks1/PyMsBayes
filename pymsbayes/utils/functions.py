@@ -41,6 +41,13 @@ def mk_new_dir(path):
             else:
                 raise e
 
+def frange(start, stop, num_steps, include_end_point = False):
+    inc = (float(stop - start) / num_steps)
+    for i in range(num_steps):
+        yield start + (i * inc)
+    if include_end_point:
+        yield stop
+
 def random_str(length=8,
         char_pool=string.ascii_letters + string.digits):
     return ''.join(random.choice(char_pool) for i in range(length))

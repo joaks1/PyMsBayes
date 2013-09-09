@@ -35,6 +35,29 @@ class GetToolPathTestCase(unittest.TestCase):
             self.assertEqual(p, path)
             self.assertTrue(os.path.exists(p))
 
+class FrangeTestCase(unittest.TestCase):
+    def test_frange(self):
+        l = list(functions.frange(0, 1, 4))
+        e = [0.0, 0.25, 0.5, 0.75]
+        self.assertEqual(len(l), len(e))
+        for i in range(len(l)):
+            self.assertAlmostEqual(l[i], e[i])
+        l = list(functions.frange(0, 1, 4, include_end_point = True))
+        e = [0.0, 0.25, 0.5, 0.75, 1.0]
+        self.assertEqual(len(l), len(e))
+        for i in range(len(l)):
+            self.assertAlmostEqual(l[i], e[i])
+        l = list(functions.frange(0, 2, 5))
+        e = [0.0, 0.4, 0.8, 1.2, 1.6]
+        self.assertEqual(len(l), len(e))
+        for i in range(len(l)):
+            self.assertAlmostEqual(l[i], e[i])
+        l = list(functions.frange(0, 2, 5, True))
+        e = [0.0, 0.4, 0.8, 1.2, 1.6, 2.0]
+        self.assertEqual(len(l), len(e))
+        for i in range(len(l)):
+            self.assertAlmostEqual(l[i], e[i])
+
 class MkdrTestCase(PyMsBayesTestCase):
     def setUp(self):
         self.set_up()
