@@ -190,17 +190,25 @@ def main_cli():
                     'will override the `-o`/`--observed-configs` option, and '
                     'is intended to be used in combination with the '
                     '`--start-from` option to restart an analysis.'))
-    parser.add_argument('--start-from',
+    parser.add_argument('--start-from-simulation-index',
             action = 'store',
             type = int,
             default = 0,
             help = ('The simulation index at which to begin analyses. Must be '
                     'used in combination with either the number of simulation '
-                    'replicates (`-r`/`--reps`) or the `--observed-stats-dir` '
+                    'replicates (`-r`/`--reps`) or the `--data-key-path` '
                     'option, and must be a positive '
                     'integer that is less than the number of simulation '
                     'replicates. This option can be useful if an analysis '
                     'needs to be restarted.'))
+    parser.add_argument('--start-from-observed-index',
+            action = 'store',
+            type = int,
+            default = 0,
+            help = ('The observed config index at which to begin analyses. '
+                    'Can be used in combination with the `--data-key-path` '
+                    'option to restart long-running, multi-observed-config '
+                    'analyses'))
     parser.add_argument('--dry-run',
             action = 'store_true',
             help = 'Do not run analyses; only process settings')
@@ -368,7 +376,8 @@ def main_cli():
             global_estimate_only = False,
             global_estimate = not args.no_global_estimate,
             generate_prior_samples_only = args.generate_samples_only,
-            start_from_observed_index = args.start_from)
+            start_from_simulation_index = args.start_from_simulation_index,
+            start_from_observed_index = args.start_from_observed_index)
 
     models_to_configs = {}
     configs_to_models = {}
