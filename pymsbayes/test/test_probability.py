@@ -138,6 +138,58 @@ class BetaDistributionTestCase(PyMsBayesTestCase):
         self.assertAlmostEqual(d.minimum, s.minimum, 4)
         self.assertAlmostEqual(d.maximum, s.maximum, 4)
 
+class MultinomialTestCase(unittest.TestCase):
+    def test_init(self):
+        p = [0.25, 0.25, 0.25, 0.25]
+        m = Multinomial(p)
+        self.assertEqual(m.parameters, p)
+
+    def test_parameters_error(self):
+        p = [0.25, 0.25, 0.25, 0.24]
+        self.assertRaises(ValueError, Multinomial, p)
+        m = Multinomial([0.5, 0.5])
+        self.assertRaises(ValueError, m._set_parameters, [0.33, 0.33, 0.32])
+
+    def test_count_error(self):
+        p = [0.25, 0.25, 0.25, 0.25]
+        m = Multinomial(p)
+        c = [2, 1, 1]
+        self.assertRaises(ValueError, m._check_counts, c)
+        self.assertRaises(ValueError, m.coefficient, c)
+        self.assertRaises(ValueError, m.log_coefficient, c)
+        self.assertRaises(ValueError, m.pmf, c)
+        self.assertRaises(ValueError, m.log_pmf, c)
+
+    def test_coeff(self):
+        p = [float(1) / 3] * 3
+        m = Multinomial(p)
+        self.assertAlmostEqual(m.coefficient([3,0,0]), 1.0)
+        self.assertAlmostEqual(m.coefficient([2,1,0]), 3.0)
+        self.assertAlmostEqual(m.coefficient([1,0,2]), 3.0)
+        self.assertAlmostEqual(m.coefficient([1,1,1]), 6.0)
+        p = [0.25, 0.25, 0.25, 0.25]
+        m = Multinomial(p)
+        self.assertAlmostEqual(m.coefficient([1,1,1,1]), 24.0)
+
+    def test_pmf(self):
+        p = float(1) / 3
+        params = [p] * 3
+        m = Multinomial(params)
+        self.assertAlmostEqual(m.pmf([3,0,0]), p**3)
+
+        params = [0.5, 0.2, 0.3]
+        m = Multinomial(params)
+        self.assertAlmostEqual(m.pmf([3,0,0]), 0.5**3)
+        self.assertAlmostEqual(m.pmf([0,3,0]), 0.2**3)
+        self.assertAlmostEqual(m.pmf([0,0,3]), 0.3**3)
+        self.assertAlmostEqual(m.pmf([2,2,2]),
+                90 * ((0.5**2) * (0.2**2) * (0.3 ** 2)))
+
+        params = [0.5, 0.2, 0.1, 0.2]
+        m = Multinomial(params)
+        self.assertAlmostEqual(m.pmf([2,0,1,3]),
+                60 *((0.5**2) * (0.2**0) * (0.1**1) * (0.2**3)))
+
 if __name__ == '__main__':
     unittest.main()
 

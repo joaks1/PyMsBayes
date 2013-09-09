@@ -10,6 +10,9 @@ from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
 
+def almost_equal(a, b, places = 7):
+    return round(a - b, places) == 0
+
 class Distribution(object):
     name = 'Abstract distribution object'
 
@@ -245,4 +248,47 @@ class DiscreteUniformDistribution(Distribution):
 
     def __str__(self):
         return 'U({0},{1},...,{2})'.format(self._min, self._min+1, self._max)
+
+class Multinomial(object):
+    def __init__(self, parameters):
+        self._set_parameters(parameters)
+
+    def _get_parameters(self):
+        return self._parameters
+
+    def _set_parameters(self, parameters):
+        if not almost_equal(sum(parameters), 1.0):
+            raise ValueError('the sum of multinomial parameters must '
+                    'equal 1.0')
+        self._parameters = parameters
+
+    parameters = property(_get_parameters, _set_parameters)
+
+    def _check_counts(self, counts):
+        if len(counts) != len(self._parameters):
+            raise ValueError('length of count vector ({0}) does not equal '
+                    'length of parameter vector ({1})'.format(len(counts),
+                            len(self._parameters)))
+
+    def coefficient(self, counts):
+        return math.exp(self.log_coefficient(counts))
+
+    def log_coefficient(self, counts):
+        self._check_counts(counts)
+        numerator = self.log_factorial(sum(counts))
+        denom = sum(self.log_factorial(c) for c in counts)
+        return numerator - denom
+
+    def log_factorial(self, n):
+        return sum(math.log(x) for x in range(1, n + 1))
+
+    def log_pmf(self, counts):
+        log_coeff = self.log_coefficient(counts)
+        p = 0.0
+        for i, c in enumerate(counts):
+            p += math.log(self._parameters[i]) * counts[i]
+        return log_coeff + p
+
+    def pmf(self, counts):
+        return math.exp(self.log_pmf(counts))
 
