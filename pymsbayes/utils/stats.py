@@ -14,12 +14,10 @@ from pymsbayes.fileio import process_file_arg
 from pymsbayes.utils.parsing import (parse_summary_file, MODEL_PATTERNS,
         PSI_PATTERNS, DIV_MODEL_PATTERNS, OMEGA_PATTERNS,
         parameter_density_iter)
+from pymsbayes.utils.probability import Multinomial
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
-
-def almost_equal(a, b, places = 7):
-    return round(a - b, places) == 0
 
 def freq_less_than(values, zero_threshold = 0.01):
     count = 0
@@ -671,6 +669,11 @@ class Partition(object):
             self.values[k].extend(values)
         self.n += p.n
 
+    def get_element_vector(self, index = 0):
+        if self.n < 1:
+            return None
+        return [self.values[i][index] for i in self.partition]
+
     def dirichlet_process_prior_probability(self, alpha, log = False):
         alpha = float(alpha)
         assert alpha > 0.0
@@ -693,9 +696,11 @@ class Partition(object):
             return log_prob
         return math.exp(log_prob)
 
-    def integer_partition_uniform_prior_probability(self):
-        ip = IntegerPartition()
-        return ip.uniform_prior_probability(num_elements = len(self.partition))
+    def get_integer_partition(self):
+        ip = IntegerPartition(self.get_element_vector(0))
+        for i in range(1, self.n):
+            ip.update(IntegerPartition(self.get_element_vector(i)))
+        return ip
 
     def dirichlet_process_draw(self, alpha, num_elements = None, rng = None):
         if not num_elements:
@@ -895,6 +900,24 @@ class IntegerPartition(object):
         assert num_elements > 0
         return float(1) / IntegerPartition.number_of_int_partitions(
                 num_elements)
+
+    def psi_uniform_prior_probability(self):
+        psi = len(self.integer_partition)
+        num_elements = sum(self.integer_partition)
+        ip = IntegerPartition.number_of_int_partitions_by_k(num_elements)
+        num_parts = ip[psi - 1]
+        return float(1) / (num_elements * num_parts)
+
+    def psi_multinomial_prior_probability(self):
+        psi = len(self.integer_partition)
+        num_elements = sum(self.integer_partition)
+        psi_prob = float(1) / num_elements
+        num_trials = num_elements - psi
+        counts = [self.integer_partition[i] - 1 for i in range(psi)]
+        assert num_trials == sum(counts)
+        params = [float(1) / psi] * len(counts)
+        m = Multinomial(params)
+        return psi_prob * m.pmf(counts)
 
     @classmethod
     def cumulative_number_of_int_partitions_by_k(cls, num_elements):

@@ -779,6 +779,17 @@ class IntegerPartitionTestCase(unittest.TestCase):
         ip = IntegerPartition()
         self.assertEqual(ip.uniform_prior_probability(num_elements = 7), e)
 
+    def test_psi_uniform_prior_probability(self):
+        ip = IntegerPartition([0] * 22)
+        e = 1/float(22)
+        self.assertAlmostEqual(ip.psi_uniform_prior_probability(), e)
+        ip = IntegerPartition(list(range(22)))
+        self.assertAlmostEqual(ip.psi_uniform_prior_probability(), e)
+        elements = ([0] * 17) + ([1] * 1) + ([2] * 1) + ([3] * 1) + \
+                ([4] * 1) + ([5] * 1)
+        ip = IntegerPartition(elements)
+        e = float(1) / (22 * 136)
+        self.assertAlmostEqual(ip.psi_uniform_prior_probability(), e)
 
 class IntegerPartitionCollectionTestCase(PyMsBayesTestCase):
 
@@ -1092,6 +1103,17 @@ class PartitionTestCase(unittest.TestCase):
         self.assertRaises(ValueError, p.update,
                 p3)
 
+    def test_get_integer_partition(self):
+        p = Partition([0.1, 0.2, 0.2, 0.1, 0.2, 0.3, 0.2])
+        p.update([0.5, 0.4, 0.4, 0.5, 0.4, 0.1, 0.4])
+        ip = p.get_integer_partition()
+        self.assertEqual(ip.key, '4,2,1')
+        self.assertEqual(ip.integer_partition, [4,2,1])
+        e = [(4, [0.2, 0.4]),
+             (2, [0.1, 0.5]),
+             (1, [0.3, 0.1])]
+        self.assertEqual(e, ip._items)
+
     def test_dirichlet_process_prior_probability(self):
         p = Partition([0])
         self.assertAlmostEqual(p.dirichlet_process_prior_probability(
@@ -1154,14 +1176,6 @@ class PartitionTestCase(unittest.TestCase):
         probs = [p.dirichlet_process_prior_probability(alpha,
                 False) for p in parts]
         self.assertAlmostEqual(sum(probs), 1.0)
-
-    def test_integer_partition_uniform_prior_probability(self):
-        p = Partition([0, 0, 0, 0, 0, 0, 0])
-        self.assertAlmostEqual(1 / float(15),
-                p.integer_partition_uniform_prior_probability())
-        p = Partition([0] * 22)
-        self.assertAlmostEqual(1 / float(1002),
-                p.integer_partition_uniform_prior_probability())
 
     def test_dirichlet_process_draw_n5_a3(self):
         part = Partition([0, 0, 0, 0, 0])
