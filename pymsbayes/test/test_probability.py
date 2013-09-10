@@ -190,6 +190,19 @@ class MultinomialTestCase(unittest.TestCase):
         self.assertAlmostEqual(m.pmf([2,0,1,3]),
                 60 *((0.5**2) * (0.2**0) * (0.1**1) * (0.2**3)))
 
+class GetProbabilityFromBayesFactorTestCase(unittest.TestCase):
+    def test_bf10_pr1_22(self):
+        p = get_probability_from_bayes_factor(10, float(1)/22)
+        self.assertAlmostEqual(p, float(10)/31)
+
+    def test_bf20_pr1_22(self):
+        p = get_probability_from_bayes_factor(20, float(1)/22)
+        self.assertAlmostEqual(p, float(20)/41)
+
+    def test_bf01_pr1_5(self):
+        p = get_probability_from_bayes_factor(0.1, float(1)/5)
+        self.assertAlmostEqual(p, 0.025/1.025)
+
 if __name__ == '__main__':
     unittest.main()
 

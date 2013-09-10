@@ -292,3 +292,20 @@ class Multinomial(object):
     def pmf(self, counts):
         return math.exp(self.log_pmf(counts))
 
+def get_probability_from_bayes_factor(bf, prior_prob):
+    """
+    Returns the posterior probability associated with a given Bayes factor
+    (`bf`) and prior probability (`prior_prob`).
+
+    It is assumed that both the provided prior and returned posterior are
+    relative to all other possibilities (i.e., comparing a specific model
+    against all other models). If we denote the provided prior and returned
+    posterior of the model of interest as prior_0 and posterior_0, and denote
+    the prior/posterior of the alternative model as prior_1 and posterior_1,
+    this function assumes prior_1 = (1 - prior_0) and posterior_1 = (1 -
+    posterior_0).
+    """
+    prior_odds = prior_prob / (1.0 - prior_prob)
+    post_odds = prior_odds * bf
+    return post_odds / (1 + post_odds)
+
