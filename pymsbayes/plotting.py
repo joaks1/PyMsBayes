@@ -5,7 +5,10 @@ import sys
 import math
 import string
 
-from pymsbayes.utils.stats import get_freqs, almost_equal
+from pymsbayes.utils.stats import get_freqs, Partition, IntegerPartition
+from pymsbayes.utils.probability import (almost_equal,
+        get_probability_from_bayes_factor)
+from pymsbayes.utils.functions import frange
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -317,6 +320,12 @@ class ScatterPlot(object):
             self._plot_v_line(v)
         for h in self.horizontal_lines:
             self._plot_h_line(h)
+        self.ax.set_xlim(left = self.xlim_left, right = self.xlim_right)
+        self.ax.set_ylim(bottom = self.ylim_bottom, top = self.ylim_top)
+        if self.xticks_obj:
+            self.xticks_obj.set_x(self.ax)
+        if self.yticks_obj:
+            self.yticks_obj.set_y(self.ax)
         if self.identity_line:
             mn = self.get_minimum()
             mx = self.get_maximum()
@@ -329,10 +338,6 @@ class ScatterPlot(object):
                     zorder = 0)
         self.ax.set_xlim(left = self.xlim_left, right = self.xlim_right)
         self.ax.set_ylim(bottom = self.ylim_bottom, top = self.ylim_top)
-        if self.xticks_obj:
-            self.xticks_obj.set_x(self.ax)
-        if self.yticks_obj:
-            self.yticks_obj.set_y(self.ax)
 
     def _plot_scatter_data(self, d):
         l = d.plot(self.ax)
@@ -608,6 +613,7 @@ class PlotGrid(object):
             title = None,
             title_top = True,
             y_title = None,
+            y_title_position = 0.001,
             height = 6.0,
             width = 8.0,
             auto_height = True):
@@ -628,7 +634,8 @@ class PlotGrid(object):
         self.auto_height = auto_height
         self.y_title = None
         if y_title:
-            self.y_title = TextObj(x = 0.001, y = 0.5,
+            self.y_title = TextObj(x = y_title_position,
+                    y = 0.5,
                     s = y_title,
                     rotation = 'vertical',
                     horizontalalignment = 'left',
@@ -643,7 +650,10 @@ class PlotGrid(object):
         self.margin_top = 0.975
         self.auto_adjust_margins = True
         for sp in self.subplots:
-            sp.set_figure(self.fig)
+            f = sp.get_figure()
+            if f != self.fig:
+                plt.close(f)
+                sp.set_figure(self.fig)
         self.reset_figure()
 
     def _get_size(self):
@@ -714,7 +724,9 @@ class PlotGrid(object):
         self.fig = plt.figure(figsize = (self.width, self.height))
         plot_labels = self.get_plot_labels()
         for i, subplot in enumerate(self.subplots):
-            if subplot.get_figure() != self.fig:
+            f = subplot.get_figure()
+            if f != self.fig:
+                plt.close(f)
                 subplot.set_figure(self.fig)
             subplot.change_geometry(numrows = nrows, numcols = ncols,
                     num = i + 1)
@@ -764,12 +776,13 @@ class PlotGrid(object):
     def savefig(self, *args, **kwargs):
         self.fig.savefig(*args, **kwargs)
 
-class PsiPowerPlotGrid(object):
+class PowerPlotGrid(object):
+    valid_variables = ['psi', 'omega']
     def __init__(self,
             observed_config_to_estimates,
-            num_taxon_pairs,
+            variable = 'psi',
             num_columns = 2,
-            x_title = r'$\hat{\Psi}$',
+            x_title = None,
             y_title = 'Density',
             width = 8,
             height = 9,
@@ -785,11 +798,27 @@ class PsiPowerPlotGrid(object):
         self.config_estimates_tups = sorted(
             [(c, list(e)) for c, e in observed_config_to_estimates.iteritems()],
             key = lambda x : x[0].tau.mean)
-        self.num_taxon_pairs = num_taxon_pairs
+        self.variable = variable.lower()
+        if not self.variable in self.valid_variables:
+            raise ValueError('{0!r} is not a valid variable; valid options:'
+                    '\n\t{1}'.format(self.variable,
+                            ', '.join(self.valid_variables)))
+        self.num_taxon_pairs = self.config_estimates_tups[0][0].npairs
+        for c, e in self.config_estimates_tups:
+            if c.npairs != self.num_taxon_pairs:
+                raise ValueError('configs have differing number of taxa')
         self.num_columns = num_columns
         self.subplots = []
         self.plot_grid = None
         self.x_title = x_title
+        if self.x_title is None:
+            if self.variable == 'psi':
+                self.x_title = r'$\hat{\Psi}$'
+            elif self.variable == 'omega':
+                self.x_title = r'$\hat{\Omega}$'
+            else:
+                raise Exception('unexpected variable {0!r}'.format(
+                        self.variable))
         self.y_title = y_title
         self.width = width
         self.height = height
@@ -801,15 +830,28 @@ class PsiPowerPlotGrid(object):
         self.margin_top = margin_top
         self.padding_between_horizontal = padding_between_horizontal
         self.padding_between_vertical = padding_between_vertical
-        self.bins = range(1, self.num_taxon_pairs + 2)
+        self.bins = 20
+        if self.variable == 'psi':
+            self.bins = range(1, self.num_taxon_pairs + 2)
         self.tab = tab
+        self.vertical_lines = []
+        if self.variable == 'omega':
+            self.vertical_lines.append(VerticalLine(
+                    x = 0.01,
+                    color = '0.25'))
         self.populate_subplots()
 
     def populate_subplots(self):
         for cfg, estimates in self.config_estimates_tups:
             dist = r'$\tau \sim {0}$'.format(str(cfg.tau))
-            p = estimates.count(1) / float(len(estimates))
-            prob = r'$p(\hat{{\Psi}} = 1) = {0}$'.format(p)
+            prob = None
+            if self.variable == 'psi':
+                p = estimates.count(1) / float(len(estimates))
+                prob = r'$p(\hat{{\Psi}} = 1) = {0}$'.format(p)
+            elif self.variable == 'omega':
+                c = len([e for e in estimates if e < 0.01])
+                p = c / float(len(estimates))
+                prob = r'$p(\hat{{\Omega}} < 0.01) = {0}$'.format(p)
             hd = HistData(x = estimates,
                     normed = True,
                     bins = self.bins,
@@ -817,25 +859,221 @@ class PsiPowerPlotGrid(object):
                     align = 'mid',
                     orientation = 'vertical',
                     zorder = 0)
-            freqs = get_freqs(estimates)
-            s = ScatterPlot()
-            f, bins, patches = hd.plot(s.ax)
-            for i, v in enumerate(f):
-                assert almost_equal(v, freqs.get(i + 1, 0))
+            # freqs = get_freqs(estimates)
+            # s = ScatterPlot()
+            # f, bins, patches = hd.plot(s.ax)
+            # for i, v in enumerate(f):
+            #     assert almost_equal(v, freqs.get(i + 1, 0))
+            xticks_obj = None
+            if self.variable == 'psi':
+                tick_labels = []
+                for x in self.bins[0:-1]:
+                    if x % 2:
+                        tick_labels.append(str(x))
+                    else:
+                        tick_labels.append('')
+                xticks_obj = Ticks(ticks = self.bins,
+                        labels = tick_labels,
+                        horizontalalignment = 'left')
+            hist = ScatterPlot(hist_data_list = [hd],
+                    vertical_lines = self.vertical_lines,
+                    left_text = dist,
+                    right_text = prob,
+                    xticks_obj = xticks_obj,
+                    tab = self.tab)
+            if self.variable == 'omega':
+                hist.left_text_size = 12.0
+                hist.right_text_size = 12.0
+                xticks = [i for i in hist.ax.get_xticks()]
+                xtick_labels = [i for i in xticks]
+                if len(xtick_labels) >= 10:
+                    for i in range(1, len(xtick_labels), 2):
+                        xtick_labels[i] = ''
+                xticks_obj = Ticks(ticks = xticks,
+                        labels = xtick_labels,
+                        horizontalalignment = 'center')
+                hist.xticks_obj = xticks_obj
+            if self.variable == 'psi':
+                hist.set_xlim(left = (self.bins[0]), right = (self.bins[-1]))
+            self.subplots.append(hist)
+
+    def create_grid(self):
+        if len(self.subplots) < 2:
+            self.num_columns = 1
+        share_x = True
+        if self.variable == 'omega':
+            share_x = False
+        self.plot_grid = PlotGrid(subplots = self.subplots,
+                num_columns = self.num_columns,
+                share_x = share_x,
+                share_y = False,
+                label_schema = 'uppercase',
+                title = self.x_title,
+                title_top = False,
+                y_title = self.y_title,
+                width = self.width,
+                height = self.height,
+                auto_height = self.auto_height)
+        self.plot_grid.auto_adjust_margins = self.auto_adjust_margins
+        self.plot_grid.margin_left = self.margin_left
+        self.plot_grid.margin_bottom = self.margin_bottom
+        self.plot_grid.margin_right = self.margin_right
+        self.plot_grid.margin_top = self.margin_top
+        self.plot_grid.padding_between_horizontal = \
+                self.padding_between_horizontal
+        self.plot_grid.padding_between_vertical = self.padding_between_vertical
+        self.plot_grid.reset_figure()
+        return self.plot_grid
+
+class ProbabilityPowerPlotGrid(object):
+    valid_variables = ['psi', 'omega']
+    valid_div_model_priors = ['psi', 'dpp', 'uniform']
+    def __init__(self,
+            observed_config_to_estimates,
+            variable = 'psi',
+            div_model_prior = 'psi',
+            bayes_factor = 10,
+            bayes_factor_prob = None,
+            bayes_factor_line_color = '0.25',
+            dpp_concentration_mean = None,
+            num_columns = 2,
+            x_title = None,
+            y_title = 'Density',
+            width = 8,
+            height = 9,
+            auto_height = False,
+            auto_adjust_margins = False,
+            margin_left = 0.02,
+            margin_bottom = 0.02,
+            margin_right = 1,
+            margin_top = 0.98,
+            padding_between_horizontal = 0.5,
+            padding_between_vertical = 1.0,
+            tab = 0.08):
+        self.config_estimates_tups = sorted(
+            [(c, list(e)) for c, e in observed_config_to_estimates.iteritems()],
+            key = lambda x : x[0].tau.mean)
+        self.variable = variable.lower()
+        if not self.variable in self.valid_variables:
+            raise ValueError('{0!r} is not a valid variable; valid options:'
+                    '\n\t{1}'.format(self.variable,
+                            ', '.join(self.valid_variables)))
+        self.num_taxon_pairs = self.config_estimates_tups[0][0].npairs
+        for c, e in self.config_estimates_tups:
+            if c.npairs != self.num_taxon_pairs:
+                raise ValueError('configs have differing number of taxa')
+        self.div_model_prior = div_model_prior.lower()
+        if not self.div_model_prior in self.valid_div_model_priors:
+            raise ValueError('{0!r} is not a valid div model prior; valid '
+                    'options:\n\t{1}'.format(self.div_model_prior,
+                            ', '.join(self.valid_div_model_priors)))
+        self.dpp_concentration_mean = dpp_concentration_mean
+        if (self.div_model_prior == 'dpp') and (
+                not self.dpp_concentration_mean):
+            raise ValueError('if the div model prior is {0!r}, you need '
+                    'to specify the `dpp_concentration_mean`.'.format(
+                            self.div_model_prior))
+        self.one_div_prior = 0.0
+        if self.div_model_prior == 'psi':
+            ip = IntegerPartition([0] * self.num_taxon_pairs)
+            self.one_div_prior = ip.psi_uniform_prior_probability()
+        elif self.div_model_prior == 'uniform':
+            ip = IntegerPartition([0] * self.num_taxon_pairs)
+            self.one_div_prior = ip.uniform_prior_probability()
+        elif self.div_model_prior == 'dpp':
+            p = Partition([0] * self.num_taxon_pairs)
+            self.one_div_prior = p.dirichlet_process_prior_probability(
+                    alpha = self.dpp_concentration_mean)
+        else:
+            raise Exception('unexpected div model prior {0!r}'.format(
+                    self.div_model_prior))
+        self.bayes_factor = float(bayes_factor)
+        self.bayes_factor_line_color = str(bayes_factor_line_color)
+        self.bayes_factor_prob = bayes_factor_prob
+        if not self.bayes_factor_prob:
+            if self.variable == 'psi':
+                self.bayes_factor_prob = get_probability_from_bayes_factor(
+                        self.bayes_factor, self.one_div_prior)
+        self.num_columns = num_columns
+        self.subplots = []
+        self.plot_grid = None
+        self.x_title = x_title
+        if self.x_title is None:
+            if self.variable == 'psi':
+                self.x_title = r'Estimated $p(\Psi = 1 | B_{\epsilon}(S*))$'
+            elif self.variable == 'omega':
+                self.x_title = r'Estimated $p(\Omega < 0.01 | B_{\epsilon}(S*))$'
+            else:
+                raise Exception('unexpected variable {0!r}'.format(
+                        self.variable))
+        self.y_title = y_title
+        self.width = width
+        self.height = height
+        self.auto_height = auto_height
+        self.auto_adjust_margins = auto_adjust_margins
+        self.margin_left = margin_left
+        self.margin_right = margin_right
+        self.margin_bottom = margin_bottom
+        self.margin_top = margin_top
+        self.padding_between_horizontal = padding_between_horizontal
+        self.padding_between_vertical = padding_between_vertical
+        self.bins = list(frange(0, 1, 20, include_end_point = True))
+        self.tab = tab
+        self.bf_line = VerticalLine(x = self.bayes_factor_prob,
+                color = self.bayes_factor_line_color)
+        self.populate_subplots()
+
+    def populate_subplots(self):
+        for cfg, estimates in self.config_estimates_tups:
+            dist = r'$\tau \sim {0}$'.format(str(cfg.tau))
+            p = None
+            prob = None
+            if self.bayes_factor_prob is not None:
+                count = len([e for e in estimates if e > self.bayes_factor_prob])
+                p = count / float(len(estimates))
+            if p is not None:
+                if self.variable == 'psi':
+                    prob = r'$p(BF_{{\Psi = 1, \Psi \neq 1}} > {0}) = {1}$'.format(
+                            int(self.bayes_factor), p)
+                elif self.variable == 'omega':
+                    prob = r'$p(BF_{{\Omega < 0.01, \Omega \geq 0.01}} > {0}) = {1}$'.format(
+                            int(self.bayes_factor), p)
+            hd = HistData(x = estimates,
+                    normed = True,
+                    bins = self.bins,
+                    histtype = 'bar',
+                    align = 'mid',
+                    orientation = 'vertical',
+                    zorder = 0)
+            # b = list(frange(0, 1, 20, include_end_point = True))
+            # counts = [0] * 20
+            # for i in range(1, len(b)):
+            #     for e in estimates:
+            #         if (e >= b[i - 1]) and (e < b[i]):
+            #             counts[i-1] += 1
+            # densities = [((c * 20) / float(len(estimates))) for c in counts]
+            # s = ScatterPlot()
+            # d, bins, patches = hd.plot(s.ax)
+            # for i, v in enumerate(d):
+            #     assert almost_equal(v, densities[i])
             tick_labels = []
-            for x in self.bins[0:-1]:
-                if x % 2:
+            for i, x in enumerate(self.bins[0:-1]):
+                if not (i - 1) % 4:
                     tick_labels.append(str(x))
                 else:
                     tick_labels.append('')
             xticks_obj = Ticks(ticks = self.bins,
                     labels = tick_labels,
-                    horizontalalignment = 'left')
+                    horizontalalignment = 'center',
+                    size = 10.0)
             hist = ScatterPlot(hist_data_list = [hd],
+                    vertical_lines = [self.bf_line],
                     left_text = dist,
                     right_text = prob,
                     xticks_obj = xticks_obj,
                     tab = self.tab)
+            hist.left_text_size = 12.0
+            hist.right_text_size = 12.0
             hist.set_xlim(left = (self.bins[0]), right = (self.bins[-1]))
             self.subplots.append(hist)
 
@@ -850,6 +1088,119 @@ class PsiPowerPlotGrid(object):
                 title = self.x_title,
                 title_top = False,
                 y_title = self.y_title,
+                width = self.width,
+                height = self.height,
+                auto_height = self.auto_height)
+        self.plot_grid.auto_adjust_margins = self.auto_adjust_margins
+        self.plot_grid.margin_left = self.margin_left
+        self.plot_grid.margin_bottom = self.margin_bottom
+        self.plot_grid.margin_right = self.margin_right
+        self.plot_grid.margin_top = self.margin_top
+        self.plot_grid.padding_between_horizontal = \
+                self.padding_between_horizontal
+        self.plot_grid.padding_between_vertical = self.padding_between_vertical
+        self.plot_grid.reset_figure()
+        return self.plot_grid
+
+class AccuracyPowerPlotGrid(object):
+    def __init__(self,
+            observed_config_to_estimates,
+            num_columns = 2,
+            x_title = r'True $\Omega$',
+            y_title = r'$\hat{\Omega}$',
+            y_title_position = 0.006,
+            width = 8,
+            height = 9,
+            auto_height = False,
+            auto_adjust_margins = False,
+            margin_left = 0.025,
+            margin_bottom = 0.02,
+            margin_right = 1,
+            margin_top = 0.975,
+            padding_between_horizontal = 0.5,
+            padding_between_vertical = 1.4,
+            tab = 0.08):
+        self.config_estimates_tups = sorted(
+            [(c, (list(e['x']), list(e['y']))) for c, e in observed_config_to_estimates.iteritems()],
+            key = lambda x : x[0].tau.mean)
+        self.num_columns = num_columns
+        self.subplots = []
+        self.plot_grid = None
+        self.x_title = x_title
+        self.y_title = y_title
+        self.y_title_position = y_title_position
+        self.width = width
+        self.height = height
+        self.auto_height = auto_height
+        self.auto_adjust_margins = auto_adjust_margins
+        self.margin_left = margin_left
+        self.margin_right = margin_right
+        self.margin_bottom = margin_bottom
+        self.margin_top = margin_top
+        self.padding_between_horizontal = padding_between_horizontal
+        self.padding_between_vertical = padding_between_vertical
+        self.tab = tab
+        self.populate_subplots()
+
+    def populate_subplots(self):
+        for cfg, estimates in self.config_estimates_tups:
+            dist = r'$\tau \sim {0}$'.format(str(cfg.tau))
+            assert len(estimates) == 2
+            x, y = estimates[0], estimates[1]
+            assert len(x) == len(y)
+            c = len([1 for i in range(len(x)) if y[i] < x[i]])
+            p = c / float(len(x))
+            prob = r'$p(\hat{{\Omega}} < \Omega) = {0}$'.format(p)
+            mx = max(x + y)
+            mn = min(x + y)
+            buff = (mx - mn) * 0.04
+            xlim = (mn - buff, mx + buff)
+            ylim = xlim
+            sd = ScatterData(x = x, y = y,
+                    marker = 'o',
+                    markerfacecolor = 'none',
+                    markeredgecolor = '0.35',
+                    markeredgewidth = 0.7,
+                    linestyle = '',
+                    zorder = 100)
+            sp = ScatterPlot(scatter_data_list = [sd],
+                    left_text = dist,
+                    right_text = prob,
+                    xlim = xlim,
+                    ylim = ylim,
+                    identity_line = True,
+                    tab = self.tab)
+            xticks = [i for i in sp.ax.get_xticks()]
+            yticks = [i for i in sp.ax.get_yticks()]
+            xtick_labels = [i for i in xticks]
+            if len(xtick_labels) >= 10:
+                for i in range(1, len(xtick_labels), 2):
+                    xtick_labels[i] = ''
+            xticks_obj = Ticks(ticks = xticks,
+                    labels = xtick_labels,
+                    horizontalalignment = 'center',
+                    size = 10.0)
+            yticks_obj = Ticks(ticks = yticks,
+                    labels = yticks,
+                    size = 10.0)
+            sp.xticks_obj = xticks_obj
+            sp.yticks_obj = yticks_obj
+            sp.left_text_size = 12.0
+            sp.right_text_size = 12.0
+            self.subplots.append(sp)
+
+    def create_grid(self):
+        if len(self.subplots) < 2:
+            self.num_columns = 1
+        self.plot_grid = PlotGrid(subplots = self.subplots,
+                num_columns = self.num_columns,
+                share_x = False,
+                share_y = False,
+                label_schema = 'uppercase',
+                title = self.x_title,
+                title_top = False,
+                y_title = self.y_title,
+                y_title_position = self.y_title_position,
                 width = self.width,
                 height = self.height,
                 auto_height = self.auto_height)
