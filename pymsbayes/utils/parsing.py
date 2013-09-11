@@ -9,7 +9,9 @@ from configobj import ConfigObj
 
 import pymsbayes
 from pymsbayes.fileio import process_file_arg, expand_path
+from pymsbayes.config import MsBayesConfig
 from pymsbayes.utils import MSBAYES_SORT_INDEX
+from pymsbayes.utils.functions import get_sublist_greater_than, get_new_path
 from pymsbayes.utils.errors import (SummaryFileParsingError,
         ParameterParsingError)
 from pymsbayes.utils.messaging import get_logger
@@ -532,6 +534,9 @@ class DMCSimulationResults(object):
         self.combined_prior_index = None
         if combined_prior_results:
             self.combined_prior_index = combined_prior_index
+        self.prior_configs = {}
+        for k, v in self.prior_index_to_config.iteritems():
+            self.prior_configs[k] = MsBayesConfig(v)
         self.compresslevel = 9
     
     def _parse_info_file(self):
@@ -700,9 +705,32 @@ class DMCSimulationResults(object):
                 d[k] = v
         return d
 
-    def flat_result_iter(self, observed_index, prior_index):
-        for r in self.result_iter(observed_index, prior_index):
-            yield self.result_to_flat_dict(r)
+    def flat_result_iter(self, observed_index, prior_index,
+            include_tau_exclusion_info = False):
+        for result in self.result_iter(observed_index, prior_index):
+            r = self.result_to_flat_dict(result)
+            if include_tau_exclusion_info:
+                div_times = sorted([r['PRI.t.' + str(i)] for i in range(1,
+                        self.num_taxon_pairs + 1)])
+                model_index = r['model_mode']
+                model_index_glm = int(round(r['model_mode_glm']))
+                tau_max = self.prior_configs[model_index].tau.maximum 
+                tau_max_glm = self.prior_configs[model_index_glm].tau.maximum
+                prob_of_exclusion = 0.0
+                prob_of_exclusion_glm = 0.0
+                for i in self.prior_configs.iterkeys():
+                    if max(div_times) > self.prior_configs[i].tau.maximum:
+                        prob_of_exclusion += r['model_{0}_prob'.format(i)]
+                        prob_of_exclusion_glm += r['model_{0}_prob_glm'.format(i)]
+                ex = get_sublist_greater_than(div_times, tau_max)
+                ex_glm = get_sublist_greater_than(div_times, tau_max_glm)
+                r['prob_of_exclusion'].append(prob_of_exclusion)
+                r['prob_of_exclusion_glm'].append(prob_of_exclusion_glm)
+                r['tau_max'].append(tau_max)
+                r['tau_max_glm'].append(tau_max_glm)
+                r['num_excluded'].append(len(ex))
+                r['num_excluded_glm'].append(len(ex_glm))
+            yield r
 
     def result_path_iter(self, observed_index, prior_index):
         true_model = self.observed_index_to_prior_index[observed_index]
@@ -736,7 +764,10 @@ class DMCSimulationResults(object):
             yield true_params, paths
         observed_stream.close()
 
-    def write_result_summaries(self, prior_indices = None, sep = '\t'):
+    def write_result_summaries(self, prior_indices = None, sep = '\t',
+            include_tau_exclusion_info = False):
+        if include_tau_exclusion_info:
+            iter_func = self.tau_exclusion_iter
         if not prior_indices:
             prior_indices = self.prior_index_to_config.keys()
             if self.combined_prior_index:
@@ -744,11 +775,12 @@ class DMCSimulationResults(object):
         for prior_idx in prior_indices:
             for observed_idx in self.observed_index_to_path.iterkeys():
                 out_path = self.get_result_summary_path(observed_idx, prior_idx)
+                out_path = get_new_path(out_path)
                 out, close = process_file_arg(out_path, 'w',
                         compresslevel = self.compresslevel)
                 keys = []
                 for i, r in enumerate(self.flat_result_iter(observed_idx,
-                        prior_idx)):
+                        prior_idx, include_tau_exclusion_info)):
                     if i == 0:
                         keys = r.keys()
                         out.write('{0}\n'.format(sep.join(keys)))
