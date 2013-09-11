@@ -41,6 +41,26 @@ def mk_new_dir(path):
             else:
                 raise e
 
+def get_new_path(path, max_attempts = 1000):
+    path = os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
+    if not os.path.exists(path):
+        f = open(path, 'w')
+        f.close()
+        return path
+    attempt = 0
+    while True:
+        p = '-'.join([path, str(attempt)])
+        if not os.path.exists(p):
+            f = open(p, 'w')
+            f.close()
+            return p
+        if i >= max_attempts:
+            raise Exception('failed to get unique path')
+        attempt += 1
+
+def get_sublist_greater_than(values, threshold):
+    return [v for v in values if v > threshold]
+
 def frange(start, stop, num_steps, include_end_point = False):
     inc = (float(stop - start) / num_steps)
     for i in range(num_steps):

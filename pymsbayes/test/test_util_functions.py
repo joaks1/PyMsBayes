@@ -80,6 +80,37 @@ class MkdrTestCase(PyMsBayesTestCase):
         self.assertTrue(os.path.exists(self.path))
         self.assertTrue(os.path.isdir(self.path))
 
+class GetNewPathTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.unique = os.path.join(self.temp_fs.base_dir, 
+                self.temp_fs.token_id + '-blah.txt')
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_unique(self):
+        p = functions.get_new_path(self.unique)
+        self.assertEqual(p, self.unique)
+        self.assertTrue(os.path.exists(p))
+
+    def test_exists(self):
+        f = open(self.unique, 'w')
+        f.close()
+        p = functions.get_new_path(self.unique)
+        new_p = self.unique + '-0'
+        self.assertEqual(p, new_p)
+        self.assertTrue(os.path.exists(p))
+
+class GetSublistGreatThanTestCase(unittest.TestCase):
+    def test_floats(self):
+        l = functions.get_sublist_greater_than([2.2, 0.1, 1.1], 1.0)
+        self.assertEqual(l, [2.2, 1.1])
+
+    def test_floats_equal(self):
+        l = functions.get_sublist_greater_than([2.2, 0.1, 1.1], 1.1)
+        self.assertEqual(l, [2.2])
+
 class MkNewDirTestCase(PyMsBayesTestCase):
     def setUp(self):
         self.set_up()
