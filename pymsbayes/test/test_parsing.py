@@ -699,6 +699,8 @@ class DMCSimulationResultsTestCase(unittest.TestCase):
         self.assertEqual(results.observed_index_to_config,
                 self.observed_configs)
         self.assertEqual(results.observed_index_to_path, self.observed_paths)
+        self.assertEqual(results.num_taxon_pairs, 3)
+        self.assertEqual(results.num_sim_reps, 3)
 
     def test_result_path_iter(self):
         results = DMCSimulationResults(self.info_path)

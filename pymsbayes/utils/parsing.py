@@ -516,6 +516,8 @@ class DMCSimulationResults(object):
         self.observed_index_to_prior_index = {}
         self.prior_index_to_config = {}
         self.prior_config_to_index = {}
+        self.num_taxon_pairs = None
+        self.num_sim_reps = None
         self._parse_info_file()
         combined_prior_index = '{0}-combined'.format(''.join(
                 [str(i) for i in sorted(self.prior_index_to_config.keys())]))
@@ -574,6 +576,8 @@ class DMCSimulationResults(object):
         result_indices = self.get_result_indices(1, 1, 1)
         if result_indices:
             self.final_result_index = max(result_indices)
+        self.num_taxon_pairs = int(settings['num_taxon_pairs'])
+        self.num_sim_reps = int(settings['simulation_reps'])
 
     def get_result_dir(self, observed_index, prior_index):
         return os.path.join(self.output_dir, 'd' + str(observed_index),

@@ -1,17 +1,19 @@
 [pymsbayes]
 	version = Version 0.1.0
-	output_directory = /home/jamie/software/dev/PyMsBayes/pymsbayes/test/data/pymsbayes-results
-	temp_directory = /home/jamie/software/dev/PyMsBayes/pymsbayes/test/data/pymsbayes-results/temp-files-LybdF1
+	output_directory = /home/jamie/software/dev/PyMsBayes/pymsbayes/test/data/pymsbayes-results-0
+	temp_directory = /home/jamie/software/dev/PyMsBayes/pymsbayes/test/data/pymsbayes-results-0/temp-files-qCdhdi
 	sort_index = 7
-	simulate_data = True
-	seed = 350860254
+	simulation_reps = 3
+	seed = 180036445
 	num_processors = 8
 	num_prior_samples = 200
 	num_standardizing_samples = 100
 	bandwidth = 0.02
 	posterior_quantiles = 100
 	posterior_sample_size = 100
-		stat_patterns = ^\s*pi\.\d+\s*$, ^\s*wattTheta\.\d+\s*$, ^\s*pi\.net\.\d+\s*$, ^\s*tajD\.denom\.\d+\s*$
+	stat_patterns = ^\s*pi\.\d+\s*$, ^\s*wattTheta\.\d+\s*$, ^\s*pi\.net\.\d+\s*$, ^\s*tajD\.denom\.\d+\s*$
+	num_taxon_pairs = 3
+	dry_run = True
 	[[observed_configs]]
 		1 = ../negros_panay_3pairs_new_dpp.cfg
 		2 = ../negros_panay_3pairs_new_uniform.cfg
@@ -25,6 +27,6 @@
 		2 = ../negros_panay_3pairs_new_uniform.cfg
 		3 = ../negros_panay_3pairs_new_ushaped.cfg
 	[[run_stats]]
-		start_time = 2013-08-28 19:50:01.415633
-		stop_time = 2013-08-28 19:50:10.348415
-		total_duration = 0:00:08.932782
+		start_time = 2013-09-11 15:43:18.009333
+		stop_time = 2013-09-11 15:43:18.009344
+		total_duration = 0:00:00.000011
