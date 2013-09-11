@@ -659,6 +659,10 @@ class DMCSimulationResults(object):
                 'mode': model_mode,
                 'mode_glm': model_mode_glm,
                 'probs': model_results}
+        for k, v in true_params.iteritems():
+            if TAU_PATTERNS[0].match(k) or D_THETA_PATTERNS[0].match(k) or \
+                    A_THETA_PATTERNS[0].match(k):
+                results[k] = float(v)
         return results
 
     def result_to_flat_dict(self, result):
@@ -687,6 +691,9 @@ class DMCSimulationResults(object):
             d['model_{0}_prob'.format(i)] = result['model']['probs'][i]['prob']
             d['model_{0}_prob_glm'.format(i)] = result['model']['probs'][i][
                     'prob_glm']
+        for k, v in result.iteritems():
+            if not isinstance(v, dict):
+                d[k] = v
         return d
 
     def flat_result_iter(self, observed_index, prior_index):
