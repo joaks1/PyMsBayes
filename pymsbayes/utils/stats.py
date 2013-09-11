@@ -677,24 +677,25 @@ class Partition(object):
     def dirichlet_process_prior_probability(self, alpha, log = False):
         alpha = float(alpha)
         assert alpha > 0.0
-        probs = [1.0]
+        log_alpha = math.log(alpha)
+        log_probs = [0.0]
         num_subsets = 1
         subset_counts = [1]
         elements = [0]
         for i in range(1, len(self.partition)):
             el = self.partition[i]
             if el not in elements:
-                probs.append((alpha / (alpha + i)))
+                log_probs.append(log_alpha - math.log(alpha + i))
                 elements.append(num_subsets)
                 subset_counts.append(1)
                 num_subsets += 1
                 continue
-            probs.append((subset_counts[el] / (alpha + i)))
+            log_probs.append(math.log(subset_counts[el]) - math.log(alpha + i))
             subset_counts[el] += 1
-        log_prob = sum(map(math.log, probs))
+        log_p = sum(log_probs)
         if log:
-            return log_prob
-        return math.exp(log_prob)
+            return log_p
+        return math.exp(log_p)
 
     def get_integer_partition(self):
         ip = IntegerPartition(self.get_element_vector(0))
