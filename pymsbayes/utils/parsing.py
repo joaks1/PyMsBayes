@@ -766,8 +766,6 @@ class DMCSimulationResults(object):
 
     def write_result_summaries(self, prior_indices = None, sep = '\t',
             include_tau_exclusion_info = False):
-        if include_tau_exclusion_info:
-            iter_func = self.tau_exclusion_iter
         if not prior_indices:
             prior_indices = self.prior_index_to_config.keys()
             if self.combined_prior_index:
