@@ -724,12 +724,12 @@ class DMCSimulationResults(object):
                         prob_of_exclusion_glm += r['model_{0}_prob_glm'.format(i)]
                 ex = get_sublist_greater_than(div_times, tau_max)
                 ex_glm = get_sublist_greater_than(div_times, tau_max_glm)
-                r['prob_of_exclusion'].append(prob_of_exclusion)
-                r['prob_of_exclusion_glm'].append(prob_of_exclusion_glm)
-                r['tau_max'].append(tau_max)
-                r['tau_max_glm'].append(tau_max_glm)
-                r['num_excluded'].append(len(ex))
-                r['num_excluded_glm'].append(len(ex_glm))
+                r['prob_of_exclusion'] = prob_of_exclusion
+                r['prob_of_exclusion_glm'] = prob_of_exclusion_glm
+                r['tau_max'] = tau_max
+                r['tau_max_glm'] = tau_max_glm
+                r['num_excluded'] = len(ex)
+                r['num_excluded_glm'] = len(ex_glm)
             yield r
 
     def result_path_iter(self, observed_index, prior_index):
