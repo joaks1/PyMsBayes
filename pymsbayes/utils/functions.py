@@ -54,7 +54,7 @@ def get_new_path(path, max_attempts = 1000):
             f = open(p, 'w')
             f.close()
             return p
-        if i >= max_attempts:
+        if attempt >= max_attempts:
             raise Exception('failed to get unique path')
         attempt += 1
 
