@@ -716,14 +716,27 @@ class DMCSimulationResults(object):
                 tau_max_glm = self.prior_configs[model_index_glm].tau.maximum
                 prob_of_exclusion = 0.0
                 prob_of_exclusion_glm = 0.0
+                prior_prob_of_exclusion = 0.0
+                model_prior = float(1) / len(self.prior_configs.keys())
                 for i in self.prior_configs.iterkeys():
                     if max(div_times) > self.prior_configs[i].tau.maximum:
                         prob_of_exclusion += r['model_{0}_prob'.format(i)]
                         prob_of_exclusion_glm += r['model_{0}_prob_glm'.format(i)]
+                        prior_prob_of_exclusion += model_prior
                 ex = get_sublist_greater_than(div_times, tau_max)
                 ex_glm = get_sublist_greater_than(div_times, tau_max_glm)
+                prior_odds = (prior_prob_of_exclusion /
+                        (1 - prior_prob_of_exclusion))
+                post_odds = (prob_of_exclusion / (1 - prob_of_exclusion))
+                post_odds_glm = (prob_of_exclusion_glm /
+                        (1 - prob_of_exclusion_glm))
+                bf_of_exclusion = post_odds / prior_odds
+                bf_of_exclusion_glm = post_odds_glm / prior_odds
                 r['prob_of_exclusion'] = prob_of_exclusion
                 r['prob_of_exclusion_glm'] = prob_of_exclusion_glm
+                r['prior_prob_of_exclusion'] = prior_prob_of_exclusion
+                r['bf_of_exclusion'] = bf_of_exclusion
+                r['bf_of_exclusion_glm'] = bf_of_exclusion_glm
                 r['tau_max'] = tau_max
                 r['tau_max_glm'] = tau_max_glm
                 r['num_excluded'] = len(ex)
