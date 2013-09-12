@@ -521,19 +521,17 @@ class DMCSimulationResults(object):
         self.num_taxon_pairs = None
         self.num_sim_reps = None
         self._parse_info_file()
-        combined_prior_index = '{0}-combined'.format(''.join(
+        self.combined_prior_index = '{0}-combined'.format(''.join(
                 [str(i) for i in sorted(self.prior_index_to_config.keys())]))
-        combined_prior_results = True
+        self.combined_prior_results = True
         for i in self.observed_index_to_path.iterkeys():
-            prefix = self.get_result_path_prefix(i, combined_prior_index, 1)
+            prefix = self.get_result_path_prefix(i, self.combined_prior_index,
+                    1)
             pattern = prefix + '*-posterior-sample*'
             files = glob.glob(pattern)
             if not files:
-                combined_prior_results = False
+                self.combined_prior_results = False
                 break
-        self.combined_prior_index = None
-        if combined_prior_results:
-            self.combined_prior_index = combined_prior_index
         self.prior_configs = {}
         for k, v in self.prior_index_to_config.iteritems():
             self.prior_configs[k] = MsBayesConfig(v)
