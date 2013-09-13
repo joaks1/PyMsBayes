@@ -626,21 +626,31 @@ class DMCSimulationResults(object):
         summary = parse_posterior_summary_file(paths['summary'])
         results = {}
         tau_true = float(true_params['PRI.E.t'])
-        tau_mode_min = float(summary['PRI.E.t']['modes'][0].strip('()'))
-        tau_mode_max = float(summary['PRI.E.t']['modes'][1].strip('()'))
+        try:
+            tau_mode_min = float(summary['PRI.E.t']['modes'][0].strip('()'))
+            tau_mode_max = float(summary['PRI.E.t']['modes'][1].strip('()'))
+            tau_median = float(summary['PRI.E.t']['median'])
+            tau_mode_glm = float(summary['PRI.E.t']['mode_glm'])
+        except:
+            _LOG.error('Problem extracting "PRI.E.t" info from posterior '
+                    'summary file {0!r'.format(paths['summary']))
+            raise
         tau_mode = (tau_mode_min + tau_mode_max) / float(2)
-        tau_median = float(summary['PRI.E.t']['median'])
-        tau_mode_glm = float(summary['PRI.E.t']['mode_glm'])
         results['mean_tau'] = {'true': tau_true,
                 'mode': tau_mode,
                 'median': tau_median,
                 'mode_glm': tau_mode_glm}
         omega_true = float(true_params['PRI.omega'])
-        omega_mode_min = float(summary['PRI.omega']['modes'][0].strip('()'))
-        omega_mode_max = float(summary['PRI.omega']['modes'][1].strip('()'))
+        try:
+            omega_mode_min = float(summary['PRI.omega']['modes'][0].strip('()'))
+            omega_mode_max = float(summary['PRI.omega']['modes'][1].strip('()'))
+            omega_median = float(summary['PRI.omega']['median'])
+            omega_mode_glm = float(summary['PRI.omega']['mode_glm'])
+        except:
+            _LOG.error('Problem extracting "PRI.omega" info from posterior '
+                    'summary file {0!r'.format(paths['summary']))
+            raise
         omega_mode = (omega_mode_min + omega_mode_max) / float(2)
-        omega_median = float(summary['PRI.omega']['median'])
-        omega_mode_glm = float(summary['PRI.omega']['mode_glm'])
         omega_results = parse_omega_results_file(paths['omega'])
         results['omega'] = {'true': omega_true,
                 'mode': omega_mode,
@@ -648,22 +658,42 @@ class DMCSimulationResults(object):
                 'mode_glm': omega_mode_glm}
         results['omega'].update(omega_results)
         psi_true = int(true_params['PRI.Psi'])
-        psi_mode = summary['PRI.Psi']['modes']
+        try:
+            psi_mode = summary['PRI.Psi']['modes']
+        except:
+            _LOG.error('Problem extracting "PRI.Psi.modes" info from posterior '
+                    'summary file {0!r'.format(paths['summary']))
+            raise
         if not isinstance(psi_mode, str):
             psi_mode = psi_mode[0]
         psi_mode = int(psi_mode)
-        psi_mode_glm = float(summary['PRI.Psi']['mode_glm'])
+        try:
+            psi_mode_glm = float(summary['PRI.Psi']['mode_glm'])
+        except:
+            _LOG.error('Problem extracting "PRI.Psi.mode_glm" info from '
+                    'posterior summary file {0!r'.format(paths['summary']))
+            raise
         psi_results = parse_psi_results_file(paths['psi'])
         results['psi'] = {'true': psi_true,
                 'mode': psi_mode,
                 'mode_glm': psi_mode_glm,
                 'probs': psi_results}
         model_true = int(true_params['PRI.model'])
-        model_mode = summary['PRI.model']['modes']
+        try:
+            model_mode = summary['PRI.model']['modes']
+        except:
+            _LOG.error('Problem extracting "PRI.model.modes" info from '
+                    'posterior summary file {0!r'.format(paths['summary']))
+            raise
         if not isinstance(model_mode, str):
             model_mode = model_mode[0]
         model_mode = int(model_mode)
-        model_mode_glm = float(summary['PRI.model']['mode_glm'])
+        try:
+            model_mode_glm = float(summary['PRI.model']['mode_glm'])
+        except:
+            _LOG.error('Problem extracting "PRI.model.mode_glm" info from '
+                    'posterior summary file {0!r'.format(paths['summary']))
+            raise
         model_results = parse_model_results_file(paths['model'])
         results['model'] = {'true': model_true,
                 'mode': model_mode,
