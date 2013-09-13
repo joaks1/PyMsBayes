@@ -718,11 +718,14 @@ class DMCSimulationResults(object):
                 prob_of_exclusion_glm = 0.0
                 prior_prob_of_exclusion = 0.0
                 model_prior = float(1) / len(self.prior_configs.keys())
+                bf_tau_max = []
                 for i in self.prior_configs.iterkeys():
                     if max(div_times) > self.prior_configs[i].tau.maximum:
                         prob_of_exclusion += r['model_{0}_prob'.format(i)]
                         prob_of_exclusion_glm += r['model_{0}_prob_glm'.format(i)]
                         prior_prob_of_exclusion += model_prior
+                        bf_tau_max.append(self.prior_configs[i].tau.maximum)
+                bf_tau_max = max(bf_tau_max)
                 ex = get_sublist_greater_than(div_times, tau_max)
                 ex_glm = get_sublist_greater_than(div_times, tau_max_glm)
                 prior_odds = (prior_prob_of_exclusion /
@@ -732,6 +735,12 @@ class DMCSimulationResults(object):
                         (1 - prob_of_exclusion_glm))
                 bf_of_exclusion = post_odds / prior_odds
                 bf_of_exclusion_glm = post_odds_glm / prior_odds
+                bf_ex = []
+                bf_ex_glm = []
+                if bf_of_exclusion > 1.0:
+                    bf_ex = get_sublist_greater_than(div_times, bf_tau_max)
+                if bf_of_exclusion_glm > 1.0:
+                    bf_ex_glm = get_sublist_greater_than(div_times, bf_tau_max)
                 r['prob_of_exclusion'] = prob_of_exclusion
                 r['prob_of_exclusion_glm'] = prob_of_exclusion_glm
                 r['prior_prob_of_exclusion'] = prior_prob_of_exclusion
@@ -741,6 +750,8 @@ class DMCSimulationResults(object):
                 r['tau_max_glm'] = tau_max_glm
                 r['num_excluded'] = len(ex)
                 r['num_excluded_glm'] = len(ex_glm)
+                r['bf_num_excluded'] = len(bf_ex)
+                r['bf_num_excluded_glm'] = len(bf_ex_glm)
             yield r
 
     def result_path_iter(self, observed_index, prior_index):
