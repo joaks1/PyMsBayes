@@ -620,6 +620,9 @@ class DMCSimulationResults(object):
                     true_params, paths)
 
     def get_results_from_params_and_result_paths(self, true_params, paths):
+        if not os.path.exists(paths['summary']):
+            raise Exception('Posterior summary file {0!r} does not '
+                    'exist'.format(paths['summary']))
         summary = parse_posterior_summary_file(paths['summary'])
         results = {}
         tau_true = float(true_params['PRI.E.t'])
