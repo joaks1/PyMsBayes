@@ -777,7 +777,7 @@ class PlotGrid(object):
         self.fig.savefig(*args, **kwargs)
 
 class PowerPlotGrid(object):
-    valid_variables = ['psi', 'omega']
+    valid_variables = ['psi', 'omega', 'tau_exclusion']
     def __init__(self,
             observed_config_to_estimates,
             variable = 'psi',
@@ -816,6 +816,8 @@ class PowerPlotGrid(object):
                 self.x_title = r'$\hat{\Psi}$'
             elif self.variable == 'omega':
                 self.x_title = r'$\hat{\Omega}$'
+            elif self.variable == 'tau_exclusion':
+                self.x_title = r'Number of true $\tau$ excluded'
             else:
                 raise Exception('unexpected variable {0!r}'.format(
                         self.variable))
@@ -833,6 +835,10 @@ class PowerPlotGrid(object):
         self.bins = 20
         if self.variable == 'psi':
             self.bins = range(1, self.num_taxon_pairs + 2)
+        elif self.variable == 'tau_exclusion':
+            mx = [max(e) for (c, e) in self.config_estimates_tups]
+            mx = max(mx)
+            self.bins = range(0, mx + 2)
         self.tab = tab
         self.vertical_lines = []
         if self.variable == 'omega':
@@ -852,6 +858,12 @@ class PowerPlotGrid(object):
                 c = len([e for e in estimates if e < 0.01])
                 p = c / float(len(estimates))
                 prob = r'$p(\hat{{\Omega}} < 0.01) = {0}$'.format(p)
+            elif self.variable == 'tau_exclusion':
+                matplotlib.rc('mathtext',**{'fontset': 'stix'})
+                c = len([e for e in estimates if e > 0])
+                p = c /float(len(estimates))
+                prob = (r'$p(\mathbf{{\tau}} \, \nsubseteq \, \hat{{M}}) '
+                        r'= {0}$'.format(p))
             hd = HistData(x = estimates,
                     normed = True,
                     bins = self.bins,
@@ -865,7 +877,7 @@ class PowerPlotGrid(object):
             # for i, v in enumerate(f):
             #     assert almost_equal(v, freqs.get(i + 1, 0))
             xticks_obj = None
-            if self.variable == 'psi':
+            if (self.variable == 'psi') or (self.variable == 'tau_exclusion'):
                 tick_labels = []
                 for x in self.bins[0:-1]:
                     if x % 2:
@@ -926,7 +938,7 @@ class PowerPlotGrid(object):
         return self.plot_grid
 
 class ProbabilityPowerPlotGrid(object):
-    valid_variables = ['psi', 'omega']
+    valid_variables = ['psi', 'omega', 'tau_exclusion']
     valid_div_model_priors = ['psi', 'dpp', 'uniform']
     def __init__(self,
             observed_config_to_estimates,
@@ -934,6 +946,7 @@ class ProbabilityPowerPlotGrid(object):
             div_model_prior = 'psi',
             bayes_factor = 10,
             bayes_factor_prob = None,
+            cfg_to_prob_of_bf_exclusion = None,
             bayes_factor_line_color = '0.25',
             dpp_concentration_mean = None,
             num_columns = 2,
@@ -988,6 +1001,7 @@ class ProbabilityPowerPlotGrid(object):
             raise Exception('unexpected div model prior {0!r}'.format(
                     self.div_model_prior))
         self.bayes_factor = float(bayes_factor)
+        self.cfg_to_prob_of_bf_exclusion = cfg_to_prob_of_bf_exclusion
         self.bayes_factor_line_color = str(bayes_factor_line_color)
         self.bayes_factor_prob = bayes_factor_prob
         if not self.bayes_factor_prob:
@@ -1000,9 +1014,13 @@ class ProbabilityPowerPlotGrid(object):
         self.x_title = x_title
         if self.x_title is None:
             if self.variable == 'psi':
-                self.x_title = r'Estimated $p(\Psi = 1 | B_{\epsilon}(S*))$'
+                self.x_title = r'Estimated $p(\Psi = 1 \, | \, B_{\epsilon}(S*))$'
             elif self.variable == 'omega':
-                self.x_title = r'Estimated $p(\Omega < 0.01 | B_{\epsilon}(S*))$'
+                self.x_title = r'Estimated $p(\Omega < 0.01 \, | \, B_{\epsilon}(S*))$'
+            elif self.variable == 'tau_exclusion':
+                matplotlib.rc('mathtext',**{'fontset': 'stix'})
+                self.x_title = (r'Estimated $p(\mathbf{\tau} \, \nsubseteq \, '
+                        r'M \, | \, B_{\epsilon}(S*))$')
             else:
                 raise Exception('unexpected variable {0!r}'.format(
                         self.variable))
@@ -1033,11 +1051,20 @@ class ProbabilityPowerPlotGrid(object):
                 p = count / float(len(estimates))
             if p is not None:
                 if self.variable == 'psi':
-                    prob = r'$p(BF_{{\Psi = 1, \Psi \neq 1}} > {0}) = {1}$'.format(
-                            int(self.bayes_factor), p)
+                    prob = (r'$p(BF_{{\Psi = 1, \Psi \neq 1}} > {0}) = '
+                            '{1}$'.format(
+                                    int(self.bayes_factor), p))
                 elif self.variable == 'omega':
-                    prob = r'$p(BF_{{\Omega < 0.01, \Omega \geq 0.01}} > {0}) = {1}$'.format(
-                            int(self.bayes_factor), p)
+                    prob = (r'$p(BF_{{\Omega < 0.01, \Omega \geq 0.01}} > {0}) '
+                            '= {1}$'.format(
+                                    int(self.bayes_factor), p))
+                elif self.variable == 'tau_exclusion':
+                    if self.cfg_to_prob_of_bf_exclusion:
+                        p = self.cfg_to_prob_of_bf_exclusion[cfg]
+                    prob = (r'$p(BF_{{\mathbf{{\tau}} \, \nsubseteq \, '
+                            r'M, \mathbf{{\tau}} \, \subseteq \, '
+                            r'M}} > {0}) = {1}$'.format(
+                                    int(self.bayes_factor), p))
             hd = HistData(x = estimates,
                     normed = True,
                     bins = self.bins,
