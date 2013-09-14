@@ -148,8 +148,8 @@ class GammaDistribution(Distribution):
 
     def __str__(self):
         if self.shape == 1:
-            return 'Exp({0})'.format(1 / self._scale)
-        return 'Gamma({0},{1})'.format(self._shape, self._scale)
+            return 'Exp({0:.3f})'.format(1 / self._scale)
+        return 'Gamma({0:.3f},{1:.3f})'.format(self._shape, self._scale)
 
 class BetaDistribution(Distribution):
     name = 'beta'
