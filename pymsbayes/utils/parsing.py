@@ -12,6 +12,7 @@ from pymsbayes.fileio import process_file_arg, expand_path
 from pymsbayes.config import MsBayesConfig
 from pymsbayes.utils import MSBAYES_SORT_INDEX
 from pymsbayes.utils.functions import get_sublist_greater_than, get_new_path
+from pymsbayes.utils.probability import almost_equal
 from pymsbayes.utils.errors import (SummaryFileParsingError,
         ParameterParsingError)
 from pymsbayes.utils.messaging import get_logger
@@ -769,8 +770,16 @@ class DMCSimulationResults(object):
                 post_odds = (prob_of_exclusion / (1 - prob_of_exclusion))
                 post_odds_glm = (prob_of_exclusion_glm /
                         (1 - prob_of_exclusion_glm))
-                bf_of_exclusion = post_odds / prior_odds
-                bf_of_exclusion_glm = post_odds_glm / prior_odds
+                if almost_equal(prior_odds, 0.0):
+                    bf_of_exclusion = float('inf')
+                    bf_of_exclusion_glm = float('inf')
+                    if almost_equal(bf_of_exclusion, 0.0):
+                        bf_of_exclusion = 0.0
+                    if almost_equal(bf_of_exclusion_glm, 0.0):
+                        bf_of_exclusion_glm = 0.0
+                else:
+                    bf_of_exclusion = post_odds / prior_odds
+                    bf_of_exclusion_glm = post_odds_glm / prior_odds
                 bf_ex = []
                 bf_ex_glm = []
                 if bf_of_exclusion > 1.0:
