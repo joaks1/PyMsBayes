@@ -1373,6 +1373,45 @@ class PartitionCollectionTestCase(PyMsBayesTestCase):
         self.assertSamePartitions([items[0][1], p1])
         self.assertEqual(items[1][0], p3.key)
 
+class MeanSquaredErrorTestCase(unittest.TestCase):
+    def test_zero(self):
+        x = [-1.0, 2.0, 4.0]
+        y = [-1.0, 2.0, 4.0]
+        mse = mean_squared_error(x,y)
+        self.assertAlmostEqual(mse, 0.0)
+
+    def test_one(self):
+        x = [1.0, 2.0, 3.0]
+        y = [2.0, 1.0, 4.0]
+        mse = mean_squared_error(x,y)
+        self.assertAlmostEqual(mse, 1.0)
+
+    def test_simple(self):
+        x = [-1.0, 5.5, 10.1, 1016.3]
+        y = [-2.0, 8.5, 12.1, 1012.3]
+        mse = mean_squared_error(x,y)
+        self.assertAlmostEqual(mse, 30/float(4))
+
+class RootMeanSquaredErrorTestCase(unittest.TestCase):
+    def test_zero(self):
+        x = [-1.0, 2.0, 4.0]
+        y = [-1.0, 2.0, 4.0]
+        rmse = root_mean_square_error(x,y)
+        self.assertAlmostEqual(rmse, 0.0)
+
+    def test_one(self):
+        x = [1.0, 2.0, 3.0]
+        y = [2.0, 1.0, 4.0]
+        rmse = root_mean_square_error(x,y)
+        self.assertAlmostEqual(rmse, 1.0)
+
+    def test_simple(self):
+        x = [-1.0, 5.5, 10.1, 1016.3]
+        y = [-2.0, 8.5, 12.1, 1012.3]
+        rmse = root_mean_square_error(x,y)
+        self.assertAlmostEqual(rmse, math.sqrt(30/float(4)))
+        
+
 if __name__ == '__main__':
     unittest.main()
 

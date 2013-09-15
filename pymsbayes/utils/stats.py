@@ -1111,3 +1111,14 @@ class ValidationProbabilities(object):
             self.true_probs.append(true_p)
             self.estimated_probs.append(l - half_bin_width)
 
+def mean_squared_error(x, y):
+    if not len(x) == len(y):
+        raise ValueError('x and y must be the same length')
+    sse = 0.0
+    for i in range(len(x)):
+        sse += (x[i] - y[i]) ** 2
+    return sse / len(x)
+
+def root_mean_square_error(x, y):
+    return mean_squared_error(x, y) ** 0.5
+
