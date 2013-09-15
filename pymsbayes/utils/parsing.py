@@ -758,7 +758,10 @@ class DMCSimulationResults(object):
                         prob_of_exclusion_glm += r['model_{0}_prob_glm'.format(i)]
                         prior_prob_of_exclusion += model_prior
                         bf_tau_max.append(self.prior_configs[i].tau.maximum)
-                bf_tau_max = max(bf_tau_max)
+                if len(bf_tau_max) < 1:
+                    bf_tau_max = float('inf')
+                else:
+                    bf_tau_max = max(bf_tau_max)
                 ex = get_sublist_greater_than(div_times, tau_max)
                 ex_glm = get_sublist_greater_than(div_times, tau_max_glm)
                 prior_odds = (prior_prob_of_exclusion /
