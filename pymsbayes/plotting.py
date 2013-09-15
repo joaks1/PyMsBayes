@@ -1628,7 +1628,7 @@ class SimResult(object):
         return sr
         
 class ValidationResult(object):
-    def __init__(self, result_path = None,
+    def __init__(self, result_paths = [],
             psi_of_interest = 1,
             omega_threshold = 0.01):
         self.psi_of_interest = psi_of_interest
@@ -1638,8 +1638,8 @@ class ValidationResult(object):
         self.tau = SimResult()
         self.prob_plot = None
         self.accuracy_plot = None
-        if result_path:
-            self._parse_result_summary(result_path)
+        if result_paths:
+            self._parse_result_summary(result_paths)
     
     def get_random_subsample(self, n, rng = None):
         if not rng:
@@ -1651,12 +1651,12 @@ class ValidationResult(object):
         vr.tau = self.tau.get_random_subsample(n, rng)
         return vr
 
-    def _parse_result_summary(self, result_path):
+    def _parse_result_summary(self, result_paths):
         psi_prob_str = 'psi_{0}_prob'.format(self.psi_of_interest)
         psi_prob_glm_str = psi_prob_str + '_glm'
         psi_true_prob_glm_triples = []
         omega_true_prob_glm_triples = []
-        for d in spreadsheet_iter([result_path]):
+        for d in spreadsheet_iter(result_paths):
             psi_true = int(d['psi_true'])
             omega_true = float(d['omega_true'])
             self.psi.true.append(psi_true)
@@ -1729,7 +1729,21 @@ def plot_validation_results(info_path, observed_indices = None,
             prob_plot_path = os.path.join(plot_dir, prob_plot_name)
             acc_plot_path = os.path.join(plot_dir, acc_plot_name)
             result_path = results.get_result_summary_path(obs_idx, p_idx)
-            vr = ValidationResult(result_path)
+            vr = ValidationResult([result_path])
             vr.save_prob_plot(prob_plot_path)
             vr.save_accuracy_plot(acc_plot_path)
+
+def plot_model_choice_validation_results(info_path):
+    results = DMCSimulationResults(info_path)
+    result_dir = os.path.dirname(info_path)
+    plot_dir = os.path.join(result_dir, 'plots')
+    if not os.path.exists(plot_dir):
+        os.mkdir(plot_dir)
+    result_paths = []
+    for obs_idx in results.observed_index_to_config.iterkeys():
+        result_paths.append(results.get_result_summary_path(obs_idx,
+                results.combined_prior_index))
+    vr = ValidationResult(result_paths)
+    vr.save_prob_plot(os.path.join(plot_dir, 'mc_behavior.pdf'))
+    vr.save_accuracy_plot(os.path.join(plot_dir, 'accuracy.pdf'))
 
