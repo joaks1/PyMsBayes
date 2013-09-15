@@ -1449,11 +1449,12 @@ class AccuracyPowerPlotGrid(object):
             dist = r'$\tau \sim {0}$'.format(str(cfg.tau))
             assert len(estimates) == 2
             x, y = estimates[0], estimates[1]
-            assert len(x) == len(y)
             rmse = root_mean_square_error(x, y)
+            assert len(x) == len(y)
             c = len([1 for i in range(len(x)) if y[i] < x[i]])
             p = c / float(len(x))
-            rmse_str = r'$RMSE = {0:.2f}$'.format(p)
+            prob = r'$p(\hat{{\Omega}} < \Omega) = {0}$'.format(p)
+            rmse_str = r'$RMSE = {0:.2f}$'.format(rmse)
             mx = max(x + y)
             mn = min(x + y)
             buff = (mx - mn) * 0.04
@@ -1468,7 +1469,7 @@ class AccuracyPowerPlotGrid(object):
                     zorder = 100)
             sp = ScatterPlot(scatter_data_list = [sd],
                     left_text = dist,
-                    right_text = rmse_str,
+                    right_text = prob,
                     xlim = xlim,
                     ylim = ylim,
                     identity_line = True,
