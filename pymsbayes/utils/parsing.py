@@ -739,13 +739,19 @@ class DMCSimulationResults(object):
 
     def flat_result_iter(self, observed_index, prior_index,
             include_tau_exclusion_info = False):
-        for result in self.result_iter(observed_index, prior_index):
+        glm_failures = []
+        for sim_idx, result in enumerate(self.result_iter(observed_index,
+                prior_index)):
             r = self.result_to_flat_dict(result)
             if include_tau_exclusion_info:
                 div_times = sorted([r['PRI.t.' + str(i)] for i in range(1,
                         self.num_taxon_pairs + 1)])
                 model_index = r['model_mode']
-                model_index_glm = int(round(r['model_mode_glm']))
+                try:
+                    model_index_glm = int(round(r['model_mode_glm']))
+                except ValueError:
+                    model_index_glm = model_index
+                    glm_failures.append(sim_idx)
                 tau_max = self.prior_configs[model_index].tau.maximum 
                 tau_max_glm = self.prior_configs[model_index_glm].tau.maximum
                 prob_of_exclusion = 0.0
@@ -798,6 +804,11 @@ class DMCSimulationResults(object):
                 r['bf_num_excluded'] = len(bf_ex)
                 r['bf_num_excluded_glm'] = len(bf_ex_glm)
             yield r
+        if len(glm_failures) > 0:
+            _LOG.warning('WARNING: there were GLM-regression failures:\n'
+                    'For observed index {0} prior index {1}, there were '
+                    'failures at the following simulation indices:\n'
+                    '{0}'.format(glm_failures))
 
     def result_path_iter(self, observed_index, prior_index):
         true_model = self.observed_index_to_prior_index[observed_index]
