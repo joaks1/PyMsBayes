@@ -808,7 +808,7 @@ class DMCSimulationResults(object):
             _LOG.warning('WARNING: there were GLM-regression failures:\n'
                     'For observed index {0} prior index {1}, there were '
                     'failures at the following simulation indices:\n'
-                    '{0}'.format(glm_failures))
+                    '{2}'.format(observed_index, prior_index, glm_failures))
 
     def result_path_iter(self, observed_index, prior_index):
         true_model = self.observed_index_to_prior_index[observed_index]
