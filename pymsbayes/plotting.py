@@ -5,10 +5,13 @@ import sys
 import math
 import string
 
-from pymsbayes.utils.stats import get_freqs, Partition, IntegerPartition
+from pymsbayes.utils.stats import (get_freqs, Partition, IntegerPartition,
+        ValidationProbabilities)
 from pymsbayes.utils.probability import (almost_equal,
         get_probability_from_bayes_factor)
 from pymsbayes.utils.functions import frange
+from pymsbayes.utils.parsing import DMCSimulationResults, spreadsheet_iter
+from pymsbayes.utils import GLOBAL_RNG
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -530,6 +533,7 @@ class ScatterPlot(object):
                 ylabel = self._y_label,
                 fontdict = fontdict,
                 labelpad = labelpad,
+                multialignment = 'center',
                 **kwargs)
 
     def set_xlim(self, left = None, right = None, emit = True, auto = False,
@@ -543,7 +547,7 @@ class ScatterPlot(object):
             **kwargs):
         self.ylim_bottom = bottom
         self.ylim_top = top
-        self.ax.set_xlim(bottom = bottom, top = top, emit = emit, auto = auto,
+        self.ax.set_ylim(bottom = bottom, top = top, emit = emit, auto = auto,
                 **kwargs)
 
     def get_xlim(self):
@@ -937,6 +941,240 @@ class PowerPlotGrid(object):
         self.plot_grid.reset_figure()
         return self.plot_grid
 
+class AccuracyValidationPlotGrid(object):
+    def __init__(self,
+            validation_result_obj,
+            num_subsample = 5000,
+            rng = None,
+            width = 8,
+            height = 5,
+            auto_height = False,
+            auto_adjust_margins = False,
+            margin_left = 0.0,
+            margin_bottom = 0.0,
+            margin_right = 1,
+            margin_top = 0.985,
+            padding_between_horizontal = 0.5,
+            padding_between_vertical = 1.0,
+            tab = 0.08):
+        self.width = width
+        self.height = height
+        self.auto_height = auto_height
+        self.auto_adjust_margins = auto_adjust_margins
+        self.margin_left = margin_left
+        self.margin_right = margin_right
+        self.margin_bottom = margin_bottom
+        self.margin_top = margin_top
+        self.padding_between_horizontal = padding_between_horizontal
+        self.padding_between_vertical = padding_between_vertical
+        self.tab = tab
+        self.num_columns = 3
+        if not rng:
+            rng = GLOBAL_RNG
+        self.v = validation_result_obj.get_random_subsample(num_subsample, rng)
+        self.subplots = []
+        self.plot_grid = None
+        self.populate_subplots()
+
+    def populate_subplots(self):
+        matplotlib.rc('text',**{'usetex': True})
+        self.subplots = []
+        sd_psi = ScatterData(
+                x = self.v.psi.true,
+                y = self.v.psi.mode)
+        sp_psi = ScatterPlot(scatter_data_list = [sd_psi],
+                x_label = r'True $\Psi$',
+                y_label = '\\textit{\\textbf{Unadjusted}}\n$\\hat{\\Psi}$ (mode)',
+                identity_line = True,
+                tab = self.tab)
+        sd_psi_glm = ScatterData(
+                x = self.v.psi.true,
+                y = self.v.psi.mode_glm)
+        sp_psi_glm = ScatterPlot(scatter_data_list = [sd_psi_glm],
+                x_label = r'True $\Psi$',
+                y_label = '\\textit{\\textbf{GLM-adjusted}}\n$\\hat{\\Psi}$ (mode)',
+                identity_line = True,
+                tab = self.tab)
+        sd_omega = ScatterData(
+                x = self.v.omega.true,
+                y = self.v.omega.median)
+        sp_omega = ScatterPlot(scatter_data_list = [sd_omega],
+                x_label = r'True $\Omega$',
+                y_label = r'$\hat{\Omega}$ (median)',
+                identity_line = True,
+                tab = self.tab)
+        sd_omega_glm = ScatterData(
+                x = self.v.omega.true,
+                y = self.v.omega.mode_glm)
+        sp_omega_glm = ScatterPlot(scatter_data_list = [sd_omega_glm],
+                x_label = r'True $\Omega$',
+                y_label = r'$\hat{\Omega}$ (mode)',
+                identity_line = True,
+                tab = self.tab)
+        sd_tau = ScatterData(
+                x = self.v.tau.true,
+                y = self.v.tau.median)
+        sp_tau = ScatterPlot(scatter_data_list = [sd_tau],
+                x_label = r'True $E(\tau)$',
+                y_label = r'$\hat{E(\tau)}$ (median)',
+                identity_line = True,
+                tab = self.tab)
+        sd_tau_glm = ScatterData(
+                x = self.v.tau.true,
+                y = self.v.tau.mode_glm)
+        sp_tau_glm = ScatterPlot(scatter_data_list = [sd_tau_glm],
+                x_label = r'True $E(\tau)$',
+                y_label = r'$\hat{E(\tau)}$ (mode)',
+                identity_line = True,
+                tab = self.tab)
+        self.subplots = [sp_psi, sp_omega, sp_tau, sp_psi_glm, sp_omega_glm,
+                sp_tau_glm]
+        for sp in self.subplots:
+            mx = max(sp.scatter_data_list[0].x + sp.scatter_data_list[0].y)
+            mn = min(sp.scatter_data_list[0].x + sp.scatter_data_list[0].y)
+            buff = (mx - mn) * 0.04
+            lm = (mn - buff, mx + buff)
+            sp.set_xlim(left = lm[0], right = lm[1])
+            sp.set_ylim(bottom = lm[0], top = lm[1])
+            xticks = [i for i in sp.ax.get_xticks()]
+            yticks = [i for i in sp.ax.get_yticks()]
+            xtick_labels = [i for i in xticks]
+            if len(xtick_labels) >= 10:
+                for i in range(1, len(xtick_labels), 2):
+                    xtick_labels[i] = ''
+            xticks_obj = Ticks(ticks = xticks,
+                    labels = xtick_labels,
+                    horizontalalignment = 'center',
+                    size = 10.0)
+            yticks_obj = Ticks(ticks = yticks,
+                    labels = yticks,
+                    size = 10.0)
+            sp.xticks_obj = xticks_obj
+            sp.yticks_obj = yticks_obj
+
+    def create_grid(self):
+        if len(self.subplots) < 2:
+            self.num_columns = 1
+        self.plot_grid = PlotGrid(subplots = self.subplots,
+                num_columns = self.num_columns,
+                share_x = False,
+                share_y = False,
+                label_schema = 'uppercase',
+                width = self.width,
+                height = self.height,
+                auto_height = self.auto_height)
+        self.plot_grid.auto_adjust_margins = self.auto_adjust_margins
+        self.plot_grid.margin_left = self.margin_left
+        self.plot_grid.margin_bottom = self.margin_bottom
+        self.plot_grid.margin_right = self.margin_right
+        self.plot_grid.margin_top = self.margin_top
+        self.plot_grid.padding_between_horizontal = \
+                self.padding_between_horizontal
+        self.plot_grid.padding_between_vertical = self.padding_between_vertical
+        self.plot_grid.reset_figure()
+        return self.plot_grid
+
+class ProbabilityValidationPlotGrid(object):
+    def __init__(self,
+            psi_validation_probs,
+            psi_validation_probs_glm,
+            omega_validation_probs,
+            omega_validation_probs_glm,
+            width = 8,
+            height = 6,
+            auto_height = False,
+            auto_adjust_margins = False,
+            margin_left = 0.0,
+            margin_bottom = 0.0,
+            margin_right = 1,
+            margin_top = 0.985,
+            padding_between_horizontal = 0.5,
+            padding_between_vertical = 1.0,
+            tab = 0.08):
+        self.width = width
+        self.height = height
+        self.auto_height = auto_height
+        self.auto_adjust_margins = auto_adjust_margins
+        self.margin_left = margin_left
+        self.margin_right = margin_right
+        self.margin_bottom = margin_bottom
+        self.margin_top = margin_top
+        self.padding_between_horizontal = padding_between_horizontal
+        self.padding_between_vertical = padding_between_vertical
+        self.tab = tab
+        self.num_columns = 2
+        self.psi = psi_validation_probs
+        self.psi_glm = psi_validation_probs_glm
+        self.omega = omega_validation_probs
+        self.omega_glm = omega_validation_probs_glm
+        self.subplots = []
+        self.plot_grid = None
+        self.populate_subplots()
+
+    def populate_subplots(self):
+        matplotlib.rc('text',**{'usetex': True})
+        self.subplots = []
+        sd_psi = ScatterData(
+                x = self.psi.estimated_probs,
+                y = self.psi.true_probs)
+        sd_psi_glm = ScatterData(
+                x = self.psi_glm.estimated_probs,
+                y = self.psi_glm.true_probs)
+        sd_omega = ScatterData(
+                x = self.omega.estimated_probs,
+                y = self.omega.true_probs)
+        sd_omega_glm = ScatterData(
+                x = self.omega_glm.estimated_probs,
+                y = self.omega_glm.true_probs)
+        lm = (0.0, 1.0)
+        sp_psi = ScatterPlot(scatter_data_list = [sd_psi],
+                y_label = '\\textit{\\textbf{Unadjusted}}\nTrue probability',
+                xlim = lm,
+                ylim = lm,
+                identity_line = True,
+                tab = self.tab)
+        sp_psi_glm = ScatterPlot(scatter_data_list = [sd_psi_glm],
+                x_label = r'Estimated $p(\Psi = 1 \, | \, B_{\epsilon}(S*))$',
+                y_label = '\\textit{\\textbf{GLM-adjusted}}\nTrue probability',
+                xlim = lm,
+                ylim = lm,
+                identity_line = True,
+                tab = self.tab)
+        sp_omega = ScatterPlot(scatter_data_list = [sd_omega],
+                xlim = lm,
+                ylim = lm,
+                identity_line = True,
+                tab = self.tab)
+        sp_omega_glm = ScatterPlot(scatter_data_list = [sd_omega_glm],
+                x_label = r'Estimated $p(\Omega < 0.01 \, | \, B_{\epsilon}(S*))$',
+                xlim = lm,
+                ylim = lm,
+                identity_line = True,
+                tab = self.tab)
+        self.subplots.extend([sp_psi, sp_omega, sp_psi_glm, sp_omega_glm])
+
+    def create_grid(self):
+        if len(self.subplots) < 2:
+            self.num_columns = 1
+        self.plot_grid = PlotGrid(subplots = self.subplots,
+                num_columns = self.num_columns,
+                share_x = True,
+                share_y = True,
+                label_schema = 'uppercase',
+                width = self.width,
+                height = self.height,
+                auto_height = self.auto_height)
+        self.plot_grid.auto_adjust_margins = self.auto_adjust_margins
+        self.plot_grid.margin_left = self.margin_left
+        self.plot_grid.margin_bottom = self.margin_bottom
+        self.plot_grid.margin_right = self.margin_right
+        self.plot_grid.margin_top = self.margin_top
+        self.plot_grid.padding_between_horizontal = \
+                self.padding_between_horizontal
+        self.plot_grid.padding_between_vertical = self.padding_between_vertical
+        self.plot_grid.reset_figure()
+        return self.plot_grid
+
 class ProbabilityPowerPlotGrid(object):
     valid_variables = ['psi', 'omega', 'tau_exclusion']
     valid_div_model_priors = ['psi', 'dpp', 'uniform']
@@ -1297,4 +1535,145 @@ class SaturationPlotGrid(object):
                 title = self.x_title,
                 title_top = False)
         return self.plot_grid
+
+class SimResult(object):
+    def __init__(self):
+        self.true = []
+        self.mode = []
+        self.mode_glm = []
+        self.median = []
+        self.prob = []
+        self.prob_glm = []
+        self.validation_probs = None
+        self.validation_probs_glm = None
+
+    def get_random_subsample(self, n, rng = None):
+        l = len(self.true)
+        if l <= n:
+            raise ValueError('subsample is as big or bigger than population')
+        if not rng:
+            rng = GLOBAL_RNG
+        indices = rng.sample(range(l), n)
+        sr = SimResult()
+        if self.true:
+            sr.true = [self.true[i] for i in indices]
+        if self.mode:
+            sr.mode = [self.mode[i] for i in indices]
+        if self.mode_glm:
+            sr.mode_glm = [self.mode_glm[i] for i in indices]
+        if self.median:
+            sr.median = [self.median[i] for i in indices]
+        if self.prob:
+            sr.prob = [self.prob[i] for i in indices]
+        if self.prob_glm:
+            sr.prob_glm = [self.prob_glm[i] for i in indices]
+        sr.validation_probs = self.validation_probs
+        sr.validation_probs_glm = self.validation_probs_glm
+        return sr
+        
+class ValidationResult(object):
+    def __init__(self, result_path = None,
+            psi_of_interest = 1,
+            omega_threshold = 0.01):
+        self.psi_of_interest = psi_of_interest
+        self.omega_threshold = omega_threshold
+        self.psi = SimResult()
+        self.omega = SimResult()
+        self.tau = SimResult()
+        self.prob_plot = None
+        self.accuracy_plot = None
+        if result_path:
+            self._parse_result_summary(result_path)
+    
+    def get_random_subsample(self, n, rng = None):
+        if not rng:
+            rng = GLOBAL_RNG
+        vr = ValidationResult(psi_of_interest = self.psi_of_interest,
+                omega_threshold = self.omega_threshold)
+        vr.psi = self.psi.get_random_subsample(n, rng)
+        vr.omega = self.omega.get_random_subsample(n, rng)
+        vr.tau = self.tau.get_random_subsample(n, rng)
+        return vr
+
+    def _parse_result_summary(self, result_path):
+        psi_prob_str = 'psi_{0}_prob'.format(self.psi_of_interest)
+        psi_prob_glm_str = psi_prob_str + '_glm'
+        psi_true_prob_glm_triples = []
+        omega_true_prob_glm_triples = []
+        for d in spreadsheet_iter([result_path]):
+            psi_true = int(d['psi_true'])
+            omega_true = float(d['omega_true'])
+            self.psi.true.append(psi_true)
+            self.omega.true.append(omega_true)
+            self.psi.mode.append(int(d['psi_mode']))
+            self.psi.mode_glm.append(float(d['psi_mode_glm']))
+            self.omega.mode.append(float(d['omega_mode']))
+            self.omega.median.append(float(d['omega_median']))
+            self.omega.mode_glm.append(float(d['omega_mode_glm']))
+            self.tau.true.append(float(d['mean_tau_true']))
+            self.tau.mode.append(float(d['mean_tau_mode']))
+            self.tau.median.append(float(d['mean_tau_median']))
+            self.tau.mode_glm.append(float(d['mean_tau_mode_glm']))
+            psi_true_prob_glm_triples.append((psi_true,
+                    float(d[psi_prob_str]),
+                    float(d[psi_prob_glm_str])))
+            omega_true_prob_glm_triples.append((omega_true,
+                    float(d['omega_prob_less']),
+                    float(d['omega_prob_less_glm'])))
+        self.psi.validation_probs = ValidationProbabilities(
+                ((t, p) for (t, p, g) in psi_true_prob_glm_triples),
+                true_value_of_interest = self.psi_of_interest,
+                value_to_true_comparison = '==')
+        self.psi.validation_probs_glm = ValidationProbabilities(
+                ((t, g) for (t, p, g) in psi_true_prob_glm_triples),
+                true_value_of_interest = self.psi_of_interest,
+                value_to_true_comparison = '==')
+        self.omega.validation_probs = ValidationProbabilities(
+                ((t, p) for (t, p, g) in omega_true_prob_glm_triples),
+                true_value_of_interest = self.omega_threshold,
+                value_to_true_comparison = '<')
+        self.omega.validation_probs_glm = ValidationProbabilities(
+                ((t, g) for (t, p, g) in omega_true_prob_glm_triples),
+                true_value_of_interest = self.omega_threshold,
+                value_to_true_comparison = '<')
+        self.prob_plot = ProbabilityValidationPlotGrid(
+                psi_validation_probs = self.psi.validation_probs,
+                psi_validation_probs_glm = self.psi.validation_probs_glm,
+                omega_validation_probs = self.omega.validation_probs,
+                omega_validation_probs_glm = self.omega.validation_probs_glm)
+        self.accuracy_plot = AccuracyValidationPlotGrid(self)
+    
+    def save_prob_plot(self, path):
+        fig = self.prob_plot.create_grid()
+        fig.savefig(path)
+
+    def save_accuracy_plot(self,path):
+        fig = self.accuracy_plot.create_grid()
+        fig.savefig(path)
+
+def plot_validation_results(info_path, observed_indices = None,
+        prior_indices = None):
+    results = DMCSimulationResults(info_path)
+    result_dir = os.path.dirname(info_path)
+    plot_dir = os.path.join(result_dir, 'plots')
+    if not os.path.exists(plot_dir):
+        os.mkdir(plot_dir)
+    for obs_idx, obs_cfg in results.observed_index_to_config.iteritems():
+        if observed_indices:
+            if not obs_idx in observed_indices:
+                continue
+        for p_idx, p_cfg in results.prior_index_to_config.iteritems():
+            if prior_indices:
+                if not p_idx in prior_indices:
+                    continue
+            obs_name = os.path.splitext(os.path.basename(obs_cfg))[0]
+            p_name = os.path.splitext(os.path.basename(p_cfg))[0]
+            prob_plot_name = '_'.join([obs_name, p_name, 'mc_behavior']) + '.pdf'
+            acc_plot_name = '_'.join([obs_name, p_name, 'accuracy']) + '.pdf'
+            prob_plot_path = os.path.join(plot_dir, prob_plot_name)
+            acc_plot_path = os.path.join(plot_dir, acc_plot_name)
+            result_path = results.get_result_summary_path(obs_idx, p_idx)
+            vr = ValidationResult(result_path)
+            vr.save_prob_plot(prob_plot_path)
+            vr.save_accuracy_plot(acc_plot_path)
 
