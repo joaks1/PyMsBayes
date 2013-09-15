@@ -14,6 +14,7 @@ from pymsbayes.fileio import process_file_arg
 from pymsbayes.utils.parsing import (parse_summary_file, MODEL_PATTERNS,
         PSI_PATTERNS, DIV_MODEL_PATTERNS, OMEGA_PATTERNS,
         parameter_density_iter)
+from pymsbayes.utils.functions import frange
 from pymsbayes.utils.probability import Multinomial
 from pymsbayes.utils.messaging import get_logger
 
@@ -1047,4 +1048,66 @@ class IntegerPartitionCollection(object):
                     v.to_string()))
         if close:
             out.close()
+
+class ValidationProbabilities(object):
+    def __init__(self,
+            true_value_to_est_prob_tups = None,
+            true_value_of_interest = 1,
+            value_to_true_comparison = '=='):
+        self._bin_upper_limits = list(frange(0.0, 1.0, 20,
+                include_end_point = True))[1:]
+        self._true_value_of_interest = true_value_of_interest
+        self._value_to_true_comparison = value_to_true_comparison
+        self.true_probs = None
+        self.estimated_probs = None
+        if true_value_to_est_prob_tups:
+            self.set_probs_from_true_value_to_est_prob_tups(
+                    true_value_to_est_prob_tups)
+
+    def _bin_true_value_to_est_prob_tups(self, true_prob_tups):
+        bins = [[] for i in range(len(self._bin_upper_limits))]
+        n = 0
+        for (t, p) in true_prob_tups:
+            n += 1
+            binned = False
+            for i, l in enumerate(self._bin_upper_limits):
+                if p < l:
+                    bins[i].append((t, p))
+                    binned = True
+                    break
+            if not binned:
+                bins[i].append((t, p))
+        length = 0
+        for b in bins:
+            length += len(b)
+        assert length == n, '{0} tuples passed, but only {1} in bins'.format(
+                n, length)
+        assert len(bins) == len(self._bin_upper_limits)
+        return bins
+
+    def set_probs_from_true_value_to_est_prob_tups(self, true_prob_tups):
+        bins = self._bin_true_value_to_est_prob_tups(true_prob_tups)
+        half_bin_width = (1.0 / len(bins)) / 2.0
+        self.estimated_probs = []
+        self.true_probs = []
+        for i, l in enumerate(self._bin_upper_limits):
+            true_vals = [t for (t, p) in bins[i]]
+            if len(true_vals) < 1:
+                continue
+            if self._value_to_true_comparison == '==':
+                true_p = (true_vals.count(self._true_value_of_interest) / 
+                        float(len(true_vals)))
+            elif self._value_to_true_comparison == '<':
+                true_p = (len([
+                    1 for t in true_vals if t < self._true_value_of_interest]) /
+                        float(len(true_vals)))
+            elif self._value_to_true_comparison == '>':
+                true_p = (len([
+                    1 for t in true_vals if t > self._true_value_of_interest]) /
+                        float(len(true_vals)))
+            else:
+                raise ValueError('unsupported comparison {0!r}'.format(
+                        self._value_to_true_comparison))
+            self.true_probs.append(true_p)
+            self.estimated_probs.append(l - half_bin_width)
 
