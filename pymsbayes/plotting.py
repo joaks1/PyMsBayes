@@ -6,7 +6,7 @@ import math
 import string
 
 from pymsbayes.utils.stats import (get_freqs, Partition, IntegerPartition,
-        ValidationProbabilities)
+        ValidationProbabilities, root_mean_square_error)
 from pymsbayes.utils.probability import (almost_equal,
         get_probability_from_bayes_factor)
 from pymsbayes.utils.functions import frange
@@ -953,9 +953,9 @@ class AccuracyValidationPlotGrid(object):
             margin_left = 0.0,
             margin_bottom = 0.0,
             margin_right = 1,
-            margin_top = 0.985,
+            margin_top = 0.975,
             padding_between_horizontal = 0.5,
-            padding_between_vertical = 1.0,
+            padding_between_vertical = 1.1,
             tab = 0.08):
         self.width = width
         self.height = height
@@ -972,6 +972,7 @@ class AccuracyValidationPlotGrid(object):
         if not rng:
             rng = GLOBAL_RNG
         self.v = validation_result_obj.get_random_subsample(num_subsample, rng)
+        self.v.psi.jitter_true_and_modes(sigma = 0.02, rng = rng)
         self.subplots = []
         self.plot_grid = None
         self.populate_subplots()
@@ -979,54 +980,90 @@ class AccuracyValidationPlotGrid(object):
     def populate_subplots(self):
         matplotlib.rc('text',**{'usetex': True})
         self.subplots = []
+
+        x = self.v.psi.true_jitter
+        y = self.v.psi.mode_jitter
+        rmse = root_mean_square_error(x, y)
         sd_psi = ScatterData(
-                x = self.v.psi.true,
-                y = self.v.psi.mode)
+                x = x,
+                y = y)
         sp_psi = ScatterPlot(scatter_data_list = [sd_psi],
                 x_label = r'True $\Psi$',
                 y_label = '\\textit{\\textbf{Unadjusted}}\n$\\hat{\\Psi}$ (mode)',
+                right_text = r'$RMSE = {0:.2f}$'.format(rmse),
                 identity_line = True,
                 tab = self.tab)
+        sp_psi.right_text_size = 10.0
+
+        x = self.v.psi.true_jitter
+        y = self.v.psi.mode_glm_jitter
+        rmse = root_mean_square_error(x, y)
         sd_psi_glm = ScatterData(
-                x = self.v.psi.true,
-                y = self.v.psi.mode_glm)
+                x = x,
+                y = y)
         sp_psi_glm = ScatterPlot(scatter_data_list = [sd_psi_glm],
                 x_label = r'True $\Psi$',
                 y_label = '\\textit{\\textbf{GLM-adjusted}}\n$\\hat{\\Psi}$ (mode)',
+                right_text = r'$RMSE = {0:.2f}$'.format(rmse),
                 identity_line = True,
                 tab = self.tab)
+        sp_psi_glm.right_text_size = 10.0
+
+        x = self.v.omega.true
+        y = self.v.omega.median
+        rmse = root_mean_square_error(x, y)
         sd_omega = ScatterData(
-                x = self.v.omega.true,
-                y = self.v.omega.median)
+                x = x,
+                y = y)
         sp_omega = ScatterPlot(scatter_data_list = [sd_omega],
                 x_label = r'True $\Omega$',
                 y_label = r'$\hat{\Omega}$ (median)',
+                right_text = r'$RMSE = {0:.2f}$'.format(rmse),
                 identity_line = True,
                 tab = self.tab)
+        sp_omega.right_text_size = 10.0
+
+        x = self.v.omega.true
+        y = self.v.omega.mode_glm
+        rmse = root_mean_square_error(x, y)
         sd_omega_glm = ScatterData(
-                x = self.v.omega.true,
-                y = self.v.omega.mode_glm)
+                x = x,
+                y = y)
         sp_omega_glm = ScatterPlot(scatter_data_list = [sd_omega_glm],
                 x_label = r'True $\Omega$',
                 y_label = r'$\hat{\Omega}$ (mode)',
+                right_text = r'$RMSE = {0:.2f}$'.format(rmse),
                 identity_line = True,
                 tab = self.tab)
+        sp_omega_glm.right_text_size = 10.0
+
+        x = self.v.tau.true
+        y = self.v.tau.median
+        rmse = root_mean_square_error(x, y)
         sd_tau = ScatterData(
-                x = self.v.tau.true,
-                y = self.v.tau.median)
+                x = x,
+                y = y)
         sp_tau = ScatterPlot(scatter_data_list = [sd_tau],
                 x_label = r'True $E(\tau)$',
                 y_label = r'$\hat{E(\tau)}$ (median)',
+                right_text = r'$RMSE = {0:.2f}$'.format(rmse),
                 identity_line = True,
                 tab = self.tab)
+        sp_tau.right_text_size = 10.0
+
+        x = self.v.tau.true
+        y = self.v.tau.mode_glm
+        rmse = root_mean_square_error(x, y)
         sd_tau_glm = ScatterData(
-                x = self.v.tau.true,
-                y = self.v.tau.mode_glm)
+                x = x,
+                y = y)
         sp_tau_glm = ScatterPlot(scatter_data_list = [sd_tau_glm],
                 x_label = r'True $E(\tau)$',
                 y_label = r'$\hat{E(\tau)}$ (mode)',
+                right_text = r'$RMSE = {0:.2f}$'.format(rmse),
                 identity_line = True,
                 tab = self.tab)
+        sp_tau_glm.right_text_size = 10.0
         self.subplots = [sp_psi, sp_omega, sp_tau, sp_psi_glm, sp_omega_glm,
                 sp_tau_glm]
         for sp in self.subplots:
@@ -1413,9 +1450,10 @@ class AccuracyPowerPlotGrid(object):
             assert len(estimates) == 2
             x, y = estimates[0], estimates[1]
             assert len(x) == len(y)
+            rmse = root_mean_square_error(x, y)
             c = len([1 for i in range(len(x)) if y[i] < x[i]])
             p = c / float(len(x))
-            prob = r'$p(\hat{{\Omega}} < \Omega) = {0}$'.format(p)
+            rmse_str = r'$RMSE = {0:.2f}$'.format(p)
             mx = max(x + y)
             mn = min(x + y)
             buff = (mx - mn) * 0.04
@@ -1430,7 +1468,7 @@ class AccuracyPowerPlotGrid(object):
                     zorder = 100)
             sp = ScatterPlot(scatter_data_list = [sd],
                     left_text = dist,
-                    right_text = prob,
+                    right_text = rmse_str,
                     xlim = xlim,
                     ylim = ylim,
                     identity_line = True,
@@ -1546,6 +1584,23 @@ class SimResult(object):
         self.prob_glm = []
         self.validation_probs = None
         self.validation_probs_glm = None
+        self.true_jitter = None
+        self.mode_jitter = None
+        self.mode_glm_jitter = None
+
+    def jitter_true_and_modes(self, sigma = 0.005, rng = None):
+        if not rng:
+            rng = GLOBAL_RNG
+        self.true_jitter = []
+        self.mode_jitter = []
+        self.mode_glm_jitter = []
+        for i in range(len(self.true)):
+            self.true_jitter.append(self.true[i] + rng.normalvariate(0.0,
+                    sigma))
+            self.mode_jitter.append(self.mode[i] + rng.normalvariate(0.0,
+                    sigma))
+            self.mode_glm_jitter.append(self.mode_glm[i] + rng.normalvariate(
+                    0.0, sigma))
 
     def get_random_subsample(self, n, rng = None):
         l = len(self.true)
