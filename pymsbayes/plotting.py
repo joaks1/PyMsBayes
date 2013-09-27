@@ -877,6 +877,8 @@ class PowerPlotGrid(object):
                 p = c /float(len(estimates))
                 prob = (r'$p(\mathbf{{\tau}} \, \notin \, \hat{{M}}) '
                         r'= {0}$'.format(p))
+            if len([e for e in estimates if ((e > 0.00000001) or (e < -0.00000001))]) < 1:
+                self.bins = list(frange(0, 0.1, 20, include_end_point = True))
             hd = HistData(x = estimates,
                     normed = True,
                     bins = self.bins,
