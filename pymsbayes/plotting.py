@@ -782,9 +782,13 @@ class PlotGrid(object):
 
 class PowerPlotGrid(object):
     valid_variables = ['psi', 'omega', 'tau_exclusion']
+    variable_symbols = {'psi': r'\Psi',
+                        'omega': r'\Omega',
+                        'tau_exclusion': r'\tau'}
     def __init__(self,
             observed_config_to_estimates,
             variable = 'psi',
+            variable_symbol = None,
             num_columns = 2,
             x_title = None,
             y_title = 'Density',
@@ -803,6 +807,9 @@ class PowerPlotGrid(object):
             [(c, list(e)) for c, e in observed_config_to_estimates.iteritems()],
             key = lambda x : x[0].tau.mean)
         self.variable = variable.lower()
+        self.variable_symbol = variable_symbol
+        if not self.variable_symbol:
+            self.variable_symbol = self.variable_symbols[self.variable]
         if not self.variable in self.valid_variables:
             raise ValueError('{0!r} is not a valid variable; valid options:'
                     '\n\t{1}'.format(self.variable,
@@ -816,12 +823,10 @@ class PowerPlotGrid(object):
         self.plot_grid = None
         self.x_title = x_title
         if self.x_title is None:
-            if self.variable == 'psi':
-                self.x_title = r'$\hat{\Psi}$'
-            elif self.variable == 'omega':
-                self.x_title = r'$\hat{\Omega}$'
+            if self.variable == 'psi' or self.variable == 'omega':
+                self.x_title = r'$\hat{{{0}}}$'.format(self.variable_symbol)
             elif self.variable == 'tau_exclusion':
-                self.x_title = r'Number of true $\tau$ excluded'
+                self.x_title = r'Number of true ${0}$ excluded'.format(self.variable_symbol)
             else:
                 raise Exception('unexpected variable {0!r}'.format(
                         self.variable))
@@ -857,11 +862,15 @@ class PowerPlotGrid(object):
             prob = None
             if self.variable == 'psi':
                 p = estimates.count(1) / float(len(estimates))
-                prob = r'$p(\hat{{\Psi}} = 1) = {0}$'.format(p)
+                prob = r'$p(\hat{{{0}}} = 1) = {1}$'.format(
+                        self.variable_symbol,
+                        p)
             elif self.variable == 'omega':
                 c = len([e for e in estimates if e < 0.01])
                 p = c / float(len(estimates))
-                prob = r'$p(\hat{{\Omega}} < 0.01) = {0}$'.format(p)
+                prob = r'$p(\hat{{{0}}} < 0.01) = {1}$'.format(
+                        self.variable_symbol,
+                        p)
             elif self.variable == 'tau_exclusion':
                 matplotlib.rc('mathtext',**{'fontset': 'stix'})
                 c = len([e for e in estimates if e > 0])
@@ -1234,10 +1243,14 @@ class ProbabilityValidationPlotGrid(object):
 
 class ProbabilityPowerPlotGrid(object):
     valid_variables = ['psi', 'omega', 'tau_exclusion']
+    variable_symbols = {'psi': r'\Psi',
+                        'omega': r'\Omega',
+                        'tau_exclusion': r'\tau'}
     valid_div_model_priors = ['psi', 'dpp', 'uniform']
     def __init__(self,
             observed_config_to_estimates,
             variable = 'psi',
+            variable_symbol = None,
             div_model_prior = 'psi',
             bayes_factor = 10,
             bayes_factor_prob = None,
@@ -1257,11 +1270,15 @@ class ProbabilityPowerPlotGrid(object):
             margin_top = 0.98,
             padding_between_horizontal = 0.5,
             padding_between_vertical = 1.0,
+            text_size = 12.0,
             tab = 0.08):
         self.config_estimates_tups = sorted(
             [(c, list(e)) for c, e in observed_config_to_estimates.iteritems()],
             key = lambda x : x[0].tau.mean)
         self.variable = variable.lower()
+        self.variable_symbol = variable_symbol
+        if not self.variable_symbol:
+            self.variable_symbol = self.variable_symbols[self.variable]
         if not self.variable in self.valid_variables:
             raise ValueError('{0!r} is not a valid variable; valid options:'
                     '\n\t{1}'.format(self.variable,
@@ -1309,9 +1326,9 @@ class ProbabilityPowerPlotGrid(object):
         self.x_title = x_title
         if self.x_title is None:
             if self.variable == 'psi':
-                self.x_title = r'Estimated $p(\Psi = 1 \, | \, B_{\epsilon}(S*))$'
+                self.x_title = r'Estimated $p({0} = 1 \, | \, B_{{\epsilon}}(S*))$'.format(self.variable_symbol)
             elif self.variable == 'omega':
-                self.x_title = r'Estimated $p(\Omega < 0.01 \, | \, B_{\epsilon}(S*))$'
+                self.x_title = r'Estimated $p({0} < 0.01 \, | \, B_{{\epsilon}}(S*))$'.format(self.variable_symbol)
             elif self.variable == 'tau_exclusion':
                 matplotlib.rc('mathtext',**{'fontset': 'stix'})
                 self.x_title = (r'Estimated $p(\mathbf{\tau} \, \notin \, '
@@ -1332,6 +1349,7 @@ class ProbabilityPowerPlotGrid(object):
         self.padding_between_vertical = padding_between_vertical
         self.bins = list(frange(0, 1, 20, include_end_point = True))
         self.tab = tab
+        self.text_size = text_size
         self.bf_line = VerticalLine(x = self.bayes_factor_prob,
                 color = self.bayes_factor_line_color)
         self.populate_subplots()
@@ -1346,13 +1364,15 @@ class ProbabilityPowerPlotGrid(object):
                 p = count / float(len(estimates))
             if p is not None:
                 if self.variable == 'psi':
-                    prob = (r'$p(BF_{{\Psi = 1, \Psi \neq 1}} > {0}) = '
-                            '{1}$'.format(
-                                    int(self.bayes_factor), p))
+                    prob = (r'$p(BF_{{{0} = 1, {0} \neq 1}} > {1}) = '
+                            '{2}$'.format(self.variable_symbol,
+                                    int(self.bayes_factor),
+                                    p))
                 elif self.variable == 'omega':
-                    prob = (r'$p(BF_{{\Omega < 0.01, \Omega \geq 0.01}} > {0}) '
-                            '= {1}$'.format(
-                                    int(self.bayes_factor), p))
+                    prob = (r'$p(BF_{{{0} < 0.01, {0} \geq 0.01}} > {1}) '
+                            '= {2}$'.format(self.variable_symbol,
+                                    int(self.bayes_factor),
+                                    p))
                 elif self.variable == 'tau_exclusion':
                     if self.cfg_to_prob_of_bf_exclusion:
                         p = self.cfg_to_prob_of_bf_exclusion[cfg]
@@ -1394,8 +1414,8 @@ class ProbabilityPowerPlotGrid(object):
                     right_text = prob,
                     xticks_obj = xticks_obj,
                     tab = self.tab)
-            hist.left_text_size = 12.0
-            hist.right_text_size = 12.0
+            hist.left_text_size = self.text_size
+            hist.right_text_size = self.text_size
             hist.set_xlim(left = (self.bins[0]), right = (self.bins[-1]))
             self.subplots.append(hist)
 
@@ -1428,8 +1448,7 @@ class AccuracyPowerPlotGrid(object):
     def __init__(self,
             observed_config_to_estimates,
             num_columns = 2,
-            x_title = r'True $\Omega$',
-            y_title = r'$\hat{\Omega}$',
+            variable_symbol = r'\Omega',
             y_title_position = 0.006,
             width = 8,
             height = 9,
@@ -1448,8 +1467,9 @@ class AccuracyPowerPlotGrid(object):
         self.num_columns = num_columns
         self.subplots = []
         self.plot_grid = None
-        self.x_title = x_title
-        self.y_title = y_title
+        self.variable_symbol = variable_symbol
+        self.x_title = r'True ${0}$'.format(self.variable_symbol)
+        self.y_title = r'$\hat{{{0}}}$'.format(self.variable_symbol)
         self.y_title_position = y_title_position
         self.width = width
         self.height = height
@@ -1473,7 +1493,9 @@ class AccuracyPowerPlotGrid(object):
             assert len(x) == len(y)
             c = len([1 for i in range(len(x)) if y[i] < x[i]])
             p = c / float(len(x))
-            prob = r'$p(\hat{{\Omega}} < \Omega) = {0}$'.format(p)
+            prob = r'$p(\hat{{{0}}} < {0}) = {1}$'.format(
+                    self.variable_symbol,
+                    p)
             rmse_str = r'$RMSE = {0:.2f}$'.format(rmse)
             mx = max(x + y)
             mn = min(x + y)
