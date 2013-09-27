@@ -946,6 +946,10 @@ class AccuracyValidationPlotGrid(object):
             validation_result_obj,
             num_subsample = 5000,
             rng = None,
+            omega_symbol = r'\Omega',
+            psi_symbol = r'\Psi',
+            mean_time_symbol = r'E(\tau)',
+            math_font = None,
             width = 8,
             height = 5,
             auto_height = False,
@@ -957,6 +961,10 @@ class AccuracyValidationPlotGrid(object):
             padding_between_horizontal = 0.5,
             padding_between_vertical = 1.1,
             tab = 0.08):
+        self.omega_symbol = omega_symbol
+        self.psi_symbol = psi_symbol
+        self.mean_time_symbol = mean_time_symbol
+        self.math_font = math_font
         self.width = width
         self.height = height
         self.auto_height = auto_height
@@ -978,7 +986,10 @@ class AccuracyValidationPlotGrid(object):
         self.populate_subplots()
 
     def populate_subplots(self):
-        matplotlib.rc('text',**{'usetex': True})
+        if self.math_font:
+            matplotlib.rc('mathtext',**{'fontset': self.math_font})
+        else:
+            matplotlib.rc('text',**{'usetex': True})
         self.subplots = []
 
         x = self.v.psi.true_jitter
@@ -988,8 +999,8 @@ class AccuracyValidationPlotGrid(object):
                 x = x,
                 y = y)
         sp_psi = ScatterPlot(scatter_data_list = [sd_psi],
-                x_label = r'True $\Psi$',
-                y_label = '\\textit{\\textbf{Unadjusted}}\n$\\hat{\\Psi}$ (mode)',
+                x_label = r'True ${0}$'.format(self.psi_symbol),
+                y_label = '\\textit{{\\textbf{{Unadjusted}}}}\n$\\hat{{{0}}}$ (mode)'.format(self.psi_symbol),
                 right_text = r'$RMSE = {0:.2f}$'.format(rmse),
                 identity_line = True,
                 tab = self.tab)
@@ -1002,8 +1013,8 @@ class AccuracyValidationPlotGrid(object):
                 x = x,
                 y = y)
         sp_psi_glm = ScatterPlot(scatter_data_list = [sd_psi_glm],
-                x_label = r'True $\Psi$',
-                y_label = '\\textit{\\textbf{GLM-adjusted}}\n$\\hat{\\Psi}$ (mode)',
+                x_label = r'True ${0}$'.format(self.psi_symbol),
+                y_label = '\\textit{{\\textbf{{GLM-adjusted}}}}\n$\\hat{{{0}}}$ (mode)'.format(self.psi_symbol),
                 right_text = r'$RMSE = {0:.2f}$'.format(rmse),
                 identity_line = True,
                 tab = self.tab)
@@ -1016,8 +1027,8 @@ class AccuracyValidationPlotGrid(object):
                 x = x,
                 y = y)
         sp_omega = ScatterPlot(scatter_data_list = [sd_omega],
-                x_label = r'True $\Omega$',
-                y_label = r'$\hat{\Omega}$ (median)',
+                x_label = r'True ${0}$'.format(self.omega_symbol),
+                y_label = r'$\hat{{{0}}}$ (median)'.format(self.omega_symbol),
                 right_text = r'$RMSE = {0:.2f}$'.format(rmse),
                 identity_line = True,
                 tab = self.tab)
@@ -1030,8 +1041,8 @@ class AccuracyValidationPlotGrid(object):
                 x = x,
                 y = y)
         sp_omega_glm = ScatterPlot(scatter_data_list = [sd_omega_glm],
-                x_label = r'True $\Omega$',
-                y_label = r'$\hat{\Omega}$ (mode)',
+                x_label = r'True ${0}$'.format(self.omega_symbol),
+                y_label = r'$\hat{{{0}}}$ (mode)'.format(self.omega_symbol),
                 right_text = r'$RMSE = {0:.2f}$'.format(rmse),
                 identity_line = True,
                 tab = self.tab)
@@ -1044,8 +1055,8 @@ class AccuracyValidationPlotGrid(object):
                 x = x,
                 y = y)
         sp_tau = ScatterPlot(scatter_data_list = [sd_tau],
-                x_label = r'True $E(\tau)$',
-                y_label = r'$\hat{E(\tau)}$ (median)',
+                x_label = r'True ${0}$'.format(self.mean_time_symbol),
+                y_label = r'$\hat{{{0}}}$ (median)'.format(self.mean_time_symbol),
                 right_text = r'$RMSE = {0:.2f}$'.format(rmse),
                 identity_line = True,
                 tab = self.tab)
@@ -1058,8 +1069,8 @@ class AccuracyValidationPlotGrid(object):
                 x = x,
                 y = y)
         sp_tau_glm = ScatterPlot(scatter_data_list = [sd_tau_glm],
-                x_label = r'True $E(\tau)$',
-                y_label = r'$\hat{E(\tau)}$ (mode)',
+                x_label = r'True ${0}$'.format(self.mean_time_symbol),
+                y_label = r'$\hat{{{0}}}$ (mode)'.format(self.mean_time_symbol),
                 right_text = r'$RMSE = {0:.2f}$'.format(rmse),
                 identity_line = True,
                 tab = self.tab)
@@ -1117,6 +1128,9 @@ class ProbabilityValidationPlotGrid(object):
             psi_validation_probs_glm,
             omega_validation_probs,
             omega_validation_probs_glm,
+            omega_symbol = r'\Omega',
+            psi_symbol = r'\Psi',
+            math_font = None,
             width = 8,
             height = 6,
             auto_height = False,
@@ -1128,6 +1142,9 @@ class ProbabilityValidationPlotGrid(object):
             padding_between_horizontal = 0.5,
             padding_between_vertical = 1.0,
             tab = 0.08):
+        self.omega_symbol = omega_symbol
+        self.psi_symbol = psi_symbol
+        self.math_font = math_font
         self.width = width
         self.height = height
         self.auto_height = auto_height
@@ -1149,7 +1166,10 @@ class ProbabilityValidationPlotGrid(object):
         self.populate_subplots()
 
     def populate_subplots(self):
-        matplotlib.rc('text',**{'usetex': True})
+        if self.math_font:
+            matplotlib.rc('mathtext',**{'fontset': self.math_font})
+        else:
+            matplotlib.rc('text',**{'usetex': True})
         self.subplots = []
         sd_psi = ScatterData(
                 x = self.psi.estimated_probs,
@@ -1171,7 +1191,7 @@ class ProbabilityValidationPlotGrid(object):
                 identity_line = True,
                 tab = self.tab)
         sp_psi_glm = ScatterPlot(scatter_data_list = [sd_psi_glm],
-                x_label = r'Estimated $p(\Psi = 1 \, | \, B_{\epsilon}(S*))$',
+                x_label = r'Estimated $p({0} = 1 \, | \, B_{{\epsilon}}(S*))$'.format(self.psi_symbol),
                 y_label = '\\textit{\\textbf{GLM-adjusted}}\nTrue probability',
                 xlim = lm,
                 ylim = lm,
@@ -1183,7 +1203,7 @@ class ProbabilityValidationPlotGrid(object):
                 identity_line = True,
                 tab = self.tab)
         sp_omega_glm = ScatterPlot(scatter_data_list = [sd_omega_glm],
-                x_label = r'Estimated $p(\Omega < 0.01 \, | \, B_{\epsilon}(S*))$',
+                x_label = r'Estimated $p({0} < 0.01 \, | \, B_{{\epsilon}}(S*))$'.format(self.omega_symbol),
                 xlim = lm,
                 ylim = lm,
                 identity_line = True,
@@ -1630,9 +1650,17 @@ class SimResult(object):
 class ValidationResult(object):
     def __init__(self, result_paths = [],
             psi_of_interest = 1,
-            omega_threshold = 0.01):
+            omega_threshold = 0.01,
+            omega_symbol = r'\Omega',
+            psi_symbol = r'\Psi',
+            mean_time_symbol = r'E(\tau)',
+            math_font = None):
         self.psi_of_interest = psi_of_interest
         self.omega_threshold = omega_threshold
+        self.omega_symbol = omega_symbol
+        self.psi_symbol = psi_symbol
+        self.mean_time_symbol = mean_time_symbol
+        self.math_font = math_font
         self.psi = SimResult()
         self.omega = SimResult()
         self.tau = SimResult()
@@ -1696,8 +1724,15 @@ class ValidationResult(object):
                 psi_validation_probs = self.psi.validation_probs,
                 psi_validation_probs_glm = self.psi.validation_probs_glm,
                 omega_validation_probs = self.omega.validation_probs,
-                omega_validation_probs_glm = self.omega.validation_probs_glm)
-        self.accuracy_plot = AccuracyValidationPlotGrid(self)
+                omega_validation_probs_glm = self.omega.validation_probs_glm,
+                omega_symbol = self.omega_symbol,
+                psi_symbol = self.psi_symbol,
+                math_font = self.math_font)
+        self.accuracy_plot = AccuracyValidationPlotGrid(self,
+                omega_symbol = self.omega_symbol,
+                psi_symbol = self.psi_symbol,
+                mean_time_symbol = self.mean_time_symbol,
+                math_font = self.math_font)
     
     def save_prob_plot(self, path):
         fig = self.prob_plot.create_grid()
@@ -1708,7 +1743,11 @@ class ValidationResult(object):
         fig.savefig(path)
 
 def plot_validation_results(info_path, observed_indices = None,
-        prior_indices = None):
+        prior_indices = None,
+        omega_symbol = r'\Omega',
+        psi_symbol = r'\Psi',
+        mean_time_symbol = r'E(\tau)',
+        math_font = None):
     results = DMCSimulationResults(info_path)
     result_dir = os.path.dirname(info_path)
     plot_dir = os.path.join(result_dir, 'plots')
@@ -1729,7 +1768,11 @@ def plot_validation_results(info_path, observed_indices = None,
             prob_plot_path = os.path.join(plot_dir, prob_plot_name)
             acc_plot_path = os.path.join(plot_dir, acc_plot_name)
             result_path = results.get_result_summary_path(obs_idx, p_idx)
-            vr = ValidationResult([result_path])
+            vr = ValidationResult([result_path],
+                    omega_symbol = omega_symbol,
+                    psi_symbol = psi_symbol,
+                    mean_time_symbol = mean_time_symbol,
+                    math_font = math_font)
             vr.save_prob_plot(prob_plot_path)
             vr.save_accuracy_plot(acc_plot_path)
 
