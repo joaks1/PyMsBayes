@@ -1141,6 +1141,7 @@ class ProbabilityValidationPlotGrid(object):
             omega_validation_probs_glm,
             omega_symbol = r'\Omega',
             psi_symbol = r'\Psi',
+            plot_glm = True,
             math_font = None,
             width = 8,
             height = 6,
@@ -1155,6 +1156,7 @@ class ProbabilityValidationPlotGrid(object):
             tab = 0.08):
         self.omega_symbol = omega_symbol
         self.psi_symbol = psi_symbol
+        self.plot_glm = plot_glm
         self.math_font = math_font
         self.width = width
         self.height = height
@@ -1219,7 +1221,16 @@ class ProbabilityValidationPlotGrid(object):
                 ylim = lm,
                 identity_line = True,
                 tab = self.tab)
-        self.subplots.extend([sp_psi, sp_omega, sp_psi_glm, sp_omega_glm])
+        if self.plot_glm:
+            self.subplots.extend([sp_psi, sp_omega, sp_psi_glm, sp_omega_glm])
+        else:
+            sp_psi.set_xlabel(
+                    xlabel = r'Estimated $p({0} = 1 \, | \, B_{{\epsilon}}(S*))$'.format(self.psi_symbol))
+            sp_psi.set_ylabel(
+                    ylabel = 'True probability')
+            sp_omega.set_xlabel(
+                    xlabel = r'Estimated $p({0} < 0.01 \, | \, B_{{\epsilon}}(S*))$'.format(self.omega_symbol))
+            self.subplots.extend([sp_psi, sp_omega])
 
     def create_grid(self):
         if len(self.subplots) < 2:
@@ -1678,13 +1689,30 @@ class ValidationResult(object):
             omega_symbol = r'\Omega',
             psi_symbol = r'\Psi',
             mean_time_symbol = r'E(\tau)',
-            math_font = None):
+            math_font = None,
+            prob_plot_glm = True,
+            prob_plot_height = 9,
+            prob_plot_margin_left = 0.025,
+            prob_plot_margin_bottom = 0.025,
+            prob_plot_margin_right = 1,
+            prob_plot_margin_top = 0.98,
+            prob_plot_padding_between_horizontal = 0.5,
+            prob_plot_padding_between_vertical = 1.0,
+            ):
         self.psi_of_interest = psi_of_interest
         self.omega_threshold = omega_threshold
         self.omega_symbol = omega_symbol
         self.psi_symbol = psi_symbol
         self.mean_time_symbol = mean_time_symbol
         self.math_font = math_font
+        self.prob_plot_glm = prob_plot_glm
+        self.prob_plot_height = prob_plot_height
+        self.prob_plot_margin_left = prob_plot_margin_left
+        self.prob_plot_margin_right = prob_plot_margin_right
+        self.prob_plot_margin_top = prob_plot_margin_top
+        self.prob_plot_margin_bottom = prob_plot_margin_bottom
+        self.prob_plot_padding_between_horizontal = prob_plot_padding_between_horizontal
+        self.prob_plot_padding_between_vertical = prob_plot_padding_between_vertical
         self.psi = SimResult()
         self.omega = SimResult()
         self.tau = SimResult()
@@ -1751,6 +1779,14 @@ class ValidationResult(object):
                 omega_validation_probs_glm = self.omega.validation_probs_glm,
                 omega_symbol = self.omega_symbol,
                 psi_symbol = self.psi_symbol,
+                plot_glm = self.prob_plot_glm,
+                height = self.prob_plot_height,
+                margin_left = self.prob_plot_margin_left,
+                margin_right = self.prob_plot_margin_right,
+                margin_top = self.prob_plot_margin_top,
+                margin_bottom = self.prob_plot_margin_bottom,
+                padding_between_horizontal = self.prob_plot_padding_between_horizontal,
+                padding_between_vertical = self.prob_plot_padding_between_vertical,
                 math_font = self.math_font)
         self.accuracy_plot = AccuracyValidationPlotGrid(self,
                 omega_symbol = self.omega_symbol,
@@ -1768,13 +1804,24 @@ class ValidationResult(object):
 
 def plot_validation_results(info_path, observed_indices = None,
         prior_indices = None,
+        plot_dir = None,
         omega_symbol = r'\Omega',
         psi_symbol = r'\Psi',
         mean_time_symbol = r'E(\tau)',
-        math_font = None):
+        math_font = None,
+        plot_accuracy = True,
+        prob_plot_glm = True,
+        prob_plot_height = 9,
+        prob_plot_margin_left = 0.025,
+        prob_plot_margin_bottom = 0.025,
+        prob_plot_margin_right = 1,
+        prob_plot_margin_top = 0.98,
+        prob_plot_padding_between_horizontal = 0.5,
+        prob_plot_padding_between_vertical = 1.0):
     results = DMCSimulationResults(info_path)
     result_dir = os.path.dirname(info_path)
-    plot_dir = os.path.join(result_dir, 'plots')
+    if not plot_dir:
+        plot_dir = os.path.join(result_dir, 'plots')
     if not os.path.exists(plot_dir):
         os.mkdir(plot_dir)
     for obs_idx, obs_cfg in results.observed_index_to_config.iteritems():
@@ -1796,9 +1843,18 @@ def plot_validation_results(info_path, observed_indices = None,
                     omega_symbol = omega_symbol,
                     psi_symbol = psi_symbol,
                     mean_time_symbol = mean_time_symbol,
+                    prob_plot_glm = prob_plot_glm,
+                    prob_plot_height = prob_plot_height,
+                    prob_plot_margin_left = prob_plot_margin_left,
+                    prob_plot_margin_bottom = prob_plot_margin_bottom,
+                    prob_plot_margin_right = prob_plot_margin_right,
+                    prob_plot_margin_top = prob_plot_margin_top,
+                    prob_plot_padding_between_horizontal = prob_plot_padding_between_horizontal,
+                    prob_plot_padding_between_vertical = prob_plot_padding_between_vertical,
                     math_font = math_font)
             vr.save_prob_plot(prob_plot_path)
-            vr.save_accuracy_plot(acc_plot_path)
+            if plot_accuracy:
+                vr.save_accuracy_plot(acc_plot_path)
 
 def plot_model_choice_validation_results(info_path):
     results = DMCSimulationResults(info_path)
