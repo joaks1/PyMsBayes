@@ -242,9 +242,11 @@ class ScatterPlot(object):
             plot_label = None,
             x_label = None,
             y_label = None,
+            extra_y_label = None,
             left_text = None,
             center_text = None,
             right_text = None,
+            title_text = None,
             position = (1,1,1),
             xlim = (None, None),
             ylim = (None, None),
@@ -261,15 +263,19 @@ class ScatterPlot(object):
         self._plot_label = plot_label
         self._x_label = x_label
         self._y_label = y_label
+        self._extra_y_label = extra_y_label
         self._left_text = left_text
         self._center_text = center_text
         self._right_text = right_text
+        self._title_text = title_text
         self.text_objects = {'plot_label': None,
                              'left': None,
                              'center': None,
                              'right': None,
                              'x_label': None,
-                             'y_label': None}
+                             'y_label': None,
+                             'extra_y_label': None,
+                             'title': None}
         self.plot_label_size = 14.0
         self.plot_label_weight = 'bold'
         self.plot_label_style = 'normal'
@@ -282,6 +288,12 @@ class ScatterPlot(object):
         self.right_text_size = 14.0
         self.right_text_weight = 'normal'
         self.right_text_style = 'normal'
+        self.title_text_size = 16.0
+        self.title_text_weight = 'normal'
+        self.title_text_style = 'normal'
+        self.extra_y_label_size = 16.0
+        self.extra_y_label_weight = 'normal'
+        self.extra_y_label_style = 'normal'
         self.shared_x_ax = None
         self.shared_y_ax = None
         self.xlim_left = xlim[0]
@@ -356,6 +368,14 @@ class ScatterPlot(object):
         ymin, ymax = self.ax.get_ylim()
         return ymax + (math.fabs(ymax - ymin) * 0.01)
 
+    def get_title_baseline(self):
+        ymin, ymax = self.ax.get_ylim()
+        return ymax + (math.fabs(ymax - ymin) * 0.05)
+
+    def get_extra_y_baseline(self):
+        xmin, xmax = self.ax.get_xlim()
+        return xmin - (math.fabs(xmax - xmin) * 0.05)
+
     def get_tab_indent(self):
         xmin, xmax = self.ax.get_xlim()
         return xmin + (math.fabs(xmax - xmin) * self.tab)
@@ -363,6 +383,10 @@ class ScatterPlot(object):
     def get_x_center(self):
         xmin, xmax = self.ax.get_xlim()
         return xmin + (math.fabs(xmax - xmin) * 0.5)
+
+    def get_y_center(self):
+        ymin, ymax = self.ax.get_ylim()
+        return ymin + (math.fabs(ymax - ymin) * 0.5)
 
     def get_origin(self):
         xmin, xmax = self.ax.get_xlim()
@@ -390,6 +414,8 @@ class ScatterPlot(object):
         self.set_right_text()
         self.set_xlabel()
         self.set_ylabel()
+        self.set_extra_y_label()
+        self.set_title_text()
 
     def set_plot_label(self, label = None, fontdict = None, withdash = False,
             **kwargs):
@@ -445,6 +471,24 @@ class ScatterPlot(object):
                 **kwargs)
         self._adjust_center_text()
 
+    def set_title_text(self, title_text = None, fontdict = None, withdash = False,
+            **kwargs):
+        if title_text:
+            self._title_text = title_text
+        if self._title_text is None:
+            return
+        self.remove_text_object(self.text_objects['title'])
+        verticalalignment = 'bottom'
+        horizontalalignment = 'center'
+        self.text_objects['title'] = self.ax.text(x = 0, y = 0,
+                s = self._title_text,
+                fontdict = fontdict,
+                withdash = withdash, 
+                verticalalignment = verticalalignment,
+                horizontalalignment = horizontalalignment,
+                **kwargs)
+        self._adjust_title_text()
+
     def set_right_text(self, right_text = None, fontdict = None, withdash = False,
             **kwargs):
         if right_text:
@@ -468,6 +512,8 @@ class ScatterPlot(object):
         self._adjust_left_text()
         self._adjust_center_text()
         self._adjust_right_text()
+        self._adjust_title_text()
+        self._adjust_extra_y_label()
 
     def _adjust_plot_label(self):
         if not self.text_objects.get('plot_label', None):
@@ -499,6 +545,16 @@ class ScatterPlot(object):
         self.text_objects['center'].set_style(self.center_text_style)
         self.text_objects['center'].set_weight(self.center_text_weight)
 
+    def _adjust_title_text(self):
+        if not self.text_objects.get('title', None):
+            return
+        x = self.get_x_center()
+        y = self.get_title_baseline()
+        self.text_objects['title'].set_position((x, y))
+        self.text_objects['title'].set_size(self.title_text_size)
+        self.text_objects['title'].set_style(self.title_text_style)
+        self.text_objects['title'].set_weight(self.title_text_weight)
+
     def _adjust_right_text(self):
         if not self.text_objects.get('right', None):
             return
@@ -508,6 +564,16 @@ class ScatterPlot(object):
         self.text_objects['right'].set_size(self.right_text_size)
         self.text_objects['right'].set_style(self.right_text_style)
         self.text_objects['right'].set_weight(self.right_text_weight)
+
+    def _adjust_extra_y_label(self):
+        if not self.text_objects.get('extra_y_label', None):
+            return
+        x = self.get_extra_y_baseline()
+        y = self.get_y_center()
+        self.text_objects['extra_y_label'].set_position((x, y))
+        self.text_objects['extra_y_label'].set_size(self.extra_y_label_size)
+        self.text_objects['extra_y_label'].set_style(self.extra_y_label_style)
+        self.text_objects['extra_y_label'].set_weight(self.extra_y_label_weight)
 
     def set_xlabel(self, xlabel = None, fontdict = None, labelpad = None,
             **kwargs):
@@ -535,6 +601,26 @@ class ScatterPlot(object):
                 labelpad = labelpad,
                 multialignment = 'center',
                 **kwargs)
+
+    def set_extra_y_label(self, extra_y_label = None, fontdict = None, withdash = False,
+            **kwargs):
+        if extra_y_label:
+            self._extra_y_label = extra_y_label
+        if self._extra_y_label is None:
+            return
+        self.remove_text_object(self.text_objects['extra_y_label'])
+        rotation = 'vertical'
+        verticalalignment = 'bottom'
+        horizontalalignment = 'center'
+        self.text_objects['extra_y_label'] = self.ax.text(x = 0, y = 0,
+                s = self._extra_y_label,
+                fontdict = fontdict,
+                withdash = withdash, 
+                verticalalignment = verticalalignment,
+                horizontalalignment = horizontalalignment,
+                rotation = rotation
+                **kwargs)
+        self._adjust_extra_y_label()
 
     def set_xlim(self, left = None, right = None, emit = True, auto = False,
             **kwargs):
@@ -585,8 +671,14 @@ class ScatterPlot(object):
     def is_last_row(self):
         return self.ax.is_last_row()
 
+    def is_first_row(self):
+        return self.ax.is_first_row()
+
     def is_first_col(self):
         return self.ax.is_first_col()
+
+    def is_last_col(self):
+        return self.ax.is_last_col()
 
     def _plot_v_line(self, v):
         v.plot(self.ax)
@@ -620,7 +712,9 @@ class PlotGrid(object):
             y_title_position = 0.001,
             height = 6.0,
             width = 8.0,
-            auto_height = True):
+            auto_height = True,
+            column_labels = None,
+            row_labels = None):
         self.num_columns = num_columns
         self._set_label_schema(label_schema)
         self.share_x = share_x
@@ -653,6 +747,8 @@ class PlotGrid(object):
         self.margin_bottom = 0
         self.margin_top = 0.975
         self.auto_adjust_margins = True
+        self.column_labels = column_labels
+        self.row_labels = row_labels
         for sp in self.subplots:
             f = sp.get_figure()
             if f != self.fig:
@@ -727,6 +823,8 @@ class PlotGrid(object):
             self.height = (self.width / (ncols * 1.1)) * nrows
         self.fig = plt.figure(figsize = (self.width, self.height))
         plot_labels = self.get_plot_labels()
+        column_label_index = 0
+        row_label_index = 0
         for i, subplot in enumerate(self.subplots):
             f = subplot.get_figure()
             if f != self.fig:
@@ -749,6 +847,12 @@ class PlotGrid(object):
                 subplot.ax.tick_params(labelbottom = False)
             if self.share_y and (not subplot.is_first_col()):
                 subplot.ax.tick_params(labelleft = False)
+            if self.column_labels and subplot.is_first_row():
+                subplot.set_title_text(self.column_labels[column_label_index])
+                column_label_index += 1
+            if self.row_labels and subplot.is_first_row():
+                subplot.set_extra_y_label(self.row_labels[row_label_index])
+                row_label_index += 1
         rect = [0, 0, 1, 0.975]
         if self.title:
             if self.title_top:
@@ -1817,13 +1921,15 @@ def plot_validation_results(info_path, observed_indices = None,
         prob_plot_margin_right = 1,
         prob_plot_margin_top = 0.98,
         prob_plot_padding_between_horizontal = 0.5,
-        prob_plot_padding_between_vertical = 1.0):
+        prob_plot_padding_between_vertical = 1.0,
+        write_plots = True):
     results = DMCSimulationResults(info_path)
     result_dir = os.path.dirname(info_path)
     if not plot_dir:
         plot_dir = os.path.join(result_dir, 'plots')
     if not os.path.exists(plot_dir):
         os.mkdir(plot_dir)
+    validation_results = {}
     for obs_idx, obs_cfg in results.observed_index_to_config.iteritems():
         if observed_indices:
             if not obs_idx in observed_indices:
@@ -1852,9 +1958,17 @@ def plot_validation_results(info_path, observed_indices = None,
                     prob_plot_padding_between_horizontal = prob_plot_padding_between_horizontal,
                     prob_plot_padding_between_vertical = prob_plot_padding_between_vertical,
                     math_font = math_font)
-            vr.save_prob_plot(prob_plot_path)
-            if plot_accuracy:
-                vr.save_accuracy_plot(acc_plot_path)
+            if write_plots:
+                vr.save_prob_plot(prob_plot_path)
+                if plot_accuracy:
+                    vr.save_accuracy_plot(acc_plot_path)
+            if not validation_results.has_key(obs_name):
+                validation_results[obs_name] = {}
+            if not validation_results[obs_name].has_key(p_name):
+                validation_results[obs_name][p_name] = vr
+            else:
+                raise Exception('Unexpected duplicate validation results')
+    return validation_results
 
 def plot_model_choice_validation_results(info_path):
     results = DMCSimulationResults(info_path)
