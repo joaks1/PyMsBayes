@@ -423,9 +423,10 @@ class ScatterPlot(object):
 
     def set_plot_label(self, label = None, fontdict = None, withdash = False,
             **kwargs):
-        if label is None:
+        if label is not None:
+            self._plot_label = label
+        if self._plot_label is None:
             return
-        self._plot_label = label
         self.remove_text_object(self.text_objects['plot_label'])
         verticalalignment = 'bottom'
         horizontalalignment = 'left'
@@ -440,9 +441,10 @@ class ScatterPlot(object):
 
     def set_left_text(self, left_text = None, fontdict = None, withdash = False,
             **kwargs):
-        if left_text is None:
+        if left_text is not None:
+            self._left_text = left_text
+        if self._left_text is None:
             return
-        self._left_text = left_text
         self.remove_text_object(self.text_objects['left'])
         verticalalignment = 'bottom'
         horizontalalignment = 'left'
@@ -457,9 +459,10 @@ class ScatterPlot(object):
 
     def set_center_text(self, center_text = None, fontdict = None, withdash = False,
             **kwargs):
-        if center_text is None:
+        if center_text is not None:
+            self._center_text = center_text
+        if self._center_text is None:
             return
-        self._center_text = center_text
         self.remove_text_object(self.text_objects['center'])
         verticalalignment = 'bottom'
         horizontalalignment = 'center'
@@ -474,9 +477,10 @@ class ScatterPlot(object):
 
     def set_title_text(self, title_text = None, fontdict = None, withdash = False,
             **kwargs):
-        if title_text is None:
+        if title_text is not None:
+            self._title_text = title_text
+        if self._title_text is None:
             return
-        self._title_text = title_text
         self.remove_text_object(self.text_objects['title'])
         verticalalignment = 'bottom'
         horizontalalignment = 'center'
@@ -491,9 +495,10 @@ class ScatterPlot(object):
 
     def set_right_text(self, right_text = None, fontdict = None, withdash = False,
             **kwargs):
-        if right_text is None:
+        if right_text is not None:
+            self._right_text = right_text
+        if self._right_text is None:
             return
-        self._right_text = right_text
         self.remove_text_object(self.text_objects['right'])
         verticalalignment = 'bottom'
         horizontalalignment = 'right'
@@ -576,9 +581,10 @@ class ScatterPlot(object):
 
     def set_xlabel(self, xlabel = None, fontdict = None, labelpad = None,
             **kwargs):
-        if xlabel is None:
+        if xlabel is not None:
+            self._x_label = xlabel
+        if self._x_label is None:
             return
-        self._x_label = xlabel
         self.remove_text_object(self.text_objects['x_label'])
         self.text_objects['x_label'] = self.ax.set_xlabel(
                 xlabel = self._x_label,
@@ -588,9 +594,10 @@ class ScatterPlot(object):
 
     def set_ylabel(self, ylabel = None, fontdict = None, labelpad = None,
             **kwargs):
-        if ylabel is None:
+        if ylabel is not None:
+            self._y_label = ylabel
+        if self._y_label is None:
             return
-        self._y_label = ylabel
         self.remove_text_object(self.text_objects['y_label'])
         self.text_objects['y_label'] = self.ax.set_ylabel(
                 ylabel = self._y_label,
@@ -601,9 +608,10 @@ class ScatterPlot(object):
 
     def set_extra_y_label(self, extra_y_label = None, fontdict = None, withdash = False,
             **kwargs):
-        if extra_y_label is None:
+        if extra_y_label is not None:
+            self._extra_y_label = extra_y_label
+        if self._extra_y_label is None:
             return
-        self._extra_y_label = extra_y_label
         self.remove_text_object(self.text_objects['extra_y_label'])
         rotation = '270'
         verticalalignment = 'center'
@@ -1012,6 +1020,7 @@ class PowerPlotGrid(object):
             self.vertical_lines.append(VerticalLine(
                     x = 0.01,
                     color = '0.25'))
+        self.cfg_to_subplot = {}
         self.populate_subplots()
 
     def populate_subplots(self):
@@ -1081,6 +1090,7 @@ class PowerPlotGrid(object):
             if self.variable == 'psi':
                 hist.set_xlim(left = (self.bins[0]), right = (self.bins[-1]))
             self.subplots.append(hist)
+            self.cfg_to_subplot[cfg] = hist
 
     def create_grid(self):
         if len(self.subplots) < 2:
@@ -1427,6 +1437,7 @@ class ProbabilityPowerPlotGrid(object):
             bayes_factor_prob = None,
             cfg_to_prob_of_bf_exclusion = None,
             bayes_factor_line_color = '0.25',
+            draw_bayes_factor_line = True,
             dpp_concentration_mean = None,
             num_columns = 2,
             x_title = None,
@@ -1486,6 +1497,7 @@ class ProbabilityPowerPlotGrid(object):
         self.bayes_factor = float(bayes_factor)
         self.cfg_to_prob_of_bf_exclusion = cfg_to_prob_of_bf_exclusion
         self.bayes_factor_line_color = str(bayes_factor_line_color)
+        self.draw_bayes_factor_line = draw_bayes_factor_line
         self.bayes_factor_prob = bayes_factor_prob
         if not self.bayes_factor_prob:
             if self.variable == 'psi':
@@ -1523,6 +1535,7 @@ class ProbabilityPowerPlotGrid(object):
         self.text_size = text_size
         self.bf_line = VerticalLine(x = self.bayes_factor_prob,
                 color = self.bayes_factor_line_color)
+        self.cfg_to_subplot = {}
         self.populate_subplots()
 
     def populate_subplots(self):
@@ -1579,8 +1592,11 @@ class ProbabilityPowerPlotGrid(object):
                     labels = tick_labels,
                     horizontalalignment = 'center',
                     size = 10.0)
+            vertical_lines = []
+            if self.draw_bayes_factor_line:
+                vertical_lines.append(self.bf_line)
             hist = ScatterPlot(hist_data_list = [hd],
-                    vertical_lines = [self.bf_line],
+                    vertical_lines = vertical_lines,
                     left_text = dist,
                     right_text = prob,
                     xticks_obj = xticks_obj,
@@ -1589,6 +1605,7 @@ class ProbabilityPowerPlotGrid(object):
             hist.right_text_size = self.text_size
             hist.set_xlim(left = (self.bins[0]), right = (self.bins[-1]))
             self.subplots.append(hist)
+            self.cfg_to_subplot[cfg] = hist
 
     def create_grid(self):
         if len(self.subplots) < 2:
