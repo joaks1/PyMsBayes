@@ -243,10 +243,12 @@ class ScatterPlot(object):
             x_label = None,
             y_label = None,
             extra_y_label = None,
+            extra_y_label_offset = 0.05,
             left_text = None,
             center_text = None,
             right_text = None,
             title_text = None,
+            title_offset = 0.05,
             position = (1,1,1),
             xlim = (None, None),
             ylim = (None, None),
@@ -264,10 +266,12 @@ class ScatterPlot(object):
         self._x_label = x_label
         self._y_label = y_label
         self._extra_y_label = extra_y_label
+        self.extra_y_label_offset = extra_y_label_offset
         self._left_text = left_text
         self._center_text = center_text
         self._right_text = right_text
         self._title_text = title_text
+        self.title_offset = title_offset
         self.text_objects = {'plot_label': None,
                              'left': None,
                              'center': None,
@@ -370,11 +374,11 @@ class ScatterPlot(object):
 
     def get_title_baseline(self):
         ymin, ymax = self.ax.get_ylim()
-        return ymax + (math.fabs(ymax - ymin) * 0.05)
+        return ymax + (math.fabs(ymax - ymin) * self.title_offset)
 
     def get_extra_y_baseline(self):
         xmin, xmax = self.ax.get_xlim()
-        return xmin - (math.fabs(xmax - xmin) * 0.05)
+        return xmax + (math.fabs(xmax - xmin) * self.extra_y_label_offset)
 
     def get_tab_indent(self):
         xmin, xmax = self.ax.get_xlim()
@@ -419,10 +423,9 @@ class ScatterPlot(object):
 
     def set_plot_label(self, label = None, fontdict = None, withdash = False,
             **kwargs):
-        if label:
-            self._plot_label = label
-        if self._plot_label is None:
+        if label is None:
             return
+        self._plot_label = label
         self.remove_text_object(self.text_objects['plot_label'])
         verticalalignment = 'bottom'
         horizontalalignment = 'left'
@@ -437,10 +440,9 @@ class ScatterPlot(object):
 
     def set_left_text(self, left_text = None, fontdict = None, withdash = False,
             **kwargs):
-        if left_text:
-            self._left_text = left_text
-        if self._left_text is None:
+        if left_text is None:
             return
+        self._left_text = left_text
         self.remove_text_object(self.text_objects['left'])
         verticalalignment = 'bottom'
         horizontalalignment = 'left'
@@ -455,10 +457,9 @@ class ScatterPlot(object):
 
     def set_center_text(self, center_text = None, fontdict = None, withdash = False,
             **kwargs):
-        if center_text:
-            self._center_text = center_text
-        if self._center_text is None:
+        if center_text is None:
             return
+        self._center_text = center_text
         self.remove_text_object(self.text_objects['center'])
         verticalalignment = 'bottom'
         horizontalalignment = 'center'
@@ -473,10 +474,9 @@ class ScatterPlot(object):
 
     def set_title_text(self, title_text = None, fontdict = None, withdash = False,
             **kwargs):
-        if title_text:
-            self._title_text = title_text
-        if self._title_text is None:
+        if title_text is None:
             return
+        self._title_text = title_text
         self.remove_text_object(self.text_objects['title'])
         verticalalignment = 'bottom'
         horizontalalignment = 'center'
@@ -491,10 +491,9 @@ class ScatterPlot(object):
 
     def set_right_text(self, right_text = None, fontdict = None, withdash = False,
             **kwargs):
-        if right_text:
-            self._right_text = right_text
-        if self._right_text is None:
+        if right_text is None:
             return
+        self._right_text = right_text
         self.remove_text_object(self.text_objects['right'])
         verticalalignment = 'bottom'
         horizontalalignment = 'right'
@@ -577,10 +576,9 @@ class ScatterPlot(object):
 
     def set_xlabel(self, xlabel = None, fontdict = None, labelpad = None,
             **kwargs):
-        if xlabel:
-            self._x_label = xlabel
-        if self._x_label is None:
+        if xlabel is None:
             return
+        self._x_label = xlabel
         self.remove_text_object(self.text_objects['x_label'])
         self.text_objects['x_label'] = self.ax.set_xlabel(
                 xlabel = self._x_label,
@@ -590,10 +588,9 @@ class ScatterPlot(object):
 
     def set_ylabel(self, ylabel = None, fontdict = None, labelpad = None,
             **kwargs):
-        if ylabel:
-            self._y_label = ylabel
-        if self._y_label is None:
+        if ylabel is None:
             return
+        self._y_label = ylabel
         self.remove_text_object(self.text_objects['y_label'])
         self.text_objects['y_label'] = self.ax.set_ylabel(
                 ylabel = self._y_label,
@@ -604,21 +601,20 @@ class ScatterPlot(object):
 
     def set_extra_y_label(self, extra_y_label = None, fontdict = None, withdash = False,
             **kwargs):
-        if extra_y_label:
-            self._extra_y_label = extra_y_label
-        if self._extra_y_label is None:
+        if extra_y_label is None:
             return
+        self._extra_y_label = extra_y_label
         self.remove_text_object(self.text_objects['extra_y_label'])
-        rotation = 'vertical'
-        verticalalignment = 'bottom'
-        horizontalalignment = 'center'
+        rotation = '270'
+        verticalalignment = 'center'
+        horizontalalignment = 'left'
         self.text_objects['extra_y_label'] = self.ax.text(x = 0, y = 0,
                 s = self._extra_y_label,
                 fontdict = fontdict,
                 withdash = withdash, 
                 verticalalignment = verticalalignment,
                 horizontalalignment = horizontalalignment,
-                rotation = rotation
+                rotation = rotation,
                 **kwargs)
         self._adjust_extra_y_label()
 
@@ -708,13 +704,24 @@ class PlotGrid(object):
             label_schema = 'uppercase',
             title = None,
             title_top = True,
+            title_size = 12.0,
+            super_title = None,
+            super_title_size = 18.0,
             y_title = None,
             y_title_position = 0.001,
+            y_title_size = 14.0,
+            super_y_title = None,
+            super_y_title_size = 18.0,
+            super_y_title_right = True,
             height = 6.0,
             width = 8.0,
             auto_height = True,
             column_labels = None,
-            row_labels = None):
+            row_labels = None,
+            column_label_size = 16.0,
+            row_label_size = 16.0,
+            column_label_offset = 0.05,
+            row_label_offset = 0.18):
         self.num_columns = num_columns
         self._set_label_schema(label_schema)
         self.share_x = share_x
@@ -724,6 +731,7 @@ class PlotGrid(object):
         self.plot_label_style = 'normal'
         self.plot_label_suffix = ''
         self.title = title
+        self.title_size = title_size
         self.title_top = title_top
         self._width = width
         self._height = height
@@ -731,6 +739,7 @@ class PlotGrid(object):
         self.subplots = subplots
         self.auto_height = auto_height
         self.y_title = None
+        self.y_title_size = y_title_size
         if y_title:
             self.y_title = TextObj(x = y_title_position,
                     y = 0.5,
@@ -738,7 +747,34 @@ class PlotGrid(object):
                     rotation = 'vertical',
                     horizontalalignment = 'left',
                     verticalalignment = 'center',
-                    size = 14)
+                    size = self.y_title_size)
+        self.super_y_title = None
+        self.super_y_title_size = super_y_title_size
+        super_y_x = 0.001
+        super_y_rotation = '90'
+        super_y_h = 'left'
+        if super_y_title_right:
+            super_y_x = 0.999
+            super_y_rotation = '270'
+            super_y_h = 'right'
+        if super_y_title:
+            self.super_y_title = TextObj(x = super_y_x,
+                    y = 0.5,
+                    s = super_y_title,
+                    rotation =  super_y_rotation,
+                    horizontalalignment = super_y_h,
+                    verticalalignment = 'center',
+                    size = self.super_y_title_size)
+        self.super_title = None
+        self.super_title_size = super_title_size
+        if super_title:
+            self.super_title = TextObj(x = 0.5,
+                    y = 0.999,
+                    s = super_title,
+                    rotation = 'horizontal',
+                    horizontalalignment = 'center',
+                    verticalalignment = 'top',
+                    size = self.super_title_size)
         self.perimeter_padding = 0.25
         self.padding_between_vertical = 0.8
         self.padding_between_horizontal = None
@@ -749,6 +785,10 @@ class PlotGrid(object):
         self.auto_adjust_margins = True
         self.column_labels = column_labels
         self.row_labels = row_labels
+        self.column_label_size = column_label_size
+        self.row_label_size = row_label_size
+        self.column_label_offset = column_label_offset
+        self.row_label_offset = row_label_offset
         for sp in self.subplots:
             f = sp.get_figure()
             if f != self.fig:
@@ -802,10 +842,10 @@ class PlotGrid(object):
         return int(math.ceil(len(self.subplots) / float(self.num_columns)))
 
     def get_plot_labels(self):
-        if not self.label_schema:
-            return None
         l = len(self.subplots)
         s = self.plot_label_suffix
+        if not self.label_schema:
+            return ['' for i in range(l)]
         if self.label_schema == 'uppercase':
             return [c + s for c in string.ascii_uppercase[0: l]]
         elif self.label_schema == 'lowercase':
@@ -835,6 +875,16 @@ class PlotGrid(object):
             subplot.plot_label_size = self.plot_label_size
             subplot.plot_label_weight = self.plot_label_weight
             subplot.plot_label_style = self.plot_label_style
+            if self.column_labels and subplot.is_first_row():
+                subplot.title_text_size = self.column_label_size
+                subplot.title_offset = self.column_label_offset
+                subplot.set_title_text(self.column_labels[column_label_index])
+                column_label_index += 1
+            if self.row_labels and subplot.is_last_col():
+                subplot.extra_y_label_size = self.row_label_size
+                subplot.extra_y_label_offset = self.row_label_offset
+                subplot.set_extra_y_label(self.row_labels[row_label_index])
+                row_label_index += 1
             label = plot_labels[i]
             subplot.set_plot_label(label = label)
             if self.share_x:
@@ -847,32 +897,36 @@ class PlotGrid(object):
                 subplot.ax.tick_params(labelbottom = False)
             if self.share_y and (not subplot.is_first_col()):
                 subplot.ax.tick_params(labelleft = False)
-            if self.column_labels and subplot.is_first_row():
-                subplot.set_title_text(self.column_labels[column_label_index])
-                column_label_index += 1
-            if self.row_labels and subplot.is_first_row():
-                subplot.set_extra_y_label(self.row_labels[row_label_index])
-                row_label_index += 1
         rect = [0, 0, 1, 0.975]
         if self.title:
             if self.title_top:
                 self.fig.suptitle(self.title,
                         verticalalignment = 'top',
                         horizontalalignment = 'center',
-                        y = 0.999)
+                        y = 0.999,
+                        size = self.title_size)
                 if self.auto_adjust_margins:
                     self.margin_top -= 0.55
             else:
                 self.fig.suptitle(self.title,
                         verticalalignment = 'bottom',
                         horizontalalignment = 'center',
-                        y = 0.001)
+                        y = 0.001,
+                        size = self.title_size)
                 if self.auto_adjust_margins:
                     self.margin_bottom += 0.06
         if self.y_title:
             self.y_title.add_to_figure(self.fig)
             if self.auto_adjust_margins:
                 self.margin_left += 0.02
+        if self.super_y_title:
+            self.super_y_title.add_to_figure(self.fig)
+            if self.auto_adjust_margins:
+                self.margin_left += 0.02
+        if self.super_title:
+            self.super_title.add_to_figure(self.fig)
+            if self.auto_adjust_margins:
+                self.margin_top -= 0.02
         if self.subplots:
             rect = (self.margin_left, self.margin_bottom, self.margin_right,
                     self.margin_top)
