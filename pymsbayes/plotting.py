@@ -31,6 +31,7 @@ class ScatterData(object):
             markerfacecolor = 'none',
             markeredgecolor = '0.35',
             markeredgewidth = 0.7,
+            markersize = None,
             linestyle = '',
             zorder = 100,
             **kwargs):
@@ -40,20 +41,23 @@ class ScatterData(object):
         self.markerfacecolor = markerfacecolor
         self.markeredgecolor = markeredgecolor
         self.markeredgewidth = markeredgewidth
+        self.markersize = markersize
         self.linestyle = linestyle
         self.zorder = zorder
         self.kwargs = kwargs
 
     def plot(self, ax):
         l = ax.plot(self.x, self.y)
-        plt.setp(l,
-                marker = self.marker,
-                linestyle = self.linestyle,
-                markerfacecolor = self.markerfacecolor,
-                markeredgecolor = self.markeredgecolor,
-                markeredgewidth = self.markeredgewidth,
-                zorder = self.zorder,
-                **self.kwargs)
+        args = {'marker': self.marker,
+                'linestyle': self.linestyle,
+                'markerfacecolor': self.markerfacecolor,
+                'markeredgecolor': self.markeredgecolor,
+                'markeredgewidth': self.markeredgewidth,
+                'zorder': self.zorder}
+        args.update(self.kwargs)
+        if self.markersize != None:
+            args['markersize'] = self.markersize
+        plt.setp(l, **args)
         return l
 
 class HistData(object):
