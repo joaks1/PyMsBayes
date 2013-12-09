@@ -868,6 +868,38 @@ class PlotGrid(object):
             raise Exception('invalid label schema {0!r}'.format(
                     self.label_schema))
 
+    def get_widest_x_limits(self):
+        for i, subplot in enumerate(self.subplots):
+            if i == 0:
+                x_min, x_max = subplot.get_xlim()
+                continue
+            xmin, xmax = subplot.get_xlim()
+            x_min =  min([x_min, xmin])
+            x_max =  max([x_max, xmax])
+        return x_min, x_max
+
+    def get_widest_y_limits(self):
+        for i, subplot in enumerate(self.subplots):
+            if i == 0:
+                y_min, y_max = subplot.get_ylim()
+                continue
+            ymin, ymax = subplot.get_ylim()
+            y_min = min([y_min, ymin])
+            y_max = max([y_max, ymax])
+        return y_min, y_max
+
+    def set_shared_x_limits(self):
+        x_min, x_max = self.get_widest_x_limits()
+        for subplot in self.subplots:
+            subplot.set_xlim(left = x_min, right = x_max)
+            subplot.reset_plot()
+
+    def set_shared_y_limits(self):
+        y_min, y_max = self.get_widest_y_limits()
+        for subplot in self.subplots:
+            subplot.set_ylim(bottom = y_min, top = y_max)
+            subplot.reset_plot()
+
     def reset_figure(self):
         nrows = self.get_num_rows()
         ncols = self.num_columns
