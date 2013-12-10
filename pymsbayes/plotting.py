@@ -1116,13 +1116,21 @@ class PowerPlotGrid(object):
                 hist.right_text_size = 12.0
                 xticks = [i for i in hist.ax.get_xticks()]
                 xtick_labels = [i for i in xticks]
-                if len(xtick_labels) >= 10:
+                yticks = [i for i in hist.ax.get_yticks()]
+                ytick_labels = [i for i in yticks]
+                if len(xtick_labels) >= 8:
                     for i in range(1, len(xtick_labels), 2):
                         xtick_labels[i] = ''
+                if len(ytick_labels) >= 8:
+                    for i in range(1, len(ytick_labels), 2):
+                        ytick_labels[i] = ''
                 xticks_obj = Ticks(ticks = xticks,
                         labels = xtick_labels,
                         horizontalalignment = 'center')
+                yticks_obj = Ticks(ticks = yticks,
+                        labels = ytick_labels)
                 hist.xticks_obj = xticks_obj
+                hist.yticks_obj = yticks_obj
             if self.variable == 'psi':
                 hist.set_xlim(left = (self.bins[0]), right = (self.bins[-1]))
             self.subplots.append(hist)
