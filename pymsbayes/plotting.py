@@ -7,6 +7,7 @@ import string
 
 from pymsbayes.utils.stats import (get_freqs, Partition, IntegerPartition,
         ValidationProbabilities, root_mean_square_error)
+from pymsbayes.utils import probability
 from pymsbayes.utils.probability import (almost_equal,
         get_probability_from_bayes_factor)
 from pymsbayes.utils.functions import frange
@@ -1135,6 +1136,63 @@ class PowerPlotGrid(object):
                 hist.set_xlim(left = (self.bins[0]), right = (self.bins[-1]))
             self.subplots.append(hist)
             self.cfg_to_subplot[cfg] = hist
+        self.cfg_subplot_tups = sorted(
+                [(c, s) for c, s in self.cfg_to_subplot.iteritems()],
+                key = lambda x : x[0].tau.mean)
+
+    def create_column_grid(self,
+            subplot_indices_to_exclude = [],
+            x_title_size = 14.0,
+            y_title_size = 14.0,
+            column_label_size = 18.0,
+            column_label_offset = 0.14,
+            plot_label_size = 12.0,
+            right_text_size = 10.0,
+            x_tick_label_size = 10.0,
+            share_x = True,
+            share_y = True):
+        subplots = [sp for i, (cfg, sp) in enumerate(
+                self.cfg_subplot_tups) if i not in subplot_indices_to_exclude]
+        column_labels = [get_tau_prior_in_generations(cfg) for i, (
+                cfg, sp) in enumerate(self.cfg_subplot_tups
+                    ) if i not in subplot_indices_to_exclude]
+        for sp in subplots:
+            sp.set_left_text('')
+            sp.right_text_size = right_text_size
+            sp.xticks_obj.kwargs['size'] = x_tick_label_size
+
+        self.plot_grid = PlotGrid(subplots = subplots,
+                num_columns = len(subplots),
+                share_x = share_x,
+                share_y = share_y,
+                title = self.x_title,
+                title_size = x_title_size,
+                title_top = False,
+                y_title = self.y_title,
+                y_title_position = 0.001,
+                y_title_size = y_title_size,
+                height = self.height,
+                width = self.width,
+                auto_height = False,
+                column_labels = column_labels,
+                column_label_size = column_label_size,
+                column_label_offset = column_label_offset)
+        self.plot_grid.plot_label_size = plot_label_size
+        self.plot_grid.auto_adjust_margins = self.auto_adjust_margins
+        self.plot_grid.margin_left = self.margin_left
+        self.plot_grid.margin_bottom = self.margin_bottom
+        self.plot_grid.margin_right = self.margin_right
+        self.plot_grid.margin_top = self.margin_top
+        self.plot_grid.padding_between_horizontal = \
+                self.padding_between_horizontal
+        self.plot_grid.padding_between_vertical = self.padding_between_vertical
+        self.plot_grid.reset_figure()
+        if share_x:
+            self.plot_grid.set_shared_x_limits()
+        if share_y:
+            self.plot_grid.set_shared_y_limits()
+        self.plot_grid.reset_figure()
+        return self.plot_grid
 
     def create_grid(self):
         if len(self.subplots) < 2:
@@ -1650,6 +1708,63 @@ class ProbabilityPowerPlotGrid(object):
             hist.set_xlim(left = (self.bins[0]), right = (self.bins[-1]))
             self.subplots.append(hist)
             self.cfg_to_subplot[cfg] = hist
+        self.cfg_subplot_tups = sorted(
+                [(c, s) for c, s in self.cfg_to_subplot.iteritems()],
+                key = lambda x : x[0].tau.mean)
+
+    def create_column_grid(self,
+            subplot_indices_to_exclude = [],
+            x_title_size = 14.0,
+            y_title_size = 14.0,
+            column_label_size = 18.0,
+            column_label_offset = 0.14,
+            plot_label_size = 12.0,
+            right_text_size = 10.0,
+            x_tick_label_size = 10.0,
+            share_x = True,
+            share_y = True):
+        subplots = [sp for i, (cfg, sp) in enumerate(
+                self.cfg_subplot_tups) if i not in subplot_indices_to_exclude]
+        column_labels = [get_tau_prior_in_generations(cfg) for i, (
+                cfg, sp) in enumerate(self.cfg_subplot_tups
+                    ) if i not in subplot_indices_to_exclude]
+        for sp in subplots:
+            sp.set_left_text('')
+            sp.right_text_size = right_text_size
+            sp.xticks_obj.kwargs['size'] = x_tick_label_size
+
+        self.plot_grid = PlotGrid(subplots = subplots,
+                num_columns = len(subplots),
+                share_x = share_x,
+                share_y = share_y,
+                title = self.x_title,
+                title_size = x_title_size,
+                title_top = False,
+                y_title = self.y_title,
+                y_title_position = 0.001,
+                y_title_size = y_title_size,
+                height = self.height,
+                width = self.width,
+                auto_height = False,
+                column_labels = column_labels,
+                column_label_size = column_label_size,
+                column_label_offset = column_label_offset)
+        self.plot_grid.plot_label_size = plot_label_size
+        self.plot_grid.auto_adjust_margins = self.auto_adjust_margins
+        self.plot_grid.margin_left = self.margin_left
+        self.plot_grid.margin_bottom = self.margin_bottom
+        self.plot_grid.margin_right = self.margin_right
+        self.plot_grid.margin_top = self.margin_top
+        self.plot_grid.padding_between_horizontal = \
+                self.padding_between_horizontal
+        self.plot_grid.padding_between_vertical = self.padding_between_vertical
+        self.plot_grid.reset_figure()
+        if share_x:
+            self.plot_grid.set_shared_x_limits()
+        if share_y:
+            self.plot_grid.set_shared_y_limits()
+        self.plot_grid.reset_figure()
+        return self.plot_grid
 
     def create_grid(self):
         if len(self.subplots) < 2:
@@ -1680,6 +1795,8 @@ class AccuracyPowerPlotGrid(object):
     def __init__(self,
             observed_config_to_estimates,
             num_columns = 2,
+            x_title = None,
+            y_title = None,
             variable_symbol = r'\Omega',
             y_title_position = 0.006,
             width = 8,
@@ -1700,8 +1817,12 @@ class AccuracyPowerPlotGrid(object):
         self.subplots = []
         self.plot_grid = None
         self.variable_symbol = variable_symbol
-        self.x_title = r'True ${0}$'.format(self.variable_symbol)
-        self.y_title = r'$\hat{{{0}}}$'.format(self.variable_symbol)
+        self.x_title = x_title
+        if not self.x_title:
+            self.x_title = r'True ${0}$'.format(self.variable_symbol)
+        self.y_title = y_title
+        if not self.y_title:
+            self.y_title = r'$\hat{{{0}}}$'.format(self.variable_symbol)
         self.y_title_position = y_title_position
         self.width = width
         self.height = height
@@ -1714,6 +1835,7 @@ class AccuracyPowerPlotGrid(object):
         self.padding_between_horizontal = padding_between_horizontal
         self.padding_between_vertical = padding_between_vertical
         self.tab = tab
+        self.cfg_to_subplot = {}
         self.populate_subplots()
 
     def populate_subplots(self):
@@ -1766,6 +1888,64 @@ class AccuracyPowerPlotGrid(object):
             sp.left_text_size = 12.0
             sp.right_text_size = 12.0
             self.subplots.append(sp)
+            self.cfg_to_subplot[cfg] = sp
+        self.cfg_subplot_tups = sorted(
+                [(c, s) for c, s in self.cfg_to_subplot.iteritems()],
+                key = lambda x : x[0].tau.mean)
+
+    def create_column_grid(self,
+            subplot_indices_to_exclude = [],
+            x_title_size = 14.0,
+            y_title_size = 14.0,
+            column_label_size = 18.0,
+            column_label_offset = 0.14,
+            plot_label_size = 12.0,
+            right_text_size = 10.0,
+            x_tick_label_size = 10.0,
+            share_x = True,
+            share_y = True):
+        subplots = [sp for i, (cfg, sp) in enumerate(
+                self.cfg_subplot_tups) if i not in subplot_indices_to_exclude]
+        column_labels = [get_tau_prior_in_generations(cfg) for i, (
+                cfg, sp) in enumerate(self.cfg_subplot_tups
+                    ) if i not in subplot_indices_to_exclude]
+        for sp in subplots:
+            sp.set_left_text('')
+            sp.right_text_size = right_text_size
+            sp.xticks_obj.kwargs['size'] = x_tick_label_size
+
+        self.plot_grid = PlotGrid(subplots = subplots,
+                num_columns = len(subplots),
+                share_x = share_x,
+                share_y = share_y,
+                title = self.x_title,
+                title_size = x_title_size,
+                title_top = False,
+                y_title = self.y_title,
+                y_title_position = 0.001,
+                y_title_size = y_title_size,
+                height = self.height,
+                width = self.width,
+                auto_height = False,
+                column_labels = column_labels,
+                column_label_size = column_label_size,
+                column_label_offset = column_label_offset)
+        self.plot_grid.plot_label_size = plot_label_size
+        self.plot_grid.auto_adjust_margins = self.auto_adjust_margins
+        self.plot_grid.margin_left = self.margin_left
+        self.plot_grid.margin_bottom = self.margin_bottom
+        self.plot_grid.margin_right = self.margin_right
+        self.plot_grid.margin_top = self.margin_top
+        self.plot_grid.padding_between_horizontal = \
+                self.padding_between_horizontal
+        self.plot_grid.padding_between_vertical = self.padding_between_vertical
+        self.plot_grid.reset_figure()
+        if share_x:
+            self.plot_grid.set_shared_x_limits()
+        if share_y:
+            self.plot_grid.set_shared_y_limits()
+        self.plot_grid.reset_figure()
+        return self.plot_grid
 
     def create_grid(self):
         if len(self.subplots) < 2:
@@ -2098,4 +2278,22 @@ def plot_model_choice_validation_results(info_path):
     vr = ValidationResult(result_paths)
     vr.save_prob_plot(os.path.join(plot_dir, 'mc_behavior.pdf'))
     vr.save_accuracy_plot(os.path.join(plot_dir, 'accuracy.pdf'))
+
+def get_tau_prior_in_generations(cfg, mu = 1e-8):
+    if cfg.theta:
+        mean_theta = cfg.theta.mean
+    else:
+        mean_theta = cfg.d_theta.mean
+    if isinstance(cfg.tau, probability.ContinuousUniformDistribution):
+        upper_tau = (cfg.tau.maximum * (mean_theta / mu)) / 1000000.0
+        return r'$\tau \sim U(0, \, {0:.1f} \, \mathsf{{MGA}})$'.format(
+                upper_tau)
+    elif isinstance(cfg.tau, probability.GammaDistribution):
+        mean_tau = (cfg.tau.mean * (mean_theta / mu)) / 1000000.0
+        return r'$\tau \sim Exp(\mathsf{{mean}} = {0:.1f} \, \mathsf{{MGA}})$'.format(
+                mean_tau)
+    else:
+        raise Exception('unsupported tau distribution: {0}'.format(type(
+                cfg.tau)))
+    
 
