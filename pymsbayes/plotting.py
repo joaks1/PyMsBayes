@@ -715,6 +715,7 @@ class PlotGrid(object):
             share_x = False,
             share_y = False,
             label_schema = 'uppercase',
+            label_offset = 0,
             title = None,
             title_top = True,
             title_size = 12.0,
@@ -737,6 +738,7 @@ class PlotGrid(object):
             row_label_offset = 0.18):
         self.num_columns = num_columns
         self._set_label_schema(label_schema)
+        self.label_offset = label_offset
         self.share_x = share_x
         self.share_y = share_y
         self.plot_label_size = 14.0
@@ -860,11 +862,14 @@ class PlotGrid(object):
         if not self.label_schema:
             return ['' for i in range(l)]
         if self.label_schema == 'uppercase':
-            return [c + s for c in string.ascii_uppercase[0: l]]
+            return [c + s for c in string.ascii_uppercase[
+                    self.label_offset: self.label_offset + l]]
         elif self.label_schema == 'lowercase':
-            return [c + s for c in string.ascii_lowercase[0: l]]
+            return [c + s for c in string.ascii_lowercase[
+                    self.label_offset: self.label_offset + l]]
         elif self.label_schema == 'numbers':
-            return [str(x) + s for x in range(1, l + 1)]
+            return [str(x) + s for x in range(
+                    self.label_offset + 1, self.label_offset + 2)]
         else:
             raise Exception('invalid label schema {0!r}'.format(
                     self.label_schema))
@@ -997,6 +1002,8 @@ class PowerPlotGrid(object):
             y_title = 'Density',
             width = 8,
             height = 9,
+            label_schema = 'uppercase',
+            label_offset = 0,
             auto_height = False,
             auto_adjust_margins = False,
             margin_left = 0.025,
@@ -1036,6 +1043,8 @@ class PowerPlotGrid(object):
         self.y_title = y_title
         self.width = width
         self.height = height
+        self.label_schema = label_schema
+        self.label_offset = label_offset
         self.auto_height = auto_height
         self.auto_adjust_margins = auto_adjust_margins
         self.margin_left = margin_left
@@ -1144,6 +1153,7 @@ class PowerPlotGrid(object):
             subplot_indices_to_exclude = [],
             x_title_size = 14.0,
             y_title_size = 14.0,
+            add_column_labels = True,
             column_label_size = 18.0,
             column_label_offset = 0.14,
             plot_label_size = 12.0,
@@ -1153,9 +1163,13 @@ class PowerPlotGrid(object):
             share_y = True):
         subplots = [sp for i, (cfg, sp) in enumerate(
                 self.cfg_subplot_tups) if i not in subplot_indices_to_exclude]
-        column_labels = [get_tau_prior_in_generations(cfg) for i, (
-                cfg, sp) in enumerate(self.cfg_subplot_tups
-                    ) if i not in subplot_indices_to_exclude]
+        if add_column_labels:
+            column_labels = [get_tau_prior_in_generations(cfg) for i, (
+                    cfg, sp) in enumerate(self.cfg_subplot_tups
+                        ) if i not in subplot_indices_to_exclude]
+        else:
+            column_labels = ['' for i, (cfg, sp) in enumerate(
+                    self.cfg_subplot_tups) if i not in subplot_indices_to_exclude]
         for sp in subplots:
             sp.set_left_text('')
             sp.right_text_size = right_text_size
@@ -1165,6 +1179,8 @@ class PowerPlotGrid(object):
                 num_columns = len(subplots),
                 share_x = share_x,
                 share_y = share_y,
+                label_schema = self.label_schema,
+                label_offset = self.label_offset,
                 title = self.x_title,
                 title_size = x_title_size,
                 title_top = False,
@@ -1204,7 +1220,8 @@ class PowerPlotGrid(object):
                 num_columns = self.num_columns,
                 share_x = share_x,
                 share_y = False,
-                label_schema = 'uppercase',
+                label_schema = self.label_schema,
+                label_offset = self.label_offset,
                 title = self.x_title,
                 title_top = False,
                 y_title = self.y_title,
@@ -1546,6 +1563,8 @@ class ProbabilityPowerPlotGrid(object):
             y_title = 'Density',
             width = 8,
             height = 9,
+            label_schema = 'uppercase',
+            label_offset = 0,
             auto_height = False,
             auto_adjust_margins = False,
             margin_left = 0.025,
@@ -1624,6 +1643,8 @@ class ProbabilityPowerPlotGrid(object):
         self.y_title = y_title
         self.width = width
         self.height = height
+        self.label_schema = label_schema
+        self.label_offset = label_offset
         self.auto_height = auto_height
         self.auto_adjust_margins = auto_adjust_margins
         self.margin_left = margin_left
@@ -1716,6 +1737,7 @@ class ProbabilityPowerPlotGrid(object):
             subplot_indices_to_exclude = [],
             x_title_size = 14.0,
             y_title_size = 14.0,
+            add_column_labels = True,
             column_label_size = 18.0,
             column_label_offset = 0.14,
             plot_label_size = 12.0,
@@ -1725,9 +1747,13 @@ class ProbabilityPowerPlotGrid(object):
             share_y = True):
         subplots = [sp for i, (cfg, sp) in enumerate(
                 self.cfg_subplot_tups) if i not in subplot_indices_to_exclude]
-        column_labels = [get_tau_prior_in_generations(cfg) for i, (
-                cfg, sp) in enumerate(self.cfg_subplot_tups
-                    ) if i not in subplot_indices_to_exclude]
+        if add_column_labels:
+            column_labels = [get_tau_prior_in_generations(cfg) for i, (
+                    cfg, sp) in enumerate(self.cfg_subplot_tups
+                        ) if i not in subplot_indices_to_exclude]
+        else:
+            column_labels = ['' for i, (cfg, sp) in enumerate(
+                    self.cfg_subplot_tups) if i not in subplot_indices_to_exclude]
         for sp in subplots:
             sp.set_left_text('')
             sp.right_text_size = right_text_size
@@ -1737,6 +1763,8 @@ class ProbabilityPowerPlotGrid(object):
                 num_columns = len(subplots),
                 share_x = share_x,
                 share_y = share_y,
+                label_schema = self.label_schema,
+                label_offset = self.label_offset,
                 title = self.x_title,
                 title_size = x_title_size,
                 title_top = False,
@@ -1773,7 +1801,8 @@ class ProbabilityPowerPlotGrid(object):
                 num_columns = self.num_columns,
                 share_x = True,
                 share_y = False,
-                label_schema = 'uppercase',
+                label_schema = self.label_schema,
+                label_offset = self.label_offset,
                 title = self.x_title,
                 title_top = False,
                 y_title = self.y_title,
@@ -1801,6 +1830,8 @@ class AccuracyPowerPlotGrid(object):
             y_title_position = 0.006,
             width = 8,
             height = 9,
+            label_schema = 'uppercase',
+            label_offset = 0,
             auto_height = False,
             auto_adjust_margins = False,
             margin_left = 0.025,
@@ -1826,6 +1857,8 @@ class AccuracyPowerPlotGrid(object):
         self.y_title_position = y_title_position
         self.width = width
         self.height = height
+        self.label_schema = label_schema
+        self.label_offset = label_offset
         self.auto_height = auto_height
         self.auto_adjust_margins = auto_adjust_margins
         self.margin_left = margin_left
@@ -1897,6 +1930,7 @@ class AccuracyPowerPlotGrid(object):
             subplot_indices_to_exclude = [],
             x_title_size = 14.0,
             y_title_size = 14.0,
+            add_column_labels = True,
             column_label_size = 18.0,
             column_label_offset = 0.14,
             plot_label_size = 12.0,
@@ -1906,9 +1940,13 @@ class AccuracyPowerPlotGrid(object):
             share_y = True):
         subplots = [sp for i, (cfg, sp) in enumerate(
                 self.cfg_subplot_tups) if i not in subplot_indices_to_exclude]
-        column_labels = [get_tau_prior_in_generations(cfg) for i, (
-                cfg, sp) in enumerate(self.cfg_subplot_tups
-                    ) if i not in subplot_indices_to_exclude]
+        if add_column_labels:
+            column_labels = [get_tau_prior_in_generations(cfg) for i, (
+                    cfg, sp) in enumerate(self.cfg_subplot_tups
+                        ) if i not in subplot_indices_to_exclude]
+        else:
+            column_labels = ['' for i, (cfg, sp) in enumerate(
+                    self.cfg_subplot_tups) if i not in subplot_indices_to_exclude]
         for sp in subplots:
             sp.set_left_text('')
             sp.right_text_size = right_text_size
@@ -1918,6 +1956,8 @@ class AccuracyPowerPlotGrid(object):
                 num_columns = len(subplots),
                 share_x = share_x,
                 share_y = share_y,
+                label_schema = self.label_schema,
+                label_offset = self.label_offset,
                 title = self.x_title,
                 title_size = x_title_size,
                 title_top = False,
@@ -1954,7 +1994,8 @@ class AccuracyPowerPlotGrid(object):
                 num_columns = self.num_columns,
                 share_x = False,
                 share_y = False,
-                label_schema = 'uppercase',
+                label_schema = self.label_schema,
+                label_offset = self.label_offset,
                 title = self.x_title,
                 title_top = False,
                 y_title = self.y_title,
