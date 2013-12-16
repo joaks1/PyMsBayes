@@ -736,6 +736,30 @@ class Partition(object):
                 subset_counts[num_subsets - 1] += 1
         return elements
 
+    def dirichlet_process_draw_from_base_distribution(self, alpha,
+            base_distribution,
+            num_elements = None,
+            rng = None):
+        elements = self.dirichlet_process_draw(alpha = alpha,
+                num_elements = num_elements,
+                rng = rng)
+        value_map = {}
+        for c in set(elements):
+            value_map[c] = base_distribution.draw(rng)
+        return elements, value_map
+
+    def dirichlet_process_draw_iter(self, alpha,
+            base_distribution,
+            num_elements = None,
+            num_samples = 1000,
+            rng = None):
+        for i in range(num_samples):
+            yield self.dirichlet_process_draw_from_base_distribution(
+                    alpha = alpha,
+                    base_distribution = base_distribution,
+                    num_elements = num_elements,
+                    rng = rng)
+
 class PartitionCollection(object):
     def __init__(self, partitions = None):
         self.partitions = {}

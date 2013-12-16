@@ -7,7 +7,7 @@ import types
 from cStringIO import StringIO
 
 from pymsbayes.fileio import process_file_arg
-from pymsbayes.utils import GLOBAL_RNG
+from pymsbayes.utils import GLOBAL_RNG, probability
 from pymsbayes.utils.stats import *
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test.support import package_paths
@@ -1231,6 +1231,51 @@ class PartitionTestCase(unittest.TestCase):
         expected = 1.0 / (1.0 + alpha)
         observed = num_equal / float(reps)
         self.assertAlmostEqual(expected, observed, places = 2)
+
+    def test_dirichlet_process_draw_from_base_distribution_n10_a01(self):
+        part = Partition()
+        alpha = 0.1
+        reps = 100000
+        base_distribution = probability.GammaDistribution(5.0, 1.0)
+        num_equal = 0
+        vals = []
+        for i in range(reps):
+            p, vm = part.dirichlet_process_draw_from_base_distribution(alpha,
+                    base_distribution = base_distribution,
+                    num_elements = 10) 
+            vals.extend(vm.values())
+            r = GLOBAL_RNG.sample(p, 2)
+            if r[0] == r[1]:
+                num_equal += 1
+        expected = 1.0 / (1.0 + alpha)
+        observed = num_equal / float(reps)
+        self.assertAlmostEqual(expected, observed, places = 2)
+        self.assertAlmostEqual(base_distribution.mean,
+                sum(vals) / float(len(vals)),
+                places = 1)
+
+    def test_dirichlet_process_draw_iter_n10_a01(self):
+        part = Partition()
+        alpha = 0.1
+        reps = 100000
+        base_distribution = probability.GammaDistribution(5.0, 1.0)
+        num_equal = 0
+        vals = []
+        draw_iter = part.dirichlet_process_draw_iter(alpha,
+                base_distribution = base_distribution,
+                num_elements = 10,
+                num_samples = reps)
+        for p, vm in draw_iter:
+            vals.extend(vm.values())
+            r = GLOBAL_RNG.sample(p, 2)
+            if r[0] == r[1]:
+                num_equal += 1
+        expected = 1.0 / (1.0 + alpha)
+        observed = num_equal / float(reps)
+        self.assertAlmostEqual(expected, observed, places = 2)
+        self.assertAlmostEqual(base_distribution.mean,
+                sum(vals) / float(len(vals)),
+                places = 1)
             
 
 class PartitionCollectionTestCase(PyMsBayesTestCase):
