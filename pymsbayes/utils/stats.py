@@ -708,6 +708,8 @@ class Partition(object):
         if not num_elements:
             num_elements = len(self.partition)
         assert num_elements > 0
+        if hasattr(alpha, 'draw'):
+            alpha = alpha.draw(rng)
         alpha = float(alpha)
         assert alpha > 0.0
         if not rng:
