@@ -1562,3 +1562,73 @@ class PosteriorWorker(object):
         self._post_process()
         self.finished = True
 
+class ModelProbabilityEstimator(object):
+    count = 0
+    def __init__(self, config,
+            num_samples = 1000,
+            psi_of_interest = 1,
+            omega_threshold = 0.01,
+            rng = None,
+            tag = None):
+        self.__class__.count += 1
+        self.name = self.__class__.__name__ + '-' + str(self.count)
+        self.config = config
+        if not isinstance(config, MsBayesConfig):
+            self.config = MsBayesConfig(config)
+        self.num_samples = num_samples
+        self.psi_of_interest = psi_of_interest
+        self.omega_threshold = omega_threshold
+        self.psi_summary = SampleSummary()
+        self.omega_summary = SampleSummary()
+        self.rng = rng
+        self.tag = tag
+        self.finished = False
+
+    def get_prior_sample_iter(self):
+        p = Partition()
+        if self.config.div_model_prior == 'psi':
+            return p.psi_multinomial_draw_iter(
+                    num_samples = self.num_samples,
+                    num_elements = self.config.npairs,
+                    base_distribution = self.config.tau,
+                    rng = self.rng)
+        elif self.config.div_model_prior == 'uniform':
+            return p.uniform_integer_partition_draw_iter(
+                    num_samples = self.num_samples,
+                    num_elements = self.config.npairs,
+                    base_distribution = self.config.tau,
+                    rng = self.rng)
+        elif self.config.div_model_prior == 'dpp':
+            return p.dirichlet_process_draw_iter(
+                    alpha = self.config.dpp_concentration,
+                    num_samples = self.num_samples,
+                    num_elements = self.config.npairs,
+                    base_distribution = self.config.tau,
+                    rng = self.rng)
+        else:
+            raise Exception('divergence model prior {0!r} is not '
+                    'supported'.format(self.config.div_model_prior))
+
+    def start(self):
+        psi_summarizer = SampleSummarizer()
+        omega_summarizer = SampleSummarizer()
+        prior_sample_iter = self.get_prior_sample_iter()
+        for partition in prior_sample_iter:
+            if len(partition.values) == self.psi_of_interest:
+                psi_summarizer.add_sample(1)
+            else:
+                psi_summarizer.add_sample(0)
+            ss = SampleSummarizer(samples = partition.get_element_vector())
+            d = ss.variance / ss.mean
+            if d < self.omega_threshold:
+                omega_summarizer.add_sample(1)
+            else:
+                omega_summarizer.add_sample(0)
+        self.psi_summary.update(SampleSummary(sample_size = psi_summarizer.n,
+                mean = psi_summarizer.mean,
+                variance = psi_summarizer.variance))
+        self.omega_summary.update(SampleSummary(sample_size = omega_summarizer.n,
+                mean = omega_summarizer.mean,
+                variance = omega_summarizer.variance))
+        self.finished = True
+
