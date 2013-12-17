@@ -1183,7 +1183,7 @@ class PartitionTestCase(unittest.TestCase):
         reps = 100000
         num_equal = 0
         for i in range(reps):
-            p = part.dirichlet_process_draw(alpha) 
+            p = part.dirichlet_process_draw(alpha).partition 
             r = GLOBAL_RNG.sample(p, 2)
             if r[0] == r[1]:
                 num_equal += 1
@@ -1196,7 +1196,7 @@ class PartitionTestCase(unittest.TestCase):
         reps = 100000
         num_equal = 0
         for i in range(reps):
-            p = part.dirichlet_process_draw(alpha, num_elements = 5) 
+            p = part.dirichlet_process_draw(alpha, num_elements = 5).partition
             r = GLOBAL_RNG.sample(p, 2)
             if r[0] == r[1]:
                 num_equal += 1
@@ -1210,7 +1210,7 @@ class PartitionTestCase(unittest.TestCase):
         reps = 100000
         num_equal = 0
         for i in range(reps):
-            p = part.dirichlet_process_draw(alpha, num_elements = 5) 
+            p = part.dirichlet_process_draw(alpha, num_elements = 5).partition
             r = GLOBAL_RNG.sample(p, 2)
             if r[0] == r[1]:
                 num_equal += 1
@@ -1224,7 +1224,7 @@ class PartitionTestCase(unittest.TestCase):
         reps = 100000
         num_equal = 0
         for i in range(reps):
-            p = part.dirichlet_process_draw(alpha, num_elements = 10) 
+            p = part.dirichlet_process_draw(alpha, num_elements = 10).partition
             r = GLOBAL_RNG.sample(p, 2)
             if r[0] == r[1]:
                 num_equal += 1
@@ -1240,10 +1240,11 @@ class PartitionTestCase(unittest.TestCase):
         num_equal = 0
         vals = []
         for i in range(reps):
-            p, vm = part.dirichlet_process_draw_from_base_distribution(alpha,
-                    base_distribution = base_distribution,
-                    num_elements = 10) 
-            vals.extend(vm.values())
+            prt = part.dirichlet_process_draw(alpha,
+                    num_elements = 10,
+                    base_distribution = base_distribution)
+            p = prt.partition
+            vals.extend(prt.get_element_vector())
             r = GLOBAL_RNG.sample(p, 2)
             if r[0] == r[1]:
                 num_equal += 1
@@ -1262,11 +1263,12 @@ class PartitionTestCase(unittest.TestCase):
         num_equal = 0
         vals = []
         draw_iter = part.dirichlet_process_draw_iter(alpha,
-                base_distribution = base_distribution,
+                num_samples = reps,
                 num_elements = 10,
-                num_samples = reps)
-        for p, vm in draw_iter:
-            vals.extend(vm.values())
+                base_distribution = base_distribution)
+        for prt in draw_iter:
+            p = prt.partition
+            vals.extend(prt.get_element_vector())
             r = GLOBAL_RNG.sample(p, 2)
             if r[0] == r[1]:
                 num_equal += 1
