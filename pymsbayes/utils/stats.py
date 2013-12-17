@@ -9,7 +9,7 @@ import decimal
 import fractions
 from cStringIO import StringIO
 
-from pymsbayes.utils import GLOBAL_RNG
+from pymsbayes.utils import GLOBAL_RNG, probability
 from pymsbayes.fileio import process_file_arg
 from pymsbayes.utils.parsing import (parse_summary_file, MODEL_PATTERNS,
         PSI_PATTERNS, DIV_MODEL_PATTERNS, OMEGA_PATTERNS,
@@ -704,16 +704,34 @@ class Partition(object):
             ip.update(IntegerPartition(self.get_element_vector(i)))
         return ip
 
-    def dirichlet_process_draw(self, alpha, num_elements = None, rng = None):
+    def instance_from_base_distribution(self, base_distribution,
+            partition = None,
+            rng = None):
+        if not rng:
+            rng = GLOBAL_RNG
+        elements = partition
+        if partition == None:
+            elements = self.partition
+        elif hasattr(partition, 'partition'):
+            elements = partition.partition
+        value_map = {}
+        for c in set(elements):
+            value_map[c] = base_distribution.draw(rng)
+        return Partition([value_map[el] for el in elements])
+
+    def dirichlet_process_draw(self, alpha,
+            num_elements = None,
+            base_distribution = None,
+            rng = None):
         if not num_elements:
             num_elements = len(self.partition)
         assert num_elements > 0
+        if not rng:
+            rng = GLOBAL_RNG
         if hasattr(alpha, 'draw'):
             alpha = alpha.draw(rng)
         alpha = float(alpha)
         assert alpha > 0.0
-        if not rng:
-            rng = GLOBAL_RNG
         elements = [0]
         subset_counts = [1]
         num_subsets = 1
@@ -736,31 +754,77 @@ class Partition(object):
             if u > 0.0:
                 elements.append(num_subsets - 1)
                 subset_counts[num_subsets - 1] += 1
-        return elements
-
-    def dirichlet_process_draw_from_base_distribution(self, alpha,
-            base_distribution,
-            num_elements = None,
-            rng = None):
-        elements = self.dirichlet_process_draw(alpha = alpha,
-                num_elements = num_elements,
-                rng = rng)
-        value_map = {}
-        for c in set(elements):
-            value_map[c] = base_distribution.draw(rng)
-        return elements, value_map
+        if base_distribution:
+            return self.instance_from_base_distribution(
+                    base_distribution = base_distribution,
+                    partition = elements,
+                    rng = rng)
+        return Partition(elements)
 
     def dirichlet_process_draw_iter(self, alpha,
-            base_distribution,
-            num_elements = None,
             num_samples = 1000,
+            num_elements = None,
+            base_distribution = None,
             rng = None):
         for i in range(num_samples):
-            yield self.dirichlet_process_draw_from_base_distribution(
+            yield self.dirichlet_process_draw(
                     alpha = alpha,
-                    base_distribution = base_distribution,
                     num_elements = num_elements,
+                    base_distribution = base_distribution,
                     rng = rng)
+
+    def psi_multinomial_draw(self,
+            num_elements = None,
+            base_distribution = None,
+            rng = None):
+        if not num_elements:
+            num_elements = len(self.partition)
+        assert num_elements > 0
+        if not rng:
+            rng = GLOBAL_RNG
+        psi_prior = probability.DiscreteUniformDistribution(1, num_elements)
+        psi = psi_prior.draw(rng)
+        subsets = list(range(psi))
+        elements = [x for x in subsets]
+        while len(elements) <= num_elements:
+            elements.append(rng.choice(subsets))
+        rng.shuffle(elements)
+        if base_distribution:
+            return self.instance_from_base_distribution(
+                    base_distribution = base_distribution,
+                    partition = elements,
+                    rng = rng)
+        return Partition(elements)
+
+    def psi_multinomial_draw_iter(self,
+            num_samples = 1000,
+            num_elements = None,
+            base_distribution = None,
+            rng = None):
+        for i in range(num_samples):
+            yield self.psi_multinomial_draw(
+                    num_elements = num_elements,
+                    base_distribution = base_distribution,
+                    rng = rng)
+
+    def uniform_integer_partition_draw_iter(self,
+            num_samples = 1000,
+            num_elements = None,
+            base_distribution = None,
+            rng = None):
+        ips = IntegerPartition.get_all_integer_partitions(
+                num_elements)
+        for i in range(num_samples):
+            ip = ips.draw(rng)
+            elements = ip.get_random_element_vector(index = 0,
+                    rng = rng)
+            if base_distribution:
+                yield self.instance_from_base_distribution(
+                        base_distribution = base_distribution,
+                        partition = elements)
+            else:
+                yield Partition(elements)
+
 
 class PartitionCollection(object):
     def __init__(self, partitions = None):
@@ -947,6 +1011,17 @@ class IntegerPartition(object):
         m = Multinomial(params)
         return psi_prob * m.pmf(counts)
 
+    def get_random_element_vector(self, index = 0, rng = None):
+        if self.n < 1:
+            return None
+        if not rng:
+            rng = GLOBAL_RNG
+        elements = []
+        for k, v in self.iteritems():
+            elements.extend([v[index]] * k)
+        rng.shuffle(elements)
+        return elements
+
     @classmethod
     def cumulative_number_of_int_partitions_by_k(cls, num_elements):
         assert num_elements > 0
@@ -981,6 +1056,65 @@ class IntegerPartition(object):
         n = cls.number_of_int_partitions_by_k(num_elements)
         t = float(sum(n))
         return [x / t for x in n]
+
+    @classmethod
+    def get_all_integer_partitions(cls, num_elements):
+        """
+        A method for generating all partitions of an integer.
+        
+        This method generates all of the integer partitions of an integer in
+        anti-lexicographic order. The code is based on Algorithm ZS1 from:
+        
+        Zoghbi, A., and I. Stojmenovic. 1998. Fast algorithms for generating
+            generating integer partitions. Intern. J. Computer Math.
+            70:319--332.
+        
+        @param num_elements
+          The integer to partition.
+        @return
+          The method returns an IntegerPartitionCollection instance.
+        """
+
+        assert num_elements > 0
+        partitions = IntegerPartitionCollection()
+
+        ip = cls.number_of_int_partitions(num_elements)
+        x = [1] * num_elements
+        x[0] = num_elements
+        m = 0
+        h = 0
+        partitions.add(cls([0] * num_elements))
+        part_index = 0
+        while x[0] != 1:
+            part_index += 1
+            if x[h] == 2:
+                m += 1
+                x[h] = 1
+                h -= 1
+            else:
+                r = x[h] - 1
+                t = m - h + 1
+                x[h] = r
+                while t >= r:
+                    h += 1
+                    x[h] = r
+                    t -= r
+                if t == 0:
+                    m = h
+                else:
+                    m = h + 1
+                    if t > 1:
+                        h += 1
+                        x[h] = t
+            s = 0;
+            part = []
+            for i in range(num_elements):
+                part.extend([i] * x[i])
+                s += x[i];
+                if s >= num_elements:
+                    break
+            partitions.add(cls(part))
+        return partitions;
     
 
 class IntegerPartitionCollection(object):
@@ -1053,6 +1187,11 @@ class IntegerPartitionCollection(object):
         for k in self.iterkeys():
             freqs[k] = self.get_frequency(k)
         return freqs
+    
+    def draw(self, rng = None):
+        if not rng:
+            rng = GLOBAL_RNG
+        return rng.choice(self.values())
     
     def get_summary(self):
         stats = []
