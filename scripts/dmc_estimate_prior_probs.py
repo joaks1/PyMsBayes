@@ -45,13 +45,6 @@ def main_cli():
             default = multiprocessing.cpu_count(),
             help = ('The maximum number of processes to run in parallel. The '
                     'default is the number of CPUs available on the machine.'))
-    parser.add_argument('-e', '--num-divergence-events',
-            action = 'store',
-            type = int,
-            default = 1,
-            help = ('The number of divergence events. The prior probability '
-                    'for this number of events will be reported for each '
-                    'config.'))
     parser.add_argument('-d', '--dispersion-threshold',
             action = 'store',
             type = float,
@@ -90,64 +83,36 @@ def main_cli():
         os.environ[LOGGING_LEVEL_ENV_VAR] = "DEBUG"
     log = get_logger()
 
-    from pymsbayes.workers import ModelProbabilityEstimator
-    from pymsbayes.manager import Manager
-    from pymsbayes.utils import stats, GLOBAL_RNG
-    from pymsbayes.utils.functions import long_division
-    from pymsbayes.config import MsBayesConfig
+    from pymsbayes.teams import ModelProbabilityEstimatorTeam
+    from pymsbayes.utils import GLOBAL_RNG
 
     if not args.seed:
         args.seed = random.randint(1, 999999999)
+    log.info('Using seed {0}'.format(args.seed))
     GLOBAL_RNG.seed(args.seed)
-
-    configs = dict(zip(args.configs,
-            [MsBayesConfig(c) for c in args.configs]))
-    psi_summaries = dict(zip(args.configs,
-            [stats.SampleSummary() for c in args.configs]))
-    omega_summaries = dict(zip(args.configs,
-            [stats.SampleSummary() for c in args.configs]))
 
     ##########################################################################
     ## begin analysis --- generate samples
 
     start_time = datetime.datetime.now()
 
-    if args.np > args.num_prior_samples:
-        args.np = args.num_prior_samples
-    batch_size, remainder = long_division(args.num_prior_samples, args.np)
-    workers = []
-    for path, cfg in configs.iteritems():
-        for i in range(args.np):
-            sample_size = batch_size
-            if i == (args.np - 1):
-                sample_size += remainder
-            w = ModelProbabilityEstimator(
-                    config = cfg,
-                    num_samples = sample_size,
-                    psi_of_interest = args.num_divergence_events,
-                    omega_threshold = args.dispersion_threshold,
-                    tag = path)
-            workers.append(w)
-
-    log.info('Using seed {0}'.format(args.seed))
-    log.info('Generating samples...')
-    workers = Manager.run_workers(
-            workers = workers,
+    prob_esimator_team = ModelProbabilityEstimatorTeam(
+            config_paths = args.configs,
+            num_samples = args.num_prior_samples,
+            omega_threshold = args.dispersion_threshold,
             num_processors = args.np)
-    log.info('Done!')
-    log.info('Summarizing results...')
-    for w in workers:
-        psi_summaries[w.tag].update(w.psi_summary)
-        omega_summaries[w.tag].update(w.omega_summary)
+    prob_esimator_team.start()
+
     for path in args.configs:
         sys.stdout.write('Prior probabilities for model {0}:\n'.format(
                 path))
-        sys.stdout.write('\tnum of divergence events = {0}: {1}\n'.format(
-                args.num_divergence_events,
-                psi_summaries[path].mean))
+        for k, p in prob_esimator_team.psi_probs[path].iteritems():
+            sys.stdout.write('\tnum of divergence events = {0}: {1}\n'.format(
+                    k,
+                    p))
         sys.stdout.write('\tdispersion of div times < {0}: {1}\n'.format(
                 args.dispersion_threshold,
-                omega_summaries[path].mean))
+                prob_esimator_team.omega_probs[path]))
 
     stop_time = datetime.datetime.now()
     log.info('[run_stats]')
