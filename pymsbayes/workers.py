@@ -13,7 +13,7 @@ from pymsbayes.fileio import (expand_path, process_file_arg, FileStream, open,
         GzipFileStream)
 from pymsbayes.config import MsBayesConfig
 from pymsbayes.utils.tempfs import TempFileSystem
-from pymsbayes.utils import get_tool_path, MSBAYES_SORT_INDEX
+from pymsbayes.utils import get_tool_path, MSBAYES_SORT_INDEX, probability
 from pymsbayes.utils.functions import (get_random_int, get_indices_of_patterns,
         reduce_columns, is_dir)
 from pymsbayes.utils.errors import WorkerExecutionError, PriorMergeError
@@ -1566,7 +1566,6 @@ class ModelProbabilityEstimator(object):
     count = 0
     def __init__(self, config,
             num_samples = 1000,
-            psi_of_interest = 1,
             omega_threshold = 0.01,
             rng = None,
             tag = None):
@@ -1575,10 +1574,11 @@ class ModelProbabilityEstimator(object):
         self.config = config
         if not isinstance(config, MsBayesConfig):
             self.config = MsBayesConfig(config)
+        self.npairs = self.config.npairs
         self.num_samples = num_samples
-        self.psi_of_interest = psi_of_interest
         self.omega_threshold = omega_threshold
-        self.psi_summary = SampleSummary()
+        self.psi_summary = dict(zip([i + 1 for i in range(self.npairs)],
+                [SampleSummary() for i in range(self.npairs)]))
         self.omega_summary = SampleSummary()
         self.rng = rng
         self.tag = tag
@@ -1610,23 +1610,27 @@ class ModelProbabilityEstimator(object):
                     'supported'.format(self.config.div_model_prior))
 
     def start(self):
-        psi_summarizer = SampleSummarizer()
+        psi_summarizer = dict(zip([i + 1 for i in range(self.npairs)],
+                [SampleSummarizer() for i in range(self.npairs)]))
         omega_summarizer = SampleSummarizer()
         prior_sample_iter = self.get_prior_sample_iter()
         for partition in prior_sample_iter:
-            if len(partition.values) == self.psi_of_interest:
-                psi_summarizer.add_sample(1)
-            else:
-                psi_summarizer.add_sample(0)
+            for k in psi_summarizer.iterkeys():
+                if len(partition.values) == k:
+                    psi_summarizer[k].add_sample(1)
+                else:
+                    psi_summarizer[k].add_sample(0)
             ss = SampleSummarizer(samples = partition.get_element_vector())
             d = ss.variance / ss.mean
             if d < self.omega_threshold:
                 omega_summarizer.add_sample(1)
             else:
                 omega_summarizer.add_sample(0)
-        self.psi_summary.update(SampleSummary(sample_size = psi_summarizer.n,
-                mean = psi_summarizer.mean,
-                variance = psi_summarizer.variance))
+        for k in self.psi_summary.iterkeys():
+            self.psi_summary[k].update(SampleSummary(
+                sample_size = psi_summarizer[k].n,
+                mean = psi_summarizer[k].mean,
+                variance = psi_summarizer[k].variance))
         self.omega_summary.update(SampleSummary(sample_size = omega_summarizer.n,
                 mean = omega_summarizer.mean,
                 variance = omega_summarizer.variance))
