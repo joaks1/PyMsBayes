@@ -11,15 +11,16 @@ import logging
 import glob
 import Queue
 
+from pymsbayes import config
 from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRegressWorker,
         EuRejectSummaryMerger, EuRejectWorker, PosteriorWorker,
-        merge_prior_files)
+        merge_prior_files, ModelProbabilityEstimator)
 from pymsbayes.utils.parsing import (get_stat_indices, parse_header,
         DEFAULT_STAT_PATTERNS, ALL_STAT_PATTERNS, parse_model_key_file)
 from pymsbayes.manager import Manager
 from pymsbayes.fileio import process_file_arg, expand_path, FileStream
 from pymsbayes.utils import (GLOBAL_RNG, WORK_FORCE, DUMP_DEBUG_INFO,
-        dump_memory_info)
+        dump_memory_info, stats, probability)
 from pymsbayes.utils.functions import (long_division, least_common_multiple,
         get_random_int, list_splitter, mk_new_dir)
 from pymsbayes.utils.stats import SampleSummaryCollection
@@ -1286,4 +1287,72 @@ class RejectionTeam(object):
         self.posterior_summary_path = pw.posterior_summary_path
         self.regress_summary_path = pw.regress_summary_path
         self.regress_posterior_path = pw.regress_posterior_path
+
+class ModelProbabilityEstimatorTeam(object):
+    count = 0
+    def __init__(self,
+            config_paths,
+            num_samples = 1000,
+            omega_threshold = 0.01,
+            num_processors = 4,
+            rng = None):
+        self.__class__.count += 1
+        self.name = self.__class__.__name__ + '-' + str(self.count)
+        self.rng = rng
+        if not rng:
+            self.rng = GLOBAL_RNG
+        self.np = num_processors
+        self.omega_threshold = omega_threshold
+        self.configs = dict(zip(config_paths,
+            [config.MsBayesConfig(c) for c in config_paths]))
+        self.psi_summaries = {}
+        self.psi_probs = {}
+        for p, c in self.configs.iteritems():
+            self.psi_summaries[p] = dict(zip([i + 1 for i in range(c.npairs)],
+                    [stats.SampleSummary() for i in range(c.npairs)]))
+            self.psi_probs[p] = dict(zip([i + 1 for i in range(c.npairs)],
+                    [None for i in range(c.npairs)]))
+        self.omega_summaries = dict(zip(self.configs.iterkeys(),
+                [stats.SampleSummary() for c in self.configs.iterkeys()]))
+        self.omega_probs = dict(zip(self.configs.iterkeys(),
+                [None for c in self.configs.iterkeys()]))
+        self.num_samples = num_samples
+        if self.np > self.num_samples:
+            self.np = self.num_samples
+        self.batch_size, self.remainder = long_division(self.num_samples,
+                self.np)
+
+    def start(self):
+        workers = []
+        for path, cfg in self.configs.iteritems():
+            for i in range(self.np):
+                sample_size = self.batch_size
+                if i == (self.np - 1):
+                    sample_size += self.remainder
+                w = ModelProbabilityEstimator(
+                        config = cfg,
+                        num_samples = sample_size,
+                        omega_threshold = self.omega_threshold,
+                        tag = path)
+                workers.append(w)
+        _LOG.info('{0}: Generating samples...'.format(self.name))
+        workers = Manager.run_workers(
+                workers = workers,
+                num_processors = self.np)
+        _LOG.info('{0}: Done!'.format(self.name))
+        _LOG.info('{0}: Summarizing results...'.format(self.name))
+        for w in workers:
+            for k in self.psi_summaries[w.tag].iterkeys():
+                self.psi_summaries[w.tag][k].update(w.psi_summary[k])
+            self.omega_summaries[w.tag].update(w.omega_summary)
+        for path in self.configs.iterkeys():
+            total = 0.0
+            for k, s in self.psi_summaries[path].iteritems():
+                self.psi_probs[path][k] = s.mean
+                total += s.mean
+            if not probability.almost_equal(total, 1.0, places=7):
+                raise Exception('Error in estimating probabilities of the '
+                        'number of divergences for {0}. The total probability '
+                        'summed to {1}'.format(path, total))
+            self.omega_probs[path] = self.omega_summaries[path].mean
 
