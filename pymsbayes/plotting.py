@@ -10,7 +10,7 @@ from pymsbayes.utils.stats import (get_freqs, Partition, IntegerPartition,
 from pymsbayes.utils import probability
 from pymsbayes.utils.probability import (almost_equal,
         get_probability_from_bayes_factor)
-from pymsbayes.utils.functions import frange
+from pymsbayes.utils.functions import frange, list_splitter
 from pymsbayes.utils.parsing import DMCSimulationResults, spreadsheet_iter
 from pymsbayes.utils import GLOBAL_RNG
 from pymsbayes.utils.messaging import get_logger
@@ -874,8 +874,10 @@ class PlotGrid(object):
             raise Exception('invalid label schema {0!r}'.format(
                     self.label_schema))
 
-    def get_widest_x_limits(self):
-        for i, subplot in enumerate(self.subplots):
+    def get_widest_x_limits(self, plots = None):
+        if not plots:
+            plots = self.subplots
+        for i, subplot in enumerate(plots):
             if i == 0:
                 x_min, x_max = subplot.get_xlim()
                 continue
@@ -884,8 +886,10 @@ class PlotGrid(object):
             x_max =  max([x_max, xmax])
         return x_min, x_max
 
-    def get_widest_y_limits(self):
-        for i, subplot in enumerate(self.subplots):
+    def get_widest_y_limits(self, plots = None):
+        if not plots:
+            plots = self.subplots
+        for i, subplot in enumerate(plots):
             if i == 0:
                 y_min, y_max = subplot.get_ylim()
                 continue
@@ -900,11 +904,19 @@ class PlotGrid(object):
             subplot.set_xlim(left = x_min, right = x_max)
             subplot.reset_plot()
 
-    def set_shared_y_limits(self):
-        y_min, y_max = self.get_widest_y_limits()
-        for subplot in self.subplots:
-            subplot.set_ylim(bottom = y_min, top = y_max)
-            subplot.reset_plot()
+    def set_shared_y_limits(self, by_row = False):
+        groups = list_splitter(self.subplots,
+                len(self.subplots),
+                by_size = True)
+        if by_row:
+            groups = list_splitter(self.subplots,
+                    self.num_columns,
+                    by_size = True)
+        for group in groups:
+            y_min, y_max = self.get_widest_y_limits(plots = group)
+            for subplot in group:
+                subplot.set_ylim(bottom = y_min, top = y_max)
+                subplot.reset_plot()
 
     def reset_figure(self):
         nrows = self.get_num_rows()
