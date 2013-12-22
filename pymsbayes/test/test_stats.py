@@ -1278,7 +1278,30 @@ class PartitionTestCase(unittest.TestCase):
         self.assertAlmostEqual(base_distribution.mean,
                 sum(vals) / float(len(vals)),
                 places = 1)
-            
+
+    def test_number_of_partitions(self):
+        p = Partition([0] * 1)
+        self.assertEqual(p.number_of_partitions(), 1)
+        p = Partition([0] * 2)
+        self.assertEqual(p.number_of_partitions(), 2)
+        p = Partition([0] * 3)
+        self.assertEqual(p.number_of_partitions(), 5)
+        p = Partition([0] * 4)
+        self.assertEqual(p.number_of_partitions(), 15)
+
+    def test_number_of_partitions_into_k_subsets(self):
+        p = Partition([0] * 2)
+        self.assertEqual(p.number_of_partitions_into_k_subsets(1), 1)
+        self.assertEqual(p.number_of_partitions_into_k_subsets(2), 1)
+        p = Partition([0] * 3)
+        self.assertEqual(p.number_of_partitions_into_k_subsets(1), 1)
+        self.assertEqual(p.number_of_partitions_into_k_subsets(2), 3)
+        self.assertEqual(p.number_of_partitions_into_k_subsets(3), 1)
+        p = Partition([0] * 4)
+        self.assertEqual(p.number_of_partitions_into_k_subsets(1), 1)
+        self.assertEqual(p.number_of_partitions_into_k_subsets(4), 1)
+        self.assertEqual(p.number_of_partitions_into_k_subsets(2), 7)
+        self.assertEqual(p.number_of_partitions_into_k_subsets(3), 6)
 
 class PartitionCollectionTestCase(PyMsBayesTestCase):
 

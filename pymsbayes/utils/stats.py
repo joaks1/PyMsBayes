@@ -825,6 +825,22 @@ class Partition(object):
             else:
                 yield Partition(elements)
 
+    def number_of_partitions(self):
+        """
+        Total number of unique partitions (I.e., the Bell number).
+        """
+        n = len(self.partition)
+        bell_num = 0
+        for i in range(n):
+            bell_num += stirling2(n, (i+1))
+        return bell_num
+
+    def number_of_partitions_into_k_subsets(self, k):
+        """
+        The number of unique ways to partition into `k` categories. (I.e., the
+        Stirling number of 2nd kind).
+        """
+        return stirling2(len(self.partition), k)
 
 class PartitionCollection(object):
     def __init__(self, partitions = None):
@@ -1286,4 +1302,57 @@ def mean_squared_error(x, y):
 
 def root_mean_square_error(x, y):
     return mean_squared_error(x, y) ** 0.5
+
+def stirling2_row():
+    """
+    Generate next row of Stirling numbers of the second kind
+    """
+    
+    row = [1]
+    yield row
+    while True:
+        mrow = [i*j for (i,j) in enumerate(row)]
+        row = [i+j for (i,j) in zip(mrow + [0], [0] + row)]
+        yield row
+
+def stirling1_row():
+    """
+    Generate next row of Stirling numbers of the first kind
+    """
+    
+    row = [1]
+    yield row
+    while True:
+        n = len(row)
+        mrow = [i*(n-1) for i in row]
+        row = [i+j for (i,j) in zip(mrow + [0], [0] + row)]
+        yield row
+        
+def stirling2(n, k):
+    """
+    Number of ways to partition n objects into k subsets
+    """
+    
+    if n == 0:
+        return 1
+    if k == 1:
+        return 1
+    s = stirling2_row()
+    for i in range(n + 1):
+        r = s.next()
+    return r[k]
+
+def stirling1(n, k):
+    """
+    Number of ways to arrange n objects into k cycles
+    """
+    
+    if n == 0:
+        return 1
+    if k == 1:
+        return 1
+    s = stirling1_row()
+    for i in range(n + 1):
+        r = s.next()
+    return r[k]
 
