@@ -916,6 +916,12 @@ class PlotGrid(object):
             y_min, y_max = self.get_widest_y_limits(plots = group)
             for subplot in group:
                 subplot.set_ylim(bottom = y_min, top = y_max)
+                if not subplot.is_first_col():
+                    yticks = [i for i in subplot.ax.get_yticks()]
+                    ytick_labels = ['' for i in yticks]
+                    yticks_obj = Ticks(ticks = yticks,
+                            labels = ytick_labels)
+                    subplot.yticks_obj = yticks_obj
                 subplot.reset_plot()
 
     def reset_figure(self):
