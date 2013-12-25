@@ -115,11 +115,6 @@ class ErrorData(object):
         self.kwargs = kwargs
 
     def plot(self, ax):
-        print self.points
-        print self.y_positions
-        print self.error_mins
-        print self.error_maxs
-        print self.xerr
         l = ax.errorbar(x = self.points,
                 y = self.y_positions,
                 xerr = self.xerr,
