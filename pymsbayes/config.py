@@ -33,7 +33,7 @@ class MsBayesConfig(object):
         self.theta_parameters = None
         self.bottle_proportion = None
         self.bottle_proportion_shared = None
-        self.taxa = set()
+        self.taxa = []
         self.sample_table = []
         self._parse_config(cfg_file)
 
@@ -83,12 +83,11 @@ class MsBayesConfig(object):
         return preamble, table
 
     def _parse_table(self, table):
-        self.taxa = set()
         self.sample_table = []
         for i, row in enumerate(table):
             r = row.strip().split()
-            if r:
-                self.taxa.add(r[0])
+            if r and (r[0] not in self.taxa):
+                self.taxa.append(r[0])
             self.sample_table.append(r)
         self.npairs = len(self.taxa)
     
