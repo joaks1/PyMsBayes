@@ -319,6 +319,8 @@ class ScatterPlot(object):
             plot_label = None,
             x_label = None,
             y_label = None,
+            x_label_size = None,
+            y_label_size = None,
             extra_y_label = None,
             extra_y_label_offset = 0.05,
             left_text = None,
@@ -343,6 +345,8 @@ class ScatterPlot(object):
         self._plot_label = plot_label
         self._x_label = x_label
         self._y_label = y_label
+        self.x_label_size = x_label_size
+        self.y_label_size = y_label_size
         self._extra_y_label = extra_y_label
         self.extra_y_label_offset = extra_y_label_offset
         self._left_text = left_text
@@ -670,6 +674,8 @@ class ScatterPlot(object):
         if self._x_label is None:
             return
         self.remove_text_object(self.text_objects['x_label'])
+        if self.x_label_size:
+            kwargs['fontsize'] = self.x_label_size
         self.text_objects['x_label'] = self.ax.set_xlabel(
                 xlabel = self._x_label,
                 fontdict = fontdict,
@@ -683,6 +689,8 @@ class ScatterPlot(object):
         if self._y_label is None:
             return
         self.remove_text_object(self.text_objects['y_label'])
+        if self.y_label_size:
+            kwargs['fontsize'] = self.y_label_size
         self.text_objects['y_label'] = self.ax.set_ylabel(
                 ylabel = self._y_label,
                 fontdict = fontdict,
@@ -2442,7 +2450,13 @@ def get_marginal_divergence_time_plot(config_path, posterior_summary_path,
         time_multiplier = 1.0,
         height = 4.0,
         width = 8.0,
-        label_size = 10.0):
+        label_size = 12.0,
+        x_tick_label_size = 12.0,
+        x_label = 'Divergence time',
+        y_label = 'Taxon pair',
+        x_label_size = 14.0,
+        y_label_size = 14.0):
+    matplotlib.rc('text',**{'usetex': True})
     cfg = config.MsBayesConfig(config_path)
     summary = parse_posterior_summary_file(posterior_summary_path)
     times = []
@@ -2464,8 +2478,16 @@ def get_marginal_divergence_time_plot(config_path, posterior_summary_path,
             label_size = label_size)
     sp = ScatterPlot(
             error_data_list = [ed],
-            x_label = 'Divergence time',
-            y_label = 'Taxon pair')
+            x_label = x_label,
+            y_label = y_label,
+            x_label_size = x_label_size,
+            y_label_size = y_label_size)
+    xticks = [i for i in sp.ax.get_xticks()]
+    xtick_labels = [i for i in xticks]
+    xticks_obj = Ticks(xticks,
+            labels = xtick_labels,
+            size = x_tick_label_size)
+    sp.xticks_obj = xticks_obj
     pg = PlotGrid(subplots = [sp],
             num_columns = 1,
             label_schema = None,
