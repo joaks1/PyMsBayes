@@ -5,13 +5,15 @@ import sys
 import math
 import string
 
+from pymsbayes import config
 from pymsbayes.utils.stats import (get_freqs, Partition, IntegerPartition,
         ValidationProbabilities, root_mean_square_error)
 from pymsbayes.utils import probability
 from pymsbayes.utils.probability import (almost_equal,
         get_probability_from_bayes_factor)
 from pymsbayes.utils.functions import frange, list_splitter
-from pymsbayes.utils.parsing import DMCSimulationResults, spreadsheet_iter
+from pymsbayes.utils.parsing import (DMCSimulationResults, spreadsheet_iter,
+        parse_posterior_summary_file)
 from pymsbayes.utils import GLOBAL_RNG
 from pymsbayes.utils.messaging import get_logger
 
@@ -59,6 +61,80 @@ class ScatterData(object):
         if self.markersize != None:
             args['markersize'] = self.markersize
         plt.setp(l, **args)
+        return l
+
+class ErrorData(object):
+    def __init__(self,
+            labels,
+            points,
+            error_mins,
+            error_maxs,
+            marker = 'o',
+            markerfacecolor = '0.35',
+            markeredgecolor = '0.35',
+            markeredgewidth = 2.0,
+            markersize = 6.0,
+            linestyle = '',
+            ecolor = '0.35',
+            elinewidth = 3.0,
+            capsize = 4,
+            barsabove = False,
+            label_size = 10.0,
+            zorder = 100,
+            **kwargs):
+        assert len(labels) == len(points)
+        assert len(points) == len(error_mins)
+        assert len(points) == len(error_maxs)
+        self.labels = [''] + list(labels) + ['']
+        self.points = points
+        self.y_positions = [i + 1 for i in range(len(self.points))]
+        y_ticks = list(range(0, len(self.points) + 2))
+        self.yticks_obj = Ticks(ticks = y_ticks,
+                minor = False,
+                labels = self.labels,
+                size = label_size)
+        self.error_mins = error_mins
+        self.error_maxs = error_maxs
+        self.xerr = [self.error_mins, self.error_maxs]
+        self.xerr = [
+                [self.points[i] - self.error_mins[i] for i in range(len(
+                        self.points))],
+                [self.error_maxs[i] - self.points[i] for i in range(len(
+                        self.points))]]
+        self.marker = marker
+        self.markerfacecolor = markerfacecolor
+        self.markeredgecolor = markeredgecolor
+        self.markeredgewidth = markeredgewidth
+        self.markersize = markersize
+        self.linestyle = linestyle
+        self.ecolor = ecolor
+        self.elinewidth = elinewidth
+        self.capsize = capsize
+        self.barsabove = barsabove
+        self.zorder = zorder
+        self.kwargs = kwargs
+
+    def plot(self, ax):
+        print self.points
+        print self.y_positions
+        print self.error_mins
+        print self.error_maxs
+        print self.xerr
+        l = ax.errorbar(x = self.points,
+                y = self.y_positions,
+                xerr = self.xerr,
+                ecolor = self.ecolor,
+                elinewidth = self.elinewidth,
+                capsize = self.capsize,
+                barsabove = self.barsabove,
+                marker = self.marker,
+                linestyle = self.linestyle,
+                markerfacecolor = self.markerfacecolor,
+                markeredgecolor = self.markeredgecolor,
+                markeredgewidth = self.markeredgewidth,
+                zorder = self.zorder,
+                **self.kwargs)
+        ax.set_ylim(bottom = 0, top = len(self.points) + 1)
         return l
 
 class HistData(object):
@@ -244,6 +320,7 @@ class ScatterPlot(object):
             hist_data_list = [],
             vertical_lines = [],
             horizontal_lines = [],
+            error_data_list = [],
             plot_label = None,
             x_label = None,
             y_label = None,
@@ -265,6 +342,7 @@ class ScatterPlot(object):
         self.hist_data_list = list(hist_data_list)
         self.vertical_lines = list(vertical_lines)
         self.horizontal_lines = list(horizontal_lines)
+        self.error_data_list = list(error_data_list)
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot(*position)
         self._plot_label = plot_label
@@ -344,6 +422,8 @@ class ScatterPlot(object):
             self._plot_v_line(v)
         for h in self.horizontal_lines:
             self._plot_h_line(h)
+        for e in self.error_data_list:
+            self._plot_error_data(e)
         self.ax.set_xlim(left = self.xlim_left, right = self.xlim_right)
         self.ax.set_ylim(bottom = self.ylim_bottom, top = self.ylim_top)
         if self.xticks_obj:
@@ -368,6 +448,10 @@ class ScatterPlot(object):
 
     def _plot_hist_data(self, h):
         n, bins, patches = h.plot(self.ax)
+
+    def _plot_error_data(self, e):
+        l = e.plot(self.ax)
+        self.yticks_obj = e.yticks_obj
 
     def append_plot(self):
         self._plot()
@@ -2356,3 +2440,47 @@ def get_tau_prior_in_generations(cfg, mu = 1e-8):
                 cfg.tau)))
     
 
+def get_marginal_divergence_time_plot(config_path, posterior_summary_path,
+        labels = None,
+        estimate = 'median',
+        interval = 'HPD_95_interval',
+        time_multiplier = 1.0,
+        height = 4.0,
+        width = 8.0,
+        label_size = 10.0):
+    cfg = config.MsBayesConfig(config_path)
+    summary = parse_posterior_summary_file(posterior_summary_path)
+    times = []
+    error_mins = []
+    error_maxs = []
+    for i, t in enumerate(cfg.taxa):
+        key = 'PRI.t.' + str(i + 1)
+        times.append(float(summary[key][estimate]) * time_multiplier)
+        mn_mx = [float(x) * time_multiplier for x in summary[key][interval]]
+        assert len(mn_mx) == 2
+        error_mins.append(mn_mx[0])
+        error_maxs.append(mn_mx[-1])
+    if not labels:
+        labels = cfg.taxa
+    ed = ErrorData(labels = labels,
+            points = times,
+            error_mins = error_mins,
+            error_maxs = error_maxs,
+            label_size = label_size)
+    sp = ScatterPlot(
+            error_data_list = [ed],
+            x_label = 'Divergence time',
+            y_label = 'Taxon pair')
+    pg = PlotGrid(subplots = [sp],
+            num_columns = 1,
+            label_schema = None,
+            height = height,
+            width = width,
+            auto_height = False)
+    pg.auto_adjust_margins = False
+    pg.margin_bottom = 0.0
+    pg.margin_left = 0.0
+    pg.margin_right = 1.0
+    pg.margin_top = 1.0
+    pg.reset_figure()
+    return pg
