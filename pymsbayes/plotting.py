@@ -69,6 +69,7 @@ class ErrorData(object):
             points,
             error_mins,
             error_maxs,
+            horizontal = True,
             marker = 'o',
             markerfacecolor = '0.35',
             markeredgecolor = '0.35',
@@ -80,23 +81,35 @@ class ErrorData(object):
             capsize = 4,
             barsabove = False,
             label_size = 10.0,
+            measure_tick_label_size = 10.0,
             zorder = 100,
             **kwargs):
         assert len(labels) == len(points)
         assert len(points) == len(error_mins)
         assert len(points) == len(error_maxs)
+        self.horizontal = horizontal
         self.labels = [''] + list(labels) + ['']
         self.points = points
-        self.y_positions = [i + 1 for i in range(len(self.points))]
-        y_ticks = list(range(0, len(self.points) + 2))
-        self.yticks_obj = Ticks(ticks = y_ticks,
-                minor = False,
-                labels = self.labels,
-                size = label_size)
+        self.positions = [i + 1 for i in range(len(self.points))]
+        ticks = list(range(0, len(self.points) + 2))
+        if self.horizontal:
+            self.yticks_obj = Ticks(ticks = ticks,
+                    minor = False,
+                    labels = self.labels,
+                    size = label_size)
+            self.xticks_obj = None
+        else:
+            self.xticks_obj = Ticks(ticks = ticks,
+                    minor = False,
+                    labels = self.labels,
+                    size = label_size,
+                    rotation = 'vertical')
+            self.yticks_obj = None
+        self.measure_tick_label_size = measure_tick_label_size
         self.error_mins = error_mins
         self.error_maxs = error_maxs
-        self.xerr = [self.error_mins, self.error_maxs]
-        self.xerr = [
+        self.err = [self.error_mins, self.error_maxs]
+        self.err = [
                 [self.points[i] - self.error_mins[i] for i in range(len(
                         self.points))],
                 [self.error_maxs[i] - self.points[i] for i in range(len(
@@ -115,21 +128,48 @@ class ErrorData(object):
         self.kwargs = kwargs
 
     def plot(self, ax):
-        l = ax.errorbar(x = self.points,
-                y = self.y_positions,
-                xerr = self.xerr,
-                ecolor = self.ecolor,
-                elinewidth = self.elinewidth,
-                capsize = self.capsize,
-                barsabove = self.barsabove,
-                marker = self.marker,
-                linestyle = self.linestyle,
-                markerfacecolor = self.markerfacecolor,
-                markeredgecolor = self.markeredgecolor,
-                markeredgewidth = self.markeredgewidth,
-                zorder = self.zorder,
-                **self.kwargs)
-        ax.set_ylim(bottom = 0, top = len(self.points) + 1)
+        if self.horizontal:
+            l = ax.errorbar(x = self.points,
+                    y = self.positions,
+                    xerr = self.err,
+                    ecolor = self.ecolor,
+                    elinewidth = self.elinewidth,
+                    capsize = self.capsize,
+                    barsabove = self.barsabove,
+                    marker = self.marker,
+                    linestyle = self.linestyle,
+                    markerfacecolor = self.markerfacecolor,
+                    markeredgecolor = self.markeredgecolor,
+                    markeredgewidth = self.markeredgewidth,
+                    zorder = self.zorder,
+                    **self.kwargs)
+            ax.set_ylim(bottom = 0, top = len(self.points) + 1)
+            ticks = [i for i in ax.get_xticks()]
+            tick_labels = [i for i in ticks]
+            self.xticks_obj = Ticks(ticks,
+                    labels = tick_labels,
+                    size = self.measure_tick_label_size)
+        else:
+            l = ax.errorbar(x = self.positions,
+                    y = self.points,
+                    yerr = self.err,
+                    ecolor = self.ecolor,
+                    elinewidth = self.elinewidth,
+                    capsize = self.capsize,
+                    barsabove = self.barsabove,
+                    marker = self.marker,
+                    linestyle = self.linestyle,
+                    markerfacecolor = self.markerfacecolor,
+                    markeredgecolor = self.markeredgecolor,
+                    markeredgewidth = self.markeredgewidth,
+                    zorder = self.zorder,
+                    **self.kwargs)
+            ax.set_xlim(left = 0, right = len(self.points) + 1)
+            ticks = [i for i in ax.get_yticks()]
+            tick_labels = [i for i in ticks]
+            self.yticks_obj = Ticks(ticks,
+                    labels = tick_labels,
+                    size = self.measure_tick_label_size)
         return l
 
 class HistData(object):
@@ -450,6 +490,7 @@ class ScatterPlot(object):
 
     def _plot_error_data(self, e):
         l = e.plot(self.ax)
+        self.xticks_obj = e.xticks_obj
         self.yticks_obj = e.yticks_obj
 
     def append_plot(self):
@@ -2443,19 +2484,25 @@ def get_tau_prior_in_generations(cfg, mu = 1e-8):
                 cfg.tau)))
     
 
+class UnorderedDivergenceModelPlotGrid(object):
+    def __init__(self, div_model_results_path,
+            num_top_models = 10):
+        pass
+
 def get_marginal_divergence_time_plot(config_path, posterior_summary_path,
         labels = None,
         estimate = 'median',
         interval = 'HPD_95_interval',
         time_multiplier = 1.0,
-        height = 4.0,
-        width = 8.0,
+        horizontal = True,
+        label_dimension = 4.0,
+        measure_dimension = 8.0,
         label_size = 12.0,
-        x_tick_label_size = 12.0,
-        x_label = 'Divergence time',
-        y_label = 'Taxon pair',
-        x_label_size = 14.0,
-        y_label_size = 14.0):
+        measure_tick_label_size = 12.0,
+        measure_axis_label = 'Divergence time',
+        measure_axis_label_size = 14.0,
+        label_axis_label = 'Taxon pair',
+        label_axis_label_size = 14.0):
     matplotlib.rc('text',**{'usetex': True})
     cfg = config.MsBayesConfig(config_path)
     summary = parse_posterior_summary_file(posterior_summary_path)
@@ -2475,19 +2522,28 @@ def get_marginal_divergence_time_plot(config_path, posterior_summary_path,
             points = times,
             error_mins = error_mins,
             error_maxs = error_maxs,
+            horizontal = horizontal,
             label_size = label_size)
+    if horizontal:
+        x_label = measure_axis_label
+        x_label_size = measure_axis_label_size
+        y_label = label_axis_label
+        y_label_size = label_axis_label_size
+        height = label_dimension
+        width = measure_dimension
+    else:
+        y_label = measure_axis_label
+        y_label_size = measure_axis_label_size
+        x_label = label_axis_label
+        x_label_size = label_axis_label_size
+        width = label_dimension
+        height = measure_dimension
     sp = ScatterPlot(
             error_data_list = [ed],
             x_label = x_label,
             y_label = y_label,
             x_label_size = x_label_size,
             y_label_size = y_label_size)
-    xticks = [i for i in sp.ax.get_xticks()]
-    xtick_labels = [i for i in xticks]
-    xticks_obj = Ticks(xticks,
-            labels = xtick_labels,
-            size = x_tick_label_size)
-    sp.xticks_obj = xticks_obj
     pg = PlotGrid(subplots = [sp],
             num_columns = 1,
             label_schema = None,
@@ -2501,3 +2557,4 @@ def get_marginal_divergence_time_plot(config_path, posterior_summary_path,
     pg.margin_top = 1.0
     pg.reset_figure()
     return pg
+
