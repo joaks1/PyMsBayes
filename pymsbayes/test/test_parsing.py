@@ -8,6 +8,7 @@ from cStringIO import StringIO
 
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test.support import package_paths
+from pymsbayes.utils import parsing
 from pymsbayes.utils.parsing import *
 from pymsbayes.utils.errors import *
 from pymsbayes.utils.messaging import get_logger
@@ -982,6 +983,188 @@ class ParseDataKeyFile(unittest.TestCase):
                     '../observed-summary-stats/observed-3.txt'))}
         observed_paths = parse_data_key_file(data_key_path)
         self.assertEqual(observed_paths, expected)
+
+class UnorderedDivergenceModelResultsTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.unordered_path = package_paths.data_path(
+                'div-model-results-unordered.txt')
+        self.ordered_path = package_paths.data_path(
+                os.path.join('posterior-sample.txt.gz'))
+        self.error_ordered_path = package_paths.data_path(
+                'div-model-results-ordered.txt')
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_unordered_default(self):
+        dmr = parsing.UnorderedDivergenceModelResults(self.unordered_path)
+        self.assertEqual(dmr.inclusion_threshold, None)
+        self.assertEqual(dmr.n, 10)
+        self.assertEqual(len(dmr.models), 10)
+        self.assertAlmostEqual(dmr.cumulative_prob, 0.7688)
+        m = dmr.models[0]
+        self.assertAlmostEqual(m.prob, 0.1242)
+        self.assertAlmostEqual(m.glm_prob, 0.0353091998847)
+        self.assertEqual(m.int_partition, [3,2,2,1,1])
+        expected = [(3, {'median': 1.51219542433,
+                         'hpdi_95': (0.00699511563, 5.92942280407)}),
+                    (2, {'median': 6.42942517612,
+                         'hpdi_95': (0.77383756206, 11.8377290206)}),
+                    (2, {'median': 1.33098309672,
+                         'hpdi_95': (0.01390793892, 4.21923713971)}),
+                    (1, {'median': 6.19116738868,
+                         'hpdi_95': (0.46908780651,13.0106869174)}),
+                    (1, {'median': 1.70430466557,
+                         'hpdi_95': (0.00071452689, 8.43855632832)})]
+        for i, (k, d) in enumerate(m.iter_divergences()):
+            k_exp, d_exp = expected[i]
+            self.assertEqual(k, k_exp)
+            self.assertAlmostEqual(d['median'], d_exp['median'])
+            self.assertAlmostEqual(d['hpdi_95'][0], d_exp['hpdi_95'][0])
+            self.assertAlmostEqual(d['hpdi_95'][1], d_exp['hpdi_95'][1])
+        m = dmr.models[1]
+        expected = [(2, {'median': 3.38446408604,
+                         'hpdi_95': (0.52752450757,10.6079901713)}),
+                    (2, {'median': 1.0075068599,
+                         'hpdi_95': (0.00675167243,2.92409287271)}),
+                    (1, {'median': 9.59616311192,
+                         'hpdi_95': (3.39250060621,14.8779562898)}),
+                    (1, {'median': 6.31459966875,
+                         'hpdi_95': (1.85189189765,11.1637065608)}),
+                    (1, {'median': 3.37663824782,
+                         'hpdi_95': (0.82221883054,7.26293836489)}),
+                    (1, {'median': 1.77483163725,
+                         'hpdi_95': (0.23729279096,4.27691977245)}),
+                    (1, {'median': 0.735661610655,
+                         'hpdi_95': (0.00535012879,2.29339636862)})]
+        for i, (k, d) in enumerate(m.iter_divergences()):
+            k_exp, d_exp = expected[i]
+            self.assertEqual(k, k_exp)
+            self.assertAlmostEqual(d['median'], d_exp['median'])
+            self.assertAlmostEqual(d['hpdi_95'][0], d_exp['hpdi_95'][0])
+            self.assertAlmostEqual(d['hpdi_95'][1], d_exp['hpdi_95'][1])
+
+    def test_unordered_by_num(self):
+        dmr = parsing.UnorderedDivergenceModelResults(self.unordered_path,
+                inclusion_threshold = 3)
+        self.assertEqual(dmr.inclusion_threshold, 3)
+        self.assertEqual(dmr.n, 3)
+        self.assertEqual(len(dmr.models), 3)
+        self.assertAlmostEqual(dmr.cumulative_prob, 0.3442)
+        m = dmr.models[0]
+        self.assertAlmostEqual(m.prob, 0.1242)
+        self.assertAlmostEqual(m.glm_prob, 0.0353091998847)
+        self.assertEqual(m.int_partition, [3,2,2,1,1])
+        expected = [(3, {'median': 1.51219542433,
+                         'hpdi_95': (0.00699511563, 5.92942280407)}),
+                    (2, {'median': 6.42942517612,
+                         'hpdi_95': (0.77383756206, 11.8377290206)}),
+                    (2, {'median': 1.33098309672,
+                         'hpdi_95': (0.01390793892, 4.21923713971)}),
+                    (1, {'median': 6.19116738868,
+                         'hpdi_95': (0.46908780651,13.0106869174)}),
+                    (1, {'median': 1.70430466557,
+                         'hpdi_95': (0.00071452689, 8.43855632832)})]
+        for i, (k, d) in enumerate(m.iter_divergences()):
+            k_exp, d_exp = expected[i]
+            self.assertEqual(k, k_exp)
+            self.assertAlmostEqual(d['median'], d_exp['median'])
+            self.assertAlmostEqual(d['hpdi_95'][0], d_exp['hpdi_95'][0])
+            self.assertAlmostEqual(d['hpdi_95'][1], d_exp['hpdi_95'][1])
+        m = dmr.models[1]
+        expected = [(2, {'median': 3.38446408604,
+                         'hpdi_95': (0.52752450757,10.6079901713)}),
+                    (2, {'median': 1.0075068599,
+                         'hpdi_95': (0.00675167243,2.92409287271)}),
+                    (1, {'median': 9.59616311192,
+                         'hpdi_95': (3.39250060621,14.8779562898)}),
+                    (1, {'median': 6.31459966875,
+                         'hpdi_95': (1.85189189765,11.1637065608)}),
+                    (1, {'median': 3.37663824782,
+                         'hpdi_95': (0.82221883054,7.26293836489)}),
+                    (1, {'median': 1.77483163725,
+                         'hpdi_95': (0.23729279096,4.27691977245)}),
+                    (1, {'median': 0.735661610655,
+                         'hpdi_95': (0.00535012879,2.29339636862)})]
+        for i, (k, d) in enumerate(m.iter_divergences()):
+            k_exp, d_exp = expected[i]
+            self.assertEqual(k, k_exp)
+            self.assertAlmostEqual(d['median'], d_exp['median'])
+            self.assertAlmostEqual(d['hpdi_95'][0], d_exp['hpdi_95'][0])
+            self.assertAlmostEqual(d['hpdi_95'][1], d_exp['hpdi_95'][1])
+
+    def test_unordered_by_num(self):
+        dmr = parsing.UnorderedDivergenceModelResults(self.unordered_path,
+                inclusion_threshold = 0.35)
+        self.assertEqual(dmr.inclusion_threshold, 0.35)
+        self.assertEqual(dmr.n, 4)
+        self.assertEqual(len(dmr.models), 4)
+        self.assertAlmostEqual(dmr.cumulative_prob, 0.426)
+        m = dmr.models[0]
+        self.assertAlmostEqual(m.prob, 0.1242)
+        self.assertAlmostEqual(m.glm_prob, 0.0353091998847)
+        self.assertEqual(m.int_partition, [3,2,2,1,1])
+        expected = [(3, {'median': 1.51219542433,
+                         'hpdi_95': (0.00699511563, 5.92942280407)}),
+                    (2, {'median': 6.42942517612,
+                         'hpdi_95': (0.77383756206, 11.8377290206)}),
+                    (2, {'median': 1.33098309672,
+                         'hpdi_95': (0.01390793892, 4.21923713971)}),
+                    (1, {'median': 6.19116738868,
+                         'hpdi_95': (0.46908780651,13.0106869174)}),
+                    (1, {'median': 1.70430466557,
+                         'hpdi_95': (0.00071452689, 8.43855632832)})]
+        for i, (k, d) in enumerate(m.iter_divergences()):
+            k_exp, d_exp = expected[i]
+            self.assertEqual(k, k_exp)
+            self.assertAlmostEqual(d['median'], d_exp['median'])
+            self.assertAlmostEqual(d['hpdi_95'][0], d_exp['hpdi_95'][0])
+            self.assertAlmostEqual(d['hpdi_95'][1], d_exp['hpdi_95'][1])
+        m = dmr.models[1]
+        expected = [(2, {'median': 3.38446408604,
+                         'hpdi_95': (0.52752450757,10.6079901713)}),
+                    (2, {'median': 1.0075068599,
+                         'hpdi_95': (0.00675167243,2.92409287271)}),
+                    (1, {'median': 9.59616311192,
+                         'hpdi_95': (3.39250060621,14.8779562898)}),
+                    (1, {'median': 6.31459966875,
+                         'hpdi_95': (1.85189189765,11.1637065608)}),
+                    (1, {'median': 3.37663824782,
+                         'hpdi_95': (0.82221883054,7.26293836489)}),
+                    (1, {'median': 1.77483163725,
+                         'hpdi_95': (0.23729279096,4.27691977245)}),
+                    (1, {'median': 0.735661610655,
+                         'hpdi_95': (0.00535012879,2.29339636862)})]
+        for i, (k, d) in enumerate(m.iter_divergences()):
+            k_exp, d_exp = expected[i]
+            self.assertEqual(k, k_exp)
+            self.assertAlmostEqual(d['median'], d_exp['median'])
+            self.assertAlmostEqual(d['hpdi_95'][0], d_exp['hpdi_95'][0])
+            self.assertAlmostEqual(d['hpdi_95'][1], d_exp['hpdi_95'][1])
+
+    def test_ordered(self):
+        self.assertRaises(Exception, parsing.UnorderedDivergenceModelResults,
+                self.error_ordered_path)
+        dmr = parsing.UnorderedDivergenceModelResults(self.ordered_path,
+                inclusion_threshold = 10)
+        self.assertEqual(dmr.inclusion_threshold, 10)
+        self.assertEqual(dmr.n, 10)
+        self.assertEqual(len(dmr.models), 10)
+        self.assertTrue((dmr.cumulative_prob > 0.0) and (
+                dmr.cumulative_prob < 1.0))
+        prev_prob = 1.0
+        for m in dmr.models:
+            self.assertTrue(m.prob < prev_prob)
+            prev_prob = m.prob
+            self.assertEqual(m.glm_prob, None)
+            prev_med = 999999.9
+            prev_i = 99999
+            for i, (k, d) in enumerate(m.iter_divergences()):
+                if i == prev_i:
+                    self.assertTrue(d['median'] < prev_med)
+                prev_i = i
+                prev_med = d['median']
 
 if __name__ == '__main__':
     unittest.main()
