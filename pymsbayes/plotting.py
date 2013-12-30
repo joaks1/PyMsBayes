@@ -13,7 +13,7 @@ from pymsbayes.utils.probability import (almost_equal,
         get_probability_from_bayes_factor)
 from pymsbayes.utils.functions import frange, list_splitter
 from pymsbayes.utils.parsing import (DMCSimulationResults, spreadsheet_iter,
-        parse_posterior_summary_file)
+        parse_posterior_summary_file, UnorderedDivergenceModelResults)
 from pymsbayes.utils import GLOBAL_RNG
 from pymsbayes.utils.messaging import get_logger
 
@@ -82,6 +82,7 @@ class ErrorData(object):
             barsabove = False,
             label_size = 10.0,
             measure_tick_label_size = 10.0,
+            labels_in_plot = False,
             zorder = 100,
             **kwargs):
         assert len(labels) == len(points)
@@ -89,9 +90,33 @@ class ErrorData(object):
         assert len(points) == len(error_maxs)
         self.horizontal = horizontal
         self.labels = [''] + list(labels) + ['']
+        self.labels_in_plot = labels_in_plot
+        self.label_size = label_size
         self.points = points
         self.positions = [i + 1 for i in range(len(self.points))]
         ticks = list(range(0, len(self.points) + 2))
+        self.data_labels = []
+        if self.labels_in_plot:
+            for i in range(len(self.points)):
+                offset = 0.2
+                if self.horizontal:
+                    x = self.points[i]
+                    y = self.positions[i] + offset
+                else:
+                    y = self.points[i]
+                    x = self.positions[i] + offset
+                self.data_labels.append(TextObj(
+                        x = x,
+                        y = y,
+                        s = self.labels[self.positions[i]],
+                        rotation = 'horizontal',
+                        horizontalalignment = 'left',
+                        verticalalignment = 'bottom',
+                        weight = 'normal',
+                        style = 'normal',
+                        size = self.label_size))
+            self.labels = ['' for i in range(len(self.labels))]
+            ticks = []
         if self.horizontal:
             self.yticks_obj = Ticks(ticks = ticks,
                     minor = False,
@@ -350,12 +375,23 @@ class TextObj(object):
                 size = self.size,
                 **self.kwargs)
 
+    def add_to_ax(self, ax):
+        ax.text(x = self.x, y = self.y, s = self.s,
+                horizontalalignment = self.horizontalalignment,
+                verticalalignment = self.verticalalignment,
+                rotation = self.rotation,
+                weight = self.weight,
+                style = self.style,
+                size = self.size,
+                **self.kwargs)
+
 class ScatterPlot(object):
     def __init__(self, scatter_data_list = [],
             hist_data_list = [],
             vertical_lines = [],
             horizontal_lines = [],
             error_data_list = [],
+            text_objects_for_ax = [],
             plot_label = None,
             x_label = None,
             y_label = None,
@@ -380,6 +416,7 @@ class ScatterPlot(object):
         self.vertical_lines = list(vertical_lines)
         self.horizontal_lines = list(horizontal_lines)
         self.error_data_list = list(error_data_list)
+        self.text_objects_for_ax = list(text_objects_for_ax)
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot(*position)
         self._plot_label = plot_label
@@ -463,6 +500,8 @@ class ScatterPlot(object):
             self._plot_h_line(h)
         for e in self.error_data_list:
             self._plot_error_data(e)
+        for t in self.text_objects_for_ax:
+            t.add_to_ax(self.ax)
         self.ax.set_xlim(left = self.xlim_left, right = self.xlim_right)
         self.ax.set_ylim(bottom = self.ylim_bottom, top = self.ylim_top)
         if self.xticks_obj:
@@ -490,8 +529,12 @@ class ScatterPlot(object):
 
     def _plot_error_data(self, e):
         l = e.plot(self.ax)
-        self.xticks_obj = e.xticks_obj
-        self.yticks_obj = e.yticks_obj
+        if not self.xticks_obj:
+            self.xticks_obj = e.xticks_obj
+        if not self.yticks_obj:
+            self.yticks_obj = e.yticks_obj
+        if len(e.data_labels) > 0:
+            self.text_objects_for_ax = e.data_labels
 
     def append_plot(self):
         self._plot()
@@ -1010,8 +1053,8 @@ class PlotGrid(object):
                 x_min, x_max = subplot.get_xlim()
                 continue
             xmin, xmax = subplot.get_xlim()
-            x_min =  min([x_min, xmin])
-            x_max =  max([x_max, xmax])
+            x_min = min([x_min, xmin])
+            x_max = max([x_max, xmax])
         return x_min, x_max
 
     def get_widest_y_limits(self, plots = None):
@@ -2486,8 +2529,107 @@ def get_tau_prior_in_generations(cfg, mu = 1e-8):
 
 class UnorderedDivergenceModelPlotGrid(object):
     def __init__(self, div_model_results_path,
-            num_top_models = 10):
-        pass
+            num_top_models = 10,
+            height = 10.0,
+            width = 8.0,
+            data_label_size = 10.0,
+            plot_label_schema = 'uppercase',
+            plot_label_offset = 0,
+            plot_label_size = 12.0,
+            y_title = 'Divergence time',
+            y_title_size = 14.0,
+            y_tick_label_size = 10.0,
+            right_text_size = 10.0,
+            margin_left = 0.03,
+            margin_bottom = 0.0,
+            margin_right = 1,
+            margin_top = 0.99,
+            padding_between_vertical = 0.8):
+        self.model_results = UnorderedDivergenceModelResults(
+                div_model_results_path = div_model_results_path,
+                inclusion_threshold = num_top_models)
+        self.width = width
+        self.height = height
+        self.data_label_size = data_label_size
+        self.y_title = y_title
+        self.y_title_size = y_title_size
+        self.y_tick_label_size = y_tick_label_size
+        self.plot_label_schema = plot_label_schema
+        self.plot_label_offset = plot_label_offset
+        self.plot_label_size = plot_label_size
+        self.right_text_size = right_text_size
+        self.margin_left = margin_left
+        self.margin_right = margin_right
+        self.margin_bottom = margin_bottom
+        self.margin_top = margin_top
+        self.padding_between_vertical = padding_between_vertical
+        self.subplots = []
+        self.plot_grid = None
+        self.populate_subplots()
+
+    def populate_subplots(self):
+        mn = float('inf')
+        mx = float('-inf')
+        for m in self.model_results.models:
+            labels = []
+            times = []
+            error_mins = []
+            error_maxs = []
+            for k, d in m.iter_divergences():
+                labels.append(str(k))
+                times.append(d['median'])
+                error_mins.append(d['hpdi_95'][0])
+                error_maxs.append(d['hpdi_95'][1])
+            mn = min([mn] + error_mins)
+            mx = max([mx] + error_maxs)
+            ed = ErrorData(labels = labels,
+                    points = times,
+                    error_mins = error_mins,
+                    error_maxs = error_maxs,
+                    horizontal = False,
+                    labels_in_plot = True)
+            s = r'$p(\mathbf{{t}} \, | \, B_{{\epsilon}}(S*)) = {0:.3f}$'.format(m.prob)
+            sp = ScatterPlot(error_data_list = [ed],
+                    right_text = s)
+            sp.right_text_size = self.right_text_size
+            self.subplots.append(sp)
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        ax.plot([1.0,2.0], [mn,mx])
+        ticks = [n for n in ax.get_yticks()]
+        tick_labels = [n for n in ticks]
+        if len(tick_labels) > 6:
+            for i in range(1, len(tick_labels), 2):
+                tick_labels[i] = ''
+        for sp in self.subplots:
+            sp.yticks_obj = Ticks(ticks = ticks,
+                    minor = False,
+                    labels = tick_labels,
+                    size = self.y_tick_label_size)
+
+    def create_grid(self):
+        self.plot_grid = PlotGrid(subplots = self.subplots,
+                num_columns = 1,
+                share_x = False,
+                share_y = True,
+                label_schema = self.plot_label_schema,
+                label_offset = self.plot_label_offset,
+                y_title = self.y_title,
+                y_title_size = self.y_title_size,
+                width = self.width,
+                height = self.height,
+                auto_height = False)
+        self.plot_grid.auto_adjust_margins = False
+        self.plot_grid.plot_label_size = self.plot_label_size
+        self.plot_grid.margin_left = self.margin_left
+        self.plot_grid.margin_bottom = self.margin_bottom
+        self.plot_grid.margin_right = self.margin_right
+        self.plot_grid.margin_top = self.margin_top
+        self.plot_grid.padding_between_vertical = self.padding_between_vertical
+        self.plot_grid.reset_figure()
+        self.plot_grid.set_shared_x_limits()
+        self.plot_grid.reset_figure()
+        return self.plot_grid
 
 def get_marginal_divergence_time_plot(config_path, posterior_summary_path,
         labels = None,
