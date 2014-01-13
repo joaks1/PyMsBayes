@@ -28,7 +28,7 @@ def get_logging_level(level=None):
 def get_env_logging_level():
     return get_logging_level(os.environ.get(LOGGING_LEVEL_ENV_VAR, None))
 
-def get_logger(name = 'pymsbayes', level = None):
+def get_logger(name, level = None):
     if level:
         l = get_logging_level(level)
     else:
