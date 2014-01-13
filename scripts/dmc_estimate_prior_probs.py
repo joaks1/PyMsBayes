@@ -63,7 +63,7 @@ def main_cli():
             help = 'Report version and exit.')
     parser.add_argument('--quiet',
             action = 'store_true',
-            help = 'Run with verbose messaging.')
+            help = 'Run without verbose messaging.')
     parser.add_argument('--debug',
             action = 'store_true',
             help = 'Run in debugging mode.')
