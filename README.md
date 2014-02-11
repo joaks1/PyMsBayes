@@ -58,10 +58,10 @@ Acknowledgements
 ================
 
 This software greatly benefited from funding provided to Jamie Oaks from the
-National Science Foundation (DEB 1011423), University of Kansas (KU) Office of
-Graduate Studies, Society of Systematic Biologists, Sigma Xi Scientific
-Research Society, KU Ecology and Evolutionary Biology Department, and the KU
-Biodiversity Institute.
+National Science Foundation (DEB 1011423 and DBI 1308885), University of Kansas
+(KU) Office of Graduate Studies, Society of Systematic Biologists, Sigma Xi
+Scientific Research Society, KU Ecology and Evolutionary Biology Department,
+and the KU Biodiversity Institute.
 
 License
 =======
