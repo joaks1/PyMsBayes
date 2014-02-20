@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-Main CLI for PyMsBayes package.
+CLI for generating saturation plots.
 """
 
 import os

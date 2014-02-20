@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-Main CLI for PyMsBayes package.
+CLI for estimating the prior probabilities of divergence models.
 """
 
 import os
