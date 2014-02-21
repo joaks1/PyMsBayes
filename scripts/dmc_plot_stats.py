@@ -199,7 +199,7 @@ def main_cli():
     log.info('Creating plots...')
 
     if not plotting.MATPLOTLIB_AVAILABLE:
-        _LOG.warning(
+        log.warning(
                 '`matplotlib` could not be imported, so the plot can not be\n'
                 'produced. The data to create the plot can be found in:\n\t'
                 '{0!r}'.format(sample_path))
