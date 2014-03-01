@@ -1276,7 +1276,7 @@ class PowerPlotGrid(object):
                         self.variable_symbol,
                         p)
             elif self.variable == 'tau_exclusion':
-                matplotlib.rc('mathtext',**{'fontset': 'stix'})
+                # matplotlib.rc('mathtext',**{'fontset': 'stix'})
                 c = len([e for e in estimates if e > 0])
                 p = c /float(len(estimates))
                 prob = (r'$p(\mathbf{{\tau}} \, \notin \, \hat{{M}}) '
@@ -1825,7 +1825,7 @@ class ProbabilityPowerPlotGrid(object):
             elif self.variable == 'omega':
                 self.x_title = r'Estimated $p({0} < 0.01 \, | \, B_{{\epsilon}}(S*))$'.format(self.variable_symbol)
             elif self.variable == 'tau_exclusion':
-                matplotlib.rc('mathtext',**{'fontset': 'stix'})
+                # matplotlib.rc('mathtext',**{'fontset': 'stix'})
                 self.x_title = (r'Estimated $p(\mathbf{\tau} \, \notin \, '
                         r'M \, | \, B_{\epsilon}(S*))$')
             else:
