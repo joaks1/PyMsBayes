@@ -28,6 +28,8 @@ except ImportError:
     _LOG.warning('matplotlib could not be imported; '
             'plotting functionality not supported')
 
+matplotlib.rcParams['text.usetex'] = True
+
 class ScatterData(object):
     def __init__(self, x, y,
             marker = 'o',
