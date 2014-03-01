@@ -28,7 +28,7 @@ except ImportError:
     _LOG.warning('matplotlib could not be imported; '
             'plotting functionality not supported')
 
-matplotlib.rcParams['text.usetex'] = True
+matplotlib.rcParams['pdf.fonttype'] = 42
 
 class ScatterData(object):
     def __init__(self, x, y,
