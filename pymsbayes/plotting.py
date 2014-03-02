@@ -1875,7 +1875,7 @@ class ProbabilityPowerPlotGrid(object):
                     if self.cfg_to_prob_of_bf_exclusion:
                         p = self.cfg_to_prob_of_bf_exclusion[cfg]
                     prob = (r'$p(BF_{{\mathbf{{\tau}} \, \notin \, '
-                            r'M, \mathbf{{\tau}} \, \notin \, '
+                            r'M, \mathbf{{\tau}} \, \in \, '
                             r'M}} > {0}) = {1}$'.format(
                                     int(self.bayes_factor), p))
             hd = HistData(x = estimates,
