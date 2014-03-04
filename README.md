@@ -3,10 +3,12 @@ Overview
 
 PyMsBayes is a multi-processing Python API for approximate Bayesian computation
 (ABC), and provides a multi-processing interface to the comparative
-phylogeographic software package, msBayes.
+phylogeographic software package, msBayes. The package is written by [Jamie
+Oaks](http://www.phyletica.com).
 
 Binaries of the following tools come bundled with PyMsBayes:
 
+ *  dpp-msbayes (<https://github.com/joaks1/dpp-msbayes.git>)
  *  msBayes (<http://msbayes.sourceforge.net/>)
  *  ABCtoolbox (<http://www.cmpg.iee.unibe.ch/content/softwares__services/computer_programs/abctoolbox/index_eng.html>)
  *  EuReject of the ABACUS package (<https://github.com/joaks1/abacus.git>)
@@ -40,6 +42,12 @@ Citing PyMsBayes
 
 If you publish results obtained using this software, please cite the software
 and the appropriate citations for the bundled tools that were used:
+
+ *  dpp-msbayes and euReject:
+
+    > Oaks, J. R. (2014). An Improved Approximate-Bayesian Model-choice Method
+    > for Estimating Shared Evolutionary History. arXiv:1402.6303 [q-bio:PE].
+    > <http://arxiv.org/abs/1402.6303>
 
  *  msBayes:
 
