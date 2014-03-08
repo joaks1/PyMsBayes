@@ -5,8 +5,6 @@ import os
 import errno
 import random
 import string
-import stat
-import math
 
 from pymsbayes.utils import GLOBAL_RNG
 from pymsbayes.fileio import process_file_arg
@@ -159,12 +157,18 @@ def is_dir(path):
     return True
 
 def is_executable(path):
-    is_f = is_file(path)
-    if not is_f:
-        return False
-    if (os.stat(path)[stat.ST_MODE] & (stat.S_IXUSR|stat.S_IXGRP|stat.S_IXOTH)) == 0:
-        return False
-    return True
+    return os.path.isfile(path) and os.access(path, os.X_OK)
+
+def which(exe):
+    if is_executable(exe):
+        return exe
+    name = os.path.basename(exe)
+    for p in os.environ['PATH'].split(os.pathsep):
+        p = p.strip('"')
+        exe_path = os.path.join(p, name)
+        if is_executable(exe_path):
+            return exe_path
+    return None
 
 def long_division(dividend, diviser):
     n, d = int(dividend), int(diviser)
