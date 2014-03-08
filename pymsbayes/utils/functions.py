@@ -157,7 +157,7 @@ def is_dir(path):
     return True
 
 def is_executable(path):
-    return os.path.isfile(path) and os.access(path, os.X_OK)
+    return is_file(path) and os.access(path, os.X_OK)
 
 def which(exe):
     if is_executable(exe):
