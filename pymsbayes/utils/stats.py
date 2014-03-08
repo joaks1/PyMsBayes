@@ -842,6 +842,74 @@ class Partition(object):
         """
         return stirling2(len(self.partition), k)
 
+    def get_dpp_expected_num_cats(self, concentration):
+        """
+        Calculates and returns the expectation of the number of categories
+        under a Dirichlet process controlled by concentration parameter
+        `concentration` for the number of elements in this `Partition`
+        instance.
+
+        Modified from `expNumTables` function of `util.h` from
+        [`DPPDiv`](http://phylo.bio.ku.edu/content/tracy-heath-dppdiv) version
+        1.0b (Copyright Tracy Heath, Mark Holder, and John Huelsenback;
+        licensed under GPL v3;
+        <http://phylo.bio.ku.edu/content/tracy-heath-dppdiv>).
+        """
+        expected_ncats = 0.0
+        for i in range(1, len(self.partition) + 1):
+            expected_ncats += (1.0 / (i - 1.0 + concentration))
+        return (expected_ncats * concentration)
+
+    def get_hyper_gamma_scale_from_shape_and_dpp_expected_ncats(self, shape, ncats):
+        """
+        Calculates and returns the scale parameter (given the shape parameter
+        `shape`) of a gamma hyper prior on the concentration parameter of the
+        Dirichlet process such that the prior expectation for the number of
+        categories is `ncats`. The calculation is based on the number of
+        elements in this `Partition` instance.
+        """
+        alpha = self.get_dpp_concentration(ncats)
+        return (alpha / shape)
+
+    def get_dpp_concentration(self, expected_num_cats,
+            increment = 0.1,
+            precision = 0.000001):
+        """
+        Calculates and returns the Dirichlet-process concentration parameter
+        that has an expectation for the number of categories equal to
+        `expected_num_cats`.
+
+        Modified from `calculateFromPriorMean` function of `util.h` from
+        [`DPPDiv`](http://phylo.bio.ku.edu/content/tracy-heath-dppdiv) version
+        1.0b (Copyright Tracy Heath, Mark Holder, and John Huelsenback;
+        licensed under GPL v3;
+        <http://phylo.bio.ku.edu/content/tracy-heath-dppdiv>).
+        """
+        alpha = precision
+        n = len(self.partition)
+        current_exp_ncats = self.get_dpp_expected_num_cats(alpha)
+        if expected_num_cats <= 1.0:
+            expected_num_cats = 1.01
+        increase = False
+        if current_exp_ncats < expected_num_cats:
+            increase = True
+        while math.fabs(current_exp_ncats - expected_num_cats) > precision:
+            if (current_exp_ncats < expected_num_cats) and increase:
+                alpha += increment
+            elif (current_exp_ncats > expected_num_cats) and (not increase):
+                alpha -= increment
+            elif (current_exp_ncats < expected_num_cats) and (not increase):
+                increment /= 2.0
+                increase = True
+                alpha += increment
+            else:
+                increment /= 2.0
+                increase = False
+                alpha -= increment
+            current_exp_ncats = self.get_dpp_expected_num_cats(alpha)
+        return alpha
+
+
 class PartitionCollection(object):
     def __init__(self, partitions = None):
         self.partitions = {}

@@ -1303,6 +1303,37 @@ class PartitionTestCase(unittest.TestCase):
         self.assertEqual(p.number_of_partitions_into_k_subsets(2), 7)
         self.assertEqual(p.number_of_partitions_into_k_subsets(3), 6)
 
+    def test_get_dpp_expected_num_cats(self):
+        values = [(0.218, 3.0),
+                  (0.449, 5.0),
+                  (0.814, 8.0),
+                  (1.068, 10.0),]
+        p = Partition('0' * 7282)
+        for alpha, exp_ncats in values:
+            self.assertAlmostEqual(exp_ncats,
+                    p.get_dpp_expected_num_cats(alpha),
+                    places = 2)
+
+    def test_get_dpp_concentration(self):
+        values = [(0.218, 3.0),
+                  (0.449, 5.0),
+                  (0.814, 8.0),
+                  (1.068, 10.0),]
+        p = Partition('0' * 7282)
+        for exp_alpha, ncats in values:
+            self.assertAlmostEqual(exp_alpha,
+                    p.get_dpp_concentration(ncats),
+                    places = 3)
+
+    def test_get_hyper_gamma_scale_from_shape_and_expected_ncats(self):
+        p = Partition('0' * 7282)
+        ncats = 10.0
+        alpha = 1.068
+        for shape in (0.1, 0.5, 1.0, 2.0, 5.0, 10.0):
+            scale = p.get_hyper_gamma_scale_from_shape_and_dpp_expected_ncats(
+                    shape, ncats)
+            self.assertAlmostEqual(alpha, shape * scale, places = 3)
+
 class PartitionCollectionTestCase(PyMsBayesTestCase):
 
     def test_default_init_and_add_element_vector(self):
