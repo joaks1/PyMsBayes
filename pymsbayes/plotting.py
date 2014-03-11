@@ -199,6 +199,97 @@ class ErrorData(object):
                     size = self.measure_tick_label_size)
         return l
 
+class StackedBarData(object):
+    def __init__(self,
+            top_values,
+            bottom_values,
+            labels = None,
+            width = 0.4,
+            orientation = 'vertical',
+            top_color = '0.75',
+            bottom_color = '0.35',
+            top_label = '1',
+            bottom_label = '0',
+            label_size = 12.0,
+            measure_tick_label_size = 12.0,
+            extra_plot_space = 1.0,
+            zorder = 10):
+        self.top_values = top_values
+        self.bottom_values = bottom_values
+        self.labels = labels
+        if not self.labels:
+            self.labels = list(range(1, len(self.top_values + 1)))
+        assert len(self.top_values) == len(self.bottom_values)
+        assert len(self.top_values) == len(self.labels)
+        self.width = width
+        self.orientation = orientation
+        self.top_color = top_color
+        self.bottom_color = bottom_color
+        self.top_label = top_label
+        self.bottom_label = bottom_label
+        self.zorder = zorder
+        self.label_size = label_size
+        self.measure_tick_label_size = measure_tick_label_size
+        self.extra_plot_space = extra_plot_space
+        self.positions = [(i + (width / 2.0)) for i in range(len(self.labels))]
+        self.ticks = [(i + (width / 2.0)) for i in self.positions]
+        if self.orientation == 'horizontal':
+            self.yticks_obj = Ticks(ticks = self.ticks,
+                    minor = False,
+                    labels = self.labels,
+                    size = self.label_size)
+            self.xticks_obj = None
+        else:
+            self.xticks_obj = Ticks(ticks = self.ticks,
+                    minor = False,
+                    labels = self.labels,
+                    size = self.label_size)
+            self.yticks_obj = None
+
+    def plot(self, ax):
+        if self.orientation == 'horizontal':
+            lbottom = ax.bar(self.positions,
+                    height = self.bottom_values,
+                    width = self.width,
+                    color = self.bottom_color,
+                    orientation = self.orientation,
+                    zorder = self.zorder)
+            ltop = ax.bar(self.positions,
+                    height = self.top_values,
+                    width = self.width,
+                    color = self.top_color,
+                    bottom = self.bottom_values,
+                    orientation = self.orientation,
+                    zorder = self.zorder)
+            ax.set_ylim(bottom = 0, top = len(self.labels) + self.extra_plot_space)
+            ticks = [i for i in ax.get_xticks()]
+            tick_labels = [i for i in ticks]
+            self.xticks_obj = Ticks(ticks,
+                    labels = tick_labels,
+                    size = self.measure_tick_label_size)
+        else:
+            lbottom = ax.bar(self.positions,
+                    height = self.bottom_values,
+                    width = self.width,
+                    color = self.bottom_color,
+                    orientation = self.orientation,
+                    zorder = self.zorder)
+            ltop = ax.bar(self.positions,
+                    height = self.top_values,
+                    width = self.width,
+                    color = self.top_color,
+                    bottom = self.bottom_values,
+                    orientation = self.orientation,
+                    zorder = self.zorder)
+            ax.set_xlim(left = 0, right = len(self.labels) + self.extra_plot_space)
+            ticks = [i for i in ax.get_yticks()]
+            tick_labels = [i for i in ticks]
+            self.yticks_obj = Ticks(ticks,
+                    labels = tick_labels,
+                    size = self.measure_tick_label_size)
+        ax.legend((ltop[0], lbottom[0]), (self.top_label, self.bottom_label))
+        return lbottom, ltop
+
 class HistData(object):
     def __init__(self, x,
             normed = True,
@@ -393,6 +484,7 @@ class ScatterPlot(object):
             vertical_lines = [],
             horizontal_lines = [],
             error_data_list = [],
+            stacked_bar_data_list = [],
             text_objects_for_ax = [],
             plot_label = None,
             x_label = None,
@@ -418,6 +510,7 @@ class ScatterPlot(object):
         self.vertical_lines = list(vertical_lines)
         self.horizontal_lines = list(horizontal_lines)
         self.error_data_list = list(error_data_list)
+        self.stacked_bar_data_list = list(stacked_bar_data_list)
         self.text_objects_for_ax = list(text_objects_for_ax)
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot(*position)
@@ -502,6 +595,8 @@ class ScatterPlot(object):
             self._plot_h_line(h)
         for e in self.error_data_list:
             self._plot_error_data(e)
+        for s in self.stacked_bar_data_list:
+            self._plot_stacked_bar_data(s)
         for t in self.text_objects_for_ax:
             t.add_to_ax(self.ax)
         self.ax.set_xlim(left = self.xlim_left, right = self.xlim_right)
@@ -537,6 +632,13 @@ class ScatterPlot(object):
             self.yticks_obj = e.yticks_obj
         if len(e.data_labels) > 0:
             self.text_objects_for_ax = e.data_labels
+
+    def _plot_stacked_bar_data(self, s):
+        bl, tl = s.plot(self.ax)
+        if not self.xticks_obj:
+            self.xticks_obj = s.xticks_obj
+        if not self.yticks_obj:
+            self.yticks_obj = s.yticks_obj
 
     def append_plot(self):
         self._plot()
