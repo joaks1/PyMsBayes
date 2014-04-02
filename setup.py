@@ -67,5 +67,3 @@ Python msBayes wrapper""",
       """,
       )
 
-symlink_msbayes_requirements()
-
