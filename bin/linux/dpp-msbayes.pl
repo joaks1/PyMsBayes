@@ -152,7 +152,7 @@ if (defined($opt_m)) {
 }
 
 #### Find programs
-my $msprior = FindExec("msprior");
+my $msprior = FindExec("dpp-msprior");
 my $msDQH = FindExec("msDQH");
 my $sumstatsvector = FindExec("sumstatsvector");
 
