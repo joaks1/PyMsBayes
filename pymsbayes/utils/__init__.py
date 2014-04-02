@@ -34,9 +34,9 @@ def get_tool_path_mapping():
     tool_path_map['eureject'] = os.path.join(BIN_DIR, 'eureject')
     tool_path_map['msreject'] = os.path.join(BIN_DIR, 'msReject')
     tool_path_map['regress_cli'] = os.path.join(BIN_DIR, 'regress_cli.r')
-    tool_path_map['obssumstats'] = os.path.join(BIN_DIR, 'new', 'obsSumStats.pl')
-    tool_path_map['msbayes'] = os.path.join(BIN_DIR, 'new', 'msbayes.pl')
-    tool_path_map['msbayes-old'] = os.path.join(BIN_DIR, 'old', 'msbayes.pl')
+    tool_path_map['obssumstats'] = os.path.join(BIN_DIR, 'obsSumStats.pl')
+    tool_path_map['dpp-msbayes'] = os.path.join(BIN_DIR, 'dpp-msbayes.pl')
+    tool_path_map['msbayes'] = os.path.join(BIN_DIR, 'msbayes.pl')
     for name, path in tool_path_map.iteritems():
         if not os.path.exists(path):
             raise Exception('The path {0!r} for {1!r} does not exist'.format(

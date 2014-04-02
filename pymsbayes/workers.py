@@ -340,9 +340,9 @@ class MsBayesWorker(Worker):
         if not exe_path:
             cfg = MsBayesConfig(self.config_path)
             if cfg.implementation.lower() == 'new':
-                exe_path = get_tool_path('msbayes')
+                exe_path = get_tool_path('dpp-msbayes')
             else:
-                exe_path = get_tool_path('msbayes-old')
+                exe_path = get_tool_path('msbayes')
         self.exe_path = expand_path(exe_path)
         self.model_index = None
         if model_index != None:

@@ -183,13 +183,13 @@ class MsBayesWorkerTestCase(PyMsBayesTestCase):
                 schema = 'abctoolbox')
         self.assertIsInstance(w, workers.MsBayesWorker)
         self.assertFalse(w.finished)
-        self.assertEqual(w.exe_path, get_tool_path('msbayes'))
-        self.assertNotEqual(w.exe_path, get_tool_path('msbayes-old'))
+        self.assertEqual(w.exe_path, get_tool_path('dpp-msbayes'))
+        self.assertNotEqual(w.exe_path, get_tool_path('msbayes'))
         _LOG.warning('\n\n{0}\n\n'.format(w.exe_path))
         w.start()
         self._assert_success(w, 4, 10)
-        self.assertEqual(w.exe_path, get_tool_path('msbayes'))
-        self.assertNotEqual(w.exe_path, get_tool_path('msbayes-old'))
+        self.assertEqual(w.exe_path, get_tool_path('dpp-msbayes'))
+        self.assertNotEqual(w.exe_path, get_tool_path('msbayes'))
 
 
 class MergePriorTestCase(PyMsBayesTestCase):
