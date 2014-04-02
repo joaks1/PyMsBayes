@@ -60,7 +60,7 @@ Python msBayes wrapper""",
       zip_safe=False,
       test_suite="pymsbayes.test",
       install_requires=[
-          # -*- Extra requirements: -*-
+          'configobj'
       ],
       entry_points="""
       # -*- Entry points: -*-
