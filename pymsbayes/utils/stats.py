@@ -980,6 +980,16 @@ class PartitionCollection(object):
         for k in self.iterkeys():
             freqs[k] = self.get_frequency(k)
         return freqs
+
+    def prob_clustered(self, element_indices):
+        element_indices = list(element_indices)
+        prob_shared = 0.0
+        for k, p in self.iteritems():
+            div_indices = [d for i, d in enumerate(
+                    p.partition) if i in element_indices]
+            if len(set(div_indices)) == 1:
+                prob_shared += self.get_frequency(k)
+        return prob_shared
     
     def get_summary(self):
         stats = []

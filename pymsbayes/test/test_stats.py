@@ -1474,6 +1474,22 @@ class PartitionCollectionTestCase(PyMsBayesTestCase):
         self.assertSamePartitions([items[0][1], p1])
         self.assertEqual(items[1][0], p3.key)
 
+    def test_prob_clustered(self):
+        pc = PartitionCollection()
+        self.assertEqual(pc.n, 0)
+        self.assertEqual(pc.partitions, {})
+        p1 = Partition([0.5, 0.4, 0.4, 0.1, 0.1, 0.4, 0.1])
+        p2 = Partition([0.5, 0.4, 0.4, 0.2, 0.2, 0.3, 0.1])
+        p3 = Partition([0.1, 0.4, 0.4, 0.1, 0.2, 0.1, 0.1])
+        p4 = Partition([0.3, 0.1, 0.1, 0.3, 0.2, 0.1, 0.3])
+        pc.add_iter([p1,p2,p3,p4])
+        self.assertEqual(pc.n, 4)
+        self.assertAlmostEqual(pc.prob_clustered([0,1]), 0.0)
+        self.assertAlmostEqual(pc.prob_clustered([1,2]), 1.0)
+        self.assertAlmostEqual(pc.prob_clustered([1,2,5]), 2/float(4))
+        self.assertAlmostEqual(pc.prob_clustered([3,5,6]), 1/float(4))
+        self.assertAlmostEqual(pc.prob_clustered([5,6]), 1/float(4))
+
 class MeanSquaredErrorTestCase(unittest.TestCase):
     def test_zero(self):
         x = [-1.0, 2.0, 4.0]
