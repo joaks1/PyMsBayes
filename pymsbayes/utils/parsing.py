@@ -4,6 +4,7 @@ import sys
 import os
 import re
 import glob
+import math
 
 from configobj import ConfigObj
 
@@ -1070,4 +1071,197 @@ class UnorderedDivergenceModelSummary(object):
     def iter_divergences(self):
         for k, d in self.age_info:
             yield k, d
+
+class NumberOfDivergencesSummary(object):
+    def __init__(self,
+            config_path,
+            psi_results_path,
+            posterior_summary_path = None,
+            num_prior_samples = 100000,
+            num_processors = 4):
+        self.config_path = config_path
+        self.config = MsBayesConfig(config_path)
+        self.psi_results_path = psi_results_path
+        self.posterior_summary_path = posterior_summary_path
+        self.num_prior_samples = num_prior_samples
+        self.num_processors = num_processors
+        self.psi_posterior_probs = {}
+        self.psi_prior_probs = None
+        self.unordered_model_prior_probs = None
+        self.ordered_model_prior_probs = None
+        self.psi_bayes_factors = {}
+        self.omega = None
+        self.omega_hpd = None
+        self.plot = None
+        self._parse_psi_results_path()
+        self._parse_posterior_summary_file()
+        self._simulate_psi_prior_probs()
+        self._get_unordered_model_prior_probs()
+        self._get_ordered_model_prior_probs()
+        self._get_psi_bayes_factors()
+
+    def _simulate_psi_prior_probs(self):
+        if self.config.div_model_prior == 'dpp':
+            prob_team = pymsbayes.teams.ModelProbabilityEstimatorTeam(
+                    config_paths = [self.config_path],
+                    num_samples = self.num_prior_samples,
+                    num_processors = self.num_processors)
+            prob_team.start()
+            self.psi_prior_probs = prob_team.psi_probs[self.config_path]
+        elif config.div_model_prior == 'uniform':
+            ips = stats.IntegerPartition.number_of_int_partitions_by_k(
+                    num_elements = npairs)
+            n = sum(ips)
+            for i in range(1, self.config.npairs + 1):
+                self.psi_prior_probs[i] = ips[i-1] / float(n)
+        elif config.div_model_prior == 'psi':
+            self.psi_prior_probs = {}
+            for i in range(1, self.config.npairs + 1):
+                self.psi_prior_probs[i] = 1.0 / npairs
+
+    def _get_unordered_model_prior_probs(self):
+        if not self.psi_prior_probs:
+            return
+        ips = pymsbayes.stats.IntegerPartition.number_of_int_partitions_by_k(
+                num_elements = len(self.psi_prior_probs))
+        self.unordered_model_prior_probs = {}
+        for k, p in self.psi_prior_probs.iteritems():
+            self.unordered_model_prior_probs[k] = p / float(ips[k-1])
+
+    def _get_ordered_model_prior_probs(self):
+        if not self.psi_prior_probs:
+            return
+        part = pymsbayes.stats.Partition([0] * len(self.psi_prior_probs))
+        self.ordered_model_prior_probs = {}
+        for k, p in self.psi_prior_probs.iteritems():
+            self.ordered_model_prior_probs[k] = p / float(
+                    part.number_of_partitions_into_k_subsets(k))
+
+    def _get_psi_bayes_factors(self):
+        for k, p in self.psi_posterior_probs.iteritems():
+            p_not = 1.0 - p
+            prior = self.psi_prior_probs[k]
+            prior_not = 1.0 - p
+            self.psi_bayes_factors[k] = 2 * math.log(
+                    (p / p_not) / (prior / prior_not))
+
+    def _parse_psi_results_path(self):
+        for d in spreadsheet_iter([self.psi_results_path]):
+            self.psi_posterior_probs[int(d['num_of_div_events'])] = float(
+                    d['estimated_prob'])
+
+    def _parse_posterior_summary_file(self):
+        results = parse_posterior_summary_file(
+                self.posterior_summary_path)
+        self.omega = float(results['PRI.omega']['median'])
+        self.omega_hpd = [float(results['PRI.omega']['HPD_95_interval'][0]),
+                float(results['PRI.omega']['HPD_95_interval'][1])]
+        if self.omega_hpd[0] < 0.0:
+            self.omega_hpd[0] = 0.0
+
+    def create_plot(self,
+            plot_label_size = 10.0,
+            right_text_size = 10.0,
+            x_label_size = 10.0,
+            y_label_size = 10.0,
+            xtick_label_size = 10.0,
+            ytick_label_size = 8.0,
+            height = 6.0,
+            width = 3.0,
+            margin_bottom = 0.0,
+            margin_left = 0.0,
+            margin_top = 0.98,
+            margin_right = 1.0,
+            padding_between_vertical = 1.0):
+        if not pymsbayes.plotting.MATPLOTLIB_AVAILABLE:
+            _LOG.warning('matplotlib is not available; cannot create plot')
+            return
+        right_text = ''
+        if not self.omega is None:
+            right_text = r'$D_T = {0:.2f} ({1:.2f}-{2:.2f})$'.format(self.omega,
+                    self.omega_hpd[0],
+                    self.omega_hpd[1])
+        keys = sorted(self.psi_posterior_probs.keys())
+        psi_posterior_bar_data = pymsbayes.plotting.BarData(
+                    values = [self.psi_posterior_probs[k] for k in keys],
+                    labels = keys,
+                    width = 1.0,
+                    orientation = 'vertical',
+                    color = '0.5',
+                    edgecolor = '0.5',
+                    label_size = xtick_label_size,
+                    measure_tick_label_size = ytick_label_size,
+                    zorder = 0)
+        psi_prior_bar_data = pymsbayes.plotting.BarData(
+                    values = [self.psi_prior_probs[k] for k in keys],
+                    labels = keys,
+                    width = 1.0,
+                    orientation = 'vertical',
+                    color = '0.5',
+                    edgecolor = '0.5',
+                    label_size = xtick_label_size,
+                    measure_tick_label_size = ytick_label_size,
+                    zorder = 0)
+        psi_bayes_factor_bar_data = pymsbayes.plotting.BarData(
+                    values = [self.psi_bayes_factors[k] for k in keys],
+                    labels = keys,
+                    width = 1.0,
+                    orientation = 'vertical',
+                    color = '0.5',
+                    edgecolor = '0.5',
+                    label_size = xtick_label_size,
+                    measure_tick_label_size = ytick_label_size,
+                    zorder = 0)
+        plots = [
+                pymsbayes.plotting.ScatterPlot(
+                        bar_data_list = [psi_posterior_bar_data],
+                        right_text = right_text,
+                        y_label = 'Posterior probability',
+                        y_label_size = y_label_size,
+                        ),
+                pymsbayes.plotting.ScatterPlot(
+                        bar_data_list = [psi_prior_bar_data],
+                        y_label = 'Prior probability',
+                        y_label_size = y_label_size,
+                        ),
+                pymsbayes.plotting.ScatterPlot(
+                        bar_data_list = [psi_bayes_factor_bar_data],
+                        y_label = '2ln(Bayes factor)',
+                        y_label_size = y_label_size,
+                        x_label = r'Number of divergence events, $|\tau|$',
+                        x_label_size = x_label_size,
+                        ),
+                ]
+        for p in plots:
+            p.right_text_size = right_text_size
+            p.plot_label_size = plot_label_size
+            yticks = [i for i in p.ax.get_yticks()]
+            ytick_labels = [i for i in yticks]
+            if len(ytick_labels) > 5:
+                for i in range(1, len(ytick_labels), 2):
+                    ytick_labels[i] = ''
+            yticks_obj = pymsbayes.plotting.Ticks(ticks = yticks,
+                    labels = ytick_labels,
+                    size = ytick_label_size)
+            p.yticks_obj = yticks_obj
+
+        self.plot = pymsbayes.plotting.PlotGrid(subplots = plots,
+                num_columns = 1,
+                share_x = True,
+                share_y = False,
+                height = height,
+                width = width,
+                auto_height = False)
+        self.plot.auto_adjust_margins = False
+        self.plot.margin_top = margin_top
+        self.plot.margin_bottom = margin_bottom
+        self.plot.margin_right = margin_right
+        self.plot.margin_left = margin_left
+        self.plot.padding_between_vertical = padding_between_vertical
+        self.plot.reset_figure()
+        self.plot.reset_figure()
+
+    def save_plot(self, path):
+        if self.plot:
+            self.plot.savefig(path)
 
