@@ -28,7 +28,8 @@ except ImportError:
     _LOG.warning('matplotlib could not be imported; '
             'plotting functionality not supported')
 
-matplotlib.rcParams['pdf.fonttype'] = 42
+if MATPLOTLIB_AVAILABLE:
+    matplotlib.rcParams['pdf.fonttype'] = 42
 
 class ScatterData(object):
     def __init__(self, x, y,
@@ -198,6 +199,76 @@ class ErrorData(object):
                     labels = tick_labels,
                     size = self.measure_tick_label_size)
         return l
+
+class BarData(object):
+    def __init__(self,
+            values,
+            labels = None,
+            width = 1.0,
+            orientation = 'vertical',
+            color = '0.5',
+            edgecolor = '0.5',
+            label_size = 12.0,
+            measure_tick_label_size = 12.0,
+            zorder = 0):
+        self.values = values
+        self.labels = labels
+        if not self.labels:
+            self.labels = list(range(1, len(self.top_values + 1)))
+        assert len(self.values) == len(self.labels)
+        self.width = width
+        self.orientation = orientation
+        self.color = color
+        self.edgecolor = edgecolor
+        self.label_size = label_size
+        self.measure_tick_label_size = measure_tick_label_size
+        self.zorder = zorder
+        self.positions = [(i + (width / 2.0)) for i in range(len(self.labels))]
+        self.ticks = [(i + (width / 2.0)) for i in self.positions]
+        if self.orientation == 'horizontal':
+            self.yticks_obj = Ticks(ticks = self.ticks,
+                    minor = False,
+                    labels = self.labels,
+                    size = self.label_size)
+            self.xticks_obj = None
+        else:
+            self.xticks_obj = Ticks(ticks = self.ticks,
+                    minor = False,
+                    labels = self.labels,
+                    size = self.label_size)
+            self.yticks_obj = None
+
+    def plot(self, ax):
+        if self.orientation == 'horizontal':
+            l = ax.bar(self.positions,
+                    height = self.values,
+                    width = self.width,
+                    color = self.color,
+                    edgecolor = self.edgecolor,
+                    orientation = self.orientation,
+                    zorder = self.zorder)
+            ticks = [i for i in ax.get_xticks()]
+            tick_labels = [i for i in ticks]
+            self.xticks_obj = Ticks(ticks,
+                    labels = tick_labels,
+                    size = self.measure_tick_label_size)
+        else:
+            l = ax.bar(self.positions,
+                    height = self.values,
+                    width = self.width,
+                    color = self.color,
+                    edgecolor = self.edgecolor,
+                    orientation = self.orientation,
+                    zorder = self.zorder)
+            ticks = [i for i in ax.get_yticks()]
+            tick_labels = [i for i in ticks]
+            self.yticks_obj = Ticks(ticks,
+                    labels = tick_labels,
+                    size = self.measure_tick_label_size)
+            ax.set_xlim(left = self.positions[0],
+                    right = (self.positions[-1] + (self.width)))
+        return l
+
 
 class StackedBarData(object):
     def __init__(self,
@@ -484,6 +555,7 @@ class ScatterPlot(object):
             vertical_lines = [],
             horizontal_lines = [],
             error_data_list = [],
+            bar_data_list = [],
             stacked_bar_data_list = [],
             text_objects_for_ax = [],
             plot_label = None,
@@ -510,6 +582,7 @@ class ScatterPlot(object):
         self.vertical_lines = list(vertical_lines)
         self.horizontal_lines = list(horizontal_lines)
         self.error_data_list = list(error_data_list)
+        self.bar_data_list = list(bar_data_list)
         self.stacked_bar_data_list = list(stacked_bar_data_list)
         self.text_objects_for_ax = list(text_objects_for_ax)
         self.fig = plt.figure()
@@ -595,6 +668,8 @@ class ScatterPlot(object):
             self._plot_h_line(h)
         for e in self.error_data_list:
             self._plot_error_data(e)
+        for s in self.bar_data_list:
+            self._plot_bar_data(s)
         for s in self.stacked_bar_data_list:
             self._plot_stacked_bar_data(s)
         for t in self.text_objects_for_ax:
@@ -632,6 +707,13 @@ class ScatterPlot(object):
             self.yticks_obj = e.yticks_obj
         if len(e.data_labels) > 0:
             self.text_objects_for_ax = e.data_labels
+
+    def _plot_bar_data(self, s):
+        l = s.plot(self.ax)
+        if not self.xticks_obj:
+            self.xticks_obj = s.xticks_obj
+        if not self.yticks_obj:
+            self.yticks_obj = s.yticks_obj
 
     def _plot_stacked_bar_data(self, s):
         bl, tl = s.plot(self.ax)
@@ -2630,6 +2712,11 @@ def get_tau_prior_in_generations(cfg, mu = 1e-8):
         raise Exception('unsupported tau distribution: {0}'.format(type(
                 cfg.tau)))
     
+
+# class EmpiricalResultsSummary(object):
+#     def __init(self, config_path,
+#             num_prior_samples = 10000,
+
 
 class UnorderedDivergenceModelPlotGrid(object):
     def __init__(self, div_model_results_path,
