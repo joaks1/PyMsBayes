@@ -999,7 +999,7 @@ class UnorderedDivergenceModelResults(object):
         post = parse_parameters(self.path)
         if not post.has_key('taus'):
             raise Exception('posterior sample in {0} does not contain a '
-                    'divergence time vector'.format(self.posterior_path))
+                    'divergence time vector'.format(self.path))
         div_models = pymsbayes.utils.stats.IntegerPartitionCollection(
                 post['taus'])
         for k, m in div_models.iteritems():
@@ -1070,6 +1070,151 @@ class UnorderedDivergenceModelSummary(object):
 
     def iter_divergences(self):
         for k, d in self.age_info:
+            yield k, d
+
+class OrderedDivergenceModelResults(object):
+    def __init__(self, div_model_results_path,
+            inclusion_threshold = None):
+        self.path = div_model_results_path
+        self.inclusion_threshold = inclusion_threshold
+        self.models = []
+        self.n = 0
+        self.cumulative_prob = 0.0
+        header = parse_header(self.path)
+        if 'div_model_with_conditional_age_estimates' in header:
+            self._parse_results_file()
+        else:
+            self._parse_posterior_file()
+
+    def _full(self):
+        if not self.inclusion_threshold:
+            return False
+        if ((isinstance(self.inclusion_threshold, float)) and
+                (self.cumulative_prob >= self.inclusion_threshold)):
+            return True
+        if ((isinstance(self.inclusion_threshold, int)) and
+                (self.n >= self.inclusion_threshold)):
+            return True
+        return False
+
+    def _parse_results_file(self):
+        file_stream, close = process_file_arg(self.path)
+        ss_iter = spreadsheet_iter([file_stream])
+        for d in ss_iter:
+            if self._full():
+                if close:
+                    file_stream.close()
+                return
+            try:
+                dms = OrderedDivergenceModelSummary(d)
+            except:
+                file_stream.close()
+                raise
+            self.n += 1
+            self.cumulative_prob += dms.prob
+            self.models.append(dms)
+        if close:
+            file_stream.close()
+
+    def _parse_posterior_file(self):
+        post = parse_parameters(self.path)
+        if not post.has_key('taus'):
+            raise Exception('posterior sample in {0} does not contain a '
+                    'divergence time vector'.format(self.path))
+        div_models = pymsbayes.utils.stats.PartitionCollection(
+                post['taus'])
+        for k, m in div_models.iteritems():
+            if self._full():
+                return
+            dms = OrderedDivergenceModelSummary()
+            dms.prob = div_models.get_frequency(k)
+            dms._parse_model(
+                    model_key_string = k,
+                    model_summary_string = m.value_summary_string())
+            self.n += 1
+            self.cumulative_prob += dms.prob
+            self.models.append(dms)
+
+class OrderedDivergenceModelCollection(OrderedDivergenceModelResults):
+    def __init__(self, div_model_results_path):
+        OrderedDivergenceModelResults.__init__(self, div_model_results_path)
+        assert almost_equal(self.cumulative_prob, 1.0)
+
+    def prob_of_shared_divergence(self, taxon_indices):
+        taxon_indices = list(taxon_indices)
+        prob_shared = 0.0
+        for m in self.models:
+            div_indices = [d for i, d in enumerate(
+                    m.partition) if i in taxon_indices]
+            if len(set(div_indices)) == 1:
+                prob_shared += m.prob
+        return prob_shared
+
+
+class OrderedDivergenceModelSummary(object):
+    number_pattern_string = r'[\d\.Ee\-\+]+'
+    age_info_pattern_string = (
+            '(?P<index>\d+)\:{0}\[&age_median='
+            '(?P<median>{0}),age_mean='
+            '(?P<mean>{0}),age_n='
+            '(?P<n>{0}),age_range={{'
+            '(?P<range1>{0}),'
+            '(?P<range2>{0})}},age_hpdi_95={{'
+            '(?P<hpdi1>{0}),'
+            '(?P<hpdi2>{0})}},age_qi_95={{'
+            '(?P<qi1>{0}),'
+            '(?P<qi2>{0})}}\]'.format(number_pattern_string))
+    age_info_pattern = re.compile(age_info_pattern_string)
+
+    def __init__(self, div_model_results_file_line_dict = None):
+        self.partition = None
+        self.age_info = None
+        self.prob = None
+        self.glm_prob = None
+        if div_model_results_file_line_dict:
+            self._parse_line_dict(div_model_results_file_line_dict)
+
+    def _parse_line_dict(self, line_dict):
+        self.prob = float(line_dict['estimated_prob'])
+        self.glm_prob = float(line_dict['glm_adjusted_prob'])
+        self._parse_model(model_key_string = line_dict['divergence_model'],
+                model_summary_string = line_dict[
+                        'div_model_with_conditional_age_estimates'])
+
+    def _parse_model(self, model_key_string, model_summary_string):
+        model_key = [int(x) for x in model_key_string.split(',')]
+        matches = []
+        if model_key[0] != 0:
+            raise Exception('Divergence models appear unordered')
+        self.partition = model_key
+        self.divergence_indices = sorted(set(self.partition))
+        for m in self.age_info_pattern.finditer(model_summary_string):
+            d = {'index': int(m.group('index')),
+                    'median': float(m.group('median')),
+                    'mean': float(m.group('mean')),
+                    'n': int(m.group('n')),
+                    'range': (float(m.group('range1')),
+                              float(m.group('range2'))),
+                    'hpdi_95': (float(m.group('hpdi1')),
+                             float(m.group('hpdi2'))),
+                    'qi_95': (float(m.group('qi1')), float(m.group('qi2'))),
+                    }
+            matches.append(d)
+        self.age_info = {}
+        for m in matches:
+            index = m.pop('index')
+            self.age_info[index] = m
+        assert self.divergence_indices == sorted(self.age_info.keys())
+
+    def iter_divergences(self):
+        for k in self.divergence_indices:
+            d = self.age_info[k]
+            taxon_indices = [i for i, x in enumerate(self.partition) if x == k]
+            yield taxon_indices, d
+
+    def iter_per_element_divergences(self):
+        for k in self.partition:
+            d = self.age_info[k]
             yield k, d
 
 class NumberOfDivergencesSummary(object):

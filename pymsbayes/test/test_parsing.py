@@ -6,6 +6,7 @@ import sys
 import math
 from cStringIO import StringIO
 
+import pymsbayes
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test.support import package_paths
 from pymsbayes.utils import parsing
@@ -1094,7 +1095,7 @@ class UnorderedDivergenceModelResultsTestCase(PyMsBayesTestCase):
             self.assertAlmostEqual(d['hpdi_95'][0], d_exp['hpdi_95'][0])
             self.assertAlmostEqual(d['hpdi_95'][1], d_exp['hpdi_95'][1])
 
-    def test_unordered_by_num(self):
+    def test_unordered_by_prob(self):
         dmr = parsing.UnorderedDivergenceModelResults(self.unordered_path,
                 inclusion_threshold = 0.35)
         self.assertEqual(dmr.inclusion_threshold, 0.35)
@@ -1165,6 +1166,236 @@ class UnorderedDivergenceModelResultsTestCase(PyMsBayesTestCase):
                     self.assertTrue(d['median'] < prev_med)
                 prev_i = i
                 prev_med = d['median']
+
+class OrderedDivergenceModelCollectionTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.ordered_path = package_paths.data_path(
+                os.path.join('posterior-sample.txt.gz'))
+        post = parsing.parse_parameters(self.ordered_path)
+        self.partition_collection = pymsbayes.utils.stats.PartitionCollection(
+                post['taus'])
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_ordered(self):
+        dmr = parsing.OrderedDivergenceModelCollection(self.ordered_path)
+        self.assertEqual(dmr.inclusion_threshold, None)
+        self.assertAlmostEqual(dmr.cumulative_prob, 1.0)
+        self.assertAlmostEqual(
+                dmr.prob_of_shared_divergence(range(9)),
+                self.partition_collection.prob_clustered(range(9)))
+        self.assertAlmostEqual(
+                dmr.prob_of_shared_divergence([0, 1]),
+                self.partition_collection.prob_clustered([0, 1]))
+        self.assertAlmostEqual(
+                dmr.prob_of_shared_divergence([0, 3, 7]),
+                self.partition_collection.prob_clustered([0, 3, 7]))
+
+class OrderedDivergenceModelResultsTestCase(PyMsBayesTestCase):
+    def setUp(self):
+        self.set_up()
+        self.unordered_path = package_paths.data_path(
+                'div-model-results-unordered.txt')
+        self.ordered_path = package_paths.data_path(
+                'div-model-results-ordered.txt')
+        self.post_ordered_path = package_paths.data_path(
+                os.path.join('posterior-sample.txt.gz'))
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_ordered_default(self):
+        dmr = parsing.OrderedDivergenceModelResults(self.ordered_path)
+        self.assertEqual(dmr.inclusion_threshold, None)
+        self.assertEqual(dmr.n, 10)
+        self.assertEqual(len(dmr.models), 10)
+        self.assertAlmostEqual(dmr.cumulative_prob, (0.0296 + 
+                0.015 + 0.0118 + 0.0095 + 0.006 + 0.0046 + 0.0043 + 0.0036 +
+                0.0034 + 0.0032))
+        m = dmr.models[0]
+        self.assertAlmostEqual(m.prob, 0.0296)
+        self.assertAlmostEqual(m.glm_prob, 0.00111786398348)
+        self.assertEqual(m.partition, [0,0,0,0,0,0,0,0,0])
+        expected = [(list(range(9)), {'median': 2.89806067731,
+                         'hpdi_95': (1.62602022373,4.24572749138)})
+                         ]
+        for i, (indices, d) in enumerate(m.iter_divergences()):
+            indices_exp, d_exp = expected[i]
+            self.assertEqual(indices, indices_exp)
+            self.assertAlmostEqual(d['median'], d_exp['median'])
+            self.assertAlmostEqual(d['hpdi_95'][0], d_exp['hpdi_95'][0])
+            self.assertAlmostEqual(d['hpdi_95'][1], d_exp['hpdi_95'][1])
+        m = dmr.models[1]
+        expected = [([0], {'median': 2.5934051444,
+                          'hpdi_95': (0.00697993267,6.04007877241)}),
+                    ([1], {'median': 2.12107243998,
+                           'hpdi_95': (0.04921140543,5.37594378422)}),
+                    ([2], {'median': 8.57401519742,
+                           'hpdi_95': (2.52257268432,13.5980140814)}),
+                    ([3], {'median': 1.16517664273,
+                           'hpdi_95': (0.03722408498,3.55286109134)}),
+                    ([4], {'median': 4.67285220771,
+                           'hpdi_95': (0.23966177613,9.11143589731)}),
+                    ([5], {'median': 2.83958905335,
+                           'hpdi_95': (0.53354021223,6.76893884696)}),
+                    ([6], {'median': 2.9941635737,
+                           'hpdi_95': (0.17159218528,7.07017845505)}),
+                    ([7], {'median': 2.09198620615,
+                           'hpdi_95': (0.04244849557,5.35559715967)}),
+                    ([8], {'median': 7.87970675021,
+                           'hpdi_95': (3.04965714237,14.1714879714)})]
+        for i, (indices, d) in enumerate(m.iter_divergences()):
+            indices_exp, d_exp = expected[i]
+            self.assertEqual(indices, indices_exp)
+            self.assertAlmostEqual(d['median'], d_exp['median'])
+            self.assertAlmostEqual(d['hpdi_95'][0], d_exp['hpdi_95'][0])
+            self.assertAlmostEqual(d['hpdi_95'][1], d_exp['hpdi_95'][1])
+        m = dmr.models[2]
+        expected = [([0,1,3,5,6,7], {'median': 1.74088590064,
+                          'hpdi_95': (0.42087207209,3.06627558879)}),
+                    ([2,4,8], {'median': 7.14681059644,
+                           'hpdi_95': (3.96503221188,10.4840797416)})]
+        for i, (indices, d) in enumerate(m.iter_divergences()):
+            indices_exp, d_exp = expected[i]
+            self.assertEqual(indices, indices_exp)
+            self.assertAlmostEqual(d['median'], d_exp['median'])
+            self.assertAlmostEqual(d['hpdi_95'][0], d_exp['hpdi_95'][0])
+            self.assertAlmostEqual(d['hpdi_95'][1], d_exp['hpdi_95'][1])
+
+    def test_ordered_by_num(self):
+        dmr = parsing.OrderedDivergenceModelResults(self.ordered_path,
+                inclusion_threshold = 3)
+        self.assertEqual(dmr.inclusion_threshold, 3)
+        self.assertEqual(dmr.n, 3)
+        self.assertEqual(len(dmr.models), 3)
+        self.assertAlmostEqual(dmr.cumulative_prob, (0.0296 + 
+                0.015 + 0.0118))
+        m = dmr.models[0]
+        self.assertAlmostEqual(m.prob, 0.0296)
+        self.assertAlmostEqual(m.glm_prob, 0.00111786398348)
+        self.assertEqual(m.partition, [0,0,0,0,0,0,0,0,0])
+        expected = [(list(range(9)), {'median': 2.89806067731,
+                         'hpdi_95': (1.62602022373,4.24572749138)})
+                         ]
+        for i, (indices, d) in enumerate(m.iter_divergences()):
+            indices_exp, d_exp = expected[i]
+            self.assertEqual(indices, indices_exp)
+            self.assertAlmostEqual(d['median'], d_exp['median'])
+            self.assertAlmostEqual(d['hpdi_95'][0], d_exp['hpdi_95'][0])
+            self.assertAlmostEqual(d['hpdi_95'][1], d_exp['hpdi_95'][1])
+        m = dmr.models[1]
+        expected = [([0], {'median': 2.5934051444,
+                          'hpdi_95': (0.00697993267,6.04007877241)}),
+                    ([1], {'median': 2.12107243998,
+                           'hpdi_95': (0.04921140543,5.37594378422)}),
+                    ([2], {'median': 8.57401519742,
+                           'hpdi_95': (2.52257268432,13.5980140814)}),
+                    ([3], {'median': 1.16517664273,
+                           'hpdi_95': (0.03722408498,3.55286109134)}),
+                    ([4], {'median': 4.67285220771,
+                           'hpdi_95': (0.23966177613,9.11143589731)}),
+                    ([5], {'median': 2.83958905335,
+                           'hpdi_95': (0.53354021223,6.76893884696)}),
+                    ([6], {'median': 2.9941635737,
+                           'hpdi_95': (0.17159218528,7.07017845505)}),
+                    ([7], {'median': 2.09198620615,
+                           'hpdi_95': (0.04244849557,5.35559715967)}),
+                    ([8], {'median': 7.87970675021,
+                           'hpdi_95': (3.04965714237,14.1714879714)})]
+        for i, (indices, d) in enumerate(m.iter_divergences()):
+            indices_exp, d_exp = expected[i]
+            self.assertEqual(indices, indices_exp)
+            self.assertAlmostEqual(d['median'], d_exp['median'])
+            self.assertAlmostEqual(d['hpdi_95'][0], d_exp['hpdi_95'][0])
+            self.assertAlmostEqual(d['hpdi_95'][1], d_exp['hpdi_95'][1])
+        m = dmr.models[2]
+        expected = [([0,1,3,5,6,7], {'median': 1.74088590064,
+                          'hpdi_95': (0.42087207209,3.06627558879)}),
+                    ([2,4,8], {'median': 7.14681059644,
+                           'hpdi_95': (3.96503221188,10.4840797416)})]
+        for i, (indices, d) in enumerate(m.iter_divergences()):
+            indices_exp, d_exp = expected[i]
+            self.assertEqual(indices, indices_exp)
+            self.assertAlmostEqual(d['median'], d_exp['median'])
+            self.assertAlmostEqual(d['hpdi_95'][0], d_exp['hpdi_95'][0])
+            self.assertAlmostEqual(d['hpdi_95'][1], d_exp['hpdi_95'][1])
+
+    def test_ordered_by_prob(self):
+        dmr = parsing.OrderedDivergenceModelResults(self.ordered_path,
+                inclusion_threshold = 0.0565)
+        self.assertEqual(dmr.inclusion_threshold, 0.0565)
+        self.assertEqual(dmr.n, 4)
+        self.assertEqual(len(dmr.models), 4)
+        self.assertAlmostEqual(dmr.cumulative_prob, (0.0296 + 
+                0.015 + 0.0118 + 0.0095))
+        m = dmr.models[0]
+        self.assertAlmostEqual(m.prob, 0.0296)
+        self.assertAlmostEqual(m.glm_prob, 0.00111786398348)
+        self.assertEqual(m.partition, [0,0,0,0,0,0,0,0,0])
+        expected = [(list(range(9)), {'median': 2.89806067731,
+                         'hpdi_95': (1.62602022373,4.24572749138)})
+                         ]
+        for i, (indices, d) in enumerate(m.iter_divergences()):
+            indices_exp, d_exp = expected[i]
+            self.assertEqual(indices, indices_exp)
+            self.assertAlmostEqual(d['median'], d_exp['median'])
+            self.assertAlmostEqual(d['hpdi_95'][0], d_exp['hpdi_95'][0])
+            self.assertAlmostEqual(d['hpdi_95'][1], d_exp['hpdi_95'][1])
+        m = dmr.models[1]
+        expected = [([0], {'median': 2.5934051444,
+                          'hpdi_95': (0.00697993267,6.04007877241)}),
+                    ([1], {'median': 2.12107243998,
+                           'hpdi_95': (0.04921140543,5.37594378422)}),
+                    ([2], {'median': 8.57401519742,
+                           'hpdi_95': (2.52257268432,13.5980140814)}),
+                    ([3], {'median': 1.16517664273,
+                           'hpdi_95': (0.03722408498,3.55286109134)}),
+                    ([4], {'median': 4.67285220771,
+                           'hpdi_95': (0.23966177613,9.11143589731)}),
+                    ([5], {'median': 2.83958905335,
+                           'hpdi_95': (0.53354021223,6.76893884696)}),
+                    ([6], {'median': 2.9941635737,
+                           'hpdi_95': (0.17159218528,7.07017845505)}),
+                    ([7], {'median': 2.09198620615,
+                           'hpdi_95': (0.04244849557,5.35559715967)}),
+                    ([8], {'median': 7.87970675021,
+                           'hpdi_95': (3.04965714237,14.1714879714)})]
+        for i, (indices, d) in enumerate(m.iter_divergences()):
+            indices_exp, d_exp = expected[i]
+            self.assertEqual(indices, indices_exp)
+            self.assertAlmostEqual(d['median'], d_exp['median'])
+            self.assertAlmostEqual(d['hpdi_95'][0], d_exp['hpdi_95'][0])
+            self.assertAlmostEqual(d['hpdi_95'][1], d_exp['hpdi_95'][1])
+        m = dmr.models[2]
+        expected = [([0,1,3,5,6,7], {'median': 1.74088590064,
+                          'hpdi_95': (0.42087207209,3.06627558879)}),
+                    ([2,4,8], {'median': 7.14681059644,
+                           'hpdi_95': (3.96503221188,10.4840797416)})]
+        for i, (indices, d) in enumerate(m.iter_divergences()):
+            indices_exp, d_exp = expected[i]
+            self.assertEqual(indices, indices_exp)
+            self.assertAlmostEqual(d['median'], d_exp['median'])
+            self.assertAlmostEqual(d['hpdi_95'][0], d_exp['hpdi_95'][0])
+            self.assertAlmostEqual(d['hpdi_95'][1], d_exp['hpdi_95'][1])
+
+    def test_unordered(self):
+        self.assertRaises(Exception, parsing.OrderedDivergenceModelResults,
+                self.unordered_path)
+        dmr = parsing.OrderedDivergenceModelResults(self.post_ordered_path,
+                inclusion_threshold = 10)
+        self.assertEqual(dmr.inclusion_threshold, 10)
+        self.assertEqual(dmr.n, 10)
+        self.assertEqual(len(dmr.models), 10)
+        self.assertTrue((dmr.cumulative_prob > 0.0) and (
+                dmr.cumulative_prob < 1.0))
+        prev_prob = 1.0
+        for m in dmr.models:
+            self.assertTrue(m.prob <= prev_prob)
+            prev_prob = m.prob
+            self.assertEqual(m.glm_prob, None)
+            self.assertEqual(m.partition[0], 0)
 
 if __name__ == '__main__':
     unittest.main()
