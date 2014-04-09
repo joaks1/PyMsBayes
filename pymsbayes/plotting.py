@@ -2955,8 +2955,10 @@ def get_marginal_divergence_time_plot(config_path, posterior_summary_path,
         measure_axis_label = 'Divergence time',
         measure_axis_label_size = 14.0,
         label_axis_label = 'Taxon pair',
-        label_axis_label_size = 14.0):
-    matplotlib.rc('text',**{'usetex': True})
+        label_axis_label_size = 14.0,
+        usetex = True):
+    if usetex:
+        matplotlib.rc('text',**{'usetex': True})
     cfg = config.MsBayesConfig(config_path)
     summary = parse_posterior_summary_file(posterior_summary_path)
     times = []
