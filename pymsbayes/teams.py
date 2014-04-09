@@ -1307,11 +1307,19 @@ class ModelProbabilityEstimatorTeam(object):
             [config.MsBayesConfig(c) for c in config_paths]))
         self.psi_summaries = {}
         self.psi_probs = {}
+        self.shared_div_summaries = {}
+        self.shared_div_probs = {}
         for p, c in self.configs.iteritems():
             self.psi_summaries[p] = dict(zip([i + 1 for i in range(c.npairs)],
                     [stats.SampleSummary() for i in range(c.npairs)]))
             self.psi_probs[p] = dict(zip([i + 1 for i in range(c.npairs)],
                     [None for i in range(c.npairs)]))
+            self.shared_div_summaries[p] = dict(zip(
+                    [i + 1 for i in range(1, c.npairs)],
+                    [stats.SampleSummary() for i in range(1, c.npairs)]))
+            self.shared_div_probs[p] = dict(zip(
+                    [i + 1 for i in range(1, c.npairs)],
+                    [None for i in range(1, c.npairs)]))
         self.omega_summaries = dict(zip(self.configs.iterkeys(),
                 [stats.SampleSummary() for c in self.configs.iterkeys()]))
         self.omega_probs = dict(zip(self.configs.iterkeys(),
@@ -1344,6 +1352,9 @@ class ModelProbabilityEstimatorTeam(object):
         for w in workers:
             for k in self.psi_summaries[w.tag].iterkeys():
                 self.psi_summaries[w.tag][k].update(w.psi_summary[k])
+            for k in self.shared_div_summaries[w.tag].iterkeys():
+                self.shared_div_summaries[w.tag][k].update(
+                        w.shared_div_summary[k])
             self.omega_summaries[w.tag].update(w.omega_summary)
         for path in self.configs.iterkeys():
             total = 0.0
@@ -1354,5 +1365,18 @@ class ModelProbabilityEstimatorTeam(object):
                 raise Exception('Error in estimating probabilities of the '
                         'number of divergences for {0}. The total probability '
                         'summed to {1}'.format(path, total))
+            for k, s in self.shared_div_summaries[path].iteritems():
+                self.shared_div_probs[path][k] = s.mean
+            if not probability.almost_equal(
+                    self.shared_div_probs[path][self.configs[path].npairs],
+                    self.psi_probs[path][1],
+                    places = 7):
+                raise Exception('Error in estimating probabilities of the '
+                        'shared divergences for {0}. The probability of all'
+                        'taxa co-diverging was {1}, but the probability of '
+                        'one divergence event was {2}'.format(path,
+                                self.shared_div_probs[path][
+                                        self.configs[path].npairs],
+                                self.psi_probs[path][1]))
             self.omega_probs[path] = self.omega_summaries[path].mean
 
