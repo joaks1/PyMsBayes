@@ -234,6 +234,8 @@ def main_cli():
                                 'psi-results'))
             else:
                 width = (0.25 * prior_cfg.npairs) + 0.55
+                if width < 2.8:
+                    width = 2.8
                 num_div_summary = parsing.NumberOfDivergencesSummary(
                         config_path = results.prior_index_to_config[prior_idx],
                         psi_results_path = psi_path,
