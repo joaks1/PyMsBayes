@@ -2899,10 +2899,14 @@ class OrderedDivergenceModelPlotGrid(object):
                     label_size = self.label_size,
                     labels_in_plot = False)
             s = r'$p(\mathbf{{t}} \, | \, B_{{\epsilon}}(S*)) = {0:.3f}$'.format(m.prob)
+            ndiv = len(set(m.partition))
+            l = r'$|\tau| = {0}$'.format(ndiv)
             sp = ScatterPlot(error_data_list = [ed],
                     horizontal_lines = horizontal_lines,
-                    right_text = s)
+                    right_text = s,
+                    left_text = l)
             sp.right_text_size = self.right_text_size
+            sp.left_text_size = self.right_text_size
             self.subplots.append(sp)
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
