@@ -1082,6 +1082,7 @@ class OrderedDivergenceModelResults(object):
         self.models = []
         self.n = 0
         self.cumulative_prob = 0.0
+        self.npairs = None
         header = parse_header(self.path)
         if 'div_model_with_conditional_age_estimates' in header:
             self._parse_results_file()
@@ -1115,6 +1116,10 @@ class OrderedDivergenceModelResults(object):
             self.n += 1
             self.cumulative_prob += dms.prob
             self.models.append(dms)
+            if not self.npairs:
+                self.npairs = dms.npairs
+            else:
+                assert self.npairs == dms.npairs
         if close:
             file_stream.close()
 
@@ -1136,6 +1141,10 @@ class OrderedDivergenceModelResults(object):
             self.n += 1
             self.cumulative_prob += dms.prob
             self.models.append(dms)
+            if not self.npairs:
+                self.npairs = dms.npairs
+            else:
+                assert self.npairs == dms.npairs
 
 class OrderedDivergenceModelCollection(OrderedDivergenceModelResults):
     def __init__(self, div_model_results_path):
@@ -1144,6 +1153,9 @@ class OrderedDivergenceModelCollection(OrderedDivergenceModelResults):
 
     def prob_of_shared_divergence(self, taxon_indices):
         taxon_indices = list(taxon_indices)
+        for i in taxon_indices:
+            if ((i < 0) or (i >= self.npairs)):
+                raise ValueError('taxon index {0} is out of bounds'.format(i))
         prob_shared = 0.0
         for m in self.models:
             div_indices = [d for i, d in enumerate(
@@ -1173,6 +1185,7 @@ class OrderedDivergenceModelSummary(object):
         self.age_info = None
         self.prob = None
         self.glm_prob = None
+        self.npairs = None
         if div_model_results_file_line_dict:
             self._parse_line_dict(div_model_results_file_line_dict)
 
@@ -1189,6 +1202,7 @@ class OrderedDivergenceModelSummary(object):
         if model_key[0] != 0:
             raise Exception('Divergence models appear unordered')
         self.partition = model_key
+        self.npairs = len(self.partition)
         self.divergence_indices = sorted(set(self.partition))
         for m in self.age_info_pattern.finditer(model_summary_string):
             d = {'index': int(m.group('index')),
@@ -1298,6 +1312,8 @@ class NumberOfDivergencesSummary(object):
                     d['estimated_prob'])
 
     def _parse_posterior_summary_file(self):
+        if not self.posterior_summary_path:
+            return
         results = parse_posterior_summary_file(
                 self.posterior_summary_path)
         self.omega = float(results['PRI.omega']['median'])
