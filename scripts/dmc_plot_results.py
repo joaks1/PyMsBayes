@@ -154,10 +154,11 @@ def main_cli():
                             measure_axis_label = 'Divergence time',
                             measure_axis_label_size = 14.0,
                             label_axis_label = 'Taxon pair',
-                            label_axis_label_size = 14.0)
+                            label_axis_label_size = 14.0,
+                            usetex = False)
                     marginal_times_path = '{0}{1}'.format(out_prefix,
                             'marginal-divergence-times.pdf')
-                    margina_times_plot.savefig(marginal_times_path)
+                    marginal_times_plot.savefig(marginal_times_path)
 
                 #plot top ordered models
                 if not div_model_path:
