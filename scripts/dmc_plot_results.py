@@ -126,7 +126,7 @@ def main_cli():
                     result_path_prefix))
             prior_cfg = results.prior_configs[prior_idx]
             posterior_summary_path = get_result_path(result_path_prefix,
-                    'posterior_summary')
+                    'posterior-summary')
             div_model_path = get_result_path(result_path_prefix,
                     'div-model-results')
             if results.sort_index == 0:
@@ -137,6 +137,7 @@ def main_cli():
                                     result_path_prefix,
                                     'posterior-summary'))
                 else:
+                    label_dimension = (0.34 * (prior_cfg.npairs + 1)) + 0.56
                     marginal_times_plot = plotting.get_marginal_divergence_time_plot(
                             config_path = results.prior_index_to_config[
                                     prior_idx],
@@ -146,7 +147,7 @@ def main_cli():
                             interval = 'HPD_95_interval',
                             time_multiplier = 1.0,
                             horizontal = True,
-                            label_dimension = 4.0,
+                            label_dimension = label_dimension,
                             measure_dimension = 8.0,
                             label_size = 12.0,
                             measure_tick_label_size = 12.0,
@@ -165,13 +166,14 @@ def main_cli():
                                     result_path_prefix,
                                     'div-model-results'))
                 else:
+                    width = (0.38 * prior_cfg.npairs) + 1.5
                     div_model_plot = plotting.OrderedDivergenceModelPlotGrid(
                             div_model_results_path = div_model_path,
                             config_path = results.prior_index_to_config[
                                     prior_idx],
                             num_top_models = 10,
                             height = 12.0,
-                            width = 8.0,
+                            width = width,
                             plot_label_schema = 'uppercase',
                             plot_label_offset = 0,
                             plot_label_size = 12.0,
@@ -197,11 +199,12 @@ def main_cli():
                                     result_path_prefix,
                                     'div-model-results'))
                 else:
+                    width = (0.38 * prior_cfg.npairs) + 1.5
                     div_model_plot = plotting.UnorderedDivergenceModelPlotGrid(
                             div_model_results_path = div_model_path,
                             num_top_models = 10,
                             height = 10.0,
-                            width = 8.0,
+                            width = width,
                             data_label_size = 10.0,
                             plot_label_schema = 'uppercase',
                             plot_label_offset = 0,
@@ -229,6 +232,7 @@ def main_cli():
                                 result_path_prefix,
                                 'psi-results'))
             else:
+                width = (0.25 * prior_cfg.npairs) + 0.55
                 num_div_summary = parsing.NumberOfDivergencesSummary(
                         config_path = results.prior_index_to_config[prior_idx],
                         psi_results_path = psi_path,
@@ -243,7 +247,7 @@ def main_cli():
                         xtick_label_size = 10.0,
                         ytick_label_size = 8.0,
                         height = 6.0,
-                        width = 3.0,
+                        width = width,
                         margin_bottom = 0.0,
                         margin_left = 0.0,
                         margin_top = 0.98,
