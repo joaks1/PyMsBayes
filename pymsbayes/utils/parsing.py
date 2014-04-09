@@ -610,14 +610,13 @@ class DMCSimulationResults(object):
     def get_result_indices(self, observed_index, prior_index, sim_index):
         prefix = self.get_result_path_prefix(observed_index, prior_index,
                 sim_index)
-        pattern = prefix + '*-posterior-sample*'
+        pattern = prefix + '*-posterior-*'
         result_files = [os.path.basename(x) for x in glob.glob(pattern)]
-        result_indices = []
+        result_indices = set()
         for f in result_files:
             m = self.result_file_name_pattern.match(f)
-            result_indices.append(int(m.group('result_index')))
-        result_indices.sort()
-        return result_indices
+            result_indices.add(int(m.group('result_index')))
+        return sorted(result_indices) 
 
     def result_iter(self, observed_index, prior_index):
         path_iter = self.result_path_iter(observed_index, prior_index)
@@ -1303,8 +1302,19 @@ class NumberOfDivergencesSummary(object):
             p_not = 1.0 - p
             prior = self.psi_prior_probs[k]
             prior_not = 1.0 - p
-            self.psi_bayes_factors[k] = 2 * math.log(
-                    (p / p_not) / (prior / prior_not))
+            if p_not <= 0.0:
+                numerator = float('inf')
+            else:
+                numerator = p / p_not
+            if prior_not <= 0.0:
+                denom = float('inf')
+            else:
+                denom = prior / prior_not
+            if denom <= 0.0:
+                bf = float('inf')
+            else:
+                bf = numerator / denom
+            self.psi_bayes_factors[k] = 2 * math.log(bf)
 
     def _parse_psi_results_path(self):
         for d in spreadsheet_iter([self.psi_results_path]):
