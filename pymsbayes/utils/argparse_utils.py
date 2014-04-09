@@ -61,6 +61,15 @@ def arg_is_nonnegative_int(i):
         raise argparse.ArgumentTypeError(msg)
     return int(i)
 
+def arg_is_positive_int(i):
+    try:
+        if int(i) < 1:
+            raise
+    except:
+        msg = '{0!r} is not a positive integer'.format(i)
+        raise argparse.ArgumentTypeError(msg)
+    return int(i)
+
 def arg_is_positive_float(i):
     try:
         if float(i) <= 0.0:
