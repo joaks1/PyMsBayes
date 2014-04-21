@@ -608,9 +608,9 @@ class Partition(object):
         if self._initialized:
             raise Exception('cannot re-initialize Partition instance')
         if isinstance(element_vector, Partition):
-            self._values = copy.deepcopy(element_vector._items)
+            self.values = copy.deepcopy(element_vector.values)
             self.partition = copy.deepcopy(
-                    element_vector.integer_partition)
+                    element_vector.partition)
             self.key = copy.deepcopy(element_vector.key)
             self.n = element_vector.n
         else:
