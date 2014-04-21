@@ -1045,6 +1045,34 @@ class PartitionTestCase(unittest.TestCase):
         self.assertRaises(Exception, p._initialize,
                 [0.1, 0.2, 0.2, 0.1, 0.2, 0.3])
 
+    def test_init_with_instance(self):
+        p2 = Partition([0.1, 0.2, 0.2, 0.1, 0.2, 0.3, 0.2])
+        p = Partition(p2)
+        self.assertTrue(p._initialized)
+        self.assertEqual(p.n, 1)
+        self.assertEqual(p.key, '0,1,1,0,1,2,1')
+        self.assertEqual(p.partition, [0,1,1,0,1,2,1])
+        self.assertEqual(p.values, {0: [0.1], 1: [0.2], 2: [0.3]})
+        self.assertEqual(list(p.itervalues()),
+                [(0, [0.1]), (1, [0.2]), (2, [0.3])])
+        self.assertEqual(list(p.iter_value_summaries()),
+                [(0, get_summary([0.1])),
+                 (1, get_summary([0.2])),
+                 (2, get_summary([0.3]))])
+        self.assertEqual(p.value_summary_string(),
+                ('0:0.1[&age_median=0.1,age_mean=0.1,age_n=1,'
+                 'age_range={0.1,0.1},age_hpdi_95={0.1,0.1},'
+                 'age_qi_95={0.1,0.1}],'
+                 '1:0.2[&age_median=0.2,age_mean=0.2,age_n=1,'
+                 'age_range={0.2,0.2},age_hpdi_95={0.2,0.2},'
+                 'age_qi_95={0.2,0.2}],'
+                 '2:0.3[&age_median=0.3,age_mean=0.3,age_n=1,'
+                 'age_range={0.3,0.3},age_hpdi_95={0.3,0.3},'
+                 'age_qi_95={0.3,0.3}]'))
+        self.assertRaises(Exception, p._initialize,
+                [0.1, 0.2, 0.2, 0.1, 0.2, 0.3])
+        self.assertFalse(p == p2)
+
     def test_update_with_element_vectors(self):
         p = Partition([0.1, 0.2, 0.2, 0.1, 0.2, 0.3, 0.2])
         self.assertEqual(p.n, 1)
