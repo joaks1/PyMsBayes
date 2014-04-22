@@ -599,17 +599,35 @@ class ListConditionEvaluator(object):
     index_pattern = re.compile(r'(?P<index>\d+)')
     valid_relations = ['==', '!=', '<', '>', '<=', '>=', 'and', 'or', '&',
             '|', 'not']
-    def __init__(self, expression_str):
+    def __init__(self, expression_str,
+            index_labels = None):
         relations = [s for s in re.split(r'[0-9()\s\t\n]',
                 expression_str) if s != '']
         for r in relations:
             if not r in self.valid_relations:
                 raise SyntaxError('expression {0!r} contains invalid relation '
                         '{1!r}'.format(expression_str, r))
+        self.index_labels = None
+        if index_labels:
+            self.index_labels = list(index_labels)
         exp_str = ''.join(expression_str.split())
         self.indices = [int(i) for i in self.index_pattern.findall(exp_str)]
         exp = self.index_pattern.sub(' l[\g<index>] ', exp_str)
         self.expression = exp.strip()
+        self.pretty_expression = self.expression
+        pretty_exp = None
+        if self.index_labels:
+            pretty_exp = exp_str
+            for i in sorted(self.indices, reverse = True):
+                try:
+                    pretty_exp = pretty_exp.replace(str(i), ' {0} '.format(
+                            self.index_labels[i]))
+                except IndexError as ie:
+                    raise IndexError('expression {0!r} uses indices out of '
+                            'range for labels {1}'.format(self.expression,
+                                    self.index_labels))
+        if pretty_exp:
+            self.pretty_expression = pretty_exp.strip()
 
     def __str__(self):
         return self.expression
@@ -619,11 +637,10 @@ class ListConditionEvaluator(object):
         try:
             ret = eval(self.expression)
         except IndexError as ie:
-            _LOG.error('expression {0!r} uses indices out of range for '
+            raise IndexError('expression {0!r} uses indices out of range for '
                     '{1}'.format(self.expression, l))
-            raise ie
         except SyntaxError as se:
-            _LOG.error('expression {0!r} has invalid syntax'.format(
+            _LOG.error('ERROR: expression {0!r} has invalid syntax'.format(
                     self.expression))
             raise se
         return ret
