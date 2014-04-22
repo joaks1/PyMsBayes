@@ -506,6 +506,17 @@ def parse_summary_file(file_obj):
 ##############################################################################
 ## results parsing
 
+def get_partitions_from_posterior_sample_file(file_obj,
+        integer_partitions = False):
+    post = parse_parameters(file_obj)
+    if not 'taus' in post:
+        name = getattr(file_obj, 'name', file_obj)
+        raise Exception('posterior sample in {0} does not contain a '
+                'divergence time vector'.format(name))
+    if integer_partitions:
+        return pymsbayes.utils.stats.IntegerPartitionCollection(post['taus'])
+    return pymsbayes.utils.stats.PartitionCollection(post['taus'])
+
 class DMCSimulationResults(object):
     result_file_name_pattern = re.compile(r'^d(?P<observed_index>\d+)-'
             'm(?P<prior_index>\d+)-s(?P<sim_index>\d+)-(?P<result_index>\d+)-'
@@ -997,12 +1008,8 @@ class UnorderedDivergenceModelResults(object):
             file_stream.close()
 
     def _parse_posterior_file(self):
-        post = parse_parameters(self.path)
-        if not post.has_key('taus'):
-            raise Exception('posterior sample in {0} does not contain a '
-                    'divergence time vector'.format(self.path))
-        div_models = pymsbayes.utils.stats.IntegerPartitionCollection(
-                post['taus'])
+        div_models = get_partitions_from_posterior_sample_file(
+                self.path, integer_partitions = True)
         for k, m in div_models.iteritems():
             if self._full():
                 return
@@ -1123,12 +1130,7 @@ class OrderedDivergenceModelResults(object):
             file_stream.close()
 
     def _parse_posterior_file(self):
-        post = parse_parameters(self.path)
-        if not post.has_key('taus'):
-            raise Exception('posterior sample in {0} does not contain a '
-                    'divergence time vector'.format(self.path))
-        div_models = pymsbayes.utils.stats.PartitionCollection(
-                post['taus'])
+        div_models = get_partitions_from_posterior_sample_file(self.path)
         for k, m in div_models.iteritems():
             if self._full():
                 return
