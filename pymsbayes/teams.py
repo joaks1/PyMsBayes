@@ -14,7 +14,7 @@ import Queue
 from pymsbayes import config
 from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRegressWorker,
         EuRejectSummaryMerger, EuRejectWorker, PosteriorWorker,
-        merge_prior_files, ModelProbabilityEstimator)
+        merge_prior_files, ModelProbabilityEstimator, DivModelSimulator)
 from pymsbayes.utils.parsing import (get_stat_indices, parse_header,
         DEFAULT_STAT_PATTERNS, ALL_STAT_PATTERNS, parse_model_key_file)
 from pymsbayes.manager import Manager
@@ -1380,3 +1380,47 @@ class ModelProbabilityEstimatorTeam(object):
                                 self.psi_probs[path][1]))
             self.omega_probs[path] = self.omega_summaries[path].mean
 
+class DivModelSimulatorTeam(object):
+    count = 0
+    def __init__(self,
+            config_paths,
+            num_samples = 1000,
+            num_processors = 4,
+            rng = None):
+        self.__class__.count += 1
+        self.name = self.__class__.__name__ + '-' + str(self.count)
+        self.rng = rng
+        if not rng:
+            self.rng = GLOBAL_RNG
+        self.np = num_processors
+        self.configs = dict(zip(config_paths,
+            [config.MsBayesConfig(c) for c in config_paths]))
+        self.div_models = dict(zip(config_paths,
+            [stats.PartitionCollection() for c in config_paths]))
+        self.num_samples = num_samples
+        if self.np > self.num_samples:
+            self.np = self.num_samples
+        self.batch_size, self.remainder = long_division(self.num_samples,
+                self.np)
+
+    def start(self):
+        workers = []
+        for path, cfg in self.configs.iteritems():
+            for i in range(self.np):
+                sample_size = self.batch_size
+                if i == (self.np - 1):
+                    sample_size += self.remainder
+                w = DivModelSimulator(
+                        config = cfg,
+                        num_samples = sample_size,
+                        tag = path)
+                workers.append(w)
+        _LOG.info('{0}: Generating samples...'.format(self.name))
+        workers = Manager.run_workers(
+                workers = workers,
+                num_processors = self.np)
+        _LOG.info('{0}: Done!'.format(self.name))
+        _LOG.info('{0}: Summarizing results...'.format(self.name))
+        for w in workers:
+            self.div_models[w.tag].add_iter(
+                    w.div_models.partitions.itervalues())
