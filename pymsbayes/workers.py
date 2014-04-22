@@ -1656,3 +1656,50 @@ class ModelProbabilityEstimator(object):
                 variance = omega_summarizer.variance))
         self.finished = True
 
+class DivModelSimulator(object):
+    count = 0
+    def __init__(self, config,
+            num_samples = 1000,
+            rng = None,
+            tag = None):
+        self.__class__.count += 1
+        self.name = self.__class__.__name__ + '-' + str(self.count)
+        self.config = config
+        if not isinstance(config, MsBayesConfig):
+            self.config = MsBayesConfig(config)
+        self.npairs = self.config.npairs
+        self.num_samples = num_samples
+        self.div_models = PartitionCollection()
+        self.rng = rng
+        self.tag = tag
+        self.finished = False
+
+    def get_prior_sample_iter(self):
+        p = Partition()
+        if self.config.div_model_prior == 'psi':
+            return p.psi_multinomial_draw_iter(
+                    num_samples = self.num_samples,
+                    num_elements = self.config.npairs,
+                    base_distribution = self.config.tau,
+                    rng = self.rng)
+        elif self.config.div_model_prior == 'uniform':
+            return p.uniform_integer_partition_draw_iter(
+                    num_samples = self.num_samples,
+                    num_elements = self.config.npairs,
+                    base_distribution = self.config.tau,
+                    rng = self.rng)
+        elif self.config.div_model_prior == 'dpp':
+            return p.dirichlet_process_draw_iter(
+                    alpha = self.config.dpp_concentration,
+                    num_samples = self.num_samples,
+                    num_elements = self.config.npairs,
+                    base_distribution = self.config.tau,
+                    rng = self.rng)
+        else:
+            raise Exception('divergence model prior {0!r} is not '
+                    'supported'.format(self.config.div_model_prior))
+
+    def start(self):
+        self.div_models.add_iter(self.get_prior_sample_iter())
+        self.finished = True
+
