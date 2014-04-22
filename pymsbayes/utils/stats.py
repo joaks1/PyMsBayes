@@ -597,7 +597,15 @@ class SampleSummaryCollection(object):
 
 class ListConditionEvaluator(object):
     index_pattern = re.compile(r'(?P<index>\d+)')
+    valid_relations = ['==', '!=', '<', '>', '<=', '>=', 'and', 'or', '&',
+            '|', 'not']
     def __init__(self, expression_str):
+        relations = [s for s in re.split(r'[0-9()\s\t\n]',
+                expression_str) if s != '']
+        for r in relations:
+            if not r in self.valid_relations:
+                raise SyntaxError('expression {0!r} contains invalid relation '
+                        '{1!r}'.format(expression_str, r))
         exp_str = ''.join(expression_str.split())
         self.indices = [int(i) for i in self.index_pattern.findall(exp_str)]
         exp = self.index_pattern.sub(' l[\g<index>] ', exp_str)
@@ -704,6 +712,13 @@ class Partition(object):
     def element_vector_iter(self):
         for i in range(self.n):
             yield self.get_element_vector(i)
+
+    def get_condition_count(self, list_condition_evaluator_instance):
+        count = 0
+        for values in self.element_vector_iter():
+            if list_condition_evaluator_instance.evaluate(values):
+                count += 1
+        return count
 
     def dirichlet_process_prior_probability(self, alpha, log = False):
         alpha = float(alpha)
@@ -1010,6 +1025,16 @@ class PartitionCollection(object):
         for k in self.iterkeys():
             freqs[k] = self.get_frequency(k)
         return freqs
+
+    def get_condition_count(self, list_condition_evaluator_instance):
+        count = 0
+        for p in self.partitions.itervalues():
+            count += p.get_condition_count(list_condition_evaluator_instance)
+        return count
+
+    def get_condition_frequency(self, list_condition_evaluator_instance):
+        return (self.get_condition_count(list_condition_evaluator_instance) /
+                float(self.n))
 
     def prob_clustered(self, element_indices):
         element_indices = list(element_indices)

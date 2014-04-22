@@ -989,8 +989,12 @@ class SummarizeDiscreteParametersFromDensitiesTestCase(PyMsBayesTestCase):
                 places=14)
 
 class ListConditionEvaluatorTestCase(unittest.TestCase):
-    def test_syntax_error(self):
-        lce = ListConditionEvaluator('(0 < 1) ard (0==2)')
+    def test_init_syntax_error(self):
+        self.assertRaises(SyntaxError, ListConditionEvaluator,
+                '(0 < 1) ard (0==2)')
+
+    def test_eval_syntax_error(self):
+        lce = ListConditionEvaluator('(0 < 1) and 0==2)')
         self.assertRaises(SyntaxError, lce.evaluate, [0, 1])
 
     def test_index_error(self):
@@ -1032,6 +1036,10 @@ class ListConditionEvaluatorTestCase(unittest.TestCase):
         self.assertTrue(lce.evaluate([-1.2, 0.48, 0.49, 0.7, 3.4]))
         lce = ListConditionEvaluator('not ( 1<2    <    3  )')
         self.assertFalse(lce.evaluate([-1.2, 0.48, 0.49, 0.7, 3.4]))
+        lce = ListConditionEvaluator(('(((0==1==2) and (not (2 !=3))) and '
+                '(((4 >= 5) or (not 5<= 6)) & ((7 != 8) | (7 > 9))))'))
+        l = [0.4, 0.4, 0.4, 0.4, 0.1, 0.2, 0.1, 1.2, 1.2, 0.33]
+        self.assertTrue(lce.evaluate(l))
 
 
 class PartitionTestCase(unittest.TestCase):
@@ -1188,6 +1196,32 @@ class PartitionTestCase(unittest.TestCase):
         self.assertEqual(p.partition, [0,1,1,0,1,2,1])
         self.assertEqual(list(p.element_vector_iter()),
                 element_vectors)
+
+    def test_get_condition_count(self):
+        element_vectors = [
+                [0.1, 0.2, 0.2, 0.1, 0.2, 0.3, 0.2],
+                [0.5, 0.4, 0.4, 0.5, 0.4, 0.1, 0.4],
+                [0.5, 0.9, 0.9, 0.5, 0.9, 0.1, 0.9],
+                [0.7, 0.2, 0.2, 0.7, 0.2, 0.6, 0.2],
+                ]
+        p = Partition()
+        for values in element_vectors:
+            p.update(values)
+        lce = ListConditionEvaluator('0 > 1')
+        c = p.get_condition_count(lce)
+        self.assertEqual(c, 2)
+        lce = ListConditionEvaluator('0 == 1')
+        c = p.get_condition_count(lce)
+        self.assertEqual(c, 0)
+        lce = ListConditionEvaluator('1==2==4==6')
+        c = p.get_condition_count(lce)
+        self.assertEqual(c, 4)
+        lce = ListConditionEvaluator('5 < 3')
+        c = p.get_condition_count(lce)
+        self.assertEqual(c, 3)
+        lce = ListConditionEvaluator('not 5 < 3')
+        c = p.get_condition_count(lce)
+        self.assertEqual(c, 1)
 
     def test_get_integer_partition(self):
         p = Partition([0.1, 0.2, 0.2, 0.1, 0.2, 0.3, 0.2])
@@ -1575,6 +1609,64 @@ class PartitionCollectionTestCase(PyMsBayesTestCase):
         self.assertAlmostEqual(pc.prob_clustered([1,2,5]), 2/float(4))
         self.assertAlmostEqual(pc.prob_clustered([3,5,6]), 1/float(4))
         self.assertAlmostEqual(pc.prob_clustered([5,6]), 1/float(4))
+
+    def test_get_condition_count(self):
+        partitions = [
+                Partition([0.1, 0.2, 0.2, 0.1, 0.2, 0.3, 0.2]),
+                Partition([0.5, 0.1, 0.4, 0.5, 0.4, 0.1, 0.4]),
+                Partition([0.5, 0.9, 0.9, 0.5, 0.9, 0.1, 1.1]),
+                Partition([0.7, 0.2, 0.2, 0.7, 0.2, 0.6, 0.2]),
+                Partition([0.5, 0.4, 0.4, 0.1, 0.1, 0.4, 0.1]),
+                Partition([0.5, 0.4, 0.4, 0.2, 0.2, 0.3, 0.1]),
+                Partition([0.1, 0.4, 0.4, 0.1, 0.2, 0.1, 0.1]),
+                Partition([0.3, 0.1, 0.1, 0.3, 0.2, 0.1, 0.3]),
+                ]
+        pc = PartitionCollection()
+        pc.add_iter(partitions)
+        lce = ListConditionEvaluator('0 > 1')
+        c = pc.get_condition_count(lce)
+        self.assertEqual(c, 5)
+        lce = ListConditionEvaluator('0 == 1')
+        c = pc.get_condition_count(lce)
+        self.assertEqual(c, 0)
+        lce = ListConditionEvaluator('1==2==4==6')
+        c = pc.get_condition_count(lce)
+        self.assertEqual(c, 2)
+        lce = ListConditionEvaluator('5 < 3')
+        c = pc.get_condition_count(lce)
+        self.assertEqual(c, 4)
+        lce = ListConditionEvaluator('not 5 < 3')
+        c = pc.get_condition_count(lce)
+        self.assertEqual(c, 4)
+
+    def test_get_condition_frequency(self):
+        partitions = [
+                Partition([0.1, 0.2, 0.2, 0.1, 0.2, 0.3, 0.2]),
+                Partition([0.5, 0.1, 0.4, 0.5, 0.4, 0.1, 0.4]),
+                Partition([0.5, 0.9, 0.9, 0.5, 0.9, 0.1, 1.1]),
+                Partition([0.7, 0.2, 0.2, 0.7, 0.2, 0.6, 0.2]),
+                Partition([0.5, 0.4, 0.4, 0.1, 0.1, 0.4, 0.1]),
+                Partition([0.5, 0.4, 0.4, 0.2, 0.2, 0.3, 0.1]),
+                Partition([0.1, 0.4, 0.4, 0.1, 0.2, 0.1, 0.1]),
+                Partition([0.3, 0.1, 0.1, 0.3, 0.2, 0.1, 0.3]),
+                ]
+        pc = PartitionCollection()
+        pc.add_iter(partitions)
+        lce = ListConditionEvaluator('0 > 1')
+        c = pc.get_condition_frequency(lce)
+        self.assertAlmostEqual(c, 5/float(8))
+        lce = ListConditionEvaluator('0 == 1')
+        c = pc.get_condition_frequency(lce)
+        self.assertAlmostEqual(c, 0/float(8))
+        lce = ListConditionEvaluator('1==2==4==6')
+        c = pc.get_condition_frequency(lce)
+        self.assertAlmostEqual(c, 2/float(8))
+        lce = ListConditionEvaluator('5 < 3')
+        c = pc.get_condition_frequency(lce)
+        self.assertAlmostEqual(c, 4/float(8))
+        lce = ListConditionEvaluator('not 5 < 3')
+        c = pc.get_condition_frequency(lce)
+        self.assertAlmostEqual(c, 4/float(8))
 
 class MeanSquaredErrorTestCase(unittest.TestCase):
     def test_zero(self):
