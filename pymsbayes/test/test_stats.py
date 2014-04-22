@@ -988,6 +988,52 @@ class SummarizeDiscreteParametersFromDensitiesTestCase(PyMsBayesTestCase):
         self.assertAlmostEqual(probs['PRI.omega'][1], 3.687050664780145e-13,
                 places=14)
 
+class ListConditionEvaluatorTestCase(unittest.TestCase):
+    def test_syntax_error(self):
+        lce = ListConditionEvaluator('(0 < 1) ard (0==2)')
+        self.assertRaises(SyntaxError, lce.evaluate, [0, 1])
+
+    def test_index_error(self):
+        lce = ListConditionEvaluator('(0 < 1) and (0==2)')
+        self.assertRaises(IndexError, lce.evaluate, [0, 1])
+
+    def test_equality(self):
+        lce = ListConditionEvaluator('0 == 1 == 2 == 3')
+        self.assertTrue(lce.evaluate([0]*4))
+        self.assertTrue(lce.evaluate([1.1]*4))
+        self.assertFalse(lce.evaluate([0.1, 0.1, 0.1, 0.1000001]))
+        self.assertTrue(lce.evaluate([0]*4 + [1]))
+        lce = ListConditionEvaluator('(0 == 1) and (0 == 2) and (0 == 3)')
+        self.assertTrue(lce.evaluate([0]*4))
+        self.assertTrue(lce.evaluate([1.1]*4))
+        self.assertFalse(lce.evaluate([0.1, 0.1, 0.1, 0.1000001]))
+        self.assertTrue(lce.evaluate([0]*4 + [1]))
+
+    def test_not_equal(self):
+        lce = ListConditionEvaluator('not (0 == 1 == 2 == 3)')
+        self.assertFalse(lce.evaluate([0]*4))
+        self.assertFalse(lce.evaluate([1.1]*4))
+        self.assertTrue(lce.evaluate([0.1, 0.1, 0.1, 0.1000001]))
+        self.assertFalse(lce.evaluate([0]*4 + [1]))
+        lce = ListConditionEvaluator('not ((0 == 1) and (0 == 2) and (0 == 3))')
+        self.assertFalse(lce.evaluate([0]*4))
+        self.assertFalse(lce.evaluate([1.1]*4))
+        self.assertTrue(lce.evaluate([0.1, 0.1, 0.1, 0.1000001]))
+        self.assertFalse(lce.evaluate([0]*4 + [1]))
+
+    def test_inequalities(self):
+        lce = ListConditionEvaluator('(1 > 2) and (1 < 3)')
+        self.assertTrue(lce.evaluate([-1.2, 0.5, 0.49, 0.7, 3.4]))
+        self.assertFalse(lce.evaluate([-1.2, 0.48, 0.49, 0.7, 3.4]))
+        lce = ListConditionEvaluator('not ((1 > 2) and (1 < 3))')
+        self.assertFalse(lce.evaluate([-1.2, 0.5, 0.49, 0.7, 3.4]))
+        self.assertTrue(lce.evaluate([-1.2, 0.48, 0.49, 0.7, 3.4]))
+        lce = ListConditionEvaluator('1<2    <    3')
+        self.assertTrue(lce.evaluate([-1.2, 0.48, 0.49, 0.7, 3.4]))
+        lce = ListConditionEvaluator('not ( 1<2    <    3  )')
+        self.assertFalse(lce.evaluate([-1.2, 0.48, 0.49, 0.7, 3.4]))
+
+
 class PartitionTestCase(unittest.TestCase):
 
     def test_default_init_and_update(self):
@@ -1130,6 +1176,18 @@ class PartitionTestCase(unittest.TestCase):
         p3 = Partition([0.4, 0.4, 0.4, 0.1, 0.1, 0.1, 0.1])
         self.assertRaises(ValueError, p.update,
                 p3)
+
+    def test_element_vector_iter(self):
+        element_vectors = [[0.1, 0.2, 0.2, 0.1, 0.2, 0.3, 0.2],
+                [0.5, 0.4, 0.4, 0.5, 0.4, 0.1, 0.4]]
+        p = Partition()
+        p.update(element_vectors[0])
+        p.update(element_vectors[1])
+        self.assertEqual(p.n, 2)
+        self.assertEqual(p.key, '0,1,1,0,1,2,1')
+        self.assertEqual(p.partition, [0,1,1,0,1,2,1])
+        self.assertEqual(list(p.element_vector_iter()),
+                element_vectors)
 
     def test_get_integer_partition(self):
         p = Partition([0.1, 0.2, 0.2, 0.1, 0.2, 0.3, 0.2])

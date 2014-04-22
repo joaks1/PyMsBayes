@@ -7,6 +7,7 @@ import copy
 import operator
 import decimal
 import fractions
+import re
 from cStringIO import StringIO
 
 from pymsbayes.utils import GLOBAL_RNG, probability
@@ -594,6 +595,31 @@ class SampleSummaryCollection(object):
         if close:
             out.close()
 
+class ListConditionEvaluator(object):
+    index_pattern = re.compile(r'(?P<index>\d+)')
+    def __init__(self, expression_str):
+        exp_str = ''.join(expression_str.split())
+        self.indices = [int(i) for i in self.index_pattern.findall(exp_str)]
+        exp = self.index_pattern.sub(' l[\g<index>] ', exp_str)
+        self.expression = exp.strip()
+
+    def __str__(self):
+        return self.expression
+
+    def evaluate(self, values):
+        l = list(values)
+        try:
+            ret = eval(self.expression)
+        except IndexError as ie:
+            _LOG.error('expression {0!r} uses indices out of range for '
+                    '{1}'.format(self.expression, l))
+            raise ie
+        except SyntaxError as se:
+            _LOG.error('expression {0!r} has invalid syntax'.format(
+                    self.expression))
+            raise se
+        return ret
+
 class Partition(object):
     def __init__(self, element_vector = None):
         self._initialized = False
@@ -674,6 +700,10 @@ class Partition(object):
         if self.n < 1:
             return None
         return [self.values[i][index] for i in self.partition]
+
+    def element_vector_iter(self):
+        for i in range(self.n):
+            yield self.get_element_vector(i)
 
     def dirichlet_process_prior_probability(self, alpha, log = False):
         alpha = float(alpha)
