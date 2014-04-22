@@ -5,8 +5,17 @@ import pymsbayes.utils
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 SCRIPTS_DIR = os.path.relpath(os.path.join(BASE_DIR, 'scripts'), BASE_DIR)
-SCRIPTS = [os.path.join(SCRIPTS_DIR, f) for f in os.listdir(
-        SCRIPTS_DIR) if f.endswith('.py')]
+SCRIPT_NAMES = [
+        'dmc_dpp_summary.py',
+        'dmc_plot_results.py',
+        'dmc_posterior_probs.py',
+        'dmc.py',
+        'dmc_estimate_prior_probs.py',
+        'dmc_plot_stats.py',
+        # 'dmc_prob_shared_divergence.py',
+        'dmc_saturation_plot.py',
+        ]
+SCRIPTS = [os.path.join(SCRIPTS_DIR, f) for f in SCRIPT_NAMES]
 
 version = '0.1'
 
