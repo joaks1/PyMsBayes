@@ -1270,16 +1270,16 @@ class NumberOfDivergencesSummary(object):
                     num_processors = self.num_processors)
             prob_team.start()
             self.psi_prior_probs = prob_team.psi_probs[self.config_path]
-        elif config.div_model_prior == 'uniform':
+        elif self.config.div_model_prior == 'uniform':
             ips = stats.IntegerPartition.number_of_int_partitions_by_k(
-                    num_elements = npairs)
+                    num_elements = self.config.npairs)
             n = sum(ips)
             for i in range(1, self.config.npairs + 1):
                 self.psi_prior_probs[i] = ips[i-1] / float(n)
-        elif config.div_model_prior == 'psi':
+        elif self.config.div_model_prior == 'psi':
             self.psi_prior_probs = {}
             for i in range(1, self.config.npairs + 1):
-                self.psi_prior_probs[i] = 1.0 / npairs
+                self.psi_prior_probs[i] = 1.0 / self.config.npairs
 
     def _get_unordered_model_prior_probs(self):
         if not self.psi_prior_probs:
