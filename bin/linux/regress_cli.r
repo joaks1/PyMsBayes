@@ -185,8 +185,11 @@ stdAnalysis = function(obs.infile,
         if (regexpr('psi', p, ignore.case=TRUE)[1] != -1) {
             values = c(1:nPairs)
         }
-        if (regexpr('model', p, ignore.case=TRUE)[1] != -1) {
+        else if (regexpr('PRI.model', p, ignore.case=TRUE)[1] != -1) {
             values = models
+        }
+        else {
+            values = c(1:max(simDat[[p]]))
         }
         cat("[", p, "]\n", sep="")
         cat("observed = ", obsDat[1,p], "\n", sep="")
