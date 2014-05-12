@@ -9,6 +9,7 @@ from cStringIO import StringIO
 from pymsbayes.fileio import process_file_arg
 from pymsbayes.utils import GLOBAL_RNG, probability
 from pymsbayes.utils.stats import *
+from pymsbayes.test import TestLevel, test_enabled
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test.support import package_paths
 from pymsbayes.utils.messaging import get_logger
@@ -446,11 +447,23 @@ class IntervalTestCase(unittest.TestCase):
         self.exp_samples = [GLOBAL_RNG.expovariate(1) for i in range(100000)]
 
     def test_standard_normal_hpd(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         hpdi = get_hpd_interval(self.samples, 0.95)
         self.assertAlmostEqual(hpdi[0], -1.96, places=1)
         self.assertAlmostEqual(hpdi[1], 1.96, places=1)
 
     def test_standard_normal_quantile(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         quants = quantile_95(self.samples)
         q025 = quantile(self.samples, p=0.025)
         q975 = quantile(self.samples, p=0.975)
@@ -460,11 +473,23 @@ class IntervalTestCase(unittest.TestCase):
         self.assertAlmostEqual(quants[1], 1.96, places=1)
 
     def test_exp_hpd(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         hpdi = get_hpd_interval(self.exp_samples, 0.95)
         self.assertAlmostEqual(hpdi[0], 0.0, places=1)
         self.assertAlmostEqual(hpdi[1], 2.9957, places=1)
 
     def test_exp_quantile(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         quants = quantile_95(self.exp_samples)
         q025 = quantile(self.exp_samples, p=0.025)
         q975 = quantile(self.exp_samples, p=0.975)
@@ -478,6 +503,12 @@ class GetSummaryTestCase(unittest.TestCase):
         self.samples = [GLOBAL_RNG.normalvariate(0, 1) for i in range(100000)]
 
     def test_standard_normal(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         d = get_summary(self.samples)
         self.assertEqual(d['n'], len(self.samples))
         self.assertEqual(d['range'][0], min(self.samples))
@@ -1298,6 +1329,12 @@ class PartitionTestCase(unittest.TestCase):
         self.assertAlmostEqual(sum(probs), 1.0)
 
     def test_dirichlet_process_draw_n5_a3(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         part = Partition([0, 0, 0, 0, 0])
         alpha = 3.0
         reps = 100000
@@ -1325,6 +1362,12 @@ class PartitionTestCase(unittest.TestCase):
         self.assertAlmostEqual(expected, observed, places = 2)
 
     def test_dirichlet_process_draw_n5_a9(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         part = Partition()
         alpha = 9.0
         reps = 100000
@@ -1339,6 +1382,12 @@ class PartitionTestCase(unittest.TestCase):
         self.assertAlmostEqual(expected, observed, places = 2)
 
     def test_dirichlet_process_draw_n10_a01(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         part = Partition()
         alpha = 0.1
         reps = 100000
@@ -1353,6 +1402,12 @@ class PartitionTestCase(unittest.TestCase):
         self.assertAlmostEqual(expected, observed, places = 2)
 
     def test_dirichlet_process_draw_from_base_distribution_n10_a01(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         part = Partition()
         alpha = 0.1
         reps = 100000
@@ -1376,6 +1431,12 @@ class PartitionTestCase(unittest.TestCase):
                 places = 1)
 
     def test_dirichlet_process_draw_iter_n10_a01(self):
+        if not test_enabled(
+                level = TestLevel.EXHAUSTIVE,
+                log = _LOG,
+                module_name = '.'.join([self.__class__.__name__,
+                        sys._getframe().f_code.co_name])):
+            return
         part = Partition()
         alpha = 0.1
         reps = 100000
