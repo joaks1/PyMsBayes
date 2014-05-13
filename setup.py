@@ -67,7 +67,9 @@ Python msBayes wrapper""",
       scripts=SCRIPTS,
       include_package_data=True,
       zip_safe=False,
-      test_suite="pymsbayes.test",
+      test_suite="pymsbayes.test.get_unittest_suite",
+      # test_suite="pymsbayes.test",
+      # test_loader="unittest:TestLoader",
       install_requires=[
           'configobj'
       ],
