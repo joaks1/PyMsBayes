@@ -11,7 +11,7 @@ from pymsbayes.manager import *
 from pymsbayes.utils.probability import *
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test.support import package_paths
-from pymsbayes.test import TestLevel, test_enabled
+from pymsbayes.test import TestLevel
 from pymsbayes.utils.parsing import parse_parameters
 from pymsbayes.utils.functions import long_division
 from pymsbayes.utils.stats import mode_list, SampleSummarizer
@@ -112,7 +112,7 @@ class PriorTestCase(PyMsBayesTestCase):
 
 
     def test_old_unconstrained(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -150,7 +150,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_old_constrained(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -188,7 +188,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_uniform_theta000(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -241,7 +241,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_uniform_theta001(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -301,7 +301,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_uniform_theta011(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -361,7 +361,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_uniform_theta010(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -421,7 +421,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_uniform_theta012(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -486,7 +486,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_uniform_constrained(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -545,7 +545,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_uniform_with_uniform_tau(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -607,7 +607,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_uniform_constrained_with_uniform_tau(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -666,7 +666,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_uniform_psi(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -725,7 +725,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_dpp_clustered(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -784,7 +784,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_dpp_dispersed(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -845,7 +845,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_dpp_2(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -909,7 +909,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_dpp_2_with_uniform_tau(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -970,7 +970,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_dpp_constrained_with_uniform_tau(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -1031,7 +1031,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_uniform_psi_constrained_with_uniform_tau_and_theta(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -1094,7 +1094,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_ancestral_theta_default(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -1148,7 +1148,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_ancestral_theta_zero(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -1204,7 +1204,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_ancestral_theta_gamma(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -1260,7 +1260,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_new_ancestral_theta_uniform(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -1316,7 +1316,7 @@ subParamConstrain = 111111111
         self.taus_are_valid()
 
     def test_old_case_insensitive(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -1354,7 +1354,7 @@ SUBParaMconstrain = 111111111
         self.taus_are_valid()
 
     def test_new_case_insensitive(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -1410,7 +1410,7 @@ SUBPARAMCONSTRAIN = 111111111
         self.taus_are_valid()
 
     def test_old_invalid_error(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -1433,7 +1433,7 @@ SUBParaMconstrain = 111111111
                 sample_size=1000, batch_size=250, np=4)
 
     def test_new_invalid_error(self):
-        if not test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,

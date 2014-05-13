@@ -11,7 +11,7 @@ from pymsbayes.workers import (MsBayesWorker, merge_priors,
         assemble_rejection_workers, MsRejectWorker)
 from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
-from pymsbayes.test import TestLevel, test_enabled
+from pymsbayes.test import TestLevel
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -90,29 +90,30 @@ class ManagerTestCase(PyMsBayesTestCase):
             self._assert_success(w, 4, sample_size)
 
     def test_prior_validity(self):
-        if test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
                         sys._getframe().f_code.co_name])):
-            n = 100
-            sample_size = 100
-            nprocessors = 4
-            self._load_workers(sample_size, n)
-            managers = []
-            for i in range(nprocessors):
-                m = Manager(work_queue = self.workq,
-                    result_queue = self.resultq)
-                managers.append(m)
-                m.start()
-            workers = []
-            for i in range(n):
-                workers.append(self.resultq.get())
-            for m in managers:
-                m.join()
-            for w in workers:
-                self._assert_success(w, 4, sample_size)
-            self.assertPriorIsValid(workers, 0)
+            return
+        n = 100
+        sample_size = 100
+        nprocessors = 4
+        self._load_workers(sample_size, n)
+        managers = []
+        for i in range(nprocessors):
+            m = Manager(work_queue = self.workq,
+                result_queue = self.resultq)
+            managers.append(m)
+            m.start()
+        workers = []
+        for i in range(n):
+            workers.append(self.resultq.get())
+        for m in managers:
+            m.join()
+        for w in workers:
+            self._assert_success(w, 4, sample_size)
+        self.assertPriorIsValid(workers, 0)
 
     def test_rejection_workers(self):
         """
@@ -120,77 +121,78 @@ class ManagerTestCase(PyMsBayesTestCase):
         catch problems with running into limit of too many open files if
         there are file handle 'leaks'.
         """
-        if test_enabled(
+        if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
                         sys._getframe().f_code.co_name])):
-            n = 200
-            sample_size = 10
-            nprocessors = 4
-            # get prior
-            self._load_workers(sample_size, n)
-            managers = []
-            for i in range(nprocessors):
-                m = Manager(work_queue = self.workq,
-                    result_queue = self.resultq)
-                managers.append(m)
-                m.start()
-            workers = []
-            for i in range(n):
-                workers.append(self.resultq.get())
-            for m in managers:
-                m.join()
-            prior_path = self.get_test_path(prefix='test-prior-')
-            header_path = self.get_test_path(prefix='test-prior-header-')
-            merge_priors(workers=workers, prior_path=prior_path,
-                    header_path=header_path)
-            # get observed
-            self._load_workers(sample_size, n, include_header=True)
-            managers = []
-            for i in range(nprocessors):
-                m = Manager(work_queue = self.workq,
-                    result_queue = self.resultq)
-                managers.append(m)
-                m.start()
-            workers = []
-            for i in range(n):
-                workers.append(self.resultq.get())
-            for m in managers:
-                m.join()
-            obs_path = self.get_test_path(prefix='test-obs-')
-            obs_header_path = self.get_test_path(prefix='test-obs-header-')
-            merge_priors(workers=workers, prior_path=obs_path,
-                    header_path=obs_header_path, include_header=True)
-            results_dir = self.get_test_subdir(prefix='test-rejection-results-')
-            msreject_workers = assemble_rejection_workers(
-                    temp_fs = self.temp_fs,
-                    observed_sims_file = obs_path,
-                    prior_path = prior_path,
-                    tolerance = 0.1,
-                    results_dir = results_dir,
-                    posterior_prefix = self.test_id + '-posterior-',
-                    regress = False,
-                    rejection_tool = 'msreject')
-            self.assertEqual(len(msreject_workers), 2000)
-            for w in msreject_workers:
-                self.workq.put(w)
-            managers = []
-            for i in range(nprocessors):
-                m = Manager(work_queue = self.workq,
-                    result_queue = self.resultq)
-                managers.append(m)
-                m.start()
-            workers = []
-            for i in range(len(msreject_workers)):
-                workers.append(self.resultq.get())
-            for m in managers:
-                m.join()
-            for w in workers:
-                self.assertTrue(w.finished)
-                self.assertEqual(w.exit_code, 0)
-                self.assertTrue(os.path.isfile(w.posterior_path))
-                self.assertTrue(self.get_number_of_lines(w.posterior_path) > 2)
+            return
+        n = 200
+        sample_size = 10
+        nprocessors = 4
+        # get prior
+        self._load_workers(sample_size, n)
+        managers = []
+        for i in range(nprocessors):
+            m = Manager(work_queue = self.workq,
+                result_queue = self.resultq)
+            managers.append(m)
+            m.start()
+        workers = []
+        for i in range(n):
+            workers.append(self.resultq.get())
+        for m in managers:
+            m.join()
+        prior_path = self.get_test_path(prefix='test-prior-')
+        header_path = self.get_test_path(prefix='test-prior-header-')
+        merge_priors(workers=workers, prior_path=prior_path,
+                header_path=header_path)
+        # get observed
+        self._load_workers(sample_size, n, include_header=True)
+        managers = []
+        for i in range(nprocessors):
+            m = Manager(work_queue = self.workq,
+                result_queue = self.resultq)
+            managers.append(m)
+            m.start()
+        workers = []
+        for i in range(n):
+            workers.append(self.resultq.get())
+        for m in managers:
+            m.join()
+        obs_path = self.get_test_path(prefix='test-obs-')
+        obs_header_path = self.get_test_path(prefix='test-obs-header-')
+        merge_priors(workers=workers, prior_path=obs_path,
+                header_path=obs_header_path, include_header=True)
+        results_dir = self.get_test_subdir(prefix='test-rejection-results-')
+        msreject_workers = assemble_rejection_workers(
+                temp_fs = self.temp_fs,
+                observed_sims_file = obs_path,
+                prior_path = prior_path,
+                tolerance = 0.1,
+                results_dir = results_dir,
+                posterior_prefix = self.test_id + '-posterior-',
+                regress = False,
+                rejection_tool = 'msreject')
+        self.assertEqual(len(msreject_workers), 2000)
+        for w in msreject_workers:
+            self.workq.put(w)
+        managers = []
+        for i in range(nprocessors):
+            m = Manager(work_queue = self.workq,
+                result_queue = self.resultq)
+            managers.append(m)
+            m.start()
+        workers = []
+        for i in range(len(msreject_workers)):
+            workers.append(self.resultq.get())
+        for m in managers:
+            m.join()
+        for w in workers:
+            self.assertTrue(w.finished)
+            self.assertEqual(w.exit_code, 0)
+            self.assertTrue(os.path.isfile(w.posterior_path))
+            self.assertTrue(self.get_number_of_lines(w.posterior_path) > 2)
 
 if __name__ == '__main__':
     unittest.main()

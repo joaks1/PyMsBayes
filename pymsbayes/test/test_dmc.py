@@ -8,7 +8,7 @@ import random
 
 from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
-from pymsbayes.test import TestLevel, test_enabled
+from pymsbayes.test import TestLevel
 from pymsbayes.utils import GLOBAL_RNG
 from pymsbayes.fileio import process_file_arg
 from pymsbayes.utils.messaging import get_logger
@@ -105,6 +105,8 @@ class DmcTestCase(PyMsBayesTestCase):
     def test_bogus_arg(self):
         self._exe_dmc(['--cheeseburger'], return_code=2)
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_repeatability(self):
         args = ['-o', self.cfg_path,
                 '-p', self.cfg_path,
@@ -163,6 +165,8 @@ class DmcTestCase(PyMsBayesTestCase):
         equal, diffs = self.files_equal(results1['sample'], results3['sample'])
         self.assertFalse(equal)
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_two_stage(self):
         args = ['-o', self.cfg_path,
                 '-p', self.cfg_path,
@@ -216,6 +220,8 @@ class DmcTestCase(PyMsBayesTestCase):
         self.assertNotEqual(results1['sample'], results3['sample'])
         self.assertSameFiles([results1['sample'], results3['sample']])
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_sort_index(self):
         args = ['-o', self.cfg_path,
                 '-p', self.cfg_path,
@@ -253,6 +259,8 @@ class DmcTestCase(PyMsBayesTestCase):
         self.assertTrue(os.path.exists(results2['sample']))
         self.assertTrue(self._has_non_sorted_results(results2['div']))
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_no_global_estimate(self):
         args = ['-o', self.cfg_path,
                 '-p', self.cfg_path, self.cfg_path2,

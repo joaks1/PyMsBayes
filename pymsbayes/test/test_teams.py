@@ -12,7 +12,7 @@ from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRejectWorker,
         MsRejectWorker, merge_priors, merge_prior_files)
 from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
-from pymsbayes.test import TestLevel, test_enabled
+from pymsbayes.test import TestLevel
 from pymsbayes.utils import GLOBAL_RNG
 from pymsbayes.utils.parsing import parse_parameters, add_div_model_column
 from pymsbayes.utils.stats import IntegerPartitionCollection
