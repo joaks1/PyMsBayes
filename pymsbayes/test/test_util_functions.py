@@ -10,20 +10,29 @@ from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 
 class MsBayesSortIndexTestCase(unittest.TestCase):
     def test_valid_values(self):
-        self.assertEqual(MSBAYES_SORT_INDEX.valid_values, list(range(8)))
+        self.assertEqual(MSBAYES_SORT_INDEX.valid_values, list(range(12)))
 
     def test_default(self):
         self.assertEqual(MSBAYES_SORT_INDEX.current_value(), 7)
 
     def test_set(self):
-        for i in range(8):
+        for i in range(12):
             MSBAYES_SORT_INDEX.set_index(i)
             self.assertEqual(MSBAYES_SORT_INDEX.current_value(), i)
-        MSBAYES_SORT_INDEX.set_index(7)
+        MSBAYES_SORT_INDEX.reset_default()
 
     def test_invalid_value(self):
         self.assertRaises(Exception, MSBAYES_SORT_INDEX.set_index, -1)
-        self.assertRaises(Exception, MSBAYES_SORT_INDEX.set_index, 8)
+        self.assertRaises(Exception, MSBAYES_SORT_INDEX.set_index, 12)
+
+    def test_reset_default(self):
+        d = MSBAYES_SORT_INDEX.current_value()
+        self.assertNotEqual(d, 0)
+        MSBAYES_SORT_INDEX.set_index(0)
+        self.assertEqual(MSBAYES_SORT_INDEX.current_value(), 0)
+        MSBAYES_SORT_INDEX.reset_default()
+        self.assertEqual(MSBAYES_SORT_INDEX.current_value(), d)
+
 
 class GetToolPathTestCase(unittest.TestCase):
     def test_error(self):
