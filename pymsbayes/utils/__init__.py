@@ -55,7 +55,8 @@ def get_tool_path(name):
 
 class MSBAYES_SORT_INDEX(object):
     valid_values = list(range(8))
-    _i = 7
+    _default = 7
+    _i = _default
 
     @classmethod
     def set_index(cls, i):
@@ -69,6 +70,10 @@ class MSBAYES_SORT_INDEX(object):
     @classmethod
     def current_value(cls):
         return cls._i
+
+    @classmethod
+    def reset_default(cls):
+        cls.set_index(cls._default)
 
 MEMORY_LOGGING_ENV_VAR = "PYMSBAYES_MEMORY_LOGGING_FREQUENCY"
 MEMORY_LOGGING_FREQUENCY = float(os.environ.get(MEMORY_LOGGING_ENV_VAR, 0))
