@@ -158,7 +158,6 @@ def spreadsheet_iter(spreadsheets, sep = '\t', header = None):
     if not header:
         head_line = True
         header = parse_header(spreadsheets[0], sep = sep)
-    d = dict(zip(header, [[] for i in range(len(header))]))
     for sheet_idx, ss in enumerate(spreadsheets):
         file_stream, close = process_file_arg(ss, 'rU')
         if head_line:
