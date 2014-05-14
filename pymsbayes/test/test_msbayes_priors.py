@@ -12,7 +12,7 @@ from pymsbayes.utils.probability import *
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test.support import package_paths
 from pymsbayes.test import TestLevel
-from pymsbayes.utils.parsing import parse_parameters
+from pymsbayes.utils.parsing import parse_parameters, spreadsheet_iter
 from pymsbayes.utils.functions import long_division
 from pymsbayes.utils.stats import mode_list, SampleSummarizer
 from pymsbayes.utils import MSBAYES_SORT_INDEX
@@ -111,6 +111,8 @@ class PriorTestCase(PyMsBayesTestCase):
                     self.samples['psi'][i])
 
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_old_unconstrained(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -149,6 +151,8 @@ subParamConstrain = 111111111
             self.assertAlmostEqual(freq, 0.25, places=1)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_old_constrained(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -187,6 +191,8 @@ subParamConstrain = 111111111
             self.assertEqual(len(set(t)), 4)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_uniform_theta000(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -240,6 +246,8 @@ subParamConstrain = 111111111
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_uniform_theta001(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -300,6 +308,8 @@ subParamConstrain = 111111111
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_uniform_theta011(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -360,6 +370,8 @@ subParamConstrain = 111111111
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_uniform_theta010(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -420,6 +432,8 @@ subParamConstrain = 111111111
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_uniform_theta012(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -485,6 +499,8 @@ subParamConstrain = 111111111
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_uniform_constrained(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -544,6 +560,8 @@ subParamConstrain = 111111111
             self.assertEqual(len(set(t)), 4)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_uniform_with_uniform_tau(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -606,6 +624,8 @@ subParamConstrain = 111111111
                 self.assertAlmostEqual(freq, 1/float(5), places=1)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_uniform_constrained_with_uniform_tau(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -665,6 +685,8 @@ subParamConstrain = 111111111
             self.assertEqual(len(set(t)), 4)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_uniform_psi(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -724,6 +746,8 @@ subParamConstrain = 111111111
             self.assertAlmostEqual(freq, 0.25, places=1)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_dpp_clustered(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -783,6 +807,8 @@ subParamConstrain = 111111111
             self.assertEqual(len(set(t)), 1)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_dpp_dispersed(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -844,6 +870,8 @@ subParamConstrain = 111111111
             self.assertEqual(len(set(t)), 4)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_dpp_2(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -908,6 +936,8 @@ subParamConstrain = 111111111
         self.assertEqual(mode_list(self.samples['psi']), [2])
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_dpp_2_with_uniform_tau(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -969,6 +999,8 @@ subParamConstrain = 111111111
         self.assertEqual(mode_list(self.samples['psi']), [2])
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_dpp_constrained_with_uniform_tau(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -1030,6 +1062,8 @@ subParamConstrain = 111111111
             self.assertEqual(len(set(t)), 4)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_uniform_psi_constrained_with_uniform_tau_and_theta(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -1093,6 +1127,8 @@ subParamConstrain = 111111111
             self.assertAlmostEqual(freq, 0.25, places=1)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_ancestral_theta_default(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -1147,6 +1183,8 @@ subParamConstrain = 111111111
         self.assertAlmostEqual(a_theta_ss.variance, a_theta.variance, places=2)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_ancestral_theta_zero(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -1203,6 +1241,8 @@ subParamConstrain = 111111111
         self.assertAlmostEqual(a_theta_ss.variance, a_theta.variance, places=2)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_ancestral_theta_gamma(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -1259,6 +1299,8 @@ subParamConstrain = 111111111
         self.assertAlmostEqual(a_theta_ss.variance, a_theta.variance, places=2)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_ancestral_theta_uniform(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -1315,6 +1357,8 @@ subParamConstrain = 111111111
         self.assertAlmostEqual(a_theta_ss.variance, a_theta.variance, places=1)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_old_case_insensitive(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -1353,6 +1397,8 @@ SUBParaMconstrain = 111111111
             self.assertAlmostEqual(freq, 0.25, places=1)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_case_insensitive(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -1409,6 +1455,8 @@ SUBPARAMCONSTRAIN = 111111111
         self.assertAlmostEqual(a_theta_ss.variance, a_theta.variance, places=2)
         self.taus_are_valid()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_old_invalid_error(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -1432,6 +1480,8 @@ SUBParaMconstrain = 111111111
         self.assertRaises(WorkerExecutionError, self.generate_prior,
                 sample_size=1000, batch_size=250, np=4)
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_invalid_error(self):
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
@@ -1465,6 +1515,32 @@ SUBPARAMCONSTRAN = 111111111
                 sample_size=1000, batch_size=250, np=4)
 
 
+    # @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+    #         "EXHAUSTIVE test")
+    def test_no_sort_single_locus(self):
+        MSBAYES_SORT_INDEX.set_index(0)
+        self.cfg_path = package_paths.data_path('4pairs_1locus_rate_diffs.cfg')
+        prior_path = self.get_test_path(prefix='prior')
+        w = MsBayesWorker(
+                temp_fs = self.temp_fs,
+                prior_path = prior_path,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                include_header = True)
+        w.start()
+        ss_iter = spreadsheet_iter([prior_path])
+        for i, d in enumerate(ss_iter):
+            divs = [float(d["pi.net.2"]),
+                    float(d["pi.net.4"]),
+                    float(d["pi.net.1"]),
+                    float(d["pi.net.3"])]
+            self.assertTrue(divs[0] < divs[1] < divs[2] < divs[3])
+        self.assertEqual(i, 9)
+
+
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_old_no_sort(self):
         MSBAYES_SORT_INDEX.set_index(0)
         self.cfg_path = package_paths.data_path('negros_panay_3pairs.cfg')
@@ -1517,6 +1593,8 @@ SUBPARAMCONSTRAN = 111111111
         self.taus_are_valid()
         MSBAYES_SORT_INDEX.set_index(7)
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_uniform_no_sort(self):
         MSBAYES_SORT_INDEX.set_index(0)
         self.cfg_path = package_paths.data_path(
@@ -1570,6 +1648,8 @@ SUBPARAMCONSTRAN = 111111111
         self.taus_are_valid()
         MSBAYES_SORT_INDEX.set_index(7)
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_dpp_no_sort(self):
         MSBAYES_SORT_INDEX.set_index(0)
         self.cfg_path = package_paths.data_path(
@@ -1623,6 +1703,8 @@ SUBPARAMCONSTRAN = 111111111
         self.taus_are_valid()
         MSBAYES_SORT_INDEX.set_index(7)
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_new_ushaped_no_sort(self):
         MSBAYES_SORT_INDEX.set_index(0)
         self.cfg_path = package_paths.data_path(
