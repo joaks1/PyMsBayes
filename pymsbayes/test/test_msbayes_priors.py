@@ -1531,13 +1531,14 @@ SUBPARAMCONSTRAN = 111111111
         w.start()
         ss_iter = spreadsheet_iter([prior_path])
         for i, d in enumerate(ss_iter):
+            self.assertFalse("pi.net.5" in d.keys())
             divs = [float(d["pi.net.2"]),
                     float(d["pi.net.4"]),
                     float(d["pi.net.1"]),
                     float(d["pi.net.3"])]
-            self.assertTrue(divs[0] < divs[1] < divs[2] < divs[3])
+            self.assertTrue(divs[0] <= divs[1] <= divs[2] <= divs[3])
         self.assertEqual(i, 9)
-        MSBAYES_SORT_INDEX.set_index(7)
+        MSBAYES_SORT_INDEX.reset_default()
 
     # @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
     #         "EXHAUSTIVE test")
@@ -1555,17 +1556,80 @@ SUBPARAMCONSTRAN = 111111111
         w.start()
         ss_iter = spreadsheet_iter([prior_path])
         for i, d in enumerate(ss_iter):
+            self.assertFalse("pi.net.5" in d.keys())
             divs = [float(d["pi.net.2"]),
                     float(d["pi.net.4"]),
                     float(d["pi.net.1"]),
                     float(d["pi.net.3"])]
-            self.assertFalse(divs[0] < divs[1] < divs[2] < divs[3])
+            self.assertFalse(divs[0] <= divs[1] <= divs[2] <= divs[3])
             divs = [float(d["pi.net.1"]),
                     float(d["pi.net.2"]),
                     float(d["pi.net.3"]),
                     float(d["pi.net.4"])]
-            self.assertTrue(divs[0] < divs[1] < divs[2] < divs[3])
+            self.assertTrue(divs[0] <= divs[1] <= divs[2] <= divs[3])
         self.assertEqual(i, 9)
+        MSBAYES_SORT_INDEX.reset_default()
+
+    # @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+    #         "EXHAUSTIVE test")
+    def test_sort_7_multi_locus(self):
+        MSBAYES_SORT_INDEX.set_index(7)
+        self.cfg_path = package_paths.data_path('4pairs_5loci_1shared_rate_diffs.cfg')
+        prior_path = self.get_test_path(prefix='prior')
+        w = MsBayesWorker(
+                temp_fs = self.temp_fs,
+                prior_path = prior_path,
+                sample_size = 10,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                include_header = True)
+        w.start()
+        ss_iter = spreadsheet_iter([prior_path])
+        for i, d in enumerate(ss_iter):
+            self.assertFalse("pi.net.5" in d.keys())
+            divs = [float(d["pi.net.2"]),
+                    float(d["pi.net.4"]),
+                    float(d["pi.net.1"]),
+                    float(d["pi.net.3"])]
+            self.assertFalse(divs[0] <= divs[1] <= divs[2] <= divs[3])
+            divs = [float(d["pi.net.1"]),
+                    float(d["pi.net.2"]),
+                    float(d["pi.net.3"]),
+                    float(d["pi.net.4"])]
+            self.assertTrue(divs[0] <= divs[1] <= divs[2] <= divs[3])
+        self.assertEqual(i, 9)
+        MSBAYES_SORT_INDEX.reset_default()
+
+
+    # @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+    #         "EXHAUSTIVE test")
+    def test_sort_0_multi_locus(self):
+        MSBAYES_SORT_INDEX.set_index(0)
+        self.cfg_path = package_paths.data_path('4pairs_3loci_1shared_rate_diffs.cfg')
+        prior_path = self.get_test_path(prefix='prior')
+        w = MsBayesWorker(
+                temp_fs = self.temp_fs,
+                prior_path = prior_path,
+                sample_size = 3,
+                config_path = self.cfg_path,
+                schema = 'abctoolbox',
+                include_header = True)
+        w.start()
+        ss_iter = spreadsheet_iter([prior_path])
+        div_vectors = []
+        for i, d in enumerate(ss_iter):
+            self.assertFalse("pi.net.7" in d.keys())
+            divs = [float(d["pi.net.4"]),
+                    float(d["pi.net.1"]),
+                    float(d["pi.net.5"]),
+                    float(d["pi.net.6"]),
+                    float(d["pi.net.3"]),
+                    float(d["pi.net.2"])]
+            div_vectors.append(divs) 
+        self.assertEqual(i, 2)
+        for divs in div_vectors:
+            self.assertTrue(divs[0] <= divs[1] <= divs[2] <= divs[3] <= divs[4] <= divs[5])
+        MSBAYES_SORT_INDEX.reset_default()
 
 
     @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
