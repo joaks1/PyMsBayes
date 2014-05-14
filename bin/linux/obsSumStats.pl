@@ -52,10 +52,8 @@ my $usage = "Usage: $0 [-h] [-T tblOutFileName] [-t headerTmplFile] [-s sortPatt
 #    "  -g: Do not remove the sites with any gaps. This probably cause problems.\n".
 #    "      So do not use this option." .
     "  -s: Specify the sorting pattern and moments of summary statistics.\n".
-    "      By default, the columns are sortedby pi.b (pi between the pairs).\n".
-    "      So the column 1 corresponds to the pair with the lowest pi.b\n".
-    "      column 2 is the pair with the 2nd lowest\n" .
-    "      pi.b etc, and all other summary statistics are ordered accordingly\n" .
+    "      By default, the means of the summary statistics (across loci) is\n".
+    "      used for each taxon pair, WITHOUT sorting among taxa".
     "      Integer value can be used to specify different sorting.\n".
     "       Arguments:\n".
     "        0: do not sort the column at all\n" .
@@ -67,7 +65,13 @@ my $usage = "Usage: $0 [-h] [-T tblOutFileName] [-t headerTmplFile] [-s sortPatt
     "          4: use first 4 moments for each summary statistics\n".
     "          5: use first 3 moments for each summary statistics\n".
     "          6: use first 2 moments for each summary statistics\n".
-    "          7: use first 1 moment (mean) for each summary statistics (default)\n".
+    "          7: use first 1 moment (mean) for each summary statistics\n".
+    "        8-11: group by taxon and DO NOT SORT\n" .
+    "         Moments of summary statistics across loci:\n".
+    "          8: use first 4 moments for each summary statistics\n".
+    "          9: use first 3 moments for each summary statistics\n".
+    "         10: use first 2 moments for each summary statistics\n".
+    "         11: use first 1 moment (mean) for each summary statistics (new default)\n".
     "      To create the input file for acceptRej.pl, this option\n" .
     "      SHOULD BE LEFT AS THE DEFAULT\n".
     "  -T: Print out an additional human readable table of summary statistics\n" .
@@ -123,15 +127,15 @@ if (@ARGV > 0) {
 
 my $sumstatsOptions = "";
 if (defined($opt_s)) {
-    if ($opt_s != 7) {
+    if ($opt_s != 11) {
 	warn "INFO: Using the sorting pattern of $opt_s, DO NOT USE THIS as the input to acceptRej.pl\n";
     }
-    if ($opt_s < 0 || $opt_s > 7) {
-	die "ERROR: argument of -s has to be between 0 and 1\n$usage\n";
+    if ($opt_s < 0 || $opt_s > 11) {
+        die "ERROR: argument of -s has to be between 0 and 11\n$usage\n";
     }
     $sumstatsOptions = "-s $opt_s";
 } else {
-    $sumstatsOptions = "-s 7";
+    $sumstatsOptions = "-s 11";
 }
 
 my @obsSumStats = CreateObsSumStats($filename, $headerTmpl);

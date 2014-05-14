@@ -44,7 +44,13 @@ my $usage="Usage: $0 [-hd] [-b observedSummaryStatistics] [-r numSims] [-c confi
     "          4: use first 4 moments for each summary statistics\n".
     "          5: use first 3 moments for each summary statistics\n".
     "          6: use first 2 moments for each summary statistics\n".
-    "          7: use first 1 moment (mean) for each summary statistics (default)\n".
+    "          7: use first 1 moment (mean) for each summary statistics\n".
+    "        8-11: group by taxon and DO NOT SORT\n" .
+    "         Moments of summary statistics across loci:\n".
+    "          8: use first 4 moments for each summary statistics\n".
+    "          9: use first 3 moments for each summary statistics\n".
+    "         10: use first 2 moments for each summary statistics\n".
+    "         11: use first 1 moment (mean) for each summary statistics (new default)\n".
     "  -S: set the initial seed (but not verbose like -d)\n" .
     "      By default (without -s), unique seed is automaically set from time\n".
     "  -m: Model index.\n" .
@@ -131,11 +137,11 @@ if (defined ($opt_S)) {
 
 my $ssvSortOpt = "-s 1";
 if (defined($opt_s)) {
-    die "$usage\nERROR: sorting pattern (-s) should be 0 t0 7"
-	if ($opt_s != 0 && $opt_s != 1 && $opt_s != 2 && $opt_s != 3 && $opt_s != 4 && $opt_s != 5 && $opt_s != 6 && $opt_s != 7);
+    die "$usage\nERROR: sorting pattern (-s) should be 0 to 11"
+        if ($opt_s < 0 || $opt_s > 11);
     $ssvSortOpt = "-s $opt_s";
 } else  {
-    $ssvSortOpt = "-s 7";  # default sorting option set to 7
+    $ssvSortOpt = "-s 11";  # default sorting option set to 7
 }
 
 if (defined($opt_S) || defined($opt_d)) {  # set the msDQH use the same seeds
