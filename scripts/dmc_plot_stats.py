@@ -63,6 +63,20 @@ def main_cli():
             help = ('Prefixes of summary statistics to use in the analyses. '
                     'The prefixes should be separated by spaces. '
                     'Default: `-s pi pi.net wattTheta tajD.denom`.'))
+    parser.add_argument('--sort-index',
+            action = 'store',
+            type = int,
+            default = 0,
+            choices = range(12),
+            help = ('The sorting index used by `msbayes.pl` and '
+                    '`obsSumStats.pl` scripts to determine how the summary '
+                    'statistics of the taxon pairs are to be re-sorted for the '
+                    'observed and simulated data. The default (0) uses '
+                    'summary statistics from all alignments and maintains '
+                    'the identity of their taxon and locus of origin. '
+                    'Option "11" takes the mean of summary statistics across '
+                    'loci for each taxon, and maintains the order of the taxon '
+                    'pairs.'))
     parser.add_argument('--compress',
             action = 'store_true',
             help = 'Compress plot data file.')
@@ -111,7 +125,7 @@ def main_cli():
     from pymsbayes.fileio import process_file_arg
     from pymsbayes import plotting
 
-    MSBAYES_SORT_INDEX.set_index(0)
+    MSBAYES_SORT_INDEX.set_index(args.sort_index)
 
     if not args.output_dir:
         args.output_dir = os.path.dirname(args.config)
