@@ -2,6 +2,7 @@
 
 """
 CLI for estimating the probability of given taxon pairs co-diverging.
+This script is deprecated and superseded by `dmc_posterior_probs.py`.
 """
 
 import os
