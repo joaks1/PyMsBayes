@@ -15,21 +15,22 @@ import argparse
 import datetime
 import logging
 
-from pymsbayes.utils.argparse_utils import arg_is_dir, arg_is_config
+from pymsbayes.utils import argparse_utils
 
 _program_info = {
     'name': os.path.basename(__file__),
     'author': 'Jamie Oaks',
-    'version': 'Version 0.1.0',
+    'version': 'Version 0.2.0',
     'description': __doc__,
     'copyright': 'Copyright (C) 2013 Jamie Oaks',
     'license': 'GNU GPL version 3 or later',}
 
 def main_cli():
     description = '{name} {version}'.format(**_program_info)
-    parser = argparse.ArgumentParser(description = description)
+    parser = argparse.ArgumentParser(description = description,
+            formatter_class = argparse_utils.SmartHelpFormatter)
     parser.add_argument('-c', '--config',
-            type = arg_is_config,
+            type = argparse_utils.arg_is_config,
             required = True,
             help = ('msBayes config file to be used to generate saturation '
                     'plot.'))
@@ -47,13 +48,13 @@ def main_cli():
                     'default is the number of CPUs available on the machine.'))
     parser.add_argument('-o', '--output-dir',
             action = 'store',
-            type = arg_is_dir,
+            type = argparse_utils.arg_is_dir,
             help = ('The directory in which all output files will be written. '
                     'The default is to use the directory of the first observed '
                     'config file.'))
     parser.add_argument('--temp-dir',
             action = 'store',
-            type = arg_is_dir,
+            type = argparse_utils.arg_is_dir,
             help = ('A directory to temporarily stage files. The default is to '
                     'use the output directory.'))
     parser.add_argument('-s', '--stat-prefixes',
@@ -68,15 +69,7 @@ def main_cli():
             type = int,
             default = 0,
             choices = range(12),
-            help = ('The sorting index used by `msbayes.pl` and '
-                    '`obsSumStats.pl` scripts to determine how the summary '
-                    'statistics of the taxon pairs are to be re-sorted for the '
-                    'observed and simulated data. The default (0) uses '
-                    'summary statistics from all alignments and maintains '
-                    'the identity of their taxon and locus of origin. '
-                    'Option "11" takes the mean of summary statistics across '
-                    'loci for each taxon, and maintains the order of the taxon '
-                    'pairs.'))
+            help = argparse_utils.get_sort_index_help_message())
     parser.add_argument('--compress',
             action = 'store_true',
             help = 'Compress plot data file.')
