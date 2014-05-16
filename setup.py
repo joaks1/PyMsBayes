@@ -17,7 +17,7 @@ SCRIPT_NAMES = [
         ]
 SCRIPTS = [os.path.join(SCRIPTS_DIR, f) for f in SCRIPT_NAMES]
 
-version = '0.1'
+version = '0.2.0'
 
 def symlink_msbayes_requirements():
     for f in ['msDQH', 'sumstatsvector']:
