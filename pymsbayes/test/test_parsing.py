@@ -9,7 +9,7 @@ from cStringIO import StringIO
 import pymsbayes
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test.support import package_paths
-from pymsbayes.utils import parsing
+from pymsbayes.utils import parsing, MSBAYES_SORT_INDEX
 from pymsbayes.utils.parsing import *
 from pymsbayes.utils.errors import *
 from pymsbayes.utils.messaging import get_logger
@@ -153,6 +153,7 @@ class ParseParametersTestCase(PyMsBayesTestCase):
         self.assertEqual(samples, self.expected)
 
     def test_add_div_model_column(self):
+        MSBAYES_SORT_INDEX.set_index(7)
         div_model_path = self.get_test_path(prefix = 'posterior-div-models-')
         div_models_to_indices = {'2': 1, '1,1': 2}
         expected_div_model_col = ('PRI.div.model', [2, 1, 2])
@@ -162,6 +163,20 @@ class ParseParametersTestCase(PyMsBayesTestCase):
         self.update_expected()
         samples = parse_parameters(div_model_path)
         self.assertEqual(samples, self.expected)
+        MSBAYES_SORT_INDEX.reset_default()
+
+    def test_add_div_model_column_sort0(self):
+        MSBAYES_SORT_INDEX.set_index(0)
+        div_model_path = self.get_test_path(prefix = 'posterior-div-models-')
+        div_models_to_indices = {'0,0': 1, '0,1': 2}
+        expected_div_model_col = ('PRI.div.model', [2, 1, 2])
+        add_div_model_column(self.posterior_path, div_model_path,
+                div_models_to_indices)
+        self.columns.insert(0, expected_div_model_col)
+        self.update_expected()
+        samples = parse_parameters(div_model_path)
+        self.assertEqual(samples, self.expected)
+        MSBAYES_SORT_INDEX.reset_default()
 
     def test_strip_div_model_column(self):
         self.write_posterior_file()

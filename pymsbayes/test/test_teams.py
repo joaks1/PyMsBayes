@@ -13,7 +13,7 @@ from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRejectWorker,
 from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test import TestLevel
-from pymsbayes.utils import GLOBAL_RNG
+from pymsbayes.utils import GLOBAL_RNG, MSBAYES_SORT_INDEX
 from pymsbayes.utils.parsing import parse_parameters, add_div_model_column
 from pymsbayes.utils.stats import IntegerPartitionCollection
 from pymsbayes.utils.messaging import get_logger
@@ -375,6 +375,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         return paths
 
     def test_abc_team(self):
+        MSBAYES_SORT_INDEX.set_index(7)
         obs_worker = MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 1,
@@ -527,6 +528,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertSameFiles([
                 res['summary'],
                 pw.posterior_summary_path])
+        MSBAYES_SORT_INDEX.reset_default()
 
     def test_abc_team_prior_generation(self):
         obs_worker = MsBayesWorker(
@@ -597,6 +599,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertSameUnsortedFiles([prior_path, expected_prior_path])
 
     def test_abc_team_with_reporting(self):
+        MSBAYES_SORT_INDEX.set_index(7)
         obs_worker = MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 1,
@@ -750,6 +753,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertSameFiles([
                 res['summary'],
                 pw.posterior_summary_path])
+        MSBAYES_SORT_INDEX.reset_default()
 
     def test_abc_team_repeatability(self):
         obs_worker = MsBayesWorker(
@@ -1239,6 +1243,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                                 res['glm-summary']), 20)
 
     def test_abc_team_repeatability_multiple_models_multiple_obs(self):
+        MSBAYES_SORT_INDEX.set_index(7)
         obs_worker1 = MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 1,
@@ -1329,8 +1334,10 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                     res1 = self.get_result_paths(abct1, i, j, k)
                     res2 = self.get_result_paths(abct2, i, j, k)
                     self.assertSameFiles([res1['sample'], res2['sample']])
+        MSBAYES_SORT_INDEX.reset_default()
 
     def test_abc_team_multiple_models_multiple_obs_previous_priors(self):
+        MSBAYES_SORT_INDEX.set_index(7)
         obs_worker1 = MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 2,
@@ -1543,6 +1550,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                     res2 = self.get_result_paths(abct3, i, j, k)
                     self.assertSameFiles([res1['sample'], res2['sample'],
                             post_paths[i][j][k]])
+        MSBAYES_SORT_INDEX.reset_default()
 
 
 if __name__ == '__main__':

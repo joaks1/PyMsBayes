@@ -25,7 +25,7 @@ class ToolTestCase(PyMsBayesTestCase):
         self.cfg_path = package_paths.data_path('negros_panay.cfg')
         self.new_cfg_path = package_paths.data_path('negros_panay_new.cfg')
         self.sum_stats_path = package_paths.data_path(
-                'negros_panay_sum_stats.txt')
+                'negros_panay_sum_stats_sort0.txt')
         self.prior_path = package_paths.data_path(
                 'negros_panay_new_prior_sample_10.txt')
         self.posterior_path = package_paths.data_path(

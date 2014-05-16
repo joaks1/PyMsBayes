@@ -55,7 +55,7 @@ def get_tool_path(name):
 
 class MSBAYES_SORT_INDEX(object):
     valid_values = list(range(12))
-    _default = 7
+    _default = 0
     _i = _default
 
     @classmethod

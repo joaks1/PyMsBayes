@@ -13,7 +13,7 @@ class MsBayesSortIndexTestCase(unittest.TestCase):
         self.assertEqual(MSBAYES_SORT_INDEX.valid_values, list(range(12)))
 
     def test_default(self):
-        self.assertEqual(MSBAYES_SORT_INDEX.current_value(), 7)
+        self.assertEqual(MSBAYES_SORT_INDEX.current_value(), 0)
 
     def test_set(self):
         for i in range(12):
@@ -27,9 +27,9 @@ class MsBayesSortIndexTestCase(unittest.TestCase):
 
     def test_reset_default(self):
         d = MSBAYES_SORT_INDEX.current_value()
-        self.assertNotEqual(d, 0)
-        MSBAYES_SORT_INDEX.set_index(0)
-        self.assertEqual(MSBAYES_SORT_INDEX.current_value(), 0)
+        self.assertNotEqual(d, 3)
+        MSBAYES_SORT_INDEX.set_index(3)
+        self.assertEqual(MSBAYES_SORT_INDEX.current_value(), 3)
         MSBAYES_SORT_INDEX.reset_default()
         self.assertEqual(MSBAYES_SORT_INDEX.current_value(), d)
 

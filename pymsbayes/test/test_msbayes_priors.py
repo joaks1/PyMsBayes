@@ -1715,7 +1715,7 @@ SUBPARAMCONSTRAN = 111111111
         self.assertTrue(t[0] > t[1])
         self.assertTrue(t[0] < t[2])
         self.taus_are_valid()
-        MSBAYES_SORT_INDEX.set_index(7)
+        MSBAYES_SORT_INDEX.reset_default()
 
     @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
             "EXHAUSTIVE test")
@@ -1770,7 +1770,7 @@ SUBPARAMCONSTRAN = 111111111
         self.assertTrue(t[0] > t[1])
         self.assertTrue(t[0] < t[2])
         self.taus_are_valid()
-        MSBAYES_SORT_INDEX.set_index(7)
+        MSBAYES_SORT_INDEX.reset_default()
 
     @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
             "EXHAUSTIVE test")
@@ -1825,7 +1825,7 @@ SUBPARAMCONSTRAN = 111111111
         self.assertTrue(t[0] > t[1])
         self.assertTrue(t[0] < t[2])
         self.taus_are_valid()
-        MSBAYES_SORT_INDEX.set_index(7)
+        MSBAYES_SORT_INDEX.reset_default()
 
     @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
             "EXHAUSTIVE test")
@@ -1880,7 +1880,7 @@ SUBPARAMCONSTRAN = 111111111
         self.assertTrue(t[0] > t[1])
         self.assertTrue(t[0] < t[2])
         self.taus_are_valid()
-        MSBAYES_SORT_INDEX.set_index(7)
+        MSBAYES_SORT_INDEX.reset_default()
 
 if __name__ == '__main__':
     unittest.main()

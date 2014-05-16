@@ -31,6 +31,7 @@ class ObsSumStatsWorkerTestCase(PyMsBayesTestCase):
         self.tear_down()
 
     def test_negros_panay(self):
+        MSBAYES_SORT_INDEX.set_index(7)
         ss_path = self.get_test_path(prefix='sum-stats')
         ss_worker = workers.ObsSumStatsWorker(
                 temp_fs = self.temp_fs,
@@ -45,6 +46,29 @@ class ObsSumStatsWorkerTestCase(PyMsBayesTestCase):
         ss_worker.start()
         self.assertTrue(ss_worker.finished)
         self.assertSameFiles([ss_path, self.expected])
+        MSBAYES_SORT_INDEX.reset_default()
+
+    def test_negros_panay_sort0_and_sort11(self):
+        # for single locus data, sort 0 and 11 should be the same
+        MSBAYES_SORT_INDEX.set_index(0)
+        expected = package_paths.data_path('negros_panay_sum_stats_sort0.txt')
+        expected2 = package_paths.data_path('negros_panay_sum_stats_sort11.txt')
+        ss_path = self.get_test_path(prefix='sum-stats')
+        ss_worker = workers.ObsSumStatsWorker(
+                temp_fs = self.temp_fs,
+                config_path = self.cfg_path,
+                output_path = ss_path,
+                exe_path = None,
+                schema = 'abctoolbox',
+                stat_patterns = DEFAULT_STAT_PATTERNS,
+                stderr_path = None,
+                tag = None)
+        self.assertFalse(ss_worker.finished)
+        ss_worker.start()
+        self.assertTrue(ss_worker.finished)
+        self.assertSameFiles([ss_path, expected])
+        self.assertSameFiles([ss_path, expected2])
+        MSBAYES_SORT_INDEX.reset_default()
 
 
 class MsBayesWorkerTestCase(PyMsBayesTestCase):
@@ -2562,6 +2586,7 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
         self.tear_down()
 
     def test_without_compression(self):
+        MSBAYES_SORT_INDEX.set_index(7)
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
@@ -2641,8 +2666,10 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
                 self.get_number_of_header_lines(post_worker.omega_results_path),
                 1)
         self.assertFalse(os.path.isfile(post_worker.model_results_path))
+        MSBAYES_SORT_INDEX.reset_default()
 
     def test_regression_failure(self):
+        MSBAYES_SORT_INDEX.set_index(7)
         prior_worker = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 100,
@@ -2707,8 +2734,10 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
                 self.get_number_of_header_lines(post_worker.omega_results_path),
                 1)
         self.assertFalse(os.path.isfile(post_worker.model_results_path))
+        MSBAYES_SORT_INDEX.reset_default()
 
     def test_without_compression_with_models(self):
+        MSBAYES_SORT_INDEX.set_index(7)
         prior_workers = []
         for i in range(4):
             prior_worker = workers.MsBayesWorker(
@@ -2797,8 +2826,10 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
         self.assertEqual(
                 self.get_number_of_header_lines(post_worker.model_results_path),
                 1)
+        MSBAYES_SORT_INDEX.reset_default()
 
     def test_without_compression_with_one_model(self):
+        MSBAYES_SORT_INDEX.set_index(7)
         if not TestLevel.test_enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
@@ -2885,8 +2916,10 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
         self.assertEqual(
                 self.get_number_of_header_lines(post_worker.model_results_path),
                 1)
+        MSBAYES_SORT_INDEX.reset_default()
 
     def test_with_compression(self):
+        MSBAYES_SORT_INDEX.set_index(7)
         prior_worker = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 100,
@@ -2960,6 +2993,7 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
                 self.get_number_of_header_lines(post_worker.omega_results_path),
                 1)
         self.assertFalse(os.path.isfile(post_worker.model_results_path))
+        MSBAYES_SORT_INDEX.reset_default()
 
     def test_with_models_no_sort(self):
         MSBAYES_SORT_INDEX.set_index(0)
@@ -3057,7 +3091,7 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
             self.assertTrue(d['count'] <= current_count)
             current_count = d['count']
 
-        MSBAYES_SORT_INDEX.set_index(7)
+        MSBAYES_SORT_INDEX.reset_default()
 
 if __name__ == '__main__':
     unittest.main()
