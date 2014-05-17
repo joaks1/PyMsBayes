@@ -1,1 +1,229 @@
-PyMsBayes Page
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="PyMsBayes : PyMsBayes is a multi-processing Python API for approximate Bayesian computation" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>PyMsBayes</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/joaks1/PyMsBayes">View on GitHub</a>
+
+          <h1 id="project_title">PyMsBayes</h1>
+          <h2 id="project_tagline">PyMsBayes is a multi-processing Python API for approximate Bayesian computation</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/joaks1/PyMsBayes/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/joaks1/PyMsBayes/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a name="table-of-contents" class="anchor" href="#table-of-contents"><span class="octicon octicon-link"></span></a>Table of Contents</h1>
+
+<ul>
+<li> <a href="#overview">Overview</a>
+</li>
+<li> <a href="#requirements">Requirements</a>
+
+<ul>
+<li> <a href="#optional-additions">Optional additions</a>
+</li>
+</ul>
+</li>
+<li> <a href="#installation">Installation</a>
+</li>
+<li> <a href="#citing-pymsbayes">Citing PyMsBayes</a>
+</li>
+<li> <a href="#acknowledgements">Acknowledgements</a>
+</li>
+<li> <a href="#license">License</a>
+</li>
+<li> <a href="#literature-cited">Literature Cited</a>
+</li>
+</ul><h1>
+<a name="overview" class="anchor" href="#overview"><span class="octicon octicon-link"></span></a>Overview</h1>
+
+<p>PyMsBayes is a multi-processing Python API for approximate Bayesian computation
+(ABC), and provides a multi-processing interface to the comparative
+phylogeographic software package, msBayes. The package is written by <a href="http://www.phyletica.com">Jamie
+Oaks</a>.</p>
+
+<p>PyMsBayes is essentially a multi-processing wrapper around some popular ABC
+tools. Executables of the following tools come bundled with PyMsBayes:</p>
+
+<ul>
+<li> dpp-msbayes (<a href="https://github.com/joaks1/dpp-msbayes.git">https://github.com/joaks1/dpp-msbayes.git</a>)</li>
+<li> msBayes (<a href="http://msbayes.sourceforge.net/">http://msbayes.sourceforge.net/</a>)</li>
+<li> ABCtoolbox (<a href="http://www.cmpg.iee.unibe.ch/content/softwares__services/computer_programs/abctoolbox/index_eng.html">http://www.cmpg.iee.unibe.ch/content/softwares__services/computer_programs/abctoolbox/index_eng.html</a>)</li>
+<li> EuReject of the ABACUS package (<a href="https://github.com/joaks1/abacus.git">https://github.com/joaks1/abacus.git</a>)</li>
+</ul><p>Executables for Linux and Mac are included. The Linux executables are
+statically linked and should run on any 64-bit Linux system. The Mac
+executables are universal (built for architectures ppc, i386, and x86_64) and
+<em>mostly</em> statically-linked, and so <em>should</em> work on any Mac. But, Macs are
+weird, so no promises. If you are having problems, please let me know.</p>
+
+<h1>
+<a name="requirements" class="anchor" href="#requirements"><span class="octicon octicon-link"></span></a>Requirements</h1>
+
+<p>PyMsBayes has only been tested on version 2.7 of Python. The only Python
+dependency is ConfigObj (<a href="http://www.voidspace.org.uk/python/configobj.html">http://www.voidspace.org.uk/python/configobj.html</a>).
+This dependency should get installed automatically when you follow the
+installation instructions for PyMsBayes below. However, if it does not, it can
+easily be installed using <code>pip install configobj</code> or <code>easy_install configobj</code>;
+see <a href="http://www.voidspace.org.uk/python/configobj.html#installing">http://www.voidspace.org.uk/python/configobj.html#installing</a> for more
+details.</p>
+
+<h2>
+<a name="optional-additions" class="anchor" href="#optional-additions"><span class="octicon octicon-link"></span></a>Optional additions</h2>
+
+<p>If you wish to use any of the plotting features of <code>PyMsBayes</code>, you will need
+to install <code>matplotlib</code> (<a href="http://matplotlib.org/">http://matplotlib.org/</a>).</p>
+
+<p>For post-hoc regression adjustment of posterior samples, the general linear
+model (GLM) method of Leuenberger and Wegmann (2010) is the default, and does
+not require any extra dependencies.  However, if you wish to use the weighted
+local-linear regression (multinomial logistic regression for discrete
+parameters) method of Beaumont et al. (2002) via the API, then you will need to
+install the following R packages: VGAM, KernSmooth, locfit, and optparse.</p>
+
+<h1>
+<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<p>You should have Python 2.7 installed.</p>
+
+<p>Clone Git repository and install using:</p>
+
+<pre><code>$ git clone git://github.com/joaks1/PyMsBayes.git
+$ cd PyMsBayes
+$ python setup.py develop
+</code></pre>
+
+<p>If the install fails due to a permission error, try:</p>
+
+<pre><code>$ sudo python setup.py develop
+</code></pre>
+
+<p>To run the test suite, use:</p>
+
+<pre><code>$ python setup.py test
+</code></pre>
+
+<h1>
+<a name="citing-pymsbayes" class="anchor" href="#citing-pymsbayes"><span class="octicon octicon-link"></span></a>Citing PyMsBayes</h1>
+
+<p>If you publish results obtained using this software, please cite the software
+and the appropriate citations for the bundled tools that were used:</p>
+
+<ul>
+<li>
+<p>dpp-msbayes and euReject:</p>
+
+<blockquote>
+<p>Oaks, J. R. (2014). An Improved Approximate-Bayesian Model-choice Method
+for Estimating Shared Evolutionary History. arXiv:1402.6303 [q-bio:PE].
+<a href="http://arxiv.org/abs/1402.6303">http://arxiv.org/abs/1402.6303</a></p>
+</blockquote>
+</li>
+<li>
+<p>msBayes:</p>
+
+<blockquote>
+<p>Huang, W., N. Takebayashi, Y. Qi, and M. J. Hickerson, 2011.
+MTML-msBayes: Approximate Bayesian comparative phylogeographic
+inference from multiple taxa and multiple loci with rate
+heterogeneity. BMC Bioinformatics 12:1.</p>
+</blockquote>
+</li>
+<li>
+<p>ABCtoolbox:</p>
+
+<blockquote>
+<p>Wegmann, D., C. Leuenberger, S. Neuenschwander, and L.
+Excoffier, 2010. ABCtoolbox: a versatile toolkit for approximate Bayesian
+computations. BMC Bioinformatics 11:116.</p>
+</blockquote>
+</li>
+</ul><h1>
+<a name="acknowledgements" class="anchor" href="#acknowledgements"><span class="octicon octicon-link"></span></a>Acknowledgements</h1>
+
+<p>This software greatly benefited from funding provided to <a href="http://www.phyletica.com">Jamie
+Oaks</a> from the National Science Foundation (DEB
+1011423 and DBI 1308885), University of Kansas (KU) Office of Graduate Studies,
+Society of Systematic Biologists, Sigma Xi Scientific Research Society, KU
+Ecology and Evolutionary Biology Department, and the KU Biodiversity Institute.</p>
+
+<p>Some of the functions for calculating properties of Dirichlet processes were
+adapted from functions within <code>util.h</code> from the software package
+<a href="http://phylo.bio.ku.edu/content/tracy-heath-dppdiv"><code>DPPDiv</code></a> version 1.0b
+(Copyright Tracy Heath, Mark Holder, and John Huelsenback; licensed under GPL
+v3; <a href="http://phylo.bio.ku.edu/content/tracy-heath-dppdiv">http://phylo.bio.ku.edu/content/tracy-heath-dppdiv</a>).</p>
+
+<h1>
+<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h1>
+
+<p>This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.</p>
+
+<p>This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.</p>
+
+<p>You should have received a copy of the GNU General Public License along
+with this program. If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p>
+
+<p>See "LICENSE.txt" for full terms and conditions of usage.</p>
+
+<h1>
+<a name="literature-cited" class="anchor" href="#literature-cited"><span class="octicon octicon-link"></span></a>Literature Cited</h1>
+
+<blockquote>
+<p>Beaumont, M. A., Zhang, W. Y., &amp; Balding, D. J. (2002). Approximate Bayesian
+computation in population genetics. Genetics, 162(4), 2025–2035.</p>
+
+<p>Huang, W., N. Takebayashi, Y. Qi, and M. J. Hickerson, 2011.  MTML-msBayes:
+Approximate Bayesian comparative phylogeographic inference from multiple taxa
+and multiple loci with rate heterogeneity. BMC Bioinformatics 12:1.</p>
+
+<p>Leuenberger, C., &amp; Wegmann, D. (2010). Bayesian Computation and Model
+Selection Without Likelihoods. Genetics, 184(1), 243–252.</p>
+
+<p>Oaks, J. R. (2014). An Improved Approximate-Bayesian Model-choice Method for
+Estimating Shared Evolutionary History. arXiv:1402.6303 [q-bio:PE].
+<a href="http://arxiv.org/abs/1402.6303">http://arxiv.org/abs/1402.6303</a></p>
+
+<p>Wegmann, D., C. Leuenberger, S. Neuenschwander, and L.  Excoffier, 2010.
+ABCtoolbox: a versatile toolkit for approximate Bayesian computations. BMC
+Bioinformatics 11:116.</p>
+</blockquote>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">PyMsBayes maintained by <a href="https://github.com/joaks1">joaks1</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
