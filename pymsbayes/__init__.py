@@ -4,7 +4,7 @@ import sys
 import os
 
 __project__ = "PyMsBayes"
-__version__ = "0.1"
+__version__ = "0.2.0"
 __author__ = "Jamie Oaks"
 __copyright__ = "Copyright 2013 Jamie Oaks."
 __license__ = """
