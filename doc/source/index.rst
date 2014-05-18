@@ -1,31 +1,10 @@
-.. PyMsBayes documentation master file, created by
-   sphinx-quickstart on Sat May 17 16:35:13 2014.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+:orphan:
 
-Welcome to PyMsBayes's documentation!
-=====================================
+#########
+PyMsBayes
+#########
 
-Contents:
+.. include:: intro/intro.rst
 
-.. toctree::
-    :maxdepth: 3
-
-    intro/intro
-    intro/prerequisites
-    intro/installation
-    intro/citing
-    thanks/acknowledgments
-    license/license-short
-    bib/references
-    changes
-    tutorials/index
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. include:: thanks/acknowledgments.rst
 
