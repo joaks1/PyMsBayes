@@ -9,8 +9,17 @@ Welcome to PyMsBayes's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 3
 
+    intro/intro
+    intro/prerequisites
+    intro/installation
+    intro/citing
+    thanks/acknowledgments
+    license/license-short
+    bib/references
+    changes
+    tutorials/index
 
 
 Indices and tables

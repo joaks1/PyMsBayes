@@ -55,7 +55,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'PyMsBayes'
-copyright = u'2013-%s, Jamie R. Oaks'.format(time.strftime('%Y))
+copyright = u'2013-{0}, Jamie R. Oaks'.format(time.strftime('%Y'))
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -100,6 +100,56 @@ pygments_style = 'sphinx'
 
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
+
+rst_epilog = """
+.. |jro| replace:: Jamie Oaks
+.. _jro: http://www.phyletica.com
+.. |mth| replace:: Mark T. Holder
+.. _mth: http://people.ku.edu/~mtholder
+
+.. |pmb| replace:: PyMsBayes
+.. _pmb: http://joaks1.github.io/PyMsBayes/
+.. |pmb_gh| replace:: PyMsBayes
+.. _pmb_gh: https://github.com/joaks1/PyMsBayes
+.. |pmb_home_url| replace:: http://joaks1.github.io/PyMsBayes/
+.. |pmb_tutorials_url| replace:: http://joaks1.github.io/PyMsBayes/tutorials/index.html
+.. |pmb_gh_url| replace:: https://github.com/joaks1/PyMsBayes
+.. |pmb_tutorials_doc| replace:: /tutorials/index
+.. |pmb_copyright| replace:: **Copyright 2013-{this_year} Jamie R. Oaks**
+
+.. |python| replace:: Python
+.. _python: http://www.python.org/
+.. |python27| replace:: Python 2.7
+.. _python27: http://www.python.org/download/releases/2.7/
+.. |setuptools| replace:: setuptools
+.. _setuptools: http://pypi.python.org/pypi/setuptools
+.. |pip| replace:: pip
+.. _pip: http://pypi.python.org/pypi/pip
+.. |git| replace:: Git
+.. _Git: http://git-scm.com/
+.. |gpl3| replace:: http://www.gnu.org/licenses/gpl-3.0-standalone.html
+
+.. |dpp-msbayes| replace:: dpp-msbayes
+.. _dpp-msbayes: https://github.com/joaks1/dpp-msbayes.git
+.. |dpp-msbayes-url| replace:: https://github.com/joaks1/dpp-msbayes.git
+.. |msbayes| replace:: msBayes
+.. _msbayes: http://msbayes.sourceforge.net/
+.. |msbayes_url| replace:: http://msbayes.sourceforge.net/
+.. |abctoolbox| replace:: ABCtoolbox
+.. _abctoolbox: http://www.cmpg.iee.unibe.ch/content/softwares__services/computer_programs/abctoolbox/index_eng.html
+.. |eureject| replace:: euReject
+.. _eureject: https://github.com/joaks1/abacus.git
+.. |abacus| replace:: ABACUS
+.. _abacus: https://github.com/joaks1/abacus.git
+.. |abacus_url| replace:: https://github.com/joaks1/abacus.git
+
+.. |MsBayesWorker| replace:: :class:`~pymsbayes.workers.MsBayesWorker`
+.. |Manager| replace:: :class:`~pymsbayes.manager.Manager`
+
+.. |True| replace:: `True`
+.. |False| replace:: `False`
+.. |None| replace:: `None`
+""".format(this_year = time.strftime('%Y'))
 
 # If true, keep warnings as "system message" paragraphs in the built documents.
 #keep_warnings = False
