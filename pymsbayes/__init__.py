@@ -22,6 +22,6 @@ You should have received a copy of the GNU General Public License along
 with this program. If not, see <http://www.gnu.org/licenses/>.
 """
 
-from pymsbayes import teams
-from pymsbayes.utils import stats
-from pymsbayes import plotting
+# NOTE: Imports to populate the namespace can break the scripts' control of the
+# logging level, because imported modules will initiate their loggers before
+# the CLI scripts can update LoggingControl.
