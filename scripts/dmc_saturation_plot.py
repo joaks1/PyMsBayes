@@ -95,15 +95,15 @@ def main_cli():
     ##########################################################################
     ## handle args
 
-    from pymsbayes.utils.messaging import (get_logger, LOGGING_LEVEL_ENV_VAR,
+    from pymsbayes.utils.messaging import (LoggingControl,
             InfoLogger)
 
-    os.environ[LOGGING_LEVEL_ENV_VAR] = "INFO"
+    LoggingControl.set_logging_level("INFO")
     if args.quiet:
-        os.environ[LOGGING_LEVEL_ENV_VAR] = "WARNING"
+        LoggingControl.set_logging_level("WARNING")
     if args.debug:
-        os.environ[LOGGING_LEVEL_ENV_VAR] = "DEBUG"
-    log = get_logger(__name__)
+        LoggingControl.set_logging_level("DEBUG")
+    log = LoggingControl.get_logger(__name__)
 
     from pymsbayes.workers import MsBayesWorker
     from pymsbayes.utils.parsing import (get_patterns_from_prefixes,

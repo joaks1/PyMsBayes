@@ -19,7 +19,7 @@ from pymsbayes.utils import argparse_utils
 _program_info = {
     'name': os.path.basename(__file__),
     'author': 'Jamie Oaks',
-    'version': 'Version 0.2.1',
+    'version': 'Version 0.2.2',
     'description': __doc__,
     'copyright': 'Copyright (C) 2013 Jamie Oaks',
     'license': 'GNU GPL version 3 or later',}
@@ -221,15 +221,15 @@ def main_cli():
     ##########################################################################
     ## handle args
 
-    from pymsbayes.utils.messaging import (get_logger, LOGGING_LEVEL_ENV_VAR,
+    from pymsbayes.utils.messaging import (LoggingControl,
             InfoLogger)
 
-    os.environ[LOGGING_LEVEL_ENV_VAR] = "INFO"
+    LoggingControl.set_logging_level("INFO")
     if args.quiet:
-        os.environ[LOGGING_LEVEL_ENV_VAR] = "WARNING"
+        LoggingControl.set_logging_level("WARNING")
     if args.debug:
-        os.environ[LOGGING_LEVEL_ENV_VAR] = "DEBUG"
-    log = get_logger(__name__)
+        LoggingControl.set_logging_level("DEBUG")
+    log = LoggingControl.get_logger(__name__)
 
     from pymsbayes.workers import (MsBayesWorker, merge_prior_files,
             ObsSumStatsWorker)
