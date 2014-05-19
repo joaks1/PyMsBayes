@@ -19,7 +19,7 @@ from pymsbayes.utils import argparse_utils
 _program_info = {
     'name': os.path.basename(__file__),
     'author': 'Jamie Oaks',
-    'version': 'Version 0.2.0',
+    'version': 'Version 0.2.1',
     'description': __doc__,
     'copyright': 'Copyright (C) 2013 Jamie Oaks',
     'license': 'GNU GPL version 3 or later',}
@@ -315,7 +315,7 @@ def main_cli():
     info.write('\tnum_prior_samples = {0}'.format(
             args.num_prior_samples))
     info.write('\tnum_standardizing_samples = {0}'.format(
-            args.num_posterior_samples))
+            args.num_standardizing_samples))
     info.write('\tbandwidth = {0}'.format(args.bandwidth))
     info.write('\tposterior_quantiles = {0}'.format(
             args.num_posterior_quantiles))
