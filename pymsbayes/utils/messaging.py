@@ -4,41 +4,49 @@ import sys
 import os
 import logging
 
-LOGGING_LEVEL_ENV_VAR = "PYMSBAYES_LOGGING_LEVEL"
+class LoggingControl(object):
+    _internal_level = None
+    logging_level_env_var = "PYMSBAYES_LOGGING_LEVEL"
 
-def get_logging_level(level=None):
-    if level:
-        if level.upper() == "NOTSET":
-            return logging.NOTSET
-        elif level.upper() == "DEBUG":
-            return logging.DEBUG
-        elif level.upper() == "INFO":
-            return logging.INFO
-        elif level.upper() == "WARNING":
-            return logging.WARNING
-        elif level.upper() == "ERROR":
-            return logging.ERROR
-        elif level.upper() == "CRITICAL":
-            return logging.CRITICAL
-        else:
-            return logging.WARNING
-    else:
+    @classmethod
+    def get_logging_level(cls, level = None):
+        if not level:
+            level = os.environ.get(cls.logging_level_env_var, None)
+            # allow internal override of env logging level
+            if cls._internal_level:
+                level = cls._internal_level
+        if level:
+            if level.upper() == "NOTSET":
+                return logging.NOTSET
+            elif level.upper() == "DEBUG":
+                return logging.DEBUG
+            elif level.upper() == "INFO":
+                return logging.INFO
+            elif level.upper() == "WARNING":
+                return logging.WARNING
+            elif level.upper() == "ERROR":
+                return logging.ERROR
+            elif level.upper() == "CRITICAL":
+                return logging.CRITICAL
+            else:
+                return logging.WARNING
         return logging.WARNING
 
-def get_env_logging_level():
-    return get_logging_level(os.environ.get(LOGGING_LEVEL_ENV_VAR, None))
+    @classmethod
+    def set_logging_level(cls, level):
+        cls._internal_level = level
+    
+    @classmethod
+    def get_logger(cls, name, level = None):
+        l = cls.get_logging_level(level)
+        log = logging.getLogger(name)
+        log.setLevel(l)
+        h = logging.StreamHandler()
+        h.setLevel(l)
+        log.addHandler(h)
+        return log
 
-def get_logger(name, level = None):
-    if level:
-        l = get_logging_level(level)
-    else:
-        l = get_env_logging_level()
-    log = logging.getLogger(name)
-    log.setLevel(l)
-    h = logging.StreamHandler()
-    h.setLevel(l)
-    log.addHandler(h)
-    return log
+get_logger = LoggingControl.get_logger
 
 class InfoLogger(object):
     def __init__(self, path):
