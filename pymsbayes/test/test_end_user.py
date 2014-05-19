@@ -216,28 +216,5 @@ class MultiprocessingTestCase(unittest.TestCase):
             self.assertIsInstance(j.div_models, stats.PartitionCollection)
 
 
-class DmcTestCase(PyMsBayesTestCase):
-    def setUp(self):
-        self.set_up()
-
-    def tearDown(self):
-        self.tear_down()
-
-    def test_dmc_help(self):
-        self._exe_script(script_name = 'dmc.py',
-                args = ['-h'],
-                return_code = 0)
-
-    def test_dmc_no_args(self):
-        self._exe_script(script_name = 'dmc.py',
-                args = [],
-                return_code = 2)
-
-    def test_dmc_bogus_arg(self):
-        self._exe_script(script_name = 'dmc.py',
-                args = ['--cheeseburger'],
-                return_code = 2)
-
-
 if __name__ == '__main__':
     unittest.main()
