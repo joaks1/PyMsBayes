@@ -75,28 +75,28 @@ class ToolPathManager(object):
         external_path = cls.get_external_tool(name)
         if external_path:
             return external_path
-        # not found: raise error here so that the multiprocessing
-        # machinery does not get flooded with jobs doomed to die.
+        # not found: raise error here so that the multiprocessing job queue
+        # does not get flooded with jobs doomed to die.
         raise cls.ToolNotFoundError('Unable to find executable '
                 '{0!r}'.format(name))
 
     @classmethod
-    def get_external_tool(cls, path):
+    def get_external_tool(cls, exe_file):
         """
-        Uses `subprocess.check_call` to check system for `exe_name`. If found,
-        `exe_name` is returned, else `None` is returned.
+        Uses `subprocess.Popen` to check system for `exe_file`. If found,
+        `exe_file` is returned, else `None` is returned.
 
         """
         try:
-            p = subprocess.Popen([path],
+            p = subprocess.Popen([exe_file],
                     stdout = subprocess.PIPE,
                     stderr = subprocess.PIPE)
             p.terminate()
         except subprocess.CalledProcessError:
-            return path
+            return exe_file
         except OSError:
             return None
-        return path
+        return exe_file
 
     @classmethod
     def is_executable(cls, path):
@@ -104,15 +104,33 @@ class ToolPathManager(object):
 
     @classmethod
     def which(cls, exe):
-        if cls.is_executable(exe):
-            return exe
-        name = os.path.basename(exe)
-        for p in os.environ['PATH'].split(os.pathsep):
-            p = p.strip('"')
-            exe_path = os.path.join(p, name)
-            if cls.is_executable(exe_path):
-                return exe_path
+        pth, name = os.path.split(exe)
+        if pth:
+            if cls.is_executable(exe):
+                return exe
+        else:
+            for p in os.environ['PATH'].split(os.pathsep):
+                p = p.strip('"')
+                exe_path = os.path.join(p, exe)
+                if cls.is_executable(exe_path):
+                    return exe_path
         return None
+
+    @classmethod
+    def get_tool_full_path(cls, name):
+        """
+        This method calls `ToolPathManager.get_tool_path`, and if a full path
+        is retrieved, this full path is returned. If `get_tool_path` returns
+        the name of the exe found in the system PATH, `ToolPathManager.which`
+        is called to get the full path, which is returned.
+
+        This allows end-user code to report the full paths used, and to provide
+        the full path to all the package code that is used.
+        """
+        p = cls.get_tool_path(name)
+        if os.path.isfile(p):
+            return p
+        return cls.which(name)
 
 
 class MSBAYES_SORT_INDEX(object):

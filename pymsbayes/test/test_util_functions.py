@@ -48,6 +48,42 @@ class ToolPathManagerTestCase(unittest.TestCase):
             self.assertEqual(p,
                     os.path.join(ToolPathManager._bin_dir, name))
 
+    def test_get_tool_full_path(self):
+        p = ToolPathManager.get_tool_full_path('more')
+        self.assertNotEqual(p, 'more')
+        pth, name = os.path.split(p)
+        self.assertNotEqual(pth, None)
+        self.assertEqual(name, 'more')
+
+        self.assertRaises(ToolPathManager.ToolNotFoundError,
+                ToolPathManager.get_tool_full_path, 'blah')
+
+    def test_which(self):
+        w = ToolPathManager.which
+        self.assertEqual(w('x_bogus_exe_name_x'), None)
+
+        p = w('more')
+        self.assertNotEqual(p, None)
+        self.assertNotEqual(p, 'more')
+        pth, name = os.path.split(p)
+        self.assertNotEqual(pth, None)
+        self.assertEqual(name, 'more')
+
+        self.assertEqual(w('/bogus/path/to/more'), None)
+
+    def ignoring_internal_tools_toggling(self):
+        tpm1 = ToolPathManager()
+        tpm2 = ToolPathManager()
+        self.assertEqual(tpm1.ignoring_internal_tools(), False)
+        self.assertEqual(tpm2.ignoring_internal_tools(), False)
+        tpm1.set_to_ignore_internal_tools()
+        self.assertEqual(tpm1.ignoring_internal_tools(), True)
+        self.assertEqual(tpm2.ignoring_internal_tools(), True)
+        tpm2.set_to_prefer_internal_tools()
+        self.assertEqual(tpm1.ignoring_internal_tools(), False)
+        self.assertEqual(tpm2.ignoring_internal_tools(), False)
+
+
 class FrangeTestCase(unittest.TestCase):
     def test_frange(self):
         l = list(functions.frange(0, 1, 4))
