@@ -48,21 +48,33 @@ def check_tool(path):
 
 def get_tools_to_install():
     platform_name = platform.system().lower()
-    # bin_dir = None
-    # if platform_name == 'linux':
-    #     bin_dir = os.path.join(BASE_DIR, "bin", "linux")
-    # elif platform_name == 'darwin':
-    bin_dir = os.path.join(BASE_DIR, "bin", "mac")
-    # elif platform_name == 'windows':
-    #     bin_dir = os.path.join(BASE_DIR, "bin", "win")
-    # else:
-    #     return []
+    bin_dir = None
+    if platform_name == 'linux':
+        bin_dir = os.path.join(BASE_DIR, "bin", "linux")
+    elif platform_name == 'darwin':
+        bin_dir = os.path.join(BASE_DIR, "bin", "mac")
+    elif platform_name == 'windows':
+        bin_dir = os.path.join(BASE_DIR, "bin", "win")
+    else:
+        return []
     tools = [os.path.join(bin_dir, f) for f in TOOL_NAMES]
     ret = []
     for t in tools:
         if check_tool(t):
             ret.append(t)
         else:
+            sys.stderr.write(
+'''
+**********************************************************************
+****************************** WARNING *******************************
+The bundled `dpp-msbayes` tools are not being installed, because some
+of them are not executable on this system. The `PyMsBayes` package and
+scripts will still be installed, however, you will need to build and
+install `dpp-msbayes` (https://github.com/joaks1/dpp-msbayes) yourself
+in order to use them.  Sorry for the inconvenience.
+**********************************************************************
+'''
+            )
             return []
     return ret
 
