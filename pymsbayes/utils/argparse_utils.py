@@ -56,12 +56,13 @@ def arg_is_dir(path):
 
 def arg_is_executable(path):
     try:
-        if not is_executable(path):
+        p = ToolPathManager.get_external_tool(path):
+        if not p:
             raise
     except:
         msg = '{0!r} is not an executable'.format(path)
         raise argparse.ArgumentTypeError(msg)
-    return expand_path(path)
+    return p
 
 def arg_is_nonnegative_int(i):
     try:

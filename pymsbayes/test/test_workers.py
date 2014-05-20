@@ -10,7 +10,7 @@ from pymsbayes.fileio import is_gzipped
 from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test import TestLevel
-from pymsbayes.utils import get_tool_path, MSBAYES_SORT_INDEX
+from pymsbayes.utils import ToolPathManager, MSBAYES_SORT_INDEX
 from pymsbayes.utils.errors import *
 from pymsbayes.utils.parsing import *
 from pymsbayes.utils.stats import SampleSummaryCollection
@@ -213,13 +213,17 @@ class MsBayesWorkerTestCase(PyMsBayesTestCase):
                 schema = 'abctoolbox')
         self.assertIsInstance(w, workers.MsBayesWorker)
         self.assertFalse(w.finished)
-        self.assertEqual(w.exe_path, get_tool_path('dpp-msbayes'))
-        self.assertNotEqual(w.exe_path, get_tool_path('msbayes'))
+        self.assertEqual(w.exe_path,
+                ToolPathManager.get_tool_path('dpp-msbayes.pl'))
+        self.assertNotEqual(w.exe_path,
+                ToolPathManager.get_tool_path('msbayes.pl'))
         _LOG.warning('\n\n{0}\n\n'.format(w.exe_path))
         w.start()
         self._assert_success(w, 4, 10)
-        self.assertEqual(w.exe_path, get_tool_path('dpp-msbayes'))
-        self.assertNotEqual(w.exe_path, get_tool_path('msbayes'))
+        self.assertEqual(w.exe_path,
+                ToolPathManager.get_tool_path('dpp-msbayes.pl'))
+        self.assertNotEqual(w.exe_path,
+                ToolPathManager.get_tool_path('msbayes.pl'))
 
 
 class MergePriorTestCase(PyMsBayesTestCase):

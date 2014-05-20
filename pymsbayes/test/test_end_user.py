@@ -12,12 +12,13 @@ from pymsbayes import workers, fileio, manager
 from pymsbayes.config import MsBayesConfig
 from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
-from pymsbayes.utils import get_tool_path, MSBAYES_SORT_INDEX
+from pymsbayes.utils import ToolPathManager, MSBAYES_SORT_INDEX
 from pymsbayes.utils import parsing, stats
 # from pymsbayes.test.test_dmc import DmcTestCase
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__, level = "INFO")
+
 
 class ToolTestCase(PyMsBayesTestCase):
     def setUp(self):
@@ -46,7 +47,8 @@ class ToolTestCase(PyMsBayesTestCase):
                 stderr_path = None,
                 tag = None)
         self.assertFalse(ss_worker.finished)
-        self.assertEqual(ss_worker.exe_path, get_tool_path('obssumstats'))
+        self.assertEqual(ss_worker.exe_path,
+                ToolPathManager.get_tool_path('obsSumStats.pl'))
         _LOG.info('{0}'.format(ss_worker.exe_path))
         ss_worker.start()
         self.assertTrue(ss_worker.finished)
@@ -89,13 +91,17 @@ class ToolTestCase(PyMsBayesTestCase):
                 write_stats_file = True)
         self.assertIsInstance(w, workers.MsBayesWorker)
         self.assertFalse(w.finished)
-        self.assertNotEqual(w.exe_path, get_tool_path('dpp-msbayes'))
-        self.assertEqual(w.exe_path, get_tool_path('msbayes'))
+        self.assertNotEqual(w.exe_path,
+                ToolPathManager.get_tool_path('dpp-msbayes.pl'))
+        self.assertEqual(w.exe_path,
+                ToolPathManager.get_tool_path('msbayes.pl'))
         _LOG.info('{0}'.format(w.exe_path))
         w.start()
         self._assert_msbayes_success(w, 9, 2)
-        self.assertNotEqual(w.exe_path, get_tool_path('dpp-msbayes'))
-        self.assertEqual(w.exe_path, get_tool_path('msbayes'))
+        self.assertNotEqual(w.exe_path,
+                ToolPathManager.get_tool_path('dpp-msbayes.pl'))
+        self.assertEqual(w.exe_path,
+                ToolPathManager.get_tool_path('msbayes.pl'))
 
 
     def test_dpp_msbayes(self):
@@ -106,13 +112,17 @@ class ToolTestCase(PyMsBayesTestCase):
                 schema = 'abctoolbox')
         self.assertIsInstance(w, workers.MsBayesWorker)
         self.assertFalse(w.finished)
-        self.assertEqual(w.exe_path, get_tool_path('dpp-msbayes'))
-        self.assertNotEqual(w.exe_path, get_tool_path('msbayes'))
+        self.assertEqual(w.exe_path,
+                ToolPathManager.get_tool_path('dpp-msbayes.pl'))
+        self.assertNotEqual(w.exe_path,
+                ToolPathManager.get_tool_path('msbayes.pl'))
         _LOG.info('{0}'.format(w.exe_path))
         w.start()
         self._assert_msbayes_success(w, 9, 2)
-        self.assertEqual(w.exe_path, get_tool_path('dpp-msbayes'))
-        self.assertNotEqual(w.exe_path, get_tool_path('msbayes'))
+        self.assertEqual(w.exe_path,
+                ToolPathManager.get_tool_path('dpp-msbayes.pl'))
+        self.assertNotEqual(w.exe_path,
+                ToolPathManager.get_tool_path('msbayes.pl'))
 
 
     def test_eureject(self):
@@ -133,7 +143,8 @@ class ToolTestCase(PyMsBayesTestCase):
                 keep_temps = False,
                 tag = 'testcase')
         self.assertFalse(reject_worker.finished)
-        self.assertEqual(reject_worker.exe_path, get_tool_path('eureject'))
+        self.assertEqual(reject_worker.exe_path,
+                ToolPathManager.get_tool_path('eureject'))
         _LOG.info('{0}'.format(reject_worker.exe_path))
         reject_worker.start()
         self.assertTrue(reject_worker.finished)
@@ -181,7 +192,8 @@ class ToolTestCase(PyMsBayesTestCase):
                 bandwidth = None,
                 num_posterior_quantiles = 100)
         self.assertFalse(regress_worker.finished)
-        self.assertEqual(regress_worker.exe_path, get_tool_path('abcestimator'))
+        self.assertEqual(regress_worker.exe_path,
+                ToolPathManager.get_tool_path('ABCestimator'))
         _LOG.info('{0}'.format(regress_worker.exe_path))
         regress_worker.start()
         self.assertTrue(regress_worker.finished)

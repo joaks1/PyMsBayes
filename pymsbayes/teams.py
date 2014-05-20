@@ -1158,8 +1158,6 @@ class RejectionTeam(object):
         self.num_posterior_samples = int(num_posterior_samples)
         self.num_posterior_density_quantiles = int(
                 num_posterior_density_quantiles)
-        if eureject_exe_path:
-            eureject_exe_path = expand_path(eureject_exe_path)
         self.eureject_exe_path = eureject_exe_path
         self.abctoolbox_exe_path = abctoolbox_exe_path
         self.abctoolbox_bandwidth = abctoolbox_bandwidth

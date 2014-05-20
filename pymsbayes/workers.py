@@ -13,7 +13,7 @@ from pymsbayes.fileio import (expand_path, process_file_arg, FileStream, open,
         GzipFileStream)
 from pymsbayes.config import MsBayesConfig
 from pymsbayes.utils.tempfs import TempFileSystem
-from pymsbayes.utils import (get_tool_path, MSBAYES_SORT_INDEX, probability,
+from pymsbayes.utils import (ToolPathManager, MSBAYES_SORT_INDEX, probability,
         GLOBAL_RNG)
 from pymsbayes.utils.functions import (get_random_int, get_indices_of_patterns,
         reduce_columns, is_dir)
@@ -260,8 +260,8 @@ class ObsSumStatsWorker(Worker):
             output_path = self.config_path + '-summary-statistics.txt'
         self.output_path = expand_path(output_path)
         if not exe_path:
-            exe_path = get_tool_path('obssumstats')
-        self.exe_path = expand_path(exe_path)
+            exe_path = 'obsSumStats.pl'
+        self.exe_path = ToolPathManager.get_tool_path(exe_path)
         self.sort_index = MSBAYES_SORT_INDEX.current_value()
         self.schema = schema.lower()
         if not self.schema in self.valid_schemas:
@@ -341,10 +341,10 @@ class MsBayesWorker(Worker):
         if not exe_path:
             cfg = MsBayesConfig(self.config_path)
             if cfg.implementation.lower() == 'new':
-                exe_path = get_tool_path('dpp-msbayes')
+                exe_path = 'dpp-msbayes.pl'
             else:
-                exe_path = get_tool_path('msbayes')
-        self.exe_path = expand_path(exe_path)
+                exe_path = 'msbayes.pl'
+        self.exe_path = ToolPathManager.get_tool_path(exe_path)
         self.model_index = None
         if model_index != None:
             self.model_index = int(model_index)
@@ -644,8 +644,8 @@ class MsRejectWorker(Worker):
         self.__class__.count += 1
         self.name = self.__class__.__name__ + '-' + str(self.count)
         if not exe_path:
-            exe_path = get_tool_path('msreject')
-        self.exe_path = expand_path(exe_path)
+            exe_path = 'msReject'
+        self.exe_path = ToolPathManager.get_tool_path(exe_path)
         self.observed_path = expand_path(observed_path)
         self.prior_path = expand_path(prior_path)
         if not posterior_path:
@@ -710,8 +710,8 @@ class RegressionWorker(Worker):
         self.__class__.count += 1
         self.name = self.__class__.__name__ + '-' + str(self.count)
         if not exe_path:
-            exe_path = get_tool_path('regress_cli')
-        self.exe_path = expand_path(exe_path)
+            exe_path = 'regress_cli.r'
+        self.exe_path = ToolPathManager.get_tool_path(exe_path)
         self.observed_path = expand_path(observed_path)
         self.posterior_path = expand_path(posterior_path)
         self.tolerance = float(tolerance)
@@ -843,8 +843,8 @@ class EuRejectWorker(Worker):
         self.name = self.__class__.__name__ + '-' + str(self.count)
         self.temp_fs = temp_fs
         if not exe_path:
-            exe_path = get_tool_path('eureject')
-        self.exe_path = expand_path(exe_path)
+            exe_path = 'eureject'
+        self.exe_path = ToolPathManager.get_tool_path(exe_path)
         self.stderr_path = None
         if stderr_path:
             self.stderr_path = expand_path(stderr_path)
@@ -945,8 +945,8 @@ class ABCToolBoxRejectWorker(Worker):
         self.name = self.__class__.__name__ + '-' + str(self.count)
         self.temp_fs = temp_fs
         if not exe_path:
-            exe_path = get_tool_path('abcestimator')
-        self.exe_path = expand_path(exe_path)
+            exe_path = 'ABCestimator'
+        self.exe_path = ToolPathManager.get_tool_path(exe_path)
         self.observed_path = expand_path(observed_path)
         self.prior_path = expand_path(prior_path)
         if not posterior_path:
@@ -1044,8 +1044,8 @@ class ABCToolBoxRegressWorker(Worker):
         self.name = self.__class__.__name__ + '-' + str(self.count)
         self.temp_fs = temp_fs
         if not exe_path:
-            exe_path = get_tool_path('abcestimator')
-        self.exe_path = expand_path(exe_path)
+            exe_path = 'ABCestimator'
+        self.exe_path = ToolPathManager.get_tool_path(exe_path)
         self.observed_path = expand_path(observed_path)
         self.posterior_path = expand_path(posterior_path)
         self.parameter_indices = parameter_indices

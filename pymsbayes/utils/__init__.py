@@ -4,6 +4,7 @@ import sys
 import os
 import platform
 import random
+import subprocess
 import multiprocessing
 import time
 import atexit
@@ -15,42 +16,106 @@ except ImportError:
 
 WORK_FORCE = multiprocessing.Queue()
 GLOBAL_RNG = random.Random()
-PLATFORM = platform.system().lower()
 
 PACKAGE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 BASE_DIR = os.path.abspath(os.path.dirname(PACKAGE_DIR))
 SCRIPTS_DIR = os.path.join(BASE_DIR, "scripts")
-BIN_DIR = None
-if PLATFORM == 'linux':
-    BIN_DIR = os.path.join(BASE_DIR, "bin", "linux")
-elif PLATFORM == 'darwin':
-    BIN_DIR = os.path.join(BASE_DIR, "bin", "mac")
-elif PLATFORM == 'windows':
-    BIN_DIR = os.path.join(BASE_DIR, "bin", "win")
 
-def get_tool_path_mapping():
-    tool_path_map = {}
-    tool_path_map['abcestimator'] = os.path.join(BIN_DIR, 'ABCestimator')
-    tool_path_map['eureject'] = os.path.join(BIN_DIR, 'eureject')
-    tool_path_map['msreject'] = os.path.join(BIN_DIR, 'msReject')
-    tool_path_map['regress_cli'] = os.path.join(BIN_DIR, 'regress_cli.r')
-    tool_path_map['obssumstats'] = os.path.join(BIN_DIR, 'obsSumStats.pl')
-    tool_path_map['dpp-msbayes'] = os.path.join(BIN_DIR, 'dpp-msbayes.pl')
-    tool_path_map['msbayes'] = os.path.join(BIN_DIR, 'msbayes.pl')
-    for name, path in tool_path_map.iteritems():
-        if not os.path.exists(path):
-            raise Exception('The path {0!r} for {1!r} does not exist'.format(
-                    path, name))
-    return tool_path_map
 
-TOOL_PATH_MAP = get_tool_path_mapping()
+class ToolPathManager(object):
+    _ignore_internal_tools = False 
+    _package_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+    _base_dir = os.path.abspath(os.path.dirname(_package_dir))
+    _platform = platform.system().lower()
+    _bin_dir = None
+    if _platform == 'linux':
+        _bin_dir = os.path.join(_base_dir, "bin", "linux")
+    elif _platform == 'darwin':
+        _bin_dir = os.path.join(_base_dir, "bin", "mac")
+    elif _platform == 'windows':
+        _bin_dir = os.path.join(_base_dir, "bin", "win")
+    class ToolNotFoundError(Exception):
+        def __init__(self, *args, **kwargs):
+            Exception.__init__(self, *args, **kwargs)
 
-def get_tool_path(name):
-    if not TOOL_PATH_MAP.has_key(name.lower()):
-        raise Exception(
-                '{0!r} is not a valid tool. Valid tools include: {1}'.format(
-                        name.lower(), ', '.join(TOOL_PATH_MAP.keys())))
-    return TOOL_PATH_MAP[name.lower()]
+    @classmethod
+    def set_to_ignore_internal_tools(cls):
+        cls._ignore_internal_tools = True
+
+    @classmethod
+    def set_to_prefer_internal_tools(cls):
+        cls._ignore_internal_tools = False
+
+    @classmethod
+    def ignoring_internal_tools(cls):
+        return cls._ignore_internal_tools
+
+    @classmethod
+    def get_tool_path(cls, name):
+        """
+        The primary package-wide method for finding exe paths for subprocess
+        calls. The priority of the search is (1) use full path if given, (2)
+        check internal bundled tools, (3) check system. The logic is as
+        follows:
+            - if `name` is a full path and executable, `name` is returned.
+            - next, if `cls._ignore_internal_tools` is `False`, the bundled
+              tool bin is checked for `name`, and if an exe is found, the full
+              path is returned.
+            - last, check the PATH for `name`, and if found return `name`.
+        """
+        # top priority given to full paths
+        if cls.is_executable(name):
+            return name
+        # next check bundled tools if allowed
+        if not cls._ignore_internal_tools:
+            internal_path = os.path.join(cls._bin_dir, name)
+            if cls.is_executable(internal_path):
+                return internal_path
+        # last check system
+        external_path = cls.get_external_tool(name)
+        if external_path:
+            return external_path
+        print 'here2'
+        print external_path
+        # not found: raise error here so that the multiprocessing
+        # machinery does not get flooded with jobs doomed to die.
+        raise cls.ToolNotFoundError('Unable to find executable '
+                '{0!r}'.format(name))
+
+    @classmethod
+    def get_external_tool(cls, exe_name):
+        """
+        Uses `subprocess.check_call` to check system for `exe_name`. If found,
+        `exe_name` is returned, else `None` is returned.
+
+        """
+        try:
+            exit_code = subprocess.check_call([exe_name])
+        except subprocess.CalledProcessError:
+            return exe_name
+        except OSError:
+            return None
+        if exit_code == 0:
+            return exe_name 
+        print 'HERE'
+        print exit_code
+        return None
+
+    @classmethod
+    def is_executable(cls, path):
+        return os.path.isfile(path) and os.access(path, os.X_OK)
+
+    @classmethod
+    def which(cls, exe):
+        if cls.is_executable(exe):
+            return exe
+        name = os.path.basename(exe)
+        for p in os.environ['PATH'].split(os.pathsep):
+            p = p.strip('"')
+            exe_path = os.path.join(p, name)
+            if cls.is_executable(exe_path):
+                return exe_path
+        return None
 
 
 class MSBAYES_SORT_INDEX(object):
