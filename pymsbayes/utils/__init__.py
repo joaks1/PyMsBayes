@@ -75,35 +75,32 @@ class ToolPathManager(object):
         external_path = cls.get_external_tool(name)
         if external_path:
             return external_path
-        print 'here2'
-        print external_path
         # not found: raise error here so that the multiprocessing
         # machinery does not get flooded with jobs doomed to die.
         raise cls.ToolNotFoundError('Unable to find executable '
                 '{0!r}'.format(name))
 
     @classmethod
-    def get_external_tool(cls, exe_name):
+    def get_external_tool(cls, path):
         """
         Uses `subprocess.check_call` to check system for `exe_name`. If found,
         `exe_name` is returned, else `None` is returned.
 
         """
         try:
-            exit_code = subprocess.check_call([exe_name])
+            p = subprocess.Popen([path],
+                    stdout = subprocess.PIPE,
+                    stderr = subprocess.PIPE)
+            p.terminate()
         except subprocess.CalledProcessError:
-            return exe_name
+            return path
         except OSError:
             return None
-        if exit_code == 0:
-            return exe_name 
-        print 'HERE'
-        print exit_code
-        return None
+        return path
 
     @classmethod
     def is_executable(cls, path):
-        return os.path.isfile(path) and os.access(path, os.X_OK)
+        return os.path.isfile(path) and bool(cls.get_external_tool(path))
 
     @classmethod
     def which(cls, exe):
