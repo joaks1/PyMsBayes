@@ -20,7 +20,7 @@ from pymsbayes.utils import argparse_utils
 _program_info = {
     'name': os.path.basename(__file__),
     'author': 'Jamie Oaks',
-    'version': 'Version 0.2.2',
+    'version': 'Version 0.2.3',
     'description': __doc__,
     'copyright': 'Copyright (C) 2013 Jamie Oaks',
     'license': 'GNU GPL version 3 or later',}
@@ -120,6 +120,10 @@ def main_cli():
 
     MSBAYES_SORT_INDEX.set_index(args.sort_index)
 
+    # get full paths to tools
+    msbayes_path = ToolPathManager.get_tool_full_path('msbayes.pl')
+    dpp_msbayes_path = ToolPathManager.get_tool_full_path('dpp-msbayes.pl')
+
     if not args.output_dir:
         args.output_dir = os.path.dirname(args.config)
     info = InfoLogger(os.path.join(args.output_dir, 'pymsbayes-info.txt'))
@@ -159,6 +163,9 @@ def main_cli():
     info.write('\tnum_prior_samples = {0}'.format(args.num_prior_samples),
             log.info)
     info.write('\tsample_path = {0!r}'.format(sample_path))
+    info.write('\t[[tool_paths]]')
+    info.write('\t\tdpp_msbayes = {0}'.format(dpp_msbayes_path))
+    info.write('\t\tmsbayes = {0}'.format(msbayes_path))
 
     info.write('\t[[config]]', log.debug)
     info.write('{0}'.format(str(cfg)), log.debug)

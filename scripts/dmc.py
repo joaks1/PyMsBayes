@@ -19,7 +19,7 @@ from pymsbayes.utils import argparse_utils
 _program_info = {
     'name': os.path.basename(__file__),
     'author': 'Jamie Oaks',
-    'version': 'Version 0.2.2',
+    'version': 'Version 0.2.3',
     'description': __doc__,
     'copyright': 'Copyright (C) 2013 Jamie Oaks',
     'license': 'GNU GPL version 3 or later',}
@@ -243,12 +243,19 @@ def main_cli():
     from pymsbayes.manager import Manager
     from pymsbayes.utils.tempfs import TempFileSystem
     from pymsbayes.config import MsBayesConfig
-    from pymsbayes.utils import GLOBAL_RNG, set_memory_trace, MSBAYES_SORT_INDEX
+    from pymsbayes.utils import (GLOBAL_RNG, set_memory_trace,
+            MSBAYES_SORT_INDEX, ToolPathManager)
 
     MSBAYES_SORT_INDEX.set_index(args.sort_index)
 
     if len(args.observed_configs) != len(set(args.observed_configs)):
         raise ValueError('All paths to observed config files must be unique')
+    
+    # get full paths to tools
+    msbayes_path = ToolPathManager.get_tool_full_path('msbayes.pl')
+    dpp_msbayes_path = ToolPathManager.get_tool_full_path('dpp-msbayes.pl')
+    eureject_path = ToolPathManager.get_tool_full_path('eureject')
+    abctb_path = ToolPathManager.get_tool_full_path('ABCestimator')
 
     # vet prior-configs option
     using_previous_priors = False
@@ -338,6 +345,11 @@ def main_cli():
 
     info.write('\tnum_taxon_pairs = {0}'.format(num_taxon_pairs))
     info.write('\tdry_run = {0}'.format(args.dry_run))
+    info.write('\t[[tool_paths]]')
+    info.write('\t\tdpp_msbayes = {0}'.format(dpp_msbayes_path))
+    info.write('\t\tmsbayes = {0}'.format(msbayes_path))
+    info.write('\t\teureject = {0}'.format(eureject_path))
+    info.write('\t\tabcestimator = {0}'.format(abctb_path))
     info.write('\t[[observed_configs]]')
     for i, cfg in enumerate(args.observed_configs):
         info.write('\t\t{0} = {1}'.format(i + 1, os.path.relpath(cfg,
@@ -361,6 +373,9 @@ def main_cli():
             rng = GLOBAL_RNG,
             report_parameters = True,
             stat_patterns = stat_patterns,
+            eureject_exe_path = eureject_path,
+            abctoolbox_exe_path = abctb_path,
+            msbayes_exe_path = None,
             abctoolbox_bandwidth = args.bandwidth,
             omega_threshold = 0.01,
             compress = args.compress,

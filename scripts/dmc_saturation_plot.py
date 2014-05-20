@@ -20,7 +20,7 @@ from pymsbayes.utils.argparse_utils import arg_is_dir, arg_is_config
 _program_info = {
     'name': os.path.basename(__file__),
     'author': 'Jamie Oaks',
-    'version': 'Version 0.1.0',
+    'version': 'Version 0.1.1',
     'description': __doc__,
     'copyright': 'Copyright (C) 2013 Jamie Oaks',
     'license': 'GNU GPL version 3 or later',}
@@ -119,6 +119,10 @@ def main_cli():
 
     MSBAYES_SORT_INDEX.set_index(0)
 
+    # get full paths to tools
+    msbayes_path = ToolPathManager.get_tool_full_path('msbayes.pl')
+    dpp_msbayes_path = ToolPathManager.get_tool_full_path('dpp-msbayes.pl')
+
     if not args.output_dir:
         args.output_dir = os.path.dirname(args.config)
     info = InfoLogger(os.path.join(args.output_dir, 'pymsbayes-info.txt'))
@@ -164,6 +168,9 @@ def main_cli():
     info.write('\tnum_prior_samples = {0}'.format(args.num_prior_samples),
             log.info)
     info.write('\tstats_by_time_path = {0!r}'.format(stats_by_time_path))
+    info.write('\t[[tool_paths]]')
+    info.write('\t\tdpp_msbayes = {0}'.format(dpp_msbayes_path))
+    info.write('\t\tmsbayes = {0}'.format(msbayes_path))
 
     info.write('\t[[config]]', log.debug)
     info.write('{0}'.format(str(cfg)), log.debug)
@@ -234,30 +241,6 @@ def main_cli():
                 vertical_line_positions = args.vertical_lines)
         fig = spg.create_grid()
         fig.savefig(plot_path)
-        # fig = plt.figure()
-        # ncols = 2
-        # nrows = get_num_rows(len(stat_keys))
-        # for i, k in enumerate(stat_keys):
-        #     if fig.axes:
-        #         ax = fig.add_subplot(nrows, ncols, i + 1, sharex = fig.axes[0])
-        #     else:
-        #         ax = fig.add_subplot(nrows, ncols, i + 1)
-        #     ax.plot(stats_by_time['PRI.t'], stats_by_time[k])
-        #     ax.set_ylabel(y_labels[k])
-        # plt.setp([a.lines for a in fig.axes],
-        #         marker = 'o',
-        #         linestyle='',
-        #         markerfacecolor = 'none',
-        #         markeredgecolor = '0.4',
-        #         markeredgewidth = 0.7)
-        # fig.suptitle(r'Divergence time $\tau$ in $4N_C$ generations',
-        #         verticalalignment = 'bottom',
-        #         y = 0.001)
-        # fig.tight_layout(pad = 0.25, # out side margin
-        #                  h_pad = None, # height padding between subplots
-        #                  w_pad = None, # width padding between subplots
-        #                  rect = (0,0.05,1,1))
-        # fig.savefig(plot_path)
 
     stop_time = datetime.datetime.now()
     log.info('Done!')
