@@ -56,7 +56,7 @@ def arg_is_dir(path):
 
 def arg_is_executable(path):
     try:
-        p = ToolPathManager.get_external_tool(path):
+        p = ToolPathManager.get_external_tool(path)
         if not p:
             raise
     except:
