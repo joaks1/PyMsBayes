@@ -167,10 +167,11 @@ def main_cli():
     info.write('\tseed = {0}'.format(args.seed), log.info)
     info.write('\tnum_prior_samples = {0}'.format(args.num_prior_samples),
             log.info)
-    info.write('\tstats_by_time_path = {0!r}'.format(stats_by_time_path))
-    info.write('\t[[tool_paths]]')
-    info.write('\t\tdpp_msbayes = {0}'.format(dpp_msbayes_path))
-    info.write('\t\tmsbayes = {0}'.format(msbayes_path))
+    info.write('\tstats_by_time_path = {0!r}'.format(stats_by_time_path),
+            log.info)
+    info.write('\t[[tool_paths]]', log.info)
+    info.write('\t\tdpp_msbayes = {0}'.format(dpp_msbayes_path), log.info)
+    info.write('\t\tmsbayes = {0}'.format(msbayes_path), log.info)
 
     info.write('\t[[config]]', log.debug)
     info.write('{0}'.format(str(cfg)), log.debug)
