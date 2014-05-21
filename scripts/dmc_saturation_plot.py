@@ -113,7 +113,7 @@ def main_cli():
     from pymsbayes.utils import probability
     from pymsbayes.utils.functions import long_division
     from pymsbayes.config import MsBayesConfig
-    from pymsbayes.utils import GLOBAL_RNG, MSBAYES_SORT_INDEX
+    from pymsbayes.utils import GLOBAL_RNG, MSBAYES_SORT_INDEX, ToolPathManager
     from pymsbayes.fileio import process_file_arg
     from pymsbayes.plotting import MATPLOTLIB_AVAILABLE, SaturationPlotGrid
 
