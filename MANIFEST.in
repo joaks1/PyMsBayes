@@ -1,0 +1,13 @@
+include ez_setup.py
+include README.md
+include CHANGES.txt
+include LICENSE.txt
+include doc/Makefile
+recursive-include doc/source *
+recursive-include extras *
+recursive-include scripts *
+recursive-include pymsbayes/test/data *
+global-exclude .DS_Store
+global-exclude *.pyc
+global-exclude *.gitignore
+

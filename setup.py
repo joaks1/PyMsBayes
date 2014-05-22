@@ -1,9 +1,16 @@
+import ez_setup
+ez_setup.use_setuptools()
+
 from setuptools import setup, find_packages
 import sys, os
 import platform
 import subprocess
 
 from pymsbayes import __version__
+
+DEV_MODE = False
+if 'develop' in sys.argv:
+    DEV_MODE = True
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 SCRIPT_NAMES = [
@@ -47,24 +54,7 @@ def check_tool(path):
     return path
 
 def get_tools_to_install():
-    platform_name = platform.system().lower()
-    bin_dir = None
-    if platform_name == 'linux':
-        bin_dir = os.path.join(BASE_DIR, "bin", "linux")
-    elif platform_name == 'darwin':
-        bin_dir = os.path.join(BASE_DIR, "bin", "mac")
-    elif platform_name == 'windows':
-        bin_dir = os.path.join(BASE_DIR, "bin", "win")
-    else:
-        return []
-    tools = [os.path.join(bin_dir, f) for f in TOOL_NAMES]
-    ret = []
-    for t in tools:
-        if check_tool(t):
-            ret.append(t)
-        else:
-            sys.stderr.write(
-'''
+    warning_msg = '''
 **********************************************************************
 ****************************** WARNING *******************************
 The bundled `dpp-msbayes` tools are not being installed, because some
@@ -74,10 +64,32 @@ install `dpp-msbayes` (https://github.com/joaks1/dpp-msbayes) yourself
 in order to use them.  Sorry for the inconvenience.
 **********************************************************************
 '''
-            )
+    platform_name = platform.system().lower()
+    bin_dir = None
+    if platform_name == 'linux':
+        bin_dir = os.path.join(BASE_DIR, "bin", "linux")
+    elif platform_name == 'darwin':
+        bin_dir = os.path.join(BASE_DIR, "bin", "mac")
+    # elif platform_name == 'windows':
+    #     bin_dir = os.path.join(BASE_DIR, "bin", "win")
+    else:
+        sys.stderr.write(warning_msg)
+        return []
+    tools = [os.path.join(bin_dir, f) for f in TOOL_NAMES]
+    ret = []
+    for t in tools:
+        if check_tool(t):
+            tool_rel_path = os.path.relpath(t, BASE_DIR)
+            ret.append(tool_rel_path)
+        else:
+            sys.stderr.write(warning_msg)
             return []
     return ret
 
+
+scripts = get_scripts_to_install()
+if not DEV_MODE:
+    scripts += get_tools_to_install()
 
 setup(name='PyMsBayes',
       version=__version__,
@@ -90,8 +102,8 @@ Python msBayes wrapper""",
       author_email="joaks1@gmail.com",
       url='',
       license="GPL",
-      packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
-      scripts = get_scripts_to_install() + get_tools_to_install(),
+      packages=find_packages(),
+      scripts = scripts,
       include_package_data=True,
       zip_safe=False,
       test_suite="pymsbayes.test.get_unittest_suite",
