@@ -27,9 +27,15 @@ class ToolPathManager(object):
     _package_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
     _base_dir = os.path.abspath(os.path.dirname(_package_dir))
     _platform = platform.system().lower()
-    _bin_dir = None
+    _bits = 32
+    if sys.maxsize > 2**32:
+        _bits = 64
+    _bin_dir = _package_dir
     if _platform == 'linux':
-        _bin_dir = os.path.join(_base_dir, "bin", "linux")
+        if _bits == 64:
+            _bin_dir = os.path.join(_base_dir, "bin", "linux")
+        else:
+            _bin_dir = os.path.join(_base_dir, "bin", "linux32")
     elif _platform == 'darwin':
         _bin_dir = os.path.join(_base_dir, "bin", "mac")
     elif _platform == 'windows':

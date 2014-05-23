@@ -64,28 +64,21 @@ install `dpp-msbayes` (https://github.com/joaks1/dpp-msbayes) yourself
 in order to use them.  Sorry for the inconvenience.
 **********************************************************************
 '''
-    platform_name = platform.system().lower()
-    bin_dir = None
-    if platform_name == 'linux':
-        bin_dir = os.path.join(BASE_DIR, "bin", "linux")
-    elif platform_name == 'darwin':
-        bin_dir = os.path.join(BASE_DIR, "bin", "mac")
-    # elif platform_name == 'windows':
-    #     bin_dir = os.path.join(BASE_DIR, "bin", "win")
-    else:
-        sys.stderr.write(warning_msg)
-        return []
-    tools = [os.path.join(bin_dir, f) for f in TOOL_NAMES]
-    ret = []
-    for t in tools:
-        if check_tool(t):
-            tool_rel_path = os.path.relpath(t, BASE_DIR)
-            ret.append(tool_rel_path)
-        else:
-            sys.stderr.write(warning_msg)
-            return []
-    return ret
-
+    from pymsbayes.utils import ToolPathManager
+    bin_dir = ToolPathManager._bin_dir
+    if os.path.isdir(bin_dir):
+        tools = [os.path.join(bin_dir, f) for f in TOOL_NAMES]
+        ret = []
+        for t in tools:
+            if check_tool(t):
+                tool_rel_path = os.path.relpath(t, BASE_DIR)
+                ret.append(tool_rel_path)
+            else:
+                sys.stderr.write(warning_msg)
+                return []
+        return ret
+    sys.stderr.write(warning_msg)
+    return []
 
 scripts = get_scripts_to_install()
 if not DEV_MODE:
