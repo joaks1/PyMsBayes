@@ -19,7 +19,7 @@ from pymsbayes.utils import argparse_utils
 _program_info = {
     'name': os.path.basename(__file__),
     'author': 'Jamie Oaks',
-    'version': 'Version 0.2.3',
+    'version': 'Version 0.2.4',
     'description': __doc__,
     'copyright': 'Copyright (C) 2013 Jamie Oaks',
     'license': 'GNU GPL version 3 or later',}
