@@ -170,6 +170,8 @@ class ABCTeam(object):
                         self.output_prefix + v + '-stat-means-and-std-devs.txt')
             self.num_prior_samples = num_prior_samples
             self.num_standardizing_samples = num_standardizing_samples
+            if self.num_standardizing_samples > self.num_prior_samples:
+                self.num_standardizing_samples = self.num_prior_samples
             self.batch_size = batch_size
             self.total_samples = self.num_prior_samples * len(self.models)
             max_samples_per_process = self.total_samples / self.num_processors
@@ -396,7 +398,7 @@ class ABCTeam(object):
                         tag = model_index)
                 yield worker
             self.num_batches_remaining -= 1
-        if to_summarize > 0:
+        if (to_summarize > 0) and (self.num_extra_samples > 0):
             if (to_summarize - self.num_extra_samples) >= 0:
                 nsum = self.num_extra_samples
             else:
@@ -529,8 +531,10 @@ class ABCTeam(object):
                         '\t'.join([str(l[idx]) for idx in all_stat_indices])))
             if close:
                 obs_file.close()
-        if (self.num_observed < 2) and (self.num_processors > 1) and \
-                (not self.use_previous_priors):
+        if ((self.num_observed < 2) and
+                (self.num_processors > 1) and 
+                (not self.use_previous_priors) and
+                (self.num_batches > 1)):
             self.duplicate_rejection_workers = True
         if not self.global_estimate_only:
             self.num_samples_processed = dict(zip(self.models.keys(),

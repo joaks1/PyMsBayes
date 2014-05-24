@@ -250,6 +250,9 @@ def main_cli():
 
     if len(args.observed_configs) != len(set(args.observed_configs)):
         raise ValueError('All paths to observed config files must be unique')
+
+    if args.num_standardizing_samples > args.num_prior_samples:
+        args.num_standardizing_samples = args.num_prior_samples
     
     # get full paths to tools
     msbayes_path = ToolPathManager.get_tool_full_path('msbayes.pl')

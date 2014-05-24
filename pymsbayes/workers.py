@@ -337,6 +337,9 @@ class MsBayesWorker(Worker):
         self.temp_fs = temp_fs
         self.output_dir = self.temp_fs.create_subdir(prefix = self.name + '-')
         self.sample_size = int(sample_size)
+        if self.sample_size < 1:
+            raise ValueError('sample size {0} is not a positive '
+                    'integer'.format(sample_size))
         self.config_path = expand_path(config_path)
         if not exe_path:
             cfg = MsBayesConfig(self.config_path)
