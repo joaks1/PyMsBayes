@@ -32,6 +32,7 @@ except ImportError:
     USER_SITE = None
 
 DEFAULT_VERSION = "3.5.1"
+MINIMUM_VERSION = "0.6c11"
 DEFAULT_URL = "https://pypi.python.org/packages/source/s/setuptools/"
 
 def _python_cmd(*args):
@@ -117,7 +118,9 @@ def _do_download(version, download_base, to_dir, download_delay):
     setuptools.bootstrap_install_from = egg
 
 
-def use_setuptools(version=DEFAULT_VERSION, download_base=DEFAULT_URL,
+def use_setuptools(version=DEFAULT_VERSION,
+        minimum_version=MINIMUM_VERSION,
+        download_base=DEFAULT_URL,
         to_dir=os.curdir, download_delay=15):
     to_dir = os.path.abspath(to_dir)
     rep_modules = 'pkg_resources', 'setuptools'
@@ -127,7 +130,7 @@ def use_setuptools(version=DEFAULT_VERSION, download_base=DEFAULT_URL,
     except ImportError:
         return _do_download(version, download_base, to_dir, download_delay)
     try:
-        pkg_resources.require("setuptools>=" + version)
+        pkg_resources.require("setuptools>=" + minimum_version)
         return
     except pkg_resources.DistributionNotFound:
         return _do_download(version, download_base, to_dir, download_delay)
