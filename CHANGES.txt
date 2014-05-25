@@ -1,0 +1,57 @@
+Version 0.2.2
+=============
+
+Changes
+-------
+  - End-user CLI scripts log additional information.
+  - ``dmc.py`` will now set the number of standardizing samples equal to the
+    number of prior samples, if the former is larger than the latter.
+
+New Features
+------------
+  - New management of paths to dpp-msbayes and msBayes executables. Previously,
+    the package only used the executables bundled with the package, which
+    required the package to be installed via ``python setup.py develop``. Now,
+    the package will also look for executables on the system.
+  - Updating ``setup.py`` so that the bundled executables will be installed
+    along with end-user scripts via ``python setup.py install`` after checking
+    that all the executables work on the system.
+  - 32-bit Linux versions of the dpp-msbayes/msBayes executables are now
+    bundled with the package.
+
+Bug Fixes
+---------
+  - Fixed a bug where ``MsBayesWorker`` instances with a sample size of zero
+    would hang indefinitely. A ValueError is now raised if an ``MsBayesWorder``
+    is initiated with an integer less than one for the sample size.
+
+
+Version 0.2.1
+=============
+
+Changes
+-------
+  - Adding working version of documentation.
+  - Overhauled package-wide and CLI-script logging management.
+
+Bug Fixes
+---------
+  - Fixing bug in ``dmc.py`` script, where the wrong value for the number of
+    standardizing samples was being written to the run summary file.
+
+
+Version 0.2.0
+=============
+
+New Features
+------------
+  - New options added to package and scripts for the sort index. These allow
+    summary statistics to be grouped by taxon, but without re-sorting.
+
+Changes
+-------
+  - The new default option for the sort index for the entire package and for
+    end-user scripts is to not group or re-sort the summary statistics of each
+    alignment. The re-sorting that was done prior to this was NOT VALID,
+    because the summary statics calculated from the different alignments are
+    NOT exchangeable.
