@@ -1,6 +1,6 @@
-================
+****************
 Acknowledgements
-================
+****************
 
 This software greatly benefited from funding provided to |jro|_ from the
 National Science Foundation (DEB 1011423 and DBI 1308885), University of Kansas

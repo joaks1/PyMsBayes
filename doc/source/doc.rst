@@ -10,18 +10,17 @@ PyMsBayes Documentation
 Contents:
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 2
     :numbered:
 
     intro/intro
     intro/prerequisites
     intro/installation
-    intro/citing
+    tutorials/index
+    changes
     thanks/acknowledgments
     license/license-short
-    bib/references
-    changes
-    tutorials/index
+    zbib/references
 
 
 Indices and tables

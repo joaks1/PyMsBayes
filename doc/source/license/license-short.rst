@@ -1,7 +1,8 @@
 .. _license:
 
+*********************
 Copyright and License
-=====================
+*********************
 
 .. centered:: |pmb_copyright|
 

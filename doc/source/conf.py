@@ -39,6 +39,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
+    'sphinxcontrib.bibtex',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -135,8 +136,9 @@ rst_epilog = """
 .. |msbayes| replace:: msBayes
 .. _msbayes: http://msbayes.sourceforge.net/
 .. |msbayes_url| replace:: http://msbayes.sourceforge.net/
-.. |abctoolbox| replace:: ABCtoolbox
-.. _abctoolbox: http://www.cmpg.iee.unibe.ch/content/softwares__services/computer_programs/abctoolbox/index_eng.html
+.. |abctb| replace:: ABCtoolbox
+.. _abctb: http://www.cmpg.iee.unibe.ch/content/softwares__services/computer_programs/abctoolbox/index_eng.html
+.. |abctb_url| replace:: http://www.cmpg.iee.unibe.ch/content/softwares__services/computer_programs/abctoolbox/index_eng.html
 .. |eureject| replace:: euReject
 .. _eureject: https://github.com/joaks1/abacus.git
 .. |abacus| replace:: ABACUS
