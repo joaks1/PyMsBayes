@@ -1381,33 +1381,28 @@ class IntegerPartitionCollection(object):
             out.close()
 
 class ValidationProbabilities(object):
-    def __init__(self,
-            true_value_to_est_prob_tups = None,
-            true_value_of_interest = 1,
-            value_to_true_comparison = '=='):
+    def __init__(self, correct_to_est_prob_tups = None):
         self._bin_upper_limits = list(frange(0.0, 1.0, 20,
                 include_end_point = True))[1:]
-        self._true_value_of_interest = true_value_of_interest
-        self._value_to_true_comparison = value_to_true_comparison
         self.true_probs = None
         self.estimated_probs = None
-        if true_value_to_est_prob_tups:
-            self.set_probs_from_true_value_to_est_prob_tups(
-                    true_value_to_est_prob_tups)
+        if correct_to_est_prob_tups:
+            self.set_probs_from_correct_to_est_prob_tups(
+                    correct_to_est_prob_tups)
 
-    def _bin_true_value_to_est_prob_tups(self, true_prob_tups):
+    def _bin_correct_to_est_prob_tups(self, correct_prob_tups):
         bins = [[] for i in range(len(self._bin_upper_limits))]
         n = 0
-        for (t, p) in true_prob_tups:
+        for (c, p) in correct_prob_tups:
             n += 1
             binned = False
             for i, l in enumerate(self._bin_upper_limits):
                 if p < l:
-                    bins[i].append((t, p))
+                    bins[i].append((c, p))
                     binned = True
                     break
             if not binned:
-                bins[i].append((t, p))
+                bins[i].append((c, p))
         length = 0
         for b in bins:
             length += len(b)
@@ -1416,30 +1411,17 @@ class ValidationProbabilities(object):
         assert len(bins) == len(self._bin_upper_limits)
         return bins
 
-    def set_probs_from_true_value_to_est_prob_tups(self, true_prob_tups):
-        bins = self._bin_true_value_to_est_prob_tups(true_prob_tups)
+    def set_probs_from_correct_to_est_prob_tups(self, correct_prob_tups):
+        bins = self._bin_correct_to_est_prob_tups(correct_prob_tups)
         half_bin_width = (1.0 / len(bins)) / 2.0
         self.estimated_probs = []
         self.true_probs = []
         for i, l in enumerate(self._bin_upper_limits):
-            true_vals = [t for (t, p) in bins[i]]
-            if len(true_vals) < 1:
+            correct_vals = [c for (c, p) in bins[i]]
+            if len(correct_vals) < 1:
                 continue
-            if self._value_to_true_comparison == '==':
-                true_p = (true_vals.count(self._true_value_of_interest) / 
-                        float(len(true_vals)))
-            elif self._value_to_true_comparison == '<':
-                true_p = (len([
-                    1 for t in true_vals if t < self._true_value_of_interest]) /
-                        float(len(true_vals)))
-            elif self._value_to_true_comparison == '>':
-                true_p = (len([
-                    1 for t in true_vals if t > self._true_value_of_interest]) /
-                        float(len(true_vals)))
-            else:
-                raise ValueError('unsupported comparison {0!r}'.format(
-                        self._value_to_true_comparison))
-            self.true_probs.append(true_p)
+            correct_prob = sum(correct_vals) / float(len(correct_vals))
+            self.true_probs.append(correct_prob)
             self.estimated_probs.append(l - half_bin_width)
 
 def mean_squared_error(x, y):

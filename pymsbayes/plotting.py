@@ -2500,7 +2500,7 @@ class SimResult(object):
         
 class ValidationResult(object):
     def __init__(self, result_paths = [],
-            psi_of_interest = 1,
+            psi_of_interest = [1],
             omega_threshold = 0.01,
             omega_symbol = r'\Omega',
             psi_symbol = r'\Psi',
@@ -2515,7 +2515,10 @@ class ValidationResult(object):
             prob_plot_padding_between_horizontal = 0.5,
             prob_plot_padding_between_vertical = 1.0,
             ):
-        self.psi_of_interest = psi_of_interest
+        try:
+            self.psi_of_interest = [int(psi_of_interest)]
+        except TypeError:
+            self.psi_of_interest = [int(i) for i in psi_of_interest]
         self.omega_threshold = omega_threshold
         self.omega_symbol = omega_symbol
         self.psi_symbol = psi_symbol
@@ -2548,10 +2551,8 @@ class ValidationResult(object):
         return vr
 
     def _parse_result_summary(self, result_paths):
-        psi_prob_str = 'psi_{0}_prob'.format(self.psi_of_interest)
-        psi_prob_glm_str = psi_prob_str + '_glm'
-        psi_true_prob_glm_triples = []
-        omega_true_prob_glm_triples = []
+        psi_correct_prob_glm_triples = []
+        omega_correct_prob_glm_triples = []
         for d in spreadsheet_iter(result_paths):
             psi_true = int(d['psi_true'])
             omega_true = float(d['omega_true'])
@@ -2566,28 +2567,25 @@ class ValidationResult(object):
             self.tau.mode.append(float(d['mean_tau_mode']))
             self.tau.median.append(float(d['mean_tau_median']))
             self.tau.mode_glm.append(float(d['mean_tau_mode_glm']))
-            psi_true_prob_glm_triples.append((psi_true,
-                    float(d[psi_prob_str]),
-                    float(d[psi_prob_glm_str])))
-            omega_true_prob_glm_triples.append((omega_true,
+            for i in self.psi_of_interest:
+                psi_prob_str = 'psi_{0}_prob'.format(i)
+                psi_prob_glm_str = psi_prob_str + '_glm'
+                psi_correct_prob_glm_triples.append((
+                        int(psi_true == i),
+                        float(d[psi_prob_str]),
+                        float(d[psi_prob_glm_str])))
+            omega_correct_prob_glm_triples.append((
+                    int(omega_true < self.omega_threshold),
                     float(d['omega_prob_less']),
                     float(d['omega_prob_less_glm'])))
         self.psi.validation_probs = ValidationProbabilities(
-                ((t, p) for (t, p, g) in psi_true_prob_glm_triples),
-                true_value_of_interest = self.psi_of_interest,
-                value_to_true_comparison = '==')
+                ((c, p) for (c, p, g) in psi_correct_prob_glm_triples))
         self.psi.validation_probs_glm = ValidationProbabilities(
-                ((t, g) for (t, p, g) in psi_true_prob_glm_triples),
-                true_value_of_interest = self.psi_of_interest,
-                value_to_true_comparison = '==')
+                ((c, g) for (c, p, g) in psi_correct_prob_glm_triples))
         self.omega.validation_probs = ValidationProbabilities(
-                ((t, p) for (t, p, g) in omega_true_prob_glm_triples),
-                true_value_of_interest = self.omega_threshold,
-                value_to_true_comparison = '<')
+                ((c, p) for (c, p, g) in omega_correct_prob_glm_triples))
         self.omega.validation_probs_glm = ValidationProbabilities(
-                ((t, g) for (t, p, g) in omega_true_prob_glm_triples),
-                true_value_of_interest = self.omega_threshold,
-                value_to_true_comparison = '<')
+                ((t, g) for (t, p, g) in omega_correct_prob_glm_triples))
         self.prob_plot = ProbabilityValidationPlotGrid(
                 psi_validation_probs = self.psi.validation_probs,
                 psi_validation_probs_glm = self.psi.validation_probs_glm,
@@ -2618,7 +2616,9 @@ class ValidationResult(object):
         fig = self.accuracy_plot.create_grid()
         fig.savefig(path)
 
-def plot_validation_results(info_path, observed_indices = None,
+def plot_validation_results(info_path,
+        psi_of_interest = [1],
+        observed_indices = None,
         prior_indices = None,
         plot_dir = None,
         omega_symbol = r'\Omega',
@@ -2658,6 +2658,7 @@ def plot_validation_results(info_path, observed_indices = None,
             acc_plot_path = os.path.join(plot_dir, acc_plot_name)
             result_path = results.get_result_summary_path(obs_idx, p_idx)
             vr = ValidationResult([result_path],
+                    psi_of_interest = psi_of_interest,
                     omega_symbol = omega_symbol,
                     psi_symbol = psi_symbol,
                     mean_time_symbol = mean_time_symbol,
@@ -2682,7 +2683,8 @@ def plot_validation_results(info_path, observed_indices = None,
                 raise Exception('Unexpected duplicate validation results')
     return validation_results
 
-def plot_model_choice_validation_results(info_path):
+def plot_model_choice_validation_results(info_path,
+        psi_of_interest = [1]):
     results = DMCSimulationResults(info_path)
     result_dir = os.path.dirname(info_path)
     plot_dir = os.path.join(result_dir, 'plots')
@@ -2692,7 +2694,8 @@ def plot_model_choice_validation_results(info_path):
     for obs_idx in results.observed_index_to_config.iterkeys():
         result_paths.append(results.get_result_summary_path(obs_idx,
                 results.combined_prior_index))
-    vr = ValidationResult(result_paths)
+    vr = ValidationResult(result_paths,
+            psi_of_interest = psi_of_interest)
     vr.save_prob_plot(os.path.join(plot_dir, 'mc_behavior.pdf'))
     vr.save_accuracy_plot(os.path.join(plot_dir, 'accuracy.pdf'))
 
@@ -2713,11 +2716,6 @@ def get_tau_prior_in_generations(cfg, mu = 1e-8):
         raise Exception('unsupported tau distribution: {0}'.format(type(
                 cfg.tau)))
     
-
-# class EmpiricalResultsSummary(object):
-#     def __init(self, config_path,
-#             num_prior_samples = 10000,
-
 
 class UnorderedDivergenceModelPlotGrid(object):
     def __init__(self, div_model_results_path,
