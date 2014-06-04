@@ -2,9 +2,10 @@
 Overview
 ********
 
-|pmb|_ is a multi-processing Python API for approximate Bayesian computation
-(ABC), and provides a multi-processing interface to the comparative
-phylogeographic software package, |msbayes|_. The package is written by |jro|_.
+|pmb|_ provides a multi-processing interface to the comparative phylogeographic
+software packages |dpp-msbayes|_ and |msbayes|_. More generally, |pmb|_ can
+also serve as a multi-processing Python API for approximate Bayesian
+computation (ABC). The package is written by |jro|_.
 
 PyMsBayes is essentially a multi-processing wrapper around some popular ABC
 tools. Executables of the following tools come bundled with PyMsBayes:
