@@ -1376,6 +1376,7 @@ class PowerPlotGrid(object):
             num_columns = 2,
             x_title = None,
             y_title = 'Density',
+            y_title_size = 14.0,
             width = 8,
             height = 9,
             label_schema = 'uppercase',
@@ -1388,6 +1389,9 @@ class PowerPlotGrid(object):
             margin_top = 0.98,
             padding_between_horizontal = 0.5,
             padding_between_vertical = 1.3,
+            text_size = None,
+            include_right_text = True,
+            xticks_label_size = None,
             tab = 0.08):
         self.config_estimates_tups = sorted(
             [(c, list(e)) for c, e in observed_config_to_estimates.iteritems()],
@@ -1417,6 +1421,7 @@ class PowerPlotGrid(object):
                 raise Exception('unexpected variable {0!r}'.format(
                         self.variable))
         self.y_title = y_title
+        self.y_title_size = y_title_size
         self.width = width
         self.height = height
         self.label_schema = label_schema
@@ -1437,6 +1442,9 @@ class PowerPlotGrid(object):
             mx = max(mx)
             self.bins = range(0, mx + 2)
         self.tab = tab
+        self.text_size = text_size
+        self.xticks_label_size = xticks_label_size
+        self.include_right_text = include_right_text
         self.vertical_lines = []
         if self.variable == 'omega':
             self.vertical_lines.append(VerticalLine(
@@ -1488,9 +1496,14 @@ class PowerPlotGrid(object):
                         tick_labels.append(str(x))
                     else:
                         tick_labels.append('')
+                kwargs = {'labels': tick_labels,
+                          'horizontalalignment': 'left'}
+                if self.xticks_label_size:
+                    kwargs['size'] = self.xticks_label_size
                 xticks_obj = Ticks(ticks = self.bins,
-                        labels = tick_labels,
-                        horizontalalignment = 'left')
+                        **kwargs)
+            if not self.include_right_text:
+                prob = None
             hist = ScatterPlot(hist_data_list = [hd],
                     vertical_lines = self.vertical_lines,
                     left_text = dist,
@@ -1519,6 +1532,9 @@ class PowerPlotGrid(object):
                 hist.yticks_obj = yticks_obj
             if self.variable == 'psi':
                 hist.set_xlim(left = (self.bins[0]), right = (self.bins[-1]))
+            if self.text_size:
+                hist.left_text_size = self.text_size
+                hist.right_text_size = self.text_size
             self.subplots.append(hist)
             self.cfg_to_subplot[cfg] = hist
         self.cfg_subplot_tups = sorted(
@@ -1601,6 +1617,7 @@ class PowerPlotGrid(object):
                 title = self.x_title,
                 title_top = False,
                 y_title = self.y_title,
+                y_title_size = self.y_title_size,
                 width = self.width,
                 height = self.height,
                 auto_height = self.auto_height)
@@ -1937,6 +1954,8 @@ class ProbabilityPowerPlotGrid(object):
             num_columns = 2,
             x_title = None,
             y_title = 'Density',
+            y_title_size = 14.0,
+            xticks_label_size = 10.0,
             width = 8,
             height = 9,
             label_schema = 'uppercase',
@@ -2017,6 +2036,8 @@ class ProbabilityPowerPlotGrid(object):
                 raise Exception('unexpected variable {0!r}'.format(
                         self.variable))
         self.y_title = y_title
+        self.y_title_size = y_title_size
+        self.xticks_label_size = xticks_label_size
         self.width = width
         self.height = height
         self.label_schema = label_schema
@@ -2090,7 +2111,7 @@ class ProbabilityPowerPlotGrid(object):
             xticks_obj = Ticks(ticks = self.bins,
                     labels = tick_labels,
                     horizontalalignment = 'center',
-                    size = 10.0)
+                    size = self.xticks_label_size)
             vertical_lines = []
             if self.draw_bayes_factor_line:
                 vertical_lines.append(self.bf_line)
@@ -2182,6 +2203,7 @@ class ProbabilityPowerPlotGrid(object):
                 title = self.x_title,
                 title_top = False,
                 y_title = self.y_title,
+                y_title_size = self.y_title_size,
                 width = self.width,
                 height = self.height,
                 auto_height = self.auto_height)
