@@ -1391,7 +1391,7 @@ class PowerPlotGrid(object):
             padding_between_vertical = 1.3,
             text_size = None,
             include_right_text = True,
-            xticks_label_size = None,
+            xtick_label_size = None,
             tab = 0.08):
         self.config_estimates_tups = sorted(
             [(c, list(e)) for c, e in observed_config_to_estimates.iteritems()],
@@ -1443,7 +1443,7 @@ class PowerPlotGrid(object):
             self.bins = range(0, mx + 2)
         self.tab = tab
         self.text_size = text_size
-        self.xticks_label_size = xticks_label_size
+        self.xtick_label_size = xtick_label_size
         self.include_right_text = include_right_text
         self.vertical_lines = []
         if self.variable == 'omega':
@@ -1498,8 +1498,8 @@ class PowerPlotGrid(object):
                         tick_labels.append('')
                 kwargs = {'labels': tick_labels,
                           'horizontalalignment': 'left'}
-                if self.xticks_label_size:
-                    kwargs['size'] = self.xticks_label_size
+                if self.xtick_label_size:
+                    kwargs['size'] = self.xtick_label_size
                 xticks_obj = Ticks(ticks = self.bins,
                         **kwargs)
             if not self.include_right_text:
@@ -1955,7 +1955,8 @@ class ProbabilityPowerPlotGrid(object):
             x_title = None,
             y_title = 'Density',
             y_title_size = 14.0,
-            xticks_label_size = 10.0,
+            xtick_label_size = 10.0,
+            pretty_xtick_labels = False,
             width = 8,
             height = 9,
             label_schema = 'uppercase',
@@ -2037,7 +2038,8 @@ class ProbabilityPowerPlotGrid(object):
                         self.variable))
         self.y_title = y_title
         self.y_title_size = y_title_size
-        self.xticks_label_size = xticks_label_size
+        self.xtick_label_size = xtick_label_size
+        self.pretty_xtick_labels = pretty_xtick_labels
         self.width = width
         self.height = height
         self.label_schema = label_schema
@@ -2103,15 +2105,22 @@ class ProbabilityPowerPlotGrid(object):
             # for i, v in enumerate(d):
             #     assert almost_equal(v, densities[i])
             tick_labels = []
-            for i, x in enumerate(self.bins[0:-1]):
-                if not (i - 1) % 4:
-                    tick_labels.append(str(x))
-                else:
-                    tick_labels.append('')
+            if self.pretty_xtick_labels:
+                for i, x in enumerate(self.bins):
+                    if not i % 5:
+                        tick_labels.append(str(x))
+                    else:
+                        tick_labels.append('')
+            else:
+                for i, x in enumerate(self.bins[0:-1]):
+                    if not (i - 1) % 4:
+                        tick_labels.append(str(x))
+                    else:
+                        tick_labels.append('')
             xticks_obj = Ticks(ticks = self.bins,
                     labels = tick_labels,
                     horizontalalignment = 'center',
-                    size = self.xticks_label_size)
+                    size = self.xtick_label_size)
             vertical_lines = []
             if self.draw_bayes_factor_line:
                 vertical_lines.append(self.bf_line)
