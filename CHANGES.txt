@@ -1,3 +1,36 @@
+Version 0.3.0
+=============
+
+Changes
+-------
+  - Updated the version of ``dpp-msprior`` binary (for both mac and linux) that
+    is bundled with the package. This version of ``dpp-msprior`` is from
+    version 0.2 of the ``dpp-msbayes`` package and was updated to create a
+    lower limit (0.000000000001) for values of theta. In rare cases, a theta
+    value of zero would cause the coalescent simulator ``msDQH`` to crash.
+    Any previous analyses that did not crash should not be affected by
+    this change.
+  - The newer version of ``dpp-msprior`` also changes the weirdness from the
+    original ``msBayes`` where there was a check for small (i.e., 0.0001)
+    divergence times. In such simulations, the div time was set to this
+    arbitrary lower bound, and the bottleneck time was set to 0.5 of this.  I
+    am guessing this was to prevent unrealistic (and numerically unstable?)
+    changes in pop size. However, 0.0001 can be thousands of generations which
+    is not trivial. Also, rather than this weird hack of the bottleneck time,
+    it seems much better to simply have no bottleneck if the div time is
+    essentially zero. Accordingly, I lowered the threshold and simply "turn
+    off" the bottleneck if the time is below it (I no longer adjust the div
+    time or bottleneck time). This change should have very little affect on
+    most analyses.
+
+Bug Fixes
+---------
+  - As mentioned in the change above, in rare cases, theta values of zero drawn
+    from the prior via ``dpp-msprior`` would cause ``msDQH`` to crash. The new
+    version of the ``dpp-msprior`` binaries should prevent this. Any previous
+    analyses that did not crash were not affected by this bug.
+
+
 Version 0.2.2
 =============
 
