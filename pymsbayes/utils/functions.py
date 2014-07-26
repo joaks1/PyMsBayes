@@ -89,23 +89,6 @@ def get_indices_of_strings(target_list, string_list, sort=True):
         return sorted(indices)
     return indices
     
-def reduce_columns(in_file, out_file, column_indices, sep='\t',
-        extra_tab=False):
-    in_stream, close_in = process_file_arg(in_file, 'rU')
-    out_stream, close_out = process_file_arg(out_file, 'w')
-    line_iter = iter(in_stream)
-    for line_num, line in enumerate(line_iter):
-        l = line.strip().split(sep)
-        new_line = [l[i] for i in column_indices]
-        if extra_tab:
-            out_stream.write('%s\t\n' % sep.join(new_line))
-        else:
-            out_stream.write('%s\n' % sep.join(new_line))
-    if close_in:
-        in_stream.close()
-    if close_out:
-        out_stream.close()
-
 def list_splitter(l, n, by_size=False):
     """
     Returns generator that yields list `l` as `n` sublists, or as `n`-sized

@@ -10,13 +10,11 @@ import fractions
 import re
 from cStringIO import StringIO
 
-from pymsbayes.utils import GLOBAL_RNG, probability
+from pymsbayes.utils import GLOBAL_RNG
 from pymsbayes.fileio import process_file_arg
-from pymsbayes.utils.parsing import (parse_summary_file, MODEL_PATTERNS,
-        PSI_PATTERNS, DIV_MODEL_PATTERNS, OMEGA_PATTERNS,
-        parameter_density_iter)
-from pymsbayes.utils.functions import frange
-from pymsbayes.utils.probability import Multinomial
+from pymsbayes.utils import parsing
+from pymsbayes.utils import functions
+from pymsbayes.utils import probability
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -372,14 +370,16 @@ def get_summary(samples, bin_width = 'auto'):
          
 def summarize_discrete_parameters_from_densities(
         parameter_density_file,
-        discrete_parameter_patterns = MODEL_PATTERNS + PSI_PATTERNS + \
-                DIV_MODEL_PATTERNS,
+        discrete_parameter_patterns = (parsing.MODEL_PATTERNS +
+                parsing.PSI_PATTERNS +
+                parsing.DIV_MODEL_PATTERNS),
         include_omega_summary = False,
         omega_threshold = 0.01):
     if include_omega_summary:
-        discrete_parameter_patterns += OMEGA_PATTERNS
+        discrete_parameter_patterns += parsing.OMEGA_PATTERNS
     densities = None
-    for i, pd in enumerate(parameter_density_iter(parameter_density_file,
+    for i, pd in enumerate(parsing.parameter_density_iter(
+            parameter_density_file,
             discrete_parameter_patterns)):
         if not densities:
             densities = dict(zip(pd.keys(), [{} for i in range(len(pd))]))
@@ -550,7 +550,7 @@ class SampleSummaryCollection(object):
 
     @classmethod
     def get_from_summary_file(cls, summary_file_obj):
-        stat_moments, header = parse_summary_file(summary_file_obj)
+        stat_moments, header = parsing.parse_summary_file(summary_file_obj)
         assert(sorted(header) == sorted(stat_moments.keys()))
         ssc = cls(header)
         for k, v in stat_moments.iteritems():
@@ -1174,7 +1174,7 @@ class IntegerPartition(object):
         counts = [self.integer_partition[i] - 1 for i in range(psi)]
         assert num_trials == sum(counts)
         params = [float(1) / psi] * len(counts)
-        m = Multinomial(params)
+        m = proability.Multinomial(params)
         return psi_prob * m.pmf(counts)
 
     def get_random_element_vector(self, index = 0, rng = None):
@@ -1382,7 +1382,7 @@ class IntegerPartitionCollection(object):
 
 class ValidationProbabilities(object):
     def __init__(self, correct_to_est_prob_tups = None):
-        self._bin_upper_limits = list(frange(0.0, 1.0, 20,
+        self._bin_upper_limits = list(functions.frange(0.0, 1.0, 20,
                 include_end_point = True))[1:]
         self.true_probs = None
         self.estimated_probs = None

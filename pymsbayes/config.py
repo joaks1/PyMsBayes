@@ -7,10 +7,9 @@ import math
 from cStringIO import StringIO
 import ConfigParser
 
+from pymsbayes import fileio
+from pymsbayes.utils import probability
 from pymsbayes.utils.messaging import get_logger
-from pymsbayes.fileio import process_file_arg
-from pymsbayes.utils.probability import (ContinuousUniformDistribution,
-        BetaDistribution, DiscreteUniformDistribution, GammaDistribution)
 
 _LOG = get_logger(__name__)
 
@@ -39,7 +38,7 @@ class MsBayesConfig(object):
 
     @classmethod
     def is_config(cls, cfg_file):
-        cfg_stream, close = process_file_arg(cfg_file)
+        cfg_stream, close = fileio.process_file_arg(cfg_file)
         for i in range(100):
             try:
                 line = cfg_stream.next()
@@ -63,7 +62,7 @@ class MsBayesConfig(object):
         self._set_priors(preamble)
 
     def _split_config(self, cfg):
-        cfg_stream, close = process_file_arg(cfg)
+        cfg_stream, close = fileio.process_file_arg(cfg)
         preamble = StringIO()
         table = StringIO()
         preamble.write('[preamble]\n')
@@ -93,17 +92,17 @@ class MsBayesConfig(object):
     
     def _get_gamma_or_uniform_distribution(self, shape, scale):
         if shape > 0.0 and scale > 0.0:
-            return GammaDistribution(shape, scale)
+            return probability.GammaDistribution(shape, scale)
         else:
             a = math.fabs(shape)
             b = math.fabs(scale)
             if a < b:
-                return ContinuousUniformDistribution(a, b)
+                return probability.ContinuousUniformDistribution(a, b)
             else:
-                return ContinuousUniformDistribution(b, a)
+                return probability.ContinuousUniformDistribution(b, a)
 
     def _get_gamma_or_uniform_settings(self, distribution):
-        if isinstance(distribution, GammaDistribution):
+        if isinstance(distribution, probability.GammaDistribution):
             return distribution.shape, distribution.scale
         return -distribution.minimum, -distribution.maximum
 
@@ -122,13 +121,13 @@ class MsBayesConfig(object):
             dpp_concentration_scale = float(kwargs.get('concentrationscale',
                     0.0))
             if psi != 0:
-                self.psi = DiscreteUniformDistribution(psi, psi)
+                self.psi = probability.DiscreteUniformDistribution(psi, psi)
                 self.dpp_concentration = None
                 self.div_model_prior = 'constrained'
             elif (dpp_concentration_shape > 0.0) and (
                     dpp_concentration_scale > 0.0):
                 self.div_model_prior = 'dpp'
-                self.dpp_concentration = GammaDistribution(
+                self.dpp_concentration = probability.GammaDistribution(
                         dpp_concentration_shape,
                         dpp_concentration_scale)
             elif (dpp_concentration_shape > -1.0) and (
@@ -138,7 +137,8 @@ class MsBayesConfig(object):
             else:
                 self.div_model_prior = 'psi'
                 self.dpp_concentration = None
-                self.psi = DiscreteUniformDistribution(1, self.npairs)
+                self.psi = probability.DiscreteUniformDistribution(1,
+                        self.npairs)
 
             tau_shape = float(kwargs.get('taushape', 1.0))
             tau_scale = float(kwargs.get('tauscale', 2.0))
@@ -165,19 +165,24 @@ class MsBayesConfig(object):
             mig_shape = float(kwargs.get('migrationshape', 0.0))
             mig_scale = float(kwargs.get('migrationscale', 0.0))
             if (mig_shape > 0.0) and (mig_scale > 0.0):
-                self.migration = GammaDistribution(mig_shape, mig_scale)
+                self.migration = probability.GammaDistribution(mig_shape,
+                        mig_scale)
             else:
-                self.migration = ContinuousUniformDistribution(0.0, 0.0)
+                self.migration = probability.ContinuousUniformDistribution(0.0,
+                        0.0)
             rec_shape = float(kwargs.get('recombinationshape', 0.0))
             rec_scale = float(kwargs.get('recombinationscale', 0.0))
             if (rec_shape > 0.0) and (rec_scale > 0.0):
-                self.recombination = GammaDistribution(rec_shape, rec_scale)
+                self.recombination = probability.GammaDistribution(rec_shape,
+                        rec_scale)
             else:
-                self.recombination = ContinuousUniformDistribution(0.0, 0.0)
+                self.recombination = probability.ContinuousUniformDistribution(
+                        0.0, 0.0)
             bottle_a = float(kwargs.get('bottleProportionShapeA', 0.0))
             bottle_b = float(kwargs.get('bottleProportionShapeB', 0.0))
             if (bottle_a > 0.0) and (bottle_b > 0.0):
-                self.bottle_proportion = BetaDistribution(bottle_a, bottle_b)
+                self.bottle_proportion = probability.BetaDistribution(bottle_a,
+                        bottle_b)
             else:
                 self.bottle_proportion = None
             bottle_shared = int(kwargs.get('bottleProportionShared', 0))
@@ -195,17 +200,19 @@ class MsBayesConfig(object):
         lrec = float(kwargs.get('lowerrec', 0.0))
         urec = float(kwargs.get('upperrec', 0.0))
         if psi == 0:
-            self.psi = DiscreteUniformDistribution(1, self.npairs)
+            self.psi = probability.DiscreteUniformDistribution(1, self.npairs)
             self.div_model_prior = 'psi'
         else:
-            self.psi = DiscreteUniformDistribution(psi, psi)
+            self.psi = probability.DiscreteUniformDistribution(psi, psi)
             self.div_model_prior = 'constrained'
-        self.tau = ContinuousUniformDistribution(ltau, utau)
-        self.theta = ContinuousUniformDistribution(ltheta, utheta)
-        self.a_theta = ContinuousUniformDistribution(ltheta, utheta*anc_scalar)
-        self.d_theta = BetaDistribution(1, 1, 2)
-        self.migration = ContinuousUniformDistribution(lmig, umig)
-        self.recombination = ContinuousUniformDistribution(lrec, urec)
+        self.tau = probability.ContinuousUniformDistribution(ltau, utau)
+        self.theta = probability.ContinuousUniformDistribution(ltheta, utheta)
+        self.a_theta = probability.ContinuousUniformDistribution(ltheta,
+                utheta*anc_scalar)
+        self.d_theta = probability.BetaDistribution(1, 1, 2)
+        self.migration = probability.ContinuousUniformDistribution(lmig, umig)
+        self.recombination = probability.ContinuousUniformDistribution(lrec,
+                urec)
 
     def _parse_preamble(self, preamble):
         cfg = ConfigParser.RawConfigParser()
@@ -298,7 +305,7 @@ class MsBayesConfig(object):
         return '\n'.join([self.get_preamble() + self.get_sample_table()])
 
     def write(self, file_obj):
-        out, close = process_file_arg(file_obj, 'w')
+        out, close = fileio.process_file_arg(file_obj, 'w')
         out.write(self.__str__())
         if close:
             out.close()

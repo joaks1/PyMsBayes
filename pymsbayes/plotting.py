@@ -6,15 +6,12 @@ import math
 import string
 
 from pymsbayes import config
-from pymsbayes.utils.stats import (get_freqs, Partition, IntegerPartition,
-        ValidationProbabilities, root_mean_square_error)
+from pymsbayes import teams
+from pymsbayes.utils import stats
 from pymsbayes.utils import probability
-from pymsbayes.utils.probability import (almost_equal,
-        get_probability_from_bayes_factor)
-from pymsbayes.utils.functions import frange, list_splitter
-from pymsbayes.utils.parsing import (DMCSimulationResults, spreadsheet_iter,
-        parse_posterior_summary_file, UnorderedDivergenceModelResults,
-        OrderedDivergenceModelResults)
+from pymsbayes.utils import functions
+from pymsbayes.utils import parsing
+from pymsbayes.utils import sumresults
 from pymsbayes.utils import GLOBAL_RNG
 from pymsbayes.utils.messaging import get_logger
 
@@ -1263,11 +1260,11 @@ class PlotGrid(object):
             subplot.reset_plot()
 
     def set_shared_y_limits(self, by_row = False):
-        groups = list_splitter(self.subplots,
+        groups = functions.list_splitter(self.subplots,
                 len(self.subplots),
                 by_size = True)
         if by_row:
-            groups = list_splitter(self.subplots,
+            groups = functions.list_splitter(self.subplots,
                     self.num_columns,
                     by_size = True)
         for group in groups:
@@ -1475,7 +1472,8 @@ class PowerPlotGrid(object):
                 prob = (r'$p(\mathbf{{\tau}} \, \notin \, \hat{{M}}) '
                         r'= {0}$'.format(p))
             if len([e for e in estimates if ((e > 0.00000001) or (e < -0.00000001))]) < 1:
-                self.bins = list(frange(0, 0.1, 20, include_end_point = True))
+                self.bins = list(functions.frange(0, 0.1, 20,
+                        include_end_point = True))
             hd = HistData(x = estimates,
                     normed = True,
                     bins = self.bins,
@@ -1483,11 +1481,11 @@ class PowerPlotGrid(object):
                     align = 'mid',
                     orientation = 'vertical',
                     zorder = 0)
-            # freqs = get_freqs(estimates)
+            # freqs = stats.get_freqs(estimates)
             # s = ScatterPlot()
             # f, bins, patches = hd.plot(s.ax)
             # for i, v in enumerate(f):
-            #     assert almost_equal(v, freqs.get(i + 1, 0))
+            #     assert probability.almost_equal(v, freqs.get(i + 1, 0))
             xticks_obj = None
             if (self.variable == 'psi') or (self.variable == 'tau_exclusion'):
                 tick_labels = []
@@ -1685,7 +1683,7 @@ class AccuracyValidationPlotGrid(object):
 
         x = self.v.psi.true_jitter
         y = self.v.psi.mode_jitter
-        rmse = root_mean_square_error(x, y)
+        rmse = stats.root_mean_square_error(x, y)
         sd_psi = ScatterData(
                 x = x,
                 y = y)
@@ -1699,7 +1697,7 @@ class AccuracyValidationPlotGrid(object):
 
         x = self.v.psi.true_jitter
         y = self.v.psi.mode_glm_jitter
-        rmse = root_mean_square_error(x, y)
+        rmse = stats.root_mean_square_error(x, y)
         sd_psi_glm = ScatterData(
                 x = x,
                 y = y)
@@ -1713,7 +1711,7 @@ class AccuracyValidationPlotGrid(object):
 
         x = self.v.omega.true
         y = self.v.omega.median
-        rmse = root_mean_square_error(x, y)
+        rmse = stats.root_mean_square_error(x, y)
         sd_omega = ScatterData(
                 x = x,
                 y = y)
@@ -1727,7 +1725,7 @@ class AccuracyValidationPlotGrid(object):
 
         x = self.v.omega.true
         y = self.v.omega.mode_glm
-        rmse = root_mean_square_error(x, y)
+        rmse = stats.root_mean_square_error(x, y)
         sd_omega_glm = ScatterData(
                 x = x,
                 y = y)
@@ -1741,7 +1739,7 @@ class AccuracyValidationPlotGrid(object):
 
         x = self.v.tau.true
         y = self.v.tau.median
-        rmse = root_mean_square_error(x, y)
+        rmse = stats.root_mean_square_error(x, y)
         sd_tau = ScatterData(
                 x = x,
                 y = y)
@@ -1755,7 +1753,7 @@ class AccuracyValidationPlotGrid(object):
 
         x = self.v.tau.true
         y = self.v.tau.mode_glm
-        rmse = root_mean_square_error(x, y)
+        rmse = stats.root_mean_square_error(x, y)
         sd_tau_glm = ScatterData(
                 x = x,
                 y = y)
@@ -1999,13 +1997,13 @@ class ProbabilityPowerPlotGrid(object):
                             self.div_model_prior))
         self.one_div_prior = 0.0
         if self.div_model_prior == 'psi':
-            ip = IntegerPartition([0] * self.num_taxon_pairs)
+            ip = stats.IntegerPartition([0] * self.num_taxon_pairs)
             self.one_div_prior = ip.psi_uniform_prior_probability()
         elif self.div_model_prior == 'uniform':
-            ip = IntegerPartition([0] * self.num_taxon_pairs)
+            ip = stats.IntegerPartition([0] * self.num_taxon_pairs)
             self.one_div_prior = ip.uniform_prior_probability()
         elif self.div_model_prior == 'dpp':
-            p = Partition([0] * self.num_taxon_pairs)
+            p = stats.Partition([0] * self.num_taxon_pairs)
             self.one_div_prior = p.dirichlet_process_prior_probability(
                     alpha = self.dpp_concentration_mean)
         else:
@@ -2018,7 +2016,7 @@ class ProbabilityPowerPlotGrid(object):
         self.bayes_factor_prob = bayes_factor_prob
         if not self.bayes_factor_prob:
             if self.variable == 'psi':
-                self.bayes_factor_prob = get_probability_from_bayes_factor(
+                self.bayes_factor_prob = probability.get_probability_from_bayes_factor(
                         self.bayes_factor, self.one_div_prior)
         self.num_columns = num_columns
         self.subplots = []
@@ -2052,7 +2050,7 @@ class ProbabilityPowerPlotGrid(object):
         self.margin_top = margin_top
         self.padding_between_horizontal = padding_between_horizontal
         self.padding_between_vertical = padding_between_vertical
-        self.bins = list(frange(0, 1, 20, include_end_point = True))
+        self.bins = list(functions.frange(0, 1, 20, include_end_point = True))
         self.tab = tab
         self.text_size = text_size
         self.bf_line = VerticalLine(x = self.bayes_factor_prob,
@@ -2093,7 +2091,7 @@ class ProbabilityPowerPlotGrid(object):
                     align = 'mid',
                     orientation = 'vertical',
                     zorder = 0)
-            # b = list(frange(0, 1, 20, include_end_point = True))
+            # b = list(functions.frange(0, 1, 20, include_end_point = True))
             # counts = [0] * 20
             # for i in range(1, len(b)):
             #     for e in estimates:
@@ -2103,7 +2101,7 @@ class ProbabilityPowerPlotGrid(object):
             # s = ScatterPlot()
             # d, bins, patches = hd.plot(s.ax)
             # for i, v in enumerate(d):
-            #     assert almost_equal(v, densities[i])
+            #     assert probability.almost_equal(v, densities[i])
             tick_labels = []
             if self.pretty_xtick_labels:
                 for i, x in enumerate(self.bins):
@@ -2283,7 +2281,7 @@ class AccuracyPowerPlotGrid(object):
             dist = r'$\tau \sim {0}$'.format(str(cfg.tau))
             assert len(estimates) == 2
             x, y = estimates[0], estimates[1]
-            rmse = root_mean_square_error(x, y)
+            rmse = stats.root_mean_square_error(x, y)
             assert len(x) == len(y)
             c = len([1 for i in range(len(x)) if y[i] < x[i]])
             p = c / float(len(x))
@@ -2584,7 +2582,7 @@ class ValidationResult(object):
     def _parse_result_summary(self, result_paths):
         psi_correct_prob_glm_triples = []
         omega_correct_prob_glm_triples = []
-        for d in spreadsheet_iter(result_paths):
+        for d in parsing.spreadsheet_iter(result_paths):
             psi_true = int(d['psi_true'])
             omega_true = float(d['omega_true'])
             self.psi.true.append(psi_true)
@@ -2609,13 +2607,13 @@ class ValidationResult(object):
                     int(omega_true < self.omega_threshold),
                     float(d['omega_prob_less']),
                     float(d['omega_prob_less_glm'])))
-        self.psi.validation_probs = ValidationProbabilities(
+        self.psi.validation_probs = stats.ValidationProbabilities(
                 ((c, p) for (c, p, g) in psi_correct_prob_glm_triples))
-        self.psi.validation_probs_glm = ValidationProbabilities(
+        self.psi.validation_probs_glm = stats.ValidationProbabilities(
                 ((c, g) for (c, p, g) in psi_correct_prob_glm_triples))
-        self.omega.validation_probs = ValidationProbabilities(
+        self.omega.validation_probs = stats.ValidationProbabilities(
                 ((c, p) for (c, p, g) in omega_correct_prob_glm_triples))
-        self.omega.validation_probs_glm = ValidationProbabilities(
+        self.omega.validation_probs_glm = stats.ValidationProbabilities(
                 ((t, g) for (t, p, g) in omega_correct_prob_glm_triples))
         self.prob_plot = ProbabilityValidationPlotGrid(
                 psi_validation_probs = self.psi.validation_probs,
@@ -2666,7 +2664,7 @@ def plot_validation_results(info_path,
         prob_plot_padding_between_horizontal = 0.5,
         prob_plot_padding_between_vertical = 1.0,
         write_plots = True):
-    results = DMCSimulationResults(info_path)
+    results = sumresults.DMCSimulationResults(info_path)
     result_dir = os.path.dirname(info_path)
     if not plot_dir:
         plot_dir = os.path.join(result_dir, 'plots')
@@ -2716,7 +2714,7 @@ def plot_validation_results(info_path,
 
 def plot_model_choice_validation_results(info_path,
         psi_of_interest = [1]):
-    results = DMCSimulationResults(info_path)
+    results = sumresults.DMCSimulationResults(info_path)
     result_dir = os.path.dirname(info_path)
     plot_dir = os.path.join(result_dir, 'plots')
     if not os.path.exists(plot_dir):
@@ -2766,7 +2764,7 @@ class UnorderedDivergenceModelPlotGrid(object):
             margin_right = 1,
             margin_top = 0.99,
             padding_between_vertical = 0.8):
-        self.model_results = UnorderedDivergenceModelResults(
+        self.model_results = sumresults.UnorderedDivergenceModelResults(
                 div_model_results_path = div_model_results_path,
                 inclusion_threshold = num_top_models)
         self.width = width
@@ -2870,7 +2868,7 @@ class OrderedDivergenceModelPlotGrid(object):
             margin_right = 1,
             margin_top = 0.99,
             padding_between_vertical = 0.8):
-        self.model_results = OrderedDivergenceModelResults(
+        self.model_results = sumresults.OrderedDivergenceModelResults(
                 div_model_results_path = div_model_results_path,
                 inclusion_threshold = num_top_models)
         self.taxa = None
@@ -2975,6 +2973,213 @@ class OrderedDivergenceModelPlotGrid(object):
         # self.plot_grid.reset_figure()
         return self.plot_grid
 
+class NumberOfDivergencesSummary(object):
+    def __init__(self,
+            config_path,
+            psi_results_path,
+            posterior_summary_path = None,
+            num_prior_samples = 100000,
+            num_processors = 4):
+        self.config_path = config_path
+        self.config = config.MsBayesConfig(config_path)
+        self.psi_results_path = psi_results_path
+        self.posterior_summary_path = posterior_summary_path
+        self.num_prior_samples = num_prior_samples
+        self.num_processors = num_processors
+        self.psi_posterior_probs = {}
+        self.psi_prior_probs = None
+        self.unordered_model_prior_probs = None
+        self.ordered_model_prior_probs = None
+        self.psi_bayes_factors = {}
+        self.omega = None
+        self.omega_hpd = None
+        self.plot = None
+        self._parse_psi_results_path()
+        self._parse_posterior_summary_file()
+        self._simulate_psi_prior_probs()
+        self._get_unordered_model_prior_probs()
+        self._get_ordered_model_prior_probs()
+        self._get_psi_bayes_factors()
+
+    def _simulate_psi_prior_probs(self):
+        if self.config.div_model_prior == 'dpp':
+            prob_team = teams.ModelProbabilityEstimatorTeam(
+                    config_paths = [self.config_path],
+                    num_samples = self.num_prior_samples,
+                    num_processors = self.num_processors)
+            prob_team.start()
+            self.psi_prior_probs = prob_team.psi_probs[self.config_path]
+        elif self.config.div_model_prior == 'uniform':
+            ips = stats.IntegerPartition.number_of_int_partitions_by_k(
+                    num_elements = self.config.npairs)
+            n = sum(ips)
+            for i in range(1, self.config.npairs + 1):
+                self.psi_prior_probs[i] = ips[i-1] / float(n)
+        elif self.config.div_model_prior == 'psi':
+            self.psi_prior_probs = {}
+            for i in range(1, self.config.npairs + 1):
+                self.psi_prior_probs[i] = 1.0 / self.config.npairs
+
+    def _get_unordered_model_prior_probs(self):
+        if not self.psi_prior_probs:
+            return
+        ips = stats.IntegerPartition.number_of_int_partitions_by_k(
+                num_elements = len(self.psi_prior_probs))
+        self.unordered_model_prior_probs = {}
+        for k, p in self.psi_prior_probs.iteritems():
+            self.unordered_model_prior_probs[k] = p / float(ips[k-1])
+
+    def _get_ordered_model_prior_probs(self):
+        if not self.psi_prior_probs:
+            return
+        part = stats.Partition([0] * len(self.psi_prior_probs))
+        self.ordered_model_prior_probs = {}
+        for k, p in self.psi_prior_probs.iteritems():
+            self.ordered_model_prior_probs[k] = p / float(
+                    part.number_of_partitions_into_k_subsets(k))
+
+    def _get_psi_bayes_factors(self):
+        for k, p in self.psi_posterior_probs.iteritems():
+            p_not = 1.0 - p
+            prior = self.psi_prior_probs[k]
+            prior_not = 1.0 - p
+            if p_not <= 0.0:
+                numerator = float('inf')
+            else:
+                numerator = p / p_not
+            if prior_not <= 0.0:
+                denom = float('inf')
+            else:
+                denom = prior / prior_not
+            if denom <= 0.0:
+                bf = float('inf')
+            else:
+                bf = numerator / denom
+            self.psi_bayes_factors[k] = 2 * math.log(bf)
+
+    def _parse_psi_results_path(self):
+        for d in parsing.spreadsheet_iter([self.psi_results_path]):
+            self.psi_posterior_probs[int(d['num_of_div_events'])] = float(
+                    d['estimated_prob'])
+
+    def _parse_posterior_summary_file(self):
+        if not self.posterior_summary_path:
+            return
+        results = sumresults.parse_posterior_summary_file(
+                self.posterior_summary_path)
+        self.omega = float(results['PRI.omega']['median'])
+        self.omega_hpd = [float(results['PRI.omega']['HPD_95_interval'][0]),
+                float(results['PRI.omega']['HPD_95_interval'][1])]
+        if self.omega_hpd[0] < 0.0:
+            self.omega_hpd[0] = 0.0
+
+    def create_plot(self,
+            plot_label_size = 10.0,
+            right_text_size = 10.0,
+            x_label_size = 10.0,
+            y_label_size = 10.0,
+            xtick_label_size = 10.0,
+            ytick_label_size = 8.0,
+            height = 6.0,
+            width = 3.0,
+            margin_bottom = 0.0,
+            margin_left = 0.0,
+            margin_top = 0.98,
+            margin_right = 1.0,
+            padding_between_vertical = 1.0):
+        if not MATPLOTLIB_AVAILABLE:
+            _LOG.warning('matplotlib is not available; cannot create plot')
+            return
+        right_text = ''
+        if not self.omega is None:
+            right_text = r'$D_T = {0:.2f} ({1:.2f}-{2:.2f})$'.format(self.omega,
+                    self.omega_hpd[0],
+                    self.omega_hpd[1])
+        keys = sorted(self.psi_posterior_probs.keys())
+        psi_posterior_bar_data = BarData(
+                    values = [self.psi_posterior_probs[k] for k in keys],
+                    labels = keys,
+                    width = 1.0,
+                    orientation = 'vertical',
+                    color = '0.5',
+                    edgecolor = '0.5',
+                    label_size = xtick_label_size,
+                    measure_tick_label_size = ytick_label_size,
+                    zorder = 0)
+        psi_prior_bar_data = BarData(
+                    values = [self.psi_prior_probs[k] for k in keys],
+                    labels = keys,
+                    width = 1.0,
+                    orientation = 'vertical',
+                    color = '0.5',
+                    edgecolor = '0.5',
+                    label_size = xtick_label_size,
+                    measure_tick_label_size = ytick_label_size,
+                    zorder = 0)
+        psi_bayes_factor_bar_data = BarData(
+                    values = [self.psi_bayes_factors[k] for k in keys],
+                    labels = keys,
+                    width = 1.0,
+                    orientation = 'vertical',
+                    color = '0.5',
+                    edgecolor = '0.5',
+                    label_size = xtick_label_size,
+                    measure_tick_label_size = ytick_label_size,
+                    zorder = 0)
+        plots = [
+                ScatterPlot(
+                        bar_data_list = [psi_posterior_bar_data],
+                        right_text = right_text,
+                        y_label = 'Posterior probability',
+                        y_label_size = y_label_size,
+                        ),
+                ScatterPlot(
+                        bar_data_list = [psi_prior_bar_data],
+                        y_label = 'Prior probability',
+                        y_label_size = y_label_size,
+                        ),
+                ScatterPlot(
+                        bar_data_list = [psi_bayes_factor_bar_data],
+                        y_label = '2ln(Bayes factor)',
+                        y_label_size = y_label_size,
+                        x_label = r'Number of divergence events, $|\tau|$',
+                        x_label_size = x_label_size,
+                        ),
+                ]
+        for p in plots:
+            p.right_text_size = right_text_size
+            p.plot_label_size = plot_label_size
+            yticks = [i for i in p.ax.get_yticks()]
+            ytick_labels = [i for i in yticks]
+            if len(ytick_labels) > 5:
+                for i in range(1, len(ytick_labels), 2):
+                    ytick_labels[i] = ''
+            yticks_obj = Ticks(ticks = yticks,
+                    labels = ytick_labels,
+                    size = ytick_label_size)
+            p.yticks_obj = yticks_obj
+
+        self.plot = PlotGrid(subplots = plots,
+                num_columns = 1,
+                share_x = True,
+                share_y = False,
+                height = height,
+                width = width,
+                auto_height = False)
+        self.plot.auto_adjust_margins = False
+        self.plot.margin_top = margin_top
+        self.plot.margin_bottom = margin_bottom
+        self.plot.margin_right = margin_right
+        self.plot.margin_left = margin_left
+        self.plot.padding_between_vertical = padding_between_vertical
+        self.plot.reset_figure()
+        self.plot.reset_figure()
+
+    def save_plot(self, path):
+        if self.plot:
+            self.plot.savefig(path)
+
+
 def get_marginal_divergence_time_plot(config_path, posterior_summary_path,
         labels = None,
         estimate = 'median',
@@ -2993,7 +3198,7 @@ def get_marginal_divergence_time_plot(config_path, posterior_summary_path,
     if usetex:
         matplotlib.rc('text',**{'usetex': True})
     cfg = config.MsBayesConfig(config_path)
-    summary = parse_posterior_summary_file(posterior_summary_path)
+    summary = sumresults.parse_posterior_summary_file(posterior_summary_path)
     times = []
     error_mins = []
     error_maxs = []

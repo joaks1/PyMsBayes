@@ -103,7 +103,7 @@ def main_cli():
 
     from pymsbayes import config
     from pymsbayes.teams import DivModelSimulatorTeam
-    from pymsbayes.utils import parsing, stats, GLOBAL_RNG
+    from pymsbayes.utils import stats, sumresults, GLOBAL_RNG
 
     if not args.seed:
         args.seed = random.randint(1, 999999999)
@@ -116,7 +116,7 @@ def main_cli():
         evaluators.append(stats.ListConditionEvaluator(exp,
                 index_labels = cfg.taxa))
 
-    div_models = parsing.get_partitions_from_posterior_sample_file(
+    div_models = sumresults.get_partitions_from_posterior_sample_file(
             args.posterior_sample_path)
 
     sim_team = None
