@@ -13,13 +13,13 @@ from pymsbayes.fileio import (expand_path, process_file_arg, FileStream, open,
         GzipFileStream)
 from pymsbayes.config import MsBayesConfig
 from pymsbayes.utils.tempfs import TempFileSystem
-from pymsbayes.utils import (ToolPathManager, MSBAYES_SORT_INDEX, probability,
+from pymsbayes.utils import (ToolPathManager, MSBAYES_SORT_INDEX,
         GLOBAL_RNG)
-from pymsbayes.utils.functions import (get_random_int, get_indices_of_patterns,
-        reduce_columns, is_dir)
-from pymsbayes.utils.errors import WorkerExecutionError, PriorMergeError
-from pymsbayes.utils.stats import *
-from pymsbayes.utils.parsing import *
+from pymsbayes.utils import probability
+from pymsbayes.utils import functions
+from pymsbayes.utils import errors
+from pymsbayes.utils import stats
+from pymsbayes.utils import parsing
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -110,7 +110,7 @@ class Worker(object):
             serr.close()
         if self.exit_code != 0:
             _LOG.error('execution failed')
-            raise WorkerExecutionError('{0} failed.\ninvocation:\n{1}\n'
+            raise errors.WorkerExecutionError('{0} failed.\ninvocation:\n{1}\n'
                     'stderr:\n{2}'.format(
                     self.name, ' '.join([str(x) for x in self.cmd]),
                     self.get_stderr()))
@@ -147,11 +147,11 @@ def merge_priors(workers, prior_path, header_path=None, include_header=False):
             if include_header:
                 out.write('{0}\n'.format('\t'.join(h)))
         if w.header != h:
-            raise PriorMergeError('Workers {0} and {1} have different prior '
-                    'headers. Cannot merge!'.format(std.name, w.name))
+            raise errors.PriorMergeError('Workers {0} and {1} have different '
+                    'prior headers. Cannot merge!'.format(std.name, w.name))
         prior_file = open(w.prior_path, 'rU')
         for line in prior_file:
-            if not HEADER_PATTERN.match(line.strip()):
+            if not parsing.HEADER_PATTERN.match(line.strip()):
                 out.write(line)
         prior_file.close()
     if close:
@@ -172,7 +172,7 @@ def merge_prior_files(paths, dest_path, append = True, compresslevel = None):
     if not append:
         mode = 'w'
     if append and os.path.exists(dest_path):
-        h = parse_header(dest_path, strict = False)
+        h = parsing.parse_header(dest_path, strict = False)
         if h:
             header_exists = True
             ncols = len(h)
@@ -196,14 +196,14 @@ def merge_prior_files(paths, dest_path, append = True, compresslevel = None):
         f, f_close = process_file_arg(p, 'rU')
         for line_num, line in enumerate(f):
             if line_num == 0:
-                if HEADER_PATTERN.match(line.strip()):
+                if parsing.HEADER_PATTERN.match(line.strip()):
                     header = line.strip().split()
                     if h and h != header:
                         if out_close:
                             out.close()
                         if f_close:
                             f.close()
-                        raise PriorMergeError('prior files {0} and {1} '
+                        raise errors.PriorMergeError('prior files {0} and {1} '
                                 'have different headers'.format(f.name,
                                         std.name))
                 if not ncols:
@@ -220,8 +220,8 @@ def merge_prior_files(paths, dest_path, append = True, compresslevel = None):
                         out.close()
                     if f_close:
                         f.close()
-                    raise PriorMergeError('prior files {0} and {1} do not '
-                            'have the same number of columns. Cannot '
+                    raise errors.PriorMergeError('prior files {0} and {1} do '
+                            'not have the same number of columns. Cannot '
                             'merge!'.format(f.name, std.name))
                 if not header:
                     out.write(line)
@@ -244,7 +244,7 @@ class ObsSumStatsWorker(Worker):
             output_path = None,
             exe_path = None,
             schema = 'abctoolbox',
-            stat_patterns = DEFAULT_STAT_PATTERNS,
+            stat_patterns = parsing.DEFAULT_STAT_PATTERNS,
             stderr_path = None,
             keep_temps = False,
             tag = None):
@@ -293,7 +293,7 @@ class ObsSumStatsWorker(Worker):
             raise Exception('{0} did not produce the output file {1}; '
                     'here is the std error:\n{2}\n'.format(
                         self.name, self.temp_output_path, self.get_stderr()))
-        self.header = observed_stats_for_abctoolbox(
+        self.header = parsing.observed_stats_for_abctoolbox(
                     in_file = self.temp_output_path,
                     out_file = self.output_path,
                     stat_patterns = self.stat_patterns)
@@ -317,8 +317,8 @@ class MsBayesWorker(Worker):
             seed = None,
             schema = 'msreject',
             include_header = False,
-            stat_patterns=DEFAULT_STAT_PATTERNS,
-            parameter_patterns=PARAMETER_PATTERNS,
+            stat_patterns=parsing.DEFAULT_STAT_PATTERNS,
+            parameter_patterns=parsing.PARAMETER_PATTERNS,
             summary_worker = None,
             rejection_worker = None,
             stdout_path = None,
@@ -354,7 +354,7 @@ class MsBayesWorker(Worker):
         self.sort_index = MSBAYES_SORT_INDEX.current_value()
         self.report_parameters = report_parameters
         if seed is None:
-            self.seed = get_random_int()
+            self.seed = functions.get_random_int()
         else:
             self.seed = int(seed)
         if prior_path:
@@ -390,7 +390,7 @@ class MsBayesWorker(Worker):
         self.stat_indices = None
         self.staging_dir = None
         self.staging_prior_path = None
-        if is_dir(staging_dir):
+        if functions.is_dir(staging_dir):
             self.staging_dir = staging_dir
             self.staging_prior_path = os.path.join(self.staging_dir,
                     os.path.basename(self.prior_path))
@@ -431,20 +431,20 @@ class MsBayesWorker(Worker):
         raw_prior_path = prior_path + '.raw'
         shutil.move(prior_path, raw_prior_path)
         if self.prior_stats_path:
-            h = observed_stats_for_abctoolbox(
+            h = parsing.observed_stats_for_abctoolbox(
                     in_file = raw_prior_path,
                     out_file = prior_stats_path,
                     stat_patterns = self.stat_patterns)
         if self.schema == 'msreject':
-            header = prior_for_msreject(
+            header = parsing.prior_for_msreject(
                     in_file = raw_prior_path,
                     out_file = prior_path,
                     stat_patterns = self.stat_patterns,
                     parameter_patterns = self.parameter_patterns,
-                    dummy_patterns = DUMMY_PATTERNS,
+                    dummy_patterns = parsing.DUMMY_PATTERNS,
                     include_header = self.include_header)
         elif self.schema == 'abctoolbox':
-            header = prior_for_abctoolbox(
+            header = parsing.prior_for_abctoolbox(
                     in_file = raw_prior_path,
                     out_file = prior_path,
                     stat_patterns = self.stat_patterns,
@@ -476,12 +476,12 @@ class MsBayesWorker(Worker):
 
     def _set_header(self, header):
         self.header = header
-        self.parameter_indices = get_parameter_indices(
+        self.parameter_indices = parsing.get_parameter_indices(
                 header_list = self.header,
-                parameter_patterns = PARAMETER_PATTERNS)
-        self.stat_indices = get_stat_indices(
+                parameter_patterns = parsing.PARAMETER_PATTERNS)
+        self.stat_indices = parsing.get_stat_indices(
                 header_list = self.header,
-                stat_patterns = ALL_STAT_PATTERNS)
+                stat_patterns = parsing.ALL_STAT_PATTERNS)
 
     def purge(self):
         self.temp_fs.remove_dir(self.output_dir)
@@ -521,7 +521,7 @@ def assemble_rejection_workers(temp_fs,
                         VALID_REGRESSION_METHODS)))
     if (tolerance is None or num_posterior_samples is None) and \
             num_prior_samples is None:
-        num_prior_samples = line_count(prior_path, ignore_headers=True)
+        num_prior_samples = parsing.line_count(prior_path, ignore_headers=True)
     if tolerance is None:
         tolerance = num_posterior_samples / float(num_prior_samples)
     if num_posterior_samples is None:
@@ -529,11 +529,11 @@ def assemble_rejection_workers(temp_fs,
     if num_prior_samples is None:
         num_prior_samples = int(num_posterior_samples / tolerance)
     obs_file, close = process_file_arg(observed_sims_file)
-    header = parse_header(obs_file)
+    header = parsing.parse_header(obs_file)
     if rejection_tool == 'abctoolbox':
-        header = parse_header(prior_path)
-    all_stat_indices = get_stat_indices(header,
-            stat_patterns=ALL_STAT_PATTERNS)
+        header = parsing.parse_header(prior_path)
+    all_stat_indices = parsing.get_stat_indices(header,
+            stat_patterns=parsing.ALL_STAT_PATTERNS)
     parameter_indices = []
     if continuous_parameter_indices:
         parameter_indices += continuous_parameter_indices
@@ -655,9 +655,9 @@ class MsRejectWorker(Worker):
             posterior_path = observed_path + '.posterior'
         self.posterior_path = expand_path(posterior_path)
         self.header = header
-        potential_stat_indices = get_stat_indices(
+        potential_stat_indices = parsing.get_stat_indices(
                 self.header,
-                stat_patterns = ALL_STAT_PATTERNS)
+                stat_patterns = parsing.ALL_STAT_PATTERNS)
         if not stat_indices:
             self.stat_indices = potential_stat_indices
         else:
@@ -732,10 +732,10 @@ class RegressionWorker(Worker):
         self.regress_posterior_path = regress_posterior_path
 
     def _pre_process(self):
-        self.header = parse_header(self.posterior_path)
-        potential_stat_indices = get_stat_indices(
+        self.header = parsing.parse_header(self.posterior_path)
+        potential_stat_indices = parsing.get_stat_indices(
                 self.header,
-                stat_patterns = ALL_STAT_PATTERNS)
+                stat_patterns = parsing.ALL_STAT_PATTERNS)
         if not self.stat_indices:
             self.stat_indices = potential_stat_indices
         else:
@@ -743,14 +743,16 @@ class RegressionWorker(Worker):
             if len(diff) > 0:
                 raise ValueError('stat indices are not valid')
         if not self.continuous_parameter_indices:
-            self.continuous_parameter_indices = get_parameter_indices(
+            self.continuous_parameter_indices = parsing.get_parameter_indices(
                     self.header,
-                    parameter_patterns=(MEAN_TAU_PATTERNS + OMEGA_PATTERNS))
+                    parameter_patterns=(parsing.MEAN_TAU_PATTERNS +
+                            parsing.OMEGA_PATTERNS))
         if not self.discrete_parameter_indices:
-            self.discrete_parameter_indices = get_parameter_indices(
+            self.discrete_parameter_indices = parsing.get_parameter_indices(
                     self.header,
-                    parameter_patterns=(MODEL_PATTERNS + PSI_PATTERNS + \
-                            DIV_MODEL_PATTERNS))
+                    parameter_patterns=(parsing.MODEL_PATTERNS + \
+                            parsing.PSI_PATTERNS + \
+                            parsing.DIV_MODEL_PATTERNS))
         self._update_cmd()
 
     def _update_cmd(self):
@@ -796,7 +798,7 @@ class EuRejectSummaryMerger(object):
     def start(self):
         for ew in self.eureject_workers:
             self._check_worker(ew)
-            ssc = SampleSummaryCollection.get_from_summary_file(
+            ssc = stats.SampleSummaryCollection.get_from_summary_file(
                     ew.summary_out_path)
             assert(ssc.sample_sums[ssc.keys[0]].n == ew.num_summarized)
             if not self.sample_sum_collection:
@@ -898,11 +900,11 @@ class EuRejectWorker(Worker):
     def _parse_stderr(self):
         se = self.get_stderr()
         if se is None:
-            raise WorkerExecutionError('no std error from '
+            raise errors.WorkerExecutionError('no std error from '
                     '{0}: {1}'.format(self.name, se))
         m = self.stderr_pattern.search(se)
         if m is None:
-            raise WorkerExecutionError('unexpected std error from '
+            raise errors.WorkerExecutionError('unexpected std error from '
                     '{0}: {1}'.format(self.name, se))
         self.num_retained = int(m.group('num_retained'))
         self.num_summarized = int(m.group('num_summarized'))
@@ -972,12 +974,12 @@ class ABCToolBoxRejectWorker(Worker):
                 self.temp_fs.token_id + '_ABC_GLM_')
         self.cfg_path = self.temp_fs.get_file_path(parent = self.output_dir,
                 prefix = 'cfg-')
-        self.header = parse_header(self.prior_path)
+        self.header = parsing.parse_header(self.prior_path)
         self.parameter_indices = sorted(
-                get_parameter_indices(self.header,
-                        parameter_patterns=(PARAMETER_PATTERNS)) + \
-                get_dummy_indices(self.header))
-        self.stats_header = parse_header(self.observed_path)
+                parsing.get_parameter_indices(self.header,
+                        parameter_patterns=(parsing.PARAMETER_PATTERNS)) + \
+                        parsing.get_dummy_indices(self.header))
+        self.stats_header = parsing.parse_header(self.observed_path)
         cfg = self._compose_cfg_string()
         out = open(self.cfg_path, 'w')
         out.write(cfg.getvalue())
@@ -1078,28 +1080,28 @@ class ABCToolBoxRegressWorker(Worker):
                 self.temp_fs.token_id + '_ABC_GLM_')
         self.cfg_path = self.temp_fs.get_file_path(parent = self.output_dir,
                 prefix = 'cfg-')
-        self.header = parse_header(self.posterior_path)
+        self.header = parsing.parse_header(self.posterior_path)
         if not self.num_posterior_samples:
-            self.num_posterior_samples = line_count(self.posterior_path,
+            self.num_posterior_samples = parsing.line_count(self.posterior_path,
                     ignore_headers=True)
         if not self.bandwidth:
             self.bandwidth = 2 / float(self.num_posterior_samples)
-        potential_stat_indices = get_stat_indices(
+        potential_stat_indices = parsing.get_stat_indices(
                 self.header,
-                stat_patterns = ALL_STAT_PATTERNS)
+                stat_patterns = parsing.ALL_STAT_PATTERNS)
         if not self.parameter_indices:
-            self.parameter_indices = sorted(get_parameter_indices(
+            self.parameter_indices = sorted(parsing.get_parameter_indices(
                     self.header,
-                    parameter_patterns=(MEAN_TAU_PATTERNS + \
-                            OMEGA_PATTERNS + \
-                            MODEL_PATTERNS + \
-                            PSI_PATTERNS + \
-                            DIV_MODEL_PATTERNS)))
+                    parameter_patterns=(parsing.MEAN_TAU_PATTERNS + \
+                            parsing.OMEGA_PATTERNS + \
+                            parsing.MODEL_PATTERNS + \
+                            parsing.PSI_PATTERNS + \
+                            parsing.DIV_MODEL_PATTERNS)))
         if len(set.intersection(set(potential_stat_indices),
                 set(self.parameter_indices))) > 0:
             raise ValueError('parameter indices are not valid. '
                     'they contain stat indices!')
-        self.stats_header = parse_header(self.observed_path)
+        self.stats_header = parsing.parse_header(self.observed_path)
         cfg = self._compose_cfg_string()
         out = open(self.cfg_path, 'w')
         out.write(cfg.getvalue())
@@ -1290,14 +1292,14 @@ class PosteriorWorker(object):
                 prefix = 'temp-posterior-')
 
     def _process_posterior_sample(self):
-        post = parse_parameters(self.posterior_path)
+        post = parsing.parse_parameters(self.posterior_path)
         if not post.has_key('taus'):
             raise Exception('posterior sample in {0} does not contain a '
                     'divergence time vector'.format(self.posterior_path))
         if MSBAYES_SORT_INDEX.current_value() == 0:
-            div_models = PartitionCollection(post['taus'])
+            div_models = stats.PartitionCollection(post['taus'])
         else:
-            div_models = IntegerPartitionCollection(post['taus'])
+            div_models = stats.IntegerPartitionCollection(post['taus'])
         self.num_posterior_samples = div_models.n
         self.div_model_summary = div_models.get_summary()
         self._map_top_div_models(div_models)
@@ -1305,7 +1307,7 @@ class PosteriorWorker(object):
         for k, dm in div_models.iteritems():
             dmodels.extend([self.top_div_models_to_indices[k]] * dm.n)
         post['div_model'] = dmodels
-        psi_freqs = get_freqs(post['psi'])
+        psi_freqs = stats.get_freqs(post['psi'])
         if max(psi_freqs.iterkeys()) > self.num_taxon_pairs:
             raise ValueError('number of taxon pairs is {0}, but found '
                     'psi estimates of {1} in posterior {2}'.format(
@@ -1316,8 +1318,8 @@ class PosteriorWorker(object):
             self.psi_probs[i+1] = psi_freqs.get(i+1, 0.0)
         if post.has_key('model'):
             if len(set(post['model'])) < 2:
-                self.parameter_patterns_to_remove.update(MODEL_PATTERNS)
-            model_freqs = get_freqs(post['model'])
+                self.parameter_patterns_to_remove.update(parsing.MODEL_PATTERNS)
+            model_freqs = stats.get_freqs(post['model'])
             if self.model_indices:
                 self.model_probs = {}
                 if not set(model_freqs.keys()).issubset(self.model_indices):
@@ -1329,26 +1331,29 @@ class PosteriorWorker(object):
                     self.model_probs[i] = model_freqs.get(i, 0.0)
             else:
                 self.model_probs = model_freqs
-        self.prob_omega_zero = freq_less_than(post['omega'],
+        self.prob_omega_zero = stats.freq_less_than(post['omega'],
                 self.omega_threshold)
         if len(set(post['div_model'])) < 2:
-            self.parameter_patterns_to_remove.update(DIV_MODEL_PATTERNS)
+            self.parameter_patterns_to_remove.update(parsing.DIV_MODEL_PATTERNS)
         if len(set(post['psi'])) < 2:
-            self.parameter_patterns_to_remove.update(PSI_PATTERNS)
+            self.parameter_patterns_to_remove.update(parsing.PSI_PATTERNS)
         if len(set(post['omega'])) < 2:
-            self.parameter_patterns_to_remove.update(OMEGA_PATTERNS)
+            self.parameter_patterns_to_remove.update(parsing.OMEGA_PATTERNS)
         if len(set(post['mean_tau'])) < 2:
-            self.parameter_patterns_to_remove.update(MEAN_TAU_PATTERNS)
-        self.unadjusted_summaries['PRI.omega'] = get_summary(post['omega'])
-        self.unadjusted_summaries['PRI.E.t'] = get_summary(post['mean_tau'])
-        self.unadjusted_summaries['PRI.Psi'] = get_summary(post['psi'])
+            self.parameter_patterns_to_remove.update(parsing.MEAN_TAU_PATTERNS)
+        self.unadjusted_summaries['PRI.omega'] = stats.get_summary(
+                post['omega'])
+        self.unadjusted_summaries['PRI.E.t'] = stats.get_summary(
+                post['mean_tau'])
+        self.unadjusted_summaries['PRI.Psi'] = stats.get_summary(post['psi'])
         if post.has_key('model'):
-            self.unadjusted_summaries['PRI.model'] = get_summary(post['model'])
-        self.unadjusted_summaries['PRI.div.model'] = get_summary(
+            self.unadjusted_summaries['PRI.model'] = stats.get_summary(
+                    post['model'])
+        self.unadjusted_summaries['PRI.div.model'] = stats.get_summary(
                 post['div_model'])
         if MSBAYES_SORT_INDEX.current_value() == 0:
             for i in range(len(post['taus'][0])):
-                self.unadjusted_summaries['PRI.t.' + str(i+1)] = get_summary(
+                self.unadjusted_summaries['PRI.t.' + str(i+1)] = stats.get_summary(
                         [v[i] for v in post['taus']])
 
     def _map_top_div_models(self, div_models):
@@ -1356,9 +1361,58 @@ class PosteriorWorker(object):
             self.top_div_models_to_indices[k] = i + 1
 
     def _add_div_model_column_to_posterior(self):
-        add_div_model_column(self.posterior_path, self.temp_posterior_path,
+        self.add_div_model_column(self.posterior_path,
+                self.temp_posterior_path,
                 self.top_div_models_to_indices,
                 compresslevel = None)
+
+    @classmethod
+    def add_div_model_column(cls, in_file, out_file, div_models_to_indices,
+            compresslevel = None):
+        header = parsing.parse_header(in_file)
+        if functions.get_indices_of_patterns(header,
+                parsing.DIV_MODEL_PATTERNS) != []:
+            raise errors.ParameterParsingError('posterior file {0} already has '
+                    'a divergence model column'.format(
+                    getattr(in_file, 'name', in_file)))
+        header.insert(0, 'PRI.div.model')
+        out, close = process_file_arg(out_file, 'w',
+                compresslevel=compresslevel)
+        out.write('{0}\n'.format('\t'.join(header)))
+        other_index = max(div_models_to_indices.itervalues()) + 1
+        for parameters, line in parsing.parameter_iter(in_file,
+                include_line = True):
+            if not parameters.has_key('taus'):
+                out.close()
+                raise errors.ParameterParsingError('posterior file {0} does not '
+                        'contain divergence time vector'.format(
+                        getattr(file_obj, 'name', file_obj)))
+            if parsing.MSBAYES_SORT_INDEX.current_value() == 0:
+                ip = stats.Partition(parameters['taus'][0])
+            else:
+                ip = stats.IntegerPartition(parameters['taus'][0])
+            idx = div_models_to_indices.get(ip.key, other_index)
+            line.insert(0, str(idx))
+            out.write('{0}\n'.format('\t'.join(line)))
+        if close:
+            out.close()
+
+    @classmethod
+    def strip_div_model_column(cls, in_file, out_file, compresslevel = None):
+        header = parsing.parse_header(in_file)
+        div_indices = set(functions.get_indices_of_patterns(header,
+                parsing.DIV_MODEL_PATTERNS))
+        indices = list(set(range(len(header))) - div_indices)
+        in_stream, close_in = process_file_arg(in_file, 'rU')
+        out_stream, close_out = process_file_arg(out_file, 'w',
+                compresslevel=compresslevel)
+        for line_num, line in enumerate(in_stream):
+            l = line.strip().split()
+            out_stream.write('{0}\n'.format('\t'.join([l[i] for i in indices])))
+        if close_in:
+            in_stream.close()
+        if close_out:
+            out_stream.close()
 
     def _return_posterior_sample(self):
         if self.compress:
@@ -1386,15 +1440,16 @@ class PosteriorWorker(object):
             self.temp_posterior_path = self.posterior_out_path
 
     def _prep_regression_worker(self):
-        header = parse_header(self.temp_posterior_path)
-        all_patterns = set(MEAN_TAU_PATTERNS + OMEGA_PATTERNS + \
-                MODEL_PATTERNS + PSI_PATTERNS + DIV_MODEL_PATTERNS)
+        header = parsing.parse_header(self.temp_posterior_path)
+        all_patterns = set(parsing.MEAN_TAU_PATTERNS + parsing.OMEGA_PATTERNS +
+                parsing.MODEL_PATTERNS + parsing.PSI_PATTERNS +
+                parsing.DIV_MODEL_PATTERNS)
         # Adding tau parameters causes ABCEstimator to fail often
         # if MSBAYES_SORT_INDEX.current_value() == 0:
-        #     all_patterns.update(TAU_PATTERNS)
+        #     all_patterns.update(parsing.TAU_PATTERNS)
         parameter_patterns = sorted(list(all_patterns - \
                 self.parameter_patterns_to_remove))
-        parameter_indices = sorted(get_parameter_indices(header,
+        parameter_indices = sorted(parsing.get_parameter_indices(header,
                 parameter_patterns = parameter_patterns))
         self.regression_worker = ABCToolBoxRegressWorker(
                 temp_fs = self.temp_fs,
@@ -1416,10 +1471,11 @@ class PosteriorWorker(object):
     def _process_regression_results(self):
         if self.regression_worker.failed:
             self.regression_failed = True
-        discrete_parameter_patterns = list(set(PSI_PATTERNS + MODEL_PATTERNS + \
-                DIV_MODEL_PATTERNS) - self.parameter_patterns_to_remove)
+        discrete_parameter_patterns = list(set(parsing.PSI_PATTERNS +
+                parsing.MODEL_PATTERNS +
+                parsing.DIV_MODEL_PATTERNS) - self.parameter_patterns_to_remove)
         try:
-            discrete_probs = summarize_discrete_parameters_from_densities(
+            discrete_probs = stats.summarize_discrete_parameters_from_densities(
                     self.regress_posterior_path,
                     discrete_parameter_patterns = discrete_parameter_patterns,
                     include_omega_summary = True,
@@ -1501,7 +1557,8 @@ class PosteriorWorker(object):
 
     def _write_summary(self):
         try:
-            glm = parse_abctoolbox_summary_file(self.regress_summary_path)
+            glm = parsing.parse_abctoolbox_summary_file(
+                    self.regress_summary_path)
         except:
             _LOG.warning('{0}: Parsing of regression summary file {1!r} '
                     'failed... Returning unadjusted summary'.format(
@@ -1583,16 +1640,16 @@ class ModelProbabilityEstimator(object):
         self.omega_threshold = omega_threshold
         self.shared_div_summary = dict(zip(
                 [i + 1 for i in range(1, self.npairs)],
-                [SampleSummary() for i in range(1, self.npairs)]))
+                [stats.SampleSummary() for i in range(1, self.npairs)]))
         self.psi_summary = dict(zip([i + 1 for i in range(self.npairs)],
-                [SampleSummary() for i in range(self.npairs)]))
-        self.omega_summary = SampleSummary()
+                [stats.SampleSummary() for i in range(self.npairs)]))
+        self.omega_summary = stats.SampleSummary()
         self.rng = rng
         self.tag = tag
         self.finished = False
 
     def get_prior_sample_iter(self):
-        p = Partition()
+        p = stats.Partition()
         if self.config.div_model_prior == 'psi':
             return p.psi_multinomial_draw_iter(
                     num_samples = self.num_samples,
@@ -1618,10 +1675,10 @@ class ModelProbabilityEstimator(object):
 
     def start(self):
         codiv_summarizer = dict(zip([i + 1 for i in range(1, self.npairs)],
-                [SampleSummarizer() for i in range(1, self.npairs)]))
+                [stats.SampleSummarizer() for i in range(1, self.npairs)]))
         psi_summarizer = dict(zip([i + 1 for i in range(self.npairs)],
-                [SampleSummarizer() for i in range(self.npairs)]))
-        omega_summarizer = SampleSummarizer()
+                [stats.SampleSummarizer() for i in range(self.npairs)]))
+        omega_summarizer = stats.SampleSummarizer()
         prior_sample_iter = self.get_prior_sample_iter()
         rng = self.rng
         if not rng:
@@ -1638,23 +1695,25 @@ class ModelProbabilityEstimator(object):
                     codiv_summarizer[k].add_sample(1)
                 else:
                     codiv_summarizer[k].add_sample(0)
-            ss = SampleSummarizer(samples = partition.get_element_vector())
+            ss = stats.SampleSummarizer(
+                    samples = partition.get_element_vector())
             d = ss.variance / ss.mean
             if d < self.omega_threshold:
                 omega_summarizer.add_sample(1)
             else:
                 omega_summarizer.add_sample(0)
         for k in self.psi_summary.iterkeys():
-            self.psi_summary[k].update(SampleSummary(
+            self.psi_summary[k].update(stats.SampleSummary(
                 sample_size = psi_summarizer[k].n,
                 mean = psi_summarizer[k].mean,
                 variance = psi_summarizer[k].variance))
         for k in self.shared_div_summary.iterkeys():
-            self.shared_div_summary[k].update(SampleSummary(
+            self.shared_div_summary[k].update(stats.SampleSummary(
                 sample_size = codiv_summarizer[k].n,
                 mean = codiv_summarizer[k].mean,
                 variance = codiv_summarizer[k].variance))
-        self.omega_summary.update(SampleSummary(sample_size = omega_summarizer.n,
+        self.omega_summary.update(stats.SampleSummary(
+                sample_size = omega_summarizer.n,
                 mean = omega_summarizer.mean,
                 variance = omega_summarizer.variance))
         self.finished = True
@@ -1672,13 +1731,13 @@ class DivModelSimulator(object):
             self.config = MsBayesConfig(config)
         self.npairs = self.config.npairs
         self.num_samples = num_samples
-        self.div_models = PartitionCollection()
+        self.div_models = stats.PartitionCollection()
         self.rng = rng
         self.tag = tag
         self.finished = False
 
     def get_prior_sample_iter(self):
-        p = Partition()
+        p = stats.Partition()
         if self.config.div_model_prior == 'psi':
             return p.psi_multinomial_draw_iter(
                     num_samples = self.num_samples,

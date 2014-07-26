@@ -95,7 +95,7 @@ def main_cli():
 
     from pymsbayes import config
     from pymsbayes.teams import ModelProbabilityEstimatorTeam
-    from pymsbayes.utils import parsing, GLOBAL_RNG
+    from pymsbayes.utils import sumresults, GLOBAL_RNG
 
     if len(args.taxon_indices) < 2:
         log.error('At least two taxon indices are required')
@@ -104,7 +104,7 @@ def main_cli():
         args.seed = random.randint(1, 999999999)
     GLOBAL_RNG.seed(args.seed)
 
-    div_models = parsing.OrderedDivergenceModelCollection(
+    div_models = sumresults.OrderedDivergenceModelCollection(
             div_model_results_path = args.div_model_path)
     for i in args.taxon_indices:
         if ((i < 1) or (i > div_models.npairs)):

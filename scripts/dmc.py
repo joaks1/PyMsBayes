@@ -238,8 +238,8 @@ def main_cli():
             mk_new_dir)
     from pymsbayes.utils.parsing import (get_patterns_from_prefixes,
             DEFAULT_STAT_PATTERNS, DIV_MODEL_PATTERNS, MODEL_PATTERNS,
-            PSI_PATTERNS, MEAN_TAU_PATTERNS, OMEGA_PATTERNS, line_count,
-            parse_data_key_file)
+            PSI_PATTERNS, MEAN_TAU_PATTERNS, OMEGA_PATTERNS, line_count)
+    from pymsbayes.utils import sumresults
     from pymsbayes.manager import Manager
     from pymsbayes.utils.tempfs import TempFileSystem
     from pymsbayes.config import MsBayesConfig
@@ -312,7 +312,7 @@ def main_cli():
         args.seed = random.randint(1, 999999999)
     GLOBAL_RNG.seed(args.seed)
     if args.data_key_path:
-        observed_map = parse_data_key_file(args.data_key_path)
+        observed_map = sumresults.parse_data_key_file(args.data_key_path)
         observed_paths = [observed_map[k] for k in sorted(observed_map.keys())]
     else:
         observed_dir = mk_new_dir(os.path.join(base_dir,

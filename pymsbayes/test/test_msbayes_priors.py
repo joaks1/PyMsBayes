@@ -14,8 +14,9 @@ from pymsbayes.test.support import package_paths
 from pymsbayes.test import TestLevel
 from pymsbayes.utils.parsing import parse_parameters, spreadsheet_iter
 from pymsbayes.utils.functions import long_division
-from pymsbayes.utils.stats import mode_list, SampleSummarizer
+from pymsbayes.utils.stats import mode_list, SampleSummarizer, get_freqs
 from pymsbayes.utils import MSBAYES_SORT_INDEX
+from pymsbayes.utils import errors
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -1477,7 +1478,7 @@ constraiN = 0
 SUBParaMconstrain = 111111111
 """
 
-        self.assertRaises(WorkerExecutionError, self.generate_prior,
+        self.assertRaises(errors.WorkerExecutionError, self.generate_prior,
                 sample_size=1000, batch_size=250, np=4)
 
     @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
@@ -1511,7 +1512,7 @@ CONSTRAIN = 0
 SUBPARAMCONSTRAN = 111111111
 """
 
-        self.assertRaises(WorkerExecutionError, self.generate_prior,
+        self.assertRaises(errors.WorkerExecutionError, self.generate_prior,
                 sample_size=1000, batch_size=250, np=4)
 
 

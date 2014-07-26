@@ -236,7 +236,7 @@ class MergePriorTestCase(PyMsBayesTestCase):
 
     def _has_header(self, path):
         first_line = open(path, 'rU').next()
-        if workers.HEADER_PATTERN.match(first_line):
+        if HEADER_PATTERN.match(first_line):
             return True
         return False
 
