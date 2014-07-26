@@ -8,13 +8,16 @@ import re
 import glob
 
 from pymsbayes.teams import *
+from pymsbayes import manager
 from pymsbayes.workers import (MsBayesWorker, ABCToolBoxRejectWorker,
-        MsRejectWorker, merge_priors, merge_prior_files)
+        ABCToolBoxRegressWorker, MsRejectWorker, PosteriorWorker,
+        EuRejectWorker, merge_priors, merge_prior_files)
 from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test import TestLevel
 from pymsbayes.utils import GLOBAL_RNG, MSBAYES_SORT_INDEX
-from pymsbayes.utils.parsing import parse_parameters, add_div_model_column
+from pymsbayes.utils import functions
+from pymsbayes.utils.parsing import parse_parameters
 from pymsbayes.utils.stats import IntegerPartitionCollection
 from pymsbayes.utils.messaging import get_logger
 
@@ -448,10 +451,10 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                     sample_size = batch_size,
                     config_path = self.cfg_path,
                     model_index = 1,
-                    seed = get_random_int(self.rng),
+                    seed = functions.get_random_int(self.rng),
                     schema = 'abctoolbox',
                     tag = 1))
-        prior_workers = Manager.run_workers(
+        prior_workers = manager.Manager.run_workers(
                 workers = prior_workers,
                 num_processors = num_processors)
         post_path = self.get_test_path(prefix='sum-post')
@@ -482,7 +485,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         for i, k in enumerate(ipc.iterkeys()):
             div_models_to_indices[k] = i + 1
         new_post_path = self.get_test_path(prefix='new-post')
-        add_div_model_column(post_path, new_post_path,
+        PosteriorWorker.add_div_model_column(post_path, new_post_path,
                 div_models_to_indices,
                 compresslevel = None)
         
@@ -585,10 +588,10 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                     sample_size = batch_size,
                     config_path = self.cfg_path,
                     model_index = 1,
-                    seed = get_random_int(self.rng),
+                    seed = functions.get_random_int(self.rng),
                     schema = 'abctoolbox',
                     tag = 1))
-        prior_workers = Manager.run_workers(
+        prior_workers = manager.Manager.run_workers(
                 workers = prior_workers,
                 num_processors = num_processors)
         expected_prior_path = self.get_test_path(prefix='expected-prior')
@@ -674,10 +677,10 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                     sample_size = batch_size,
                     config_path = self.cfg_path,
                     model_index = 1,
-                    seed = get_random_int(self.rng),
+                    seed = functions.get_random_int(self.rng),
                     schema = 'abctoolbox',
                     tag = 1))
-        prior_workers = Manager.run_workers(
+        prior_workers = manager.Manager.run_workers(
                 workers = prior_workers,
                 num_processors = num_processors)
         post_path = self.get_test_path(prefix='sum-post')
@@ -708,7 +711,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         for i, k in enumerate(ipc.iterkeys()):
             div_models_to_indices[k] = i + 1
         new_post_path = self.get_test_path(prefix='new-post')
-        add_div_model_column(post_path, new_post_path,
+        PosteriorWorker.add_div_model_column(post_path, new_post_path,
                 div_models_to_indices,
                 compresslevel = None)
         
@@ -1515,7 +1518,8 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                     div_models_to_indices = {}
                     for idx, key in enumerate(ipc.iterkeys()):
                         div_models_to_indices[key] = idx + 1
-                    add_div_model_column(tmp_post_paths[i][j][k], post_paths[i][j][k],
+                    PosteriorWorker.add_div_model_column(tmp_post_paths[i][j][k],
+                            post_paths[i][j][k],
                             div_models_to_indices,
                             compresslevel = None)
 
@@ -1542,7 +1546,8 @@ class ABCTeamTestCase(PyMsBayesTestCase):
                     div_models_to_indices = {}
                     for idx, key in enumerate(ipc.iterkeys()):
                         div_models_to_indices[key] = idx + 1
-                    add_div_model_column(tmp_post_paths[i][j][k], post_paths[i][j][k],
+                    PosteriorWorker.add_div_model_column(tmp_post_paths[i][j][k],
+                            post_paths[i][j][k],
                             div_models_to_indices,
                             compresslevel = None)
 

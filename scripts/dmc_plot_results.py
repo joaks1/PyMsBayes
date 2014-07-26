@@ -87,7 +87,7 @@ def main_cli():
     log = LoggingControl.get_logger(__name__)
 
     from pymsbayes import plotting
-    from pymsbayes.utils import parsing
+    from pymsbayes.utils import sumresults
     from pymsbayes.utils import GLOBAL_RNG
 
     if not plotting.MATPLOTLIB_AVAILABLE:
@@ -106,7 +106,7 @@ def main_cli():
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
 
-    results = parsing.DMCSimulationResults(args.info_path)
+    results = sumresults.DMCSimulationResults(args.info_path)
     if results.num_sim_reps > 1:
         log.error('Results appear to be from simulation-based analysis, '
                 'for which this plotting script is not appropriate.')
@@ -236,7 +236,7 @@ def main_cli():
                 width = (0.25 * prior_cfg.npairs) + 0.55
                 if width < 2.8:
                     width = 2.8
-                num_div_summary = parsing.NumberOfDivergencesSummary(
+                num_div_summary = plotting.NumberOfDivergencesSummary(
                         config_path = results.prior_index_to_config[prior_idx],
                         psi_results_path = psi_path,
                         posterior_summary_path = posterior_summary_path,
