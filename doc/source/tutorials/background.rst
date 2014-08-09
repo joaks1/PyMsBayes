@@ -4,6 +4,9 @@
 Background
 **********
 
+Comparative divergence models
+=============================
+
 Biogeographers often seek to explain diversity on historical events.
 That is, using genetic data from contemporary populations, we would like to
 infer diversification patterns and see if they support patterns predicted by
@@ -91,3 +94,22 @@ most general model of divergence.
    A cartoon showing the most general model of divergence where all three
    population-pairs of lizards that diverge at unique times.
 
+Bayesian divergence-model choice
+================================
+
+If we go out and sample individuals from each of the lizard populations, and
+from those individuals collect DNA sequence data from one or more orthologous
+loci per pair of populations, we can use these data to infer the temporal
+distribution of the population divergences across the three lizard species.
+We know that the sequences of a locus of a pair are related by a genealogy, and
+that the shape of this genealogy is governed by demographic processes.
+We also know that the variation we see in the contemporary sequences
+accumulated as the sequences evolved via mutational processes along the
+genealogy.
+So, if we use the coalescent to model the demographic processes controlling
+the branching rate of the gene tree, and a Markov chain to model the
+mutational processes, and make an assumption about the relative mutation
+rates among the three lizard species, we can estimate the relative times
+that the three pairs of populations diverged.
+So, we can modify our cartoon of model :math:`M_5 = 123` to better
+represent data and model.
