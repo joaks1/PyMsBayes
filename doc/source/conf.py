@@ -36,7 +36,7 @@ extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
-    'sphinx.ext.mathjax',
+    'sphinx.ext.pngmath',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinxcontrib.bibtex',
@@ -151,6 +151,7 @@ rst_epilog = """
 .. |True| replace:: `True`
 .. |False| replace:: `False`
 .. |None| replace:: `None`
+.. |divTimeVector| replace:: \mathbf{{T}}
 """.format(this_year = time.strftime('%Y'))
 
 # If true, keep warnings as "system message" paragraphs in the built documents.
@@ -394,3 +395,20 @@ epub_exclude_files = ['search.html']
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'http://docs.python.org/': None}
+
+#####################################################
+# add LaTeX macros 
+latex_elements['preamble'] = '\usepackage{amsmath}\n\usepackage{amssymb}\n'
+
+f = file('latex_macros.sty')
+
+try:
+    pngmath_latex_preamble  # check whether this is already defined
+except NameError:
+    pngmath_latex_preamble = ""
+
+for macro in f:
+    # used when building latex and pdf versions
+    latex_elements['preamble'] += macro + '\n'
+    # used when building html version
+    pngmath_latex_preamble += macro + '\n'
