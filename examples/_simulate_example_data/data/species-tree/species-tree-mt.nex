@@ -1,0 +1,4 @@
+#NEXUS
+begin trees;
+tree mt_0 = [&R] (((species1_pop1[&dmv=0.005]:0.04,species1_pop2[&dmv=0.005]:0.04)[&dmv=0.005]:0.08,(species2_pop1[&dmv=0.005]:0.08,species2_pop2[&dmv=0.005]:0.08)[&dmv=0.005]:0.04)[&dmv=0.005]:0.4,(species3_pop1[&dmv=0.005]:0.04,species3_pop2[&dmv=0.005]:0.04)[&dmv=0.005]:0.48)[&dmv=0.005] ;
+end;
