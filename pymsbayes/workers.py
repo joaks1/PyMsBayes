@@ -7,6 +7,7 @@ import subprocess
 import time
 import shutil
 import traceback
+import tempfile
 from cStringIO import StringIO
 
 from pymsbayes.fileio import (expand_path, process_file_arg, FileStream, open,
@@ -40,6 +41,7 @@ class Worker(object):
             stdout_path = None,
             stderr_path = None,
             append_stdout = True,
+            subprocess_kwargs = {},
             tag = None):
         self.__class__.total += 1
         self.stdout_path = stdout_path
@@ -53,6 +55,7 @@ class Worker(object):
         self.append_stdout = append_stdout
         self.error = None
         self.trace_back = None
+        self.subprocess_kwargs = subprocess_kwargs
         self.tag = tag
 
     def get_stderr(self):
@@ -86,7 +89,7 @@ class Worker(object):
                     e.getvalue()))
             raise
         _LOG.debug('Starting process with following command:\n\t'
-                '{0}'.format(' '.join(self.cmd)))
+                '{0}'.format(' '.join([str(x) for x in self.cmd])))
         if self.stdout_path:
             if self.append_stdout:
                 sout = open(self.stdout_path, 'a')
@@ -101,7 +104,8 @@ class Worker(object):
         self.process = subprocess.Popen(self.cmd,
                 stdout = sout,
                 stderr = serr,
-                shell = False)
+                shell = False,
+                **self.subprocess_kwargs)
         self.stdout, self.stderr = self.process.communicate()
         self.exit_code = self.process.wait()
         if hasattr(sout, 'close'):
@@ -130,6 +134,30 @@ class Worker(object):
     def _pre_process(self):
         pass
 
+
+class GenericWorker(Worker):
+    count = 0
+    def __init__(self,
+            exe,
+            args,
+            stdout_path = None,
+            stderr_path = None,
+            append_stdout = True,
+            subprocess_kwargs = {},
+            tag = None):
+        Worker.__init__(self,
+                stdout_path = stdout_path,
+                stderr_path = stderr_path,
+                append_stdout = append_stdout,
+                subprocess_kwargs = subprocess_kwargs,
+                tag = tag)
+        self.__class__.count += 1
+        self.name = self.__class__.__name__ + '-' + str(self.count)
+        self.exe = ToolPathManager.get_tool_path(exe)
+        if isinstance(args, str):
+            args = args.strip().split()
+        self.args = [str(x) for x in args]
+        self.cmd = [self.exe] + self.args
 
 ##############################################################################
 ## functions for managing msbayes workers
@@ -1765,3 +1793,51 @@ class DivModelSimulator(object):
         self.div_models.add_iter(self.get_prior_sample_iter())
         self.finished = True
 
+
+class GeneTreeSimWorker(GenericWorker):
+    count = 0
+    def __init__(self,
+            args,
+            stdout_path = None,
+            stderr_path = None,
+            tag = None):
+        GenericWorker.__init__(self,
+                exe = 'genetree_in_sptree_sim',
+                args = args,
+                stdout_path = stdout_path,
+                stderr_path = stderr_path,
+                tag = tag)
+        self.__class__.count += 1
+        self.name = self.__class__.__name__ + '-' + str(self.count)
+
+
+class SequenceSimWorker(GenericWorker):
+    count = 0
+    def __init__(self,
+            args,
+            output_path,
+            stdout_path = None,
+            stderr_path = None,
+            tag = None):
+        GenericWorker.__init__(self,
+                exe = 'simulate_sequences',
+                args = args,
+                stdout_path = stdout_path,
+                stderr_path = stderr_path,
+                tag = tag)
+        self.__class__.count += 1
+        self.name = self.__class__.__name__ + '-' + str(self.count)
+        self.output_path = functions.get_new_path(output_path)
+        self.tmp_dir = None
+
+    def _pre_process(self):
+        self.tmp_dir = tempfile.mkdtemp()
+        self.subprocess_kwargs['cwd'] = self.tmp_dir
+
+    def _post_process(self):
+        f = os.listdir(self.tmp_dir)
+        if not ((len(f) == 1) and (os.path.splitext(f[0])[-1] == '.nex')):
+            raise Exception('{0} produced unexpected output'.format(self.name))
+        p = os.path.join(self.tmp_dir, f[0])
+        shutil.move(p, self.output_path)
+        os.rmdir(self.tmp_dir)
