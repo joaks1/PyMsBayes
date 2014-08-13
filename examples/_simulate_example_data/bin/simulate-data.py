@@ -26,7 +26,7 @@ paup_hky_string = (
         )
 paup_hky_pattern = re.compile(paup_hky_string, re.MULTILINE)
 
-def write_paup_hky_file(path, nexus_data_path, score_file_path):
+def write_paup_hky_file(path, nexus_data_path):
     with open(path, 'w') as out:
         out.write("#NEXUS\n\n"
                 "BEGIN PAUP;\n\t"
@@ -40,9 +40,8 @@ def write_paup_hky_file(path, nexus_data_path, score_file_path):
                 "Default lscores longfmt=yes;\n\t"
                 "Set criterion=like;\n\t"
                 "[!** Calculating HKY **]\n\t"
-                "lscores 1/ nst=2 base=est tratio=est rates=equal pinv=0\n\t"
-                "scorefile={1} append;\n"
-                "END;\n".format(nexus_data_path, score_file_path)
+                "lscores 1/ nst=2 base=est tratio=est rates=equal pinv=0;\n"
+                "END;\n".format(nexus_data_path)
                 )
 
 def parse_paup_log_file(path):
@@ -70,6 +69,7 @@ class PaupWorker(object):
             exe_path = None,
             stdout_path = None,
             stderr_path = None,
+            subprocess_kwargs = {},
             tag = None):
         self.stdout_path = stdout_path
         self.stderr_path = stderr_path
@@ -81,6 +81,7 @@ class PaupWorker(object):
         self.exe_path = ToolPathManager.get_external_tool(exe_path)
         self.nex_path = nex_path
         self.cmd = [self.exe_path, '-n', self.nex_path]
+        self.subprocess_kwargs = subprocess_kwargs
 
     def get_stderr(self):
         if not self.stderr_path:
@@ -108,7 +109,8 @@ class PaupWorker(object):
         self.process = subprocess.Popen(self.cmd,
                 stdout = sout,
                 stderr = serr,
-                shell = False)
+                shell = False,
+                **self.subprocess_kwargs)
         self.stdout, self.stderr = self.process.communicate()
         self.exit_code = self.process.wait()
         if hasattr(sout, 'close'):
@@ -230,13 +232,11 @@ def parse_alignments(paths):
                     format = 'fasta')
             tmp_nex_data_path = temp_fs.get_file_path()
             tmp_nex_exe_path = temp_fs.get_file_path()
-            tmp_score_path = temp_fs.get_file_path()
             nseqs = dataio.convert_format(in_file = fasta_path,
                     out_file = tmp_nex_data_path,
                     in_format = 'fasta',
                     out_format = 'nexus')
-            write_paup_hky_file(tmp_nex_exe_path, tmp_nex_data_path,
-                    tmp_score_path)
+            write_paup_hky_file(tmp_nex_exe_path, tmp_nex_data_path)
             stdout_path = temp_fs.get_file_path()
             pw = PaupWorker(nex_path = tmp_nex_exe_path,
                     stdout_path = stdout_path)
@@ -256,7 +256,8 @@ def parse_alignments(paths):
             parameters['nsites'] = len(pop_dict['1'].values()[0].seq)
             parameters['path'] = os.path.relpath(fasta_path,
                     os.path.dirname(config_path))
-            if (parameters['kappa'] < 1.0) or (parameters['kappa'] > 1000.0):
+            if ((float(parameters['kappa']) < 1.0) or
+                    (float(parameters['kappa']) > 1000.0)):
                 parameters['kappa'] = 1.0
             config_stream.write('{species}\t{locus}\t{ploidy_multiplier}\t'
                     '{rate_multiplier}\t{nsamples1}\t{nsamples2}\t{kappa}\t'
