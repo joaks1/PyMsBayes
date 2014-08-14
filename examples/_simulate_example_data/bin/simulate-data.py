@@ -143,22 +143,20 @@ def simulate_alignments(
     seq_workers = []
     seq_file_paths = []
     for i, align_len in enumerate(alignment_lengths):
-        tree_path = os.path.join(project_util.GENE_TREE_DIR,
-                'gene-tree-locus-{0}.nex'.format(i))
-        seq_path = os.path.join(project_util.SEQ_DIR,
-                'locus-{0}.nex'.format(i))
+        locus = i
         num_locus_copies = 2
         sp_tree_path = project_util.SP_TREE_PATH
         if i == 0:
-            tree_path = os.path.join(project_util.GENE_TREE_DIR,
-                    'gene-tree-locus-mt.nex')
-            seq_path = os.path.join(project_util.SEQ_DIR,
-                    'locus-mt.nex')
+            locus = 'mt'
             num_locus_copies = 1
             # Using a 4-fold faster mutation rate for a mitochondrial locus
             # (all branches of species tree are multiplied by 4) so that the
             # difference in ploidy cancels out. E.g., 2Nu = 0.5N4u
             sp_tree_path = project_util.SP_TREE_MT_PATH
+        tree_path = os.path.join(project_util.GENE_TREE_DIR,
+                'gene-tree-locus-{0}.nex'.format(locus))
+        seq_path = os.path.join(project_util.SEQ_DIR,
+                'locus-{0}.nex'.format(locus))
         check_for_output(tree_path)
         tw = workers.GeneTreeSimWorker(args = [
                 '-n', '1',
@@ -180,7 +178,25 @@ def simulate_alignments(
     return seq_file_paths
 
 
-def parse_alignments(paths):
+def parse_alignments(paths,
+        to_cull = {
+                '1': {'mt': (0, 0, 0),
+                      '1':  (0, 1, 11),
+                      '2':  (1, 2, 0),
+                      '3':  (2, 1, 26),
+                      '4':  (1, 0, 5),
+                      '5':  (1, 1, 33)},
+                '2': {'mt': (1, 0, 51),
+                      '1':  (2, 0, 0),
+                      '3':  (0, 1, 0),
+                      '4':  (1, 1, 0),
+                      '5':  (0, 0, 0)},
+                '3': {'mt': (0, 1, 13),
+                      '1':  (0, 2, 33),
+                      '3':  (1, 0, 9),
+                      '4':  (2, 1, 17)},
+                },
+        ):
     temp_fs = tempfs.TempFileSystem(
             parent = project_util.BIN_DIR)
     if not os.path.exists(project_util.LIZARD_SEQ_DIR):
@@ -189,7 +205,7 @@ def parse_alignments(paths):
         functions.mkdr(project_util.LIZARD_CONFIG_DIR)
     config_path = os.path.join(project_util.LIZARD_CONFIG_DIR, 'sample-table.txt')
     check_for_output(config_path)
-    config_stream = open(config_path, 'w')
+    config_lines = []
     pi_path = os.path.join(project_util.LIZARD_CONFIG_DIR, 'theta-estimates.txt')
     check_for_output(pi_path)
     pi_stream = open(pi_path, 'w')
@@ -199,7 +215,10 @@ def parse_alignments(paths):
             r'^species(?P<species>\d)_pop(?P<pop>\d)_tip(?P<tip>\d)$')
     data_sets = {}
     for p in paths:
+        num_locus_copies = 2
         locus = os.path.splitext(p)[0].split('-')[-1]
+        if locus.lower() == 'mt':
+            num_locus_copies = 1
         sequences = dataio.get_seq_dict(p, format = 'nexus')
         for seq_id, seq in sequences.iteritems():
             m = id_pattern.match(seq_id)
@@ -211,11 +230,24 @@ def parse_alignments(paths):
                 data_sets[sp][pop] = {}
             data_sets[sp][pop][seq_id] = seq
         for species in sorted(data_sets.keys()):
+            try:
+                cull_tup = to_cull[species][locus]
+            except KeyError:
+                continue
             pop_dict = data_sets[species]
             seq_list = []
             parameters = {}
+            nsamples = []
             for population, seq_dict in pop_dict.iteritems():
+                if cull_tup[2] > 0:
+                    for s in seq_dict.itervalues():
+                        s.seq = s.seq[:-cull_tup[2]]
                 seq_ids = sorted(seq_dict.keys())
+                cull_index = (cull_tup[int(population) - 1] *
+                        num_locus_copies)
+                if cull_index > 0:
+                    seq_ids = seq_ids[:-cull_index]
+                nsamples.append(len(seq_ids))
                 seq_list.extend((seq_dict[k] for k in seq_ids))
                 pi = seqstats.average_number_of_pairwise_differences(
                     seq_iter = (seq_dict[k] for k in seq_ids),
@@ -250,8 +282,8 @@ def parse_alignments(paths):
             else:
                 parameters['ploidy_multiplier'] = 1.0
                 parameters['rate_multiplier'] = 1.0
-            parameters['nsamples1'] = len(pop_dict['1'])
-            parameters['nsamples2'] = len(pop_dict['2'])
+            parameters['nsamples1'] = nsamples[0]
+            parameters['nsamples2'] = nsamples[1]
             assert parameters['nsamples1'] + parameters['nsamples2'] == nseqs
             parameters['nsites'] = len(pop_dict['1'].values()[0].seq)
             parameters['path'] = os.path.relpath(fasta_path,
@@ -259,11 +291,14 @@ def parse_alignments(paths):
             if ((float(parameters['kappa']) < 1.0) or
                     (float(parameters['kappa']) > 1000.0)):
                 parameters['kappa'] = 1.0
-            config_stream.write('{species}\t{locus}\t{ploidy_multiplier}\t'
+            config_lines.append('{species}\t{locus}\t{ploidy_multiplier}\t'
                     '{rate_multiplier}\t{nsamples1}\t{nsamples2}\t{kappa}\t'
                     '{nsites}\t{a}\t{c}\t{g}\t{path}\n'.format(**parameters))
     sys.stdout.write('Summary of pi estimates:\n{0}\n'.format(str(pi_summary)))
-    config_stream.close()
+    config_lines.sort()
+    with open(config_path, 'w') as out:
+        for l in config_lines:
+            out.write(l)
     pi_stream.close()
     temp_fs.purge()
 
