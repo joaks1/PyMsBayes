@@ -254,7 +254,7 @@ def parse_alignments(paths,
                     aligned = True,
                     per_site = True)
                 pi_summary.add_sample(pi)
-                pi_stream.write('\t{0}\t{1}\t{2}\t{3}\n'.format(species,
+                pi_stream.write('{0}\t{1}\t{2}\t{3}\n'.format(species,
                         population, locus, pi))
             fasta_path = os.path.join(project_util.LIZARD_SEQ_DIR,
                     'species-{0}-locus-{1}.fasta'.format(species, locus))
