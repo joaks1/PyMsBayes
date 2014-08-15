@@ -151,7 +151,15 @@ rst_epilog = """
 .. |True| replace:: `True`
 .. |False| replace:: `False`
 .. |None| replace:: `None`
-.. |divTimeVector| replace:: \mathbf{{T}}
+
+.. |example-dir| replace:: `PyMsBayes/examples`
+.. _example-dir: https://github.com/joaks1/PyMsBayes/tree/master/examples
+.. |lizard-dir| replace:: `PyMsBayes/examples/lizards`
+.. _lizard-dir: https://github.com/joaks1/PyMsBayes/tree/master/examples/lizards
+.. |lizard-seq-dir| replace:: `PyMsBayes/examples/lizards/sequences`
+.. _lizard-seq-dir: https://github.com/joaks1/PyMsBayes/tree/master/examples/lizards/sequences
+.. |lizard-config-dir| replace:: `PyMsBayes/examples/lizards/configs`
+.. _lizard-config-dir: https://github.com/joaks1/PyMsBayes/tree/master/examples/lizards/configs
 """.format(this_year = time.strftime('%Y'))
 
 # If true, keep warnings as "system message" paragraphs in the built documents.
