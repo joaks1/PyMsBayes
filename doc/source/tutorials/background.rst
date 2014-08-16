@@ -289,19 +289,44 @@ The :math:`\divModel{1}` will have the largest marginal likelihood (even if it
 does not explain the data very well) because it is "averaged" over less space
 with small likelihood and large prior density.
 
+.. _likelihood_surface:
+.. figure:: /_static/marginal-plot-3d.png
+   :align: center
+   :width: 600 px
+   :figwidth: 60 %
+   :alt: likelihood surface plot
+   
+   The likelihood surface of a divergence model with two divergence-time
+   parameters.
+   The white line shows the likelihood of the 1-parameter constrained model,
+   and the red dashed line shows the outline of a uniform prior.
+   Despite capturing much less of the prior density, the constrained
+   1-parameter model has a larger *marginal* likelihood in this example.
+
 If we use a uniform prior in this case, we will likely end up with strong
 posterior support for a model with shared divergence times, even if the three
 pairs of lizard populations diverged at quite different times.
-|msb|_ uses a uniform prior on divergence times, and this is a key reason it
-will often support models of highly clustered divergences even when taxa
+|msbayes|_ uses a uniform prior on divergence times, and this is a key reason
+it will often support models of highly clustered divergences even when taxa
 diverge randomly over quite broad timescales; see :cite:`Oaks2012` and
 :cite:`Oaks2014reply` for more details.
 
-A simple solution to this problem is to use a more flexible prior on
-divergence times that allows us to better represent our prior knowledge.
-In this case, we would like to specify a prior that places most of the prior
+A simple solution to this problem is to use a more flexible prior on divergence
+times that allows us to better represent our prior knowledge.
+In this example, we would like to specify a prior that places most of the prior
 density on divergence times between 0--5 million years, but allows for a tail
 with low density to capture our prior uncertainty up to 10 million years.
+
+.. _gamma_prior:
+.. figure:: /_static/marginal-plot-2d.png
+   :align: center
+   :width: 600 px
+   :figwidth: 60 %
+   :alt: gamma prior plot
+   
+   The flexibility of a gamma distribution (blue) to better represent prior
+   knowledge about divergence times. The black line represents the likelihood
+   density, and the red line is a uniform prior.
 
 However, we cannot calculate all of those integrals exactly, so we will need to
 use a numerical integration algorithm to approximate the posterior.
@@ -359,7 +384,7 @@ An example of this is animated in the rejection_sampling_ gif below.
    :align: center
    :width: 600 px
    :figwidth: 60 %
-   :alt: divergence model 123
+   :alt: rejection sampler gif
    
    An illustration of a Monte Carlo rejection sampler.
 
@@ -389,3 +414,4 @@ However, we can get a sense of whether we have evaluated a sufficient number of
 samples from the prior by keeping track of the distributions of the posterior
 samples of the parameters as we accumulate samples and watch for them to
 stabilize.
+
