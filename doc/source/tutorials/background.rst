@@ -201,8 +201,6 @@ This is equal to the integral over the entire parameter space of model
 You can think of this as the "average" likelihood of divergence model
 :math:`\divModel{1}`, and this average is weighted by the prior over the
 entire space of the model.
-As you might expect, because the marginal likelihood is weighted by the priors
-on parameters, it can be quite sensitive to the priors.
 If we calculate the marginal likelihood of all five possible divergence
 models, we can use Bayes' rule again to calculate the posterior probability
 of divergence model :math:`\divModel{1}` given our sequence data:
@@ -235,6 +233,75 @@ Because we are sampling over all the divergence models, Equation :eq:`postmass`
 will also give us model-averaged estimates of the divergence times for each of
 our pairs of populations (i.e., we get estimates of divergence times that
 account for uncertainty in divergence models).
+
+As you might expect, because the marginal likelihoods are weighted by the
+priors on parameters, it can be quite sensitive to the priors.
+Thus, we have to choose the priors on parameters carefully, and should always
+assess the sensitivity of our results to differences in these prior
+assumptions.
+So, now seems like as good of time as any to discuss priors.
+
+Prior on divergence times
+-------------------------
+
+We have to choose a probability distribution to represent our prior knowledge
+about the divergence times of our three lizard population pairs.
+It turns out that is choice is very important for the model described above.
+This is because this prior has a strong influence on the marginal likelihoods
+of the divergence models.
+As we add divergence-time parameters to a divergence model, it has to integrate
+over a *much* greater parameter space.
+For example, let's consider a uniform prior of 0 to 5 million years on
+divergence times.
+The :math:`\divModel{1}` model above only has a single divergence-time
+parameter, and so would have to integrate over a single dimension from 0 to 5.
+The :math:`\divModel{2}`, :math:`\divModel{3}`, and :math:`\divModel{4}` models
+each have 2 divergence-time parameters, and so have to integrate over a
+:math:`5 \times 5` square.
+The :math:`\divModel{3}` model has three divergence-time parameters, and so has
+to integrate over a :math:`5 \times 5 \times 5` cube.
+Now imagine we were comparing 20 pairs of populations; the most general model
+would integrate over a :math:`5^{20}` multidimensional space!!
+
+If using a uniform distribution to represent our prior uncertainty, we
+necessarily have to put a lot of prior density in unlikely regions of parameter
+space to avoid excluding the true divergence times before we even start the
+analysis.
+For example, we might suspect all three pairs of lizard populations diverged
+within the last 5 million years.
+However, to feel confident that we are not excluding the true values of the
+divergence times *a priori*, we might need to specify a prior of 0 to 10
+million years.
+The consequence of this is that we are placing the same amount prior density
+between 5--10 million years as we are between 0--5, even though we suspect
+the former is quite improbable *a priori*
+So, why does this matter?
+Well, if we were correct *a priori*, and the likelihood of all three species
+diverging between 5--10 million years is nearly zero, we have imposed a very
+strong "penalty" for models with more divergence-time parameters.
+The :math:`\divModel{3}` will integrate over a :math:`5 \times 5 \times 5` cube
+with very small likelihood, but a lot of prior weight, which will result in a
+very small marginal (or "average") likelihood, and thus a small posterior
+probability.
+Again, imagine the marginal likelihood of the most general model if we were
+comparing 20 lizard species!!
+The :math:`\divModel{1}` will have the largest marginal likelihood (even if it
+does not explain the data very well) because it is "averaged" over less space
+with small likelihood and large prior density.
+
+If we use a uniform prior in this case, we will likely end up with strong
+posterior support for a model with shared divergence times, even if the three
+pairs of lizard populations diverged at quite different times.
+|msb|_ uses a uniform prior on divergence times, and this is a key reason it
+will often support models of highly clustered divergences even when taxa
+diverge randomly over quite broad timescales; see :cite:`Oaks2012` and
+:cite:`Oaks2014reply` for more details.
+
+A simple solution to this problem is to use a more flexible prior on
+divergence times that allows us to better represent our prior knowledge.
+In this case, we would like to specify a prior that places most of the prior
+density on divergence times between 0--5 million years, but allows for a tail
+with low density to capture our prior uncertainty up to 10 million years.
 
 However, we cannot calculate all of those integrals exactly, so we will need to
 use a numerical integration algorithm to approximate the posterior.
