@@ -165,8 +165,8 @@ Lastly, let's use :math:`\geneTreeVector` to represent all of the gene trees
 If we make assumptions about the relative rates of mutations and the relative
 generation times among the three lizard species, we can calculate the posterior
 probability distribution of the divergence times (and other nuisance
-parameters) given the data and one of the models of divergence using
-Bayes rule:
+parameters) given the data and one of the models of divergence using Bayes
+rule:
 
 .. math::
     :label: postdensity
@@ -199,9 +199,11 @@ This is equal to the integral over the entire parameter space of model
     d\demographicParamVector
 
 You can think of this as the "average" likelihood of divergence model
-:math:`\divModel{1}`, where this average is weighted by the prior over the
+:math:`\divModel{1}`, and this average is weighted by the prior over the
 entire space of the model.
-If we calculate this marginal likelihood of all five possible divergence
+As you might expect, because the marginal likelihood is weighted by the priors
+on parameters, it can be quite sensitive to the priors.
+If we calculate the marginal likelihood of all five possible divergence
 models, we can use Bayes' rule again to calculate the posterior probability
 of divergence model :math:`\divModel{1}` given our sequence data:
 
@@ -226,11 +228,97 @@ divergence model ":math:`i`" using:
     \divModel{i}) p(\divModel{i}) }{ \sum_{i} p(\alignmentVector \given
     \divModel{i}) p(\divModel{i}) }
 
+This is essentially the relative marginal likelihood of the model (it is
+exactly that if assume equal prior mass for each divergence model). Thus, the
+marginal likelihoods are the "guts" of Bayesian model choice.
+Because we are sampling over all the divergence models, Equation :eq:`postmass`
+will also give us model-averaged estimates of the divergence times for each of
+our pairs of populations (i.e., we get estimates of divergence times that
+account for uncertainty in divergence models).
+
 However, we cannot calculate all of those integrals exactly, so we will need to
-use a numerical integration tool to approximate the posterior.
-For example, we could derive the likelihood term in Equation :eq:`postdensity`
-and use Markov chain Monte Carlo to approximate the posterior.
-However, we can avoid deriving and calculating the likelihood if we use
-approximate likelihoods.
-Thus we will use a numerical integration algorithm that uses approximate
-likelihoods to approximate the posterior.
+use a numerical integration algorithm to approximate the posterior.
+Furthermore, to avoid deriving and calculating the likelihood function, we will
+use approximate likelihoods for our numerical integration algorithm.
+(Digression: this is why I do not like the term "approximate Bayesian
+computation." This describes *all* Bayesian applications except for trivial
+models where the posterior can solved exactly. "Approximate-likelihood Bayesian
+computation" would be much more useful, but then we would lose the beloved
+acronym ABC.)
+
+Approximate-*likelihood* Bayesian computation
+=============================================
+
+We will use a simple Monte Carlo rejection algorithm based on approximate
+likelihoods to approximate the posterior in Equation :eq:`postmass`.
+Approximate-likelihood techniques use simulations to avoid calculating the
+likelihood function.
+The idea is very simple: given values for all the parameters in the model, we
+simulate under the model a dataset that matches our observed dataset (i.e., the
+same number of sequence alignments with same number of rows and columns), and
+compare the simulated dataset to the observed data.
+The closer to the observed data, the higher the likelihood for the set of
+parameter values.
+If we did this many times, drawing the set of parameter values from the prior
+distribution each time, and only retained the samples that produced our
+datasets that matched our observed sequence alignments (or sufficient
+statistics of those alignments) exactly, this would be equivalent to an
+exact-likelihood Bayesian approach.
+However, the sun would probably burn out while we waited to run enough
+simulations to collect a decent number of posterior samples in this way.
+So, to make things more computationally tractable, we will introduce
+two sources of approximation:
+
+#. We will reduce our observed and simulated datasets down to a set of
+   insufficient statistics. This adds a "fudge" factor to the method, because
+   we are throwing away information in our data when we do this.
+#. We will retain simulations that produce values of these insufficient
+   statistics that are "close enough" to the values calculated from our
+   observed data. This "wiggle room" (tolerance) around the observed summary
+   statistics is another source of approximation.
+
+For illustration purposes, let's assume we reduce our dataset for the three
+pairs of lizard populations into one summary statistic per species; perhaps its
+the average sequence divergence between the two populations.
+Then, we will simulate lots of datasets under the model (each time based on a
+set of parameter values drawn from the prior distribution) and reduce each of
+them to the same three summary statistics.
+Lastly, we retain the sets of parameter values that produced summary statistics
+that fall within the "good enough" zone around our observed data.
+An example of this is animated in the rejection_sampling_ gif below.
+
+.. _rejection_sampling:
+.. figure:: /_static/rejection-sampling.gif
+   :align: center
+   :width: 600 px
+   :figwidth: 60 %
+   :alt: divergence model 123
+   
+   An illustration of a Monte Carlo rejection sampler.
+
+This animation begins with a blue dot representing the values of the three
+summary statistics plotted in three dimensions.
+Next, a grey sphere illustrates the "good enough" zone.
+Then, we see black points accumulate, which represent the values of the three
+summary statistics calculated from datasets simulated under sets of parameter
+values drawn randomly from the prior.
+Lastly, we see the retained sample of points that fell within our "good enough"
+zone; this is our sample from the approximate posterior.
+
+So, how do we decide how large the "good enough" zone is? Well, the smaller the
+better, but this is governed arbitrarily by computational limitations.
+What we do is simulate as many datasets as we are willing to wait for and then
+select the desired number of them that produced summary statistics closest to
+the observed summary statistics.
+For example, we might draw 10 million sets of parameter values from the prior,
+and keep the 10,000 sets that produced summary statistics nearest to the
+observed statistics as our approximate posterior sample.
+Thus, the radius of the "good enough" space is determined by the distance
+between the observed summary statistics and the 10,001st nearest simulated
+summary statistics.
+Again, this is arbitrary; drawing 100 samples and keeping the closest 10,000
+would be better.
+However, we can get a sense of whether we have evaluated a sufficient number of
+samples from the prior by keeping track of the distributions of the posterior
+samples of the parameters as we accumulate samples and watch for them to
+stabilize.
