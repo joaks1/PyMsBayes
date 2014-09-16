@@ -334,9 +334,9 @@ Furthermore, to avoid deriving and calculating the likelihood function, we will
 use approximate likelihoods for our numerical integration algorithm.
 (Digression: this is why I do not like the term "approximate Bayesian
 computation." This describes *all* Bayesian applications except for trivial
-models where the posterior can solved exactly. "Approximate-likelihood Bayesian
-computation" would be much more useful, but then we would lose the beloved
-acronym ABC.)
+models where the posterior can be solved exactly. "Approximate-likelihood
+Bayesian computation" would be much more useful, but then we would lose the
+beloved acronym ABC.)
 
 Approximate-*likelihood* Bayesian computation
 =============================================
@@ -346,14 +346,14 @@ likelihoods to approximate the posterior in Equation :eq:`postmass`.
 Approximate-likelihood techniques use simulations to avoid calculating the
 likelihood function.
 The idea is very simple: given values for all the parameters in the model, we
-simulate under the model a dataset that matches our observed dataset (i.e., the
+simulate a dataset with the same "dimensions" as the observed data (i.e., the
 same number of sequence alignments with same number of rows and columns), and
 compare the simulated dataset to the observed data.
 The closer to the observed data, the higher the likelihood for the set of
 parameter values.
-If we did this many times, drawing the set of parameter values from the prior
-distribution each time, and only retained the samples that produced our
-datasets that matched our observed sequence alignments (or sufficient
+If we did this many times, randomly drawing the set of parameter values from
+the prior distribution each time, and only retained the samples that produced
+datasets that matched our observed sequence alignments (or sufficient summary
 statistics of those alignments) exactly, this would be equivalent to an
 exact-likelihood Bayesian approach.
 However, the sun would probably burn out while we waited to run enough
@@ -408,10 +408,9 @@ observed statistics as our approximate posterior sample.
 Thus, the radius of the "good enough" space is determined by the distance
 between the observed summary statistics and the 10,001st nearest simulated
 summary statistics.
-Again, this is arbitrary; drawing 100 samples and keeping the closest 10,000
-would be better.
+Again, this is arbitrary; drawing 100 million samples and keeping the closest
+10,000 would be better.
 However, we can get a sense of whether we have evaluated a sufficient number of
-samples from the prior by keeping track of the distributions of the posterior
-samples of the parameters as we accumulate samples and watch for them to
-stabilize.
+samples from the prior by keeping track of the parameter estimates as we
+accumulate samples and watch for them to stabilize.
 
