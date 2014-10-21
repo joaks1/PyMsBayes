@@ -1224,7 +1224,7 @@ class PlotGrid(object):
                     self.label_offset: self.label_offset + l]]
         elif self.label_schema == 'numbers':
             return [str(x) + s for x in range(
-                    self.label_offset + 1, self.label_offset + 2)]
+                    self.label_offset + 1, self.label_offset + l + 1)]
         else:
             raise Exception('invalid label schema {0!r}'.format(
                     self.label_schema))
