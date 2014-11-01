@@ -56,6 +56,13 @@ def main_cli():
             default = multiprocessing.cpu_count(),
             help = ('The maximum number of processes to run in parallel. The '
                     'default is the number of CPUs available on the machine.'))
+    parser.add_argument('-m', '--mu',
+            action = 'store',
+            type = argparse_utils.arg_is_positive_float,
+            default = None,
+            help = ('The mutation rate with which to scale time to units of '
+                    'generations. The default is to keep the timescale in '
+                    'units of Nc generations.'))
     parser.add_argument('--seed',
             action = 'store',
             type = argparse_utils.arg_is_positive_int,
@@ -129,6 +136,15 @@ def main_cli():
                     'posterior-summary')
             div_model_path = get_result_path(result_path_prefix,
                     'div-model-results')
+            config_path = results.prior_index_to_config[prior_idx]
+            time_multiplier = 1.0
+            if args.mu is not None:
+                try:
+                    mean_theta = prior_cfg.theta.mean
+                except:
+                    mean_theta = prior_cfg.d_theta.mean
+                time_multiplier = mean_theta / args.mu
+
             if results.sort_index == 0:
                 #plot marginal times
                 if not posterior_summary_path:
@@ -139,13 +155,12 @@ def main_cli():
                 else:
                     label_dimension = (0.34 * (prior_cfg.npairs + 1)) + 0.56
                     marginal_times_plot = plotting.get_marginal_divergence_time_plot(
-                            config_path = results.prior_index_to_config[
-                                    prior_idx],
+                            config_path = config_path,
                             posterior_summary_path = posterior_summary_path,
                             labels = None,
                             estimate = 'median',
                             interval = 'HPD_95_interval',
-                            time_multiplier = 1.0,
+                            time_multiplier = time_multiplier,
                             horizontal = True,
                             label_dimension = label_dimension,
                             measure_dimension = 8.0,
@@ -170,9 +185,9 @@ def main_cli():
                     width = (0.38 * prior_cfg.npairs) + 1.5
                     div_model_plot = plotting.OrderedDivergenceModelPlotGrid(
                             div_model_results_path = div_model_path,
-                            config_path = results.prior_index_to_config[
-                                    prior_idx],
+                            config_path = config_path,
                             num_top_models = 10,
+                            time_multiplier = time_multiplier,
                             height = 12.0,
                             width = width,
                             plot_label_schema = 'uppercase',
@@ -204,6 +219,7 @@ def main_cli():
                     div_model_plot = plotting.UnorderedDivergenceModelPlotGrid(
                             div_model_results_path = div_model_path,
                             num_top_models = 10,
+                            time_multiplier = time_multiplier,
                             height = 10.0,
                             width = width,
                             data_label_size = 10.0,
@@ -253,12 +269,16 @@ def main_cli():
                         width = width,
                         margin_bottom = 0.0,
                         margin_left = 0.0,
-                        margin_top = 0.98,
+                        margin_top = 0.97,
                         margin_right = 1.0,
                         padding_between_vertical = 1.0)
                 num_div_plot_path = '{0}{1}'.format(out_prefix,
                         'number-of-divergences.pdf')
                 num_div_summary.save_plot(num_div_plot_path)
+
+                bf_plot_path = '{0}{1}'.format(out_prefix,
+                        'number-of-divergences-bayes-factors-only.pdf')
+                num_div_summary.save_bf_plot(bf_plot_path)
                 
                 num_div_bf_path = '{0}{1}'.format(out_prefix,
                         'number-of-divergences-bayes-factors.txt')
