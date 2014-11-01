@@ -2749,6 +2749,7 @@ def get_tau_prior_in_generations(cfg, mu = 1e-8):
 class UnorderedDivergenceModelPlotGrid(object):
     def __init__(self, div_model_results_path,
             num_top_models = 10,
+            time_multiplier = 1.0,
             height = 10.0,
             width = 8.0,
             data_label_size = 10.0,
@@ -2784,6 +2785,7 @@ class UnorderedDivergenceModelPlotGrid(object):
         self.padding_between_vertical = padding_between_vertical
         self.subplots = []
         self.plot_grid = None
+        self.time_multiplier = time_multiplier
         self.populate_subplots()
 
     def populate_subplots(self):
@@ -2796,9 +2798,9 @@ class UnorderedDivergenceModelPlotGrid(object):
             error_maxs = []
             for k, d in m.iter_divergences():
                 labels.append(str(k))
-                times.append(d['median'])
-                error_mins.append(d['hpdi_95'][0])
-                error_maxs.append(d['hpdi_95'][1])
+                times.append(d['median'] * self.time_multiplier)
+                error_mins.append(d['hpdi_95'][0] * self.time_multiplier)
+                error_maxs.append(d['hpdi_95'][1] * self.time_multiplier)
             mn = min([mn] + error_mins)
             mx = max([mx] + error_maxs)
             ed = ErrorData(labels = labels,
@@ -2854,6 +2856,7 @@ class OrderedDivergenceModelPlotGrid(object):
     def __init__(self, div_model_results_path,
             config_path = None,
             num_top_models = 10,
+            time_multiplier = None,
             height = 12.0,
             width = 8.0,
             plot_label_schema = 'uppercase',
@@ -2891,6 +2894,7 @@ class OrderedDivergenceModelPlotGrid(object):
         self.margin_bottom = margin_bottom
         self.margin_top = margin_top
         self.padding_between_vertical = padding_between_vertical
+        self.time_multiplier = time_multiplier
         self.subplots = []
         self.plot_grid = None
         self.populate_subplots()
@@ -2909,12 +2913,12 @@ class OrderedDivergenceModelPlotGrid(object):
                     labels.append(self.taxa[i])
                 else:
                     labels.append(str(i+1))
-                times.append(d['median'])
-                error_mins.append(d['hpdi_95'][0])
-                error_maxs.append(d['hpdi_95'][1])
+                times.append(d['median'] * self.time_multiplier)
+                error_mins.append(d['hpdi_95'][0] * self.time_multiplier)
+                error_maxs.append(d['hpdi_95'][1] * self.time_multiplier)
                 if not k in [i for i, l in horizontal_lines]:
-                    horizontal_lines.append((k,
-                            HorizontalLine(y = d['median'])))
+                    horizontal_lines.append((k, HorizontalLine(
+                            y = d['median'] * self.time_multiplier)))
             horizontal_lines = [l for i, l in horizontal_lines]
             mn = min([mn] + error_mins)
             mx = max([mx] + error_maxs)
@@ -2994,6 +2998,7 @@ class NumberOfDivergencesSummary(object):
         self.omega = None
         self.omega_hpd = None
         self.plot = None
+        self.bf_plot = None
         self._parse_psi_results_path()
         self._parse_posterior_summary_file()
         self._simulate_psi_prior_probs()
@@ -3082,9 +3087,10 @@ class NumberOfDivergencesSummary(object):
             ytick_label_size = 8.0,
             height = 6.0,
             width = 3.0,
+            bf_height = 2.5,
             margin_bottom = 0.0,
             margin_left = 0.0,
-            margin_top = 0.98,
+            margin_top = 0.97,
             margin_right = 1.0,
             padding_between_vertical = 1.0):
         if not MATPLOTLIB_AVAILABLE:
@@ -3146,6 +3152,13 @@ class NumberOfDivergencesSummary(object):
                         x_label_size = x_label_size,
                         ),
                 ]
+        bf_scatterplot = ScatterPlot(
+                        bar_data_list = [psi_bayes_factor_bar_data],
+                        y_label = '2ln(Bayes factor)',
+                        y_label_size = y_label_size,
+                        x_label = r'Number of divergence events, $|\tau|$',
+                        x_label_size = x_label_size,
+                        )
         for p in plots:
             p.right_text_size = right_text_size
             p.plot_label_size = plot_label_size
@@ -3175,9 +3188,28 @@ class NumberOfDivergencesSummary(object):
         self.plot.reset_figure()
         self.plot.reset_figure()
 
+        self.bf_plot = PlotGrid(subplots = [bf_scatterplot],
+                num_columns = 1,
+                label_schema = None,
+                share_x = True,
+                share_y = False,
+                height = bf_height,
+                width = width,
+                auto_height = False)
+        self.bf_plot.auto_adjust_margins = False
+        self.bf_plot.margin_top = 1.0
+        self.bf_plot.margin_bottom = 0.0 
+        self.bf_plot.margin_right = 1.0 
+        self.bf_plot.margin_left = 0.0
+        self.bf_plot.reset_figure()
+
     def save_plot(self, path):
         if self.plot:
             self.plot.savefig(path)
+
+    def save_bf_plot(self, path):
+        if self.bf_plot:
+            self.bf_plot.savefig(path)
 
 
 def get_marginal_divergence_time_plot(config_path, posterior_summary_path,
