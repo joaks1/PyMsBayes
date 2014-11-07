@@ -57,7 +57,7 @@ def main_cli():
     parser.add_argument('-n', '--num-prior-samples',
             action = 'store',
             type = argparse_utils.arg_is_positive_int,
-            help = ('The number of prior samples to simulate for estimating'
+            help = ('The number of prior samples to simulate for estimating '
                     'prior probabilities; prior probabilities and Bayes '
                     'factors will be reported. The default is to only report '
                     'posterior probabilities.'))
@@ -68,13 +68,14 @@ def main_cli():
             help = ('The maximum number of processes to run in parallel for '
                     'prior simulations. The default is the number of CPUs '
                     'available on the machine. This option is only relevant '
-                    'if a config file is provided using the `-c` argument.'))
+                    'if the number of prior samples is specified using the '
+                    '`-n` argument.'))
     parser.add_argument('--seed',
             action = 'store',
             type = argparse_utils.arg_is_positive_int,
             help = ('Random number seed to use for simulations. This option '
-                    'is only relevant if a config file is provided using the '
-                    '`-c` argument.'))
+                    'is only relevant if the number of prior samples is '
+                    'specified using the `-n` argument.'))
     parser.add_argument('--version',
             action = 'version',
             version = '%(prog)s ' + _program_info['version'],
