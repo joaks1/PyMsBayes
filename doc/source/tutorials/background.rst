@@ -12,15 +12,18 @@ That is, using genetic data from contemporary populations, we would like to
 infer diversification patterns and see if they support patterns predicted by
 past event(s) of interest (e.g., islands fragmented by rises in sea level,
 changes in climate fragmenting communities into refugia, etc.).
-For example, if an event (a black rectangle) split a community of species
-260,000 years ago, we might expect the divergences across multiple species
-co-distributed across the barrier to be temporally clustered.
-More specifically, let's say we are interested in investigating three pairs of
-lizard populations, where the populations of each pair occur on opposite sides
-of the putative barrier.
-If the historical event caused divergence, we would expect that the pairs of
-lizard populations (or some subset of them) diverged at the same time, as shown
-in the divergence_model_111_ figure.
+For example, if an event split a community of species 260,000 years ago, we
+might expect the divergences across multiple species co-distributed across the
+barrier created by the event (a black rectange below) to be temporally
+clustered.
+More specifically, let's say we are interested in investigating three species
+of lizards that are co-distributed across the putative barrier.
+In order to infer the effect of the historical event on diversification, we
+want to compare, across the three species, the timing of the divergence between
+the populations on oppositie sides of the putative barrier.
+If the historical event caused divergence, we would expect that each of the
+three pairs of lizard populations (or some subset of them) diverged at the same
+time, as shown in the divergence_model_111_ figure.
 
 .. _divergence_model_111:
 .. figure:: /_static/div-model-cartoon-111.png
@@ -29,8 +32,8 @@ in the divergence_model_111_ figure.
    :figwidth: 60 %
    :alt: divergence model 111
    
-   A cartoon showing three population-pairs of lizards that co-diverge due to an
-   event 260,000 years ago.
+   A cartoon showing three pairs of lizard populations that co-diverge due to
+   an event 260,000 years ago.
 
 We can think of this as a particular *divergence model* where all three pairs
 of populations share the same divergence-time parameter.
@@ -42,7 +45,7 @@ constrained.
 With three population pairs, there are 4 other possible models of divergence (5
 total possible models).
 Three of these models have two divergence-time parameters.
-We can assign population pair 1 to a second divergence-time parameter to get
+We can assign population-pair 1 to a second divergence-time parameter to get
 divergence model :math:`\divModel{2} = 211`, as shown in the divergence_model_211_
 figure.
 
@@ -54,9 +57,9 @@ figure.
    :alt: divergence model 211
    
    A cartoon showing population-pair 1 assigned to divergence-time parameter 2,
-   and population pairs 2 and 3 assigned to divergence-time parameter 1.
+   and population-pairs 2 and 3 assigned to divergence-time parameter 1.
 
-We can also assign population pair 2 to divergence-time parameter 2 to get
+We can also assign population-pair 2 to divergence-time parameter 2 to get
 divergence model :math:`\divModel{3} = 121`, as shown in the divergence_model_121_
 figure.
 
@@ -68,10 +71,10 @@ figure.
    :alt: divergence model 121
    
    A cartoon showing population-pair 2 assigned to divergence-time parameter 2,
-   and population pairs 1 and 3 assigned to divergence-time parameter 1.
+   and population-pairs 1 and 3 assigned to divergence-time parameter 1.
 
 And for the last possible divergence model with two divergence-time parameters,
-we assign population pair 3 to divergence-time parameter 2 to get divergence
+we assign population-pair 3 to divergence-time parameter 2 to get divergence
 model :math:`\divModel{4} = 112`, as shown in the divergence_model_112_ figure.
 
 .. _divergence_model_112:
@@ -82,12 +85,13 @@ model :math:`\divModel{4} = 112`, as shown in the divergence_model_112_ figure.
    :alt: divergence model 112
    
    A cartoon showing population-pair 3 assigned to divergence-time parameter 2,
-   and population pairs 1 and 2 assigned to divergence-time parameter 1.
+   and population-pairs 1 and 2 assigned to divergence-time parameter 1.
 
 Finally, we can add a third divergence-time parameter so that each pair of
 populations is assigned to its own divergence-time parameter (divergence model
 :math:`\divModel{5} = 123`), as shown in the divergence_model_123_ figure.
-This is the most general model of divergence.
+This is the most general model of divergence, and has no co-divergence among
+taxa.
 
 .. _divergence_model_123:
 .. figure:: /_static/div-model-cartoon-123.png
@@ -97,12 +101,12 @@ This is the most general model of divergence.
    :alt: divergence model 123
    
    A cartoon showing the most general model of divergence where all three
-   population-pairs of lizards that diverge at unique times.
+   pairs of lizard populations diverge at unique times.
 
 Being energetic herpetologists, we go out and sample individuals from each of
 the lizard populations, and from those individuals collect DNA sequence data
 from one or more orthologous loci per pair of populations.
-You can find our sequence data in fasta format in the |lizard-seq-dir|_
+You can find our example sequence data in fasta format in the |lizard-seq-dir|_
 directory.
 We know that the sequences of a locus are related by a genealogy,
 and that the shape of this genealogy is governed by demographic processes.
@@ -119,7 +123,7 @@ represent this, as shown in figure pop_divergence_model_123_.
    :alt: divergence model 123
    
    A cartoon showing the most general model of divergence where all three
-   population-pairs of lizards that diverge at unique times.
+   pairs of lizard populations diverge at unique times.
 
 We can use these data to infer the temporal distribution of the population
 divergences across the three lizard species.
@@ -132,9 +136,10 @@ In the figures above, we used :math:`\divTimeMap{1}, \divTimeMap{2},` and
 pairs of lizard populations. Now, let's use :math:`\divTimeMapVector`
 to represent all three divergence times; that is, 
 :math:`\divTimeMapVector = \divTimeMap{1}, \divTimeMap{2}, \divTimeMap{3}`.
-The number of unique divergence-time values (parameters) within
-:math:`\divTimeMapVector`, and the assignment of the lizard species to these
-values, depends on the divergence model.
+The number of unique divergence-time values (i.e., the number of free
+divergence-time parameters) within :math:`\divTimeMapVector`, and the
+assignment of the lizard species to these values, depends on the divergence
+model.
 For example, for model :math:`\divModel{1}` in Figure divergence_model_111_
 above, the divergence times would be 
 :math:`\divTimeMapVector = 260, 260, 260`
@@ -213,7 +218,7 @@ of divergence model :math:`\divModel{1}` given our sequence data:
     p(\alignmentVector \given \divModel{1}) p(\divModel{1}) +
     p(\alignmentVector \given \divModel{2}) p(\divModel{2}) +
     p(\alignmentVector \given \divModel{3}) p(\divModel{3}) +
-    p(\alignmentVector \given \divModel{2}) p(\divModel{2}) +
+    p(\alignmentVector \given \divModel{4}) p(\divModel{4}) +
     p(\alignmentVector \given \divModel{5}) p(\divModel{5}) }
 
 Or, more generally, we can calculate the posterior probability of any
@@ -227,15 +232,37 @@ divergence model ":math:`i`" using:
     \divModel{i}) p(\divModel{i}) }
 
 This is essentially the relative marginal likelihood of the model (it is
-exactly that if assume equal prior mass for each divergence model). Thus, the
-marginal likelihoods are the "guts" of Bayesian model choice.
-Because we are sampling over all the divergence models, Equation :eq:`postmass`
-will also give us model-averaged estimates of the divergence times for each of
-our pairs of populations (i.e., we get estimates of divergence times that
-account for uncertainty in divergence models).
+exactly that if assume equal prior mass for each divergence model).
+We can combine Equations :eq:`postdensity` and :eq:`postmass` to better
+represent that we will be jointly inferring the posterior probabilities of
+divergence models and the posterior densities of the divergence models'
+parameters:
 
+.. math::
+    :label: jointpost
+
+    p(\divTimeMapVector, \geneTreeVector, \demographicParamVector, \divModel{i}
+    \given \alignmentVector) = \frac{p(\alignmentVector \given
+    \divTimeMapVector, \geneTreeVector, \demographicParamVector,
+    \divModel{i})p(\divTimeMapVector,\geneTreeVector,\demographicParamVector
+    \given \divModel{i})p(\divModel{i})}{p(\alignmentVector)}
+
+By jointly sampling over the posterior of all the divergence models, Equation
+:eq:`jointpost` will also give us model-averaged estimates of the divergence
+times for each of our pairs of populations (i.e., we get estimates of
+divergence times that account for uncertainty in divergence models).
+
+The key take home here is that the *marginal* likelihoods are the "guts" of
+Bayesian model choice, as shown in Equation :eq:`postmass`.
+I.e., it is the *marginal* probability of our data under a given model that
+updates our prior expectations and informs the posterior probability of that
+model.
 As you might expect, because the marginal likelihoods are weighted by the
-priors on parameters, it can be quite sensitive to the priors.
+priors on parameters, the posterior probabilities of the models can be quite
+sensitive to these priors.
+NOTE, it is important to realize here that the posterior probability of the
+models can be very sensitive to the priors on the *parameters*, not just the
+priors on the *models* themselves.
 Thus, we have to choose the priors on parameters carefully, and should always
 assess the sensitivity of our results to differences in these prior
 assumptions.
@@ -285,7 +312,7 @@ very small marginal (or "average") likelihood, and thus a small posterior
 probability.
 Again, imagine the marginal likelihood of the most general model if we were
 comparing 20 lizard species!!
-The :math:`\divModel{1}` will have the largest marginal likelihood (even if it
+The :math:`\divModel{1}` might have the largest marginal likelihood (even if it
 does not explain the data very well) because it is "averaged" over less space
 with small likelihood and large prior density.
 
@@ -300,7 +327,7 @@ with small likelihood and large prior density.
    parameters.
    The white line shows the likelihood of the 1-parameter constrained model,
    and the red dashed line shows the outline of a uniform prior.
-   Despite capturing much less of the prior density, the constrained
+   Despite capturing much less of the likelihood density, the constrained
    1-parameter model has a larger *marginal* likelihood in this example.
 
 If we use a uniform prior in this case, we will likely end up with strong
@@ -328,8 +355,9 @@ with low density to capture our prior uncertainty up to 10 million years.
    knowledge about divergence times. The black line represents the likelihood
    density, and the red line is a uniform prior.
 
-However, we cannot calculate all of those integrals exactly, so we will need to
-use a numerical integration algorithm to approximate the posterior.
+However, we cannot calculate all of the integrals in Equation
+:eq:`marginallike` exactly, so we will need to use a numerical integration
+algorithm to approximate the posterior.
 Furthermore, to avoid deriving and calculating the likelihood function, we will
 use approximate likelihoods for our numerical integration algorithm.
 (Digression: this is why I do not like the term "approximate Bayesian
@@ -411,6 +439,10 @@ summary statistics.
 Again, this is arbitrary; drawing 100 million samples and keeping the closest
 10,000 would be better.
 However, we can get a sense of whether we have evaluated a sufficient number of
-samples from the prior by keeping track of the parameter estimates as we
-accumulate samples and watch for them to stabilize.
+samples from the prior by:
+
+#. Keeping track of the parameter estimates as we accumulate samples and watch
+   for them to stabilize.
+#. Running multiple, independent analyses to make sure the estimates stabilize
+   to similar values each time.
 
