@@ -4,6 +4,8 @@
 Background
 **********
 
+.. _comparative_divergence_models:
+
 Comparative divergence models
 =============================
 
@@ -18,7 +20,7 @@ barrier created by the event (a black rectange below) to be temporally
 clustered.
 More specifically, let's say we are interested in investigating three species
 of lizards that are co-distributed across the putative barrier.
-In order to infer the effect of the historical event on diversification, we
+In order to infer the affect of the historical event on diversification, we
 want to compare, across the three species, the timing of the divergence between
 the populations on oppositie sides of the putative barrier.
 If the historical event caused divergence, we would expect that each of the
@@ -125,8 +127,11 @@ represent this, as shown in figure pop_divergence_model_123_.
    A cartoon showing the most general model of divergence where all three
    pairs of lizard populations diverge at unique times.
 
-We can use these data to infer the temporal distribution of the population
-divergences across the three lizard species.
+Next, let's jump to the ":ref:`bayesian_divergence_model_choice`" section to
+see how we can use the information in the sequence data to infer the temporal
+distribution of the population divergences across the three lizard species.
+
+.. _bayesian_divergence_model_choice:
 
 Bayesian divergence-model choice
 ================================
@@ -154,13 +159,15 @@ sequence data we collected.
 
 In order to do this, we need to assume a probabilistic evolutionary model
 that gave rise to the data we collected.
-If we assume a Markov chain model of nucleotide substitution, we can
-calculate the probability of the sequence data given the genealogies and a set
-of parameter values for the substitution model.
+If we assume a Markov chain model of nucleotide substitution, we can calculate
+the probability of the sequence data given the genealogies and a set of
+parameter values for the substitution model.
+Both |dpp-msbayes|_ and |msbayes|_ assume an HKY85 model of nucleotide
+substitution :cite:`HKY`.
 If we further assume a coalescent model of ancestral processes, we can
 calculate the probability of the genealogies given the parameter values
 for the sizes of the populations.
-Let's lump the mutational and demographic parameters of the substitution and
+For simplicity, let's lump all the parameters of the substitution and
 coalescent models for all three pairs of lizard populations into
 :math:`\demographicParamVector`.
 Let's also use :math:`\alignmentVector` to represent all of our sequence
@@ -255,7 +262,7 @@ divergence times that account for uncertainty in divergence models).
 The key take home here is that the *marginal* likelihoods are the "guts" of
 Bayesian model choice, as shown in Equation :eq:`postmass`.
 I.e., it is the *marginal* probability of our data under a given model that
-updates our prior expectations and informs the posterior probability of that
+updates our prior expectation and informs the posterior probability of that
 model.
 As you might expect, because the marginal likelihoods are weighted by the
 priors on parameters, the posterior probabilities of the models can be quite
