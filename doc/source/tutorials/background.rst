@@ -16,8 +16,8 @@ past event(s) of interest (e.g., islands fragmented by rises in sea level,
 changes in climate fragmenting communities into refugia, etc.).
 For example, if an event split a community of species 260,000 years ago, we
 might expect the divergences across multiple species co-distributed across the
-barrier created by the event (a black rectange below) to be temporally
-clustered.
+barrier created by the event (the ominous "black rectange" below) to be
+temporally clustered.
 More specifically, let's say we are interested in investigating three species
 of lizards that are co-distributed across the putative barrier.
 In order to infer the affect of the historical event on diversification, we
@@ -94,6 +94,9 @@ populations is assigned to its own divergence-time parameter (divergence model
 :math:`\divModel{5} = 123`), as shown in the divergence_model_123_ figure.
 This is the most general model of divergence, and has no co-divergence among
 taxa.
+Biogeographically, we can think of each free divergence-time parameter
+as a "divergence event" during which one or more pairs of populations
+can diverge.
 
 .. _divergence_model_123:
 .. figure:: /_static/div-model-cartoon-123.png
@@ -273,98 +276,16 @@ priors on the *models* themselves.
 Thus, we have to choose the priors on parameters carefully, and should always
 assess the sensitivity of our results to differences in these prior
 assumptions.
-So, now seems like as good of time as any to discuss priors.
+We will discuss how the choice of prior distribution on divergence times can
+have a major affect on posterior probabilities of divergence models for both
+|dpp-msbayes|_ and |msbayes|_ in the ":ref:`prior_on_divergence_times`"
+section.
+But first, let's talk about how we will approximate the posterior in Equation
+:eq:`jointpost`.
 
-Prior on divergence times
--------------------------
-
-We have to choose a probability distribution to represent our prior knowledge
-about the divergence times of our three lizard population pairs.
-It turns out that is choice is very important for the model described above.
-This is because this prior has a strong influence on the marginal likelihoods
-of the divergence models.
-As we add divergence-time parameters to a divergence model, it has to integrate
-over a *much* greater parameter space.
-For example, let's consider a uniform prior of 0 to 5 million years on
-divergence times.
-The :math:`\divModel{1}` model above only has a single divergence-time
-parameter, and so would have to integrate over a single dimension from 0 to 5.
-The :math:`\divModel{2}`, :math:`\divModel{3}`, and :math:`\divModel{4}` models
-each have 2 divergence-time parameters, and so have to integrate over a
-:math:`5 \times 5` square.
-The :math:`\divModel{3}` model has three divergence-time parameters, and so has
-to integrate over a :math:`5 \times 5 \times 5` cube.
-Now imagine we were comparing 20 pairs of populations; the most general model
-would integrate over a :math:`5^{20}` multidimensional space!!
-
-If using a uniform distribution to represent our prior uncertainty, we
-necessarily have to put a lot of prior density in unlikely regions of parameter
-space to avoid excluding the true divergence times before we even start the
-analysis.
-For example, we might suspect all three pairs of lizard populations diverged
-within the last 5 million years.
-However, to feel confident that we are not excluding the true values of the
-divergence times *a priori*, we might need to specify a prior of 0 to 10
-million years.
-The consequence of this is that we are placing the same amount prior density
-between 5--10 million years as we are between 0--5, even though we suspect
-the former is quite improbable *a priori*
-So, why does this matter?
-Well, if we were correct *a priori*, and the likelihood of all three species
-diverging between 5--10 million years is nearly zero, we have imposed a very
-strong "penalty" for models with more divergence-time parameters.
-The :math:`\divModel{3}` will integrate over a :math:`5 \times 5 \times 5` cube
-with very small likelihood, but a lot of prior weight, which will result in a
-very small marginal (or "average") likelihood, and thus a small posterior
-probability.
-Again, imagine the marginal likelihood of the most general model if we were
-comparing 20 lizard species!!
-The :math:`\divModel{1}` might have the largest marginal likelihood (even if it
-does not explain the data very well) because it is "averaged" over less space
-with small likelihood and large prior density.
-
-.. _likelihood_surface:
-.. figure:: /_static/marginal-plot-3d.png
-   :align: center
-   :width: 600 px
-   :figwidth: 60 %
-   :alt: likelihood surface plot
-   
-   The likelihood surface of a divergence model with two divergence-time
-   parameters.
-   The white line shows the likelihood of the 1-parameter constrained model,
-   and the red dashed line shows the outline of a uniform prior.
-   Despite capturing much less of the likelihood density, the constrained
-   1-parameter model has a larger *marginal* likelihood in this example.
-
-If we use a uniform prior in this case, we will likely end up with strong
-posterior support for a model with shared divergence times, even if the three
-pairs of lizard populations diverged at quite different times.
-|msbayes|_ uses a uniform prior on divergence times, and this is a key reason
-it will often support models of highly clustered divergences even when taxa
-diverge randomly over quite broad timescales; see :cite:`Oaks2012` and
-:cite:`Oaks2014reply` for more details.
-
-A simple solution to this problem is to use a more flexible prior on divergence
-times that allows us to better represent our prior knowledge.
-In this example, we would like to specify a prior that places most of the prior
-density on divergence times between 0--5 million years, but allows for a tail
-with low density to capture our prior uncertainty up to 10 million years.
-
-.. _gamma_prior:
-.. figure:: /_static/marginal-plot-2d.png
-   :align: center
-   :width: 600 px
-   :figwidth: 60 %
-   :alt: gamma prior plot
-   
-   The flexibility of a gamma distribution (blue) to better represent prior
-   knowledge about divergence times. The black line represents the likelihood
-   density, and the red line is a uniform prior.
-
-However, we cannot calculate all of the integrals in Equation
-:eq:`marginallike` exactly, so we will need to use a numerical integration
-algorithm to approximate the posterior.
+We cannot calculate all of the integrals in Equation :eq:`marginallike`
+exactly, so we will need to use a numerical integration algorithm to
+approximate the posterior.
 Furthermore, to avoid deriving and calculating the likelihood function, we will
 use approximate likelihoods for our numerical integration algorithm.
 (Digression: this is why I do not like the term "approximate Bayesian
@@ -424,11 +345,11 @@ An example of this is animated in the rejection_sampling_ gif below.
    An illustration of a Monte Carlo rejection sampler.
 
 This animation begins with a blue dot representing the values of the three
-summary statistics plotted in three dimensions.
+summary statistics calculated from the observed sequence alignments.
 Next, a grey sphere illustrates the "good enough" zone.
 Then, we see black points accumulate, which represent the values of the three
-summary statistics calculated from datasets simulated under sets of parameter
-values drawn randomly from the prior.
+summary statistics calculated from datasets that were simulated under sets of
+parameter values drawn randomly from the prior.
 Lastly, we see the retained sample of points that fell within our "good enough"
 zone; this is our sample from the approximate posterior.
 
@@ -439,10 +360,10 @@ select the desired number of them that produced summary statistics closest to
 the observed summary statistics.
 For example, we might draw 10 million sets of parameter values from the prior,
 and keep the 10,000 sets that produced summary statistics nearest to the
-observed statistics as our approximate posterior sample.
-Thus, the radius of the "good enough" space is determined by the distance
-between the observed summary statistics and the 10,001st nearest simulated
-summary statistics.
+observed statistics; that's our approximate posterior sample.
+In this example, the radius of the "good enough" space is determined by the
+distance between the observed summary statistics and the 10,001st nearest
+simulated summary statistics.
 Again, this is arbitrary; drawing 100 million samples and keeping the closest
 10,000 would be better.
 However, we can get a sense of whether we have evaluated a sufficient number of
@@ -452,4 +373,171 @@ samples from the prior by:
    for them to stabilize.
 #. Running multiple, independent analyses to make sure the estimates stabilize
    to similar values each time.
+
+.. _prior_on_divergence_times:
+
+Prior on divergence times
+=========================
+
+As mentioned in section ":ref:`bayesian_divergence_model_choice`", the prior
+distribution used for divergence-time parameters can have a very large affect
+on the posterior probabilities of the divergence models, due to how the priors
+weight the marginal likelihoods of the models
+:cite:`Oaks2014reply` :cite:`Oaks2014dpp`.
+So, we have to take care when we choose a probability distribution to represent
+our prior knowledge about the divergence times of our three lizard population
+pairs.
+This is because this prior has a strong influence on the marginal likelihoods
+of the divergence models.
+As we add divergence-time parameters to a divergence model, the model is forced
+to integrate over a *much* greater parameter space.
+For example, let's consider a uniform prior of 0 to 5 million years on
+divergence times.
+The :math:`\divModel{1}` model above only has a single divergence-time
+parameter, and so would have to integrate over a single dimension from 0 to 5.
+The :math:`\divModel{2}`, :math:`\divModel{3}`, and :math:`\divModel{4}` models
+each have 2 divergence-time parameters, and so have to integrate over a
+:math:`5 \times 5` square.
+The :math:`\divModel{3}` model has three divergence-time parameters, and so has
+to integrate over a :math:`5 \times 5 \times 5` cube.
+Now imagine we were comparing 20 pairs of populations; the most general model
+would integrate over a :math:`5^{20}` multidimensional space!!
+
+If using a uniform distribution to represent our prior uncertainty, we
+necessarily have to put a lot of prior density in unlikely regions of parameter
+space to avoid excluding the true divergence times before we even start the
+analysis :cite:`Oaks2014reply`.
+For example, we might suspect all three pairs of lizard populations diverged
+within the last 5 million years.
+However, to feel confident that we are not excluding the (unknown) true values
+of the divergence times *a priori*, we might need to specify a prior of 0 to 10
+million years.
+The consequence of this is that we are placing the same amount of prior density
+between 5--10 million years as we are between 0--5, even though we suspect the
+former is quite improbable *a priori*.
+So, why does this matter?
+Well, if we were correct *a priori*, and the likelihood of all three species
+diverging between 5--10 million years is nearly zero, we have imposed a very
+strong "penalty" for models with more divergence-time parameters.
+The :math:`\divModel{3}` will integrate over a :math:`5 \times 5 \times 5` cube
+with very small likelihood, but a lot of prior weight, which will result in a
+very small marginal (or "average") likelihood, and thus a small posterior
+probability.
+Again, imagine the marginal likelihood of the most general model if we were
+comparing 20 lizard species!!
+The :math:`\divModel{1}` might have the largest marginal likelihood (even if it
+does not explain the data very well) simply because it is "averaged" over less
+space with small likelihood and large prior density.
+
+.. _likelihood_surface:
+.. figure:: /_static/marginal-plot-3d.png
+   :align: center
+   :width: 600 px
+   :figwidth: 60 %
+   :alt: likelihood surface plot
+   
+   The likelihood surface of a divergence model with two divergence-time
+   parameters.
+   The white line shows the likelihood of the co-divergence (1-parameter)
+   model, and the red dashed line shows the outline of a uniform prior.
+   Despite capturing much less of the likelihood density, the constrained
+   1-parameter model has a larger *marginal* likelihood in this example.
+
+If we use a uniform prior in this case, we will likely end up with strong
+posterior support for a model with shared divergence times, even if the three
+pairs of lizard populations diverged at quite different times.
+|msbayes|_ uses a uniform prior on divergence times, and this is a key reason
+it will often support models of highly clustered divergences even when taxa
+diverge randomly over quite broad timescales; see :cite:`Oaks2012` and
+:cite:`Oaks2014reply` for more details.
+
+A simple solution to this problem is to use a more flexible prior on divergence
+times that allows us to better represent our prior uncertainty.
+In this example, we would like to specify a prior that places most of the prior
+density on divergence times between 0--5 million years, but allows for a tail
+with low density to capture our prior uncertainty up to 10 million years.
+If we look at just one divergence-time dimension (Figure gamma_prior_), we can
+see in the gamma_prior_ figure below that a gamma probability distribution
+works quite well for this; |dpp-msbayes|_ uses a gamma prior on divergence
+times.
+
+.. _gamma_prior:
+.. figure:: /_static/marginal-plot-2d.png
+   :align: center
+   :width: 600 px
+   :figwidth: 60 %
+   :alt: gamma prior plot
+   
+   The flexibility of a gamma distribution (blue) to better represent prior
+   knowledge about divergence times. The black line represents the likelihood
+   density, and the red line is a uniform prior.
+
+From a lot of analyses of simulated and empirical data, I have found that by
+placing much less prior weight in unlikely regions of parameters space, gamma
+priors on divergence times is much less likely to spuriously support models of
+shared divergences across taxa :cite:`Oaks2014dpp`.
+
+A non-parametric approach to divergence models
+==============================================
+
+In addition to placing priors on all of the parameters of the divergence
+models, we also have to place a prior on the divergence models themselves.
+This can be a bit tricky, because there can be *a lot* of divergence models.
+In our example of :math:`\npairs{} = 3` lizard species above, we saw there were
+five possible models of divergence (i.e., there were five possible ways to
+assign the three species to possible divergence-time parameters):
+There was only one way to assign the species to both one and three divergence
+events,
+and there were three ways to assign the three species to two divergence events.
+More generally, the number of ways to assign :math:`\npairs{}` taxa to
+:math:`n` divergence events is the
+`Stirling number of the second kind
+<http://en.wikipedia.org/wiki/Stirling_numbers_of_the_second_kind>`_.
+Taking this a step further, there can be anywhere from :math:`1` to
+:math:`\npairs{}` divergence events, and so to calculate
+the total number of possible divergence models, we need to calculate
+the
+`Stirling number of the second kind
+<http://en.wikipedia.org/wiki/Stirling_numbers_of_the_second_kind>`_
+for :math:`1,2,\ldots,\npairs{}` divergence events and sum them all up
+(this is the `Bell number <http://en.wikipedia.org/wiki/Bell_number>`_
+:cite:`Bell1934`).
+For 3, 5, 10, and 20 taxa, there are 5, 52, 115975, and 51724158235372
+possible divergence models, respectively.
+The number of possible models quickly explodes as we compare more taxa!
+So, how do we put a prior on all of them?!
+
+|msbayes|_ avoids this problem by assigning equal prior probability to all
+possible *number* of divergence events (divergence-time parameters).
+However, it is important to realize that this strategy can create a **very**
+non-uniform prior on the divergence *models*.
+This is because there are *many* more ways to assign our taxa to intermediate
+numbers of divergence events.
+For example, if we are comparing 10 taxa, Figure number_of_models_, shows the
+number of possible assignments of those taxa to :math:`1,2,\ldots,10`
+divergence events (i.e., the number of possible divergence models with
+:math:`1,2,\ldots,10` divergence-time parameters).
+
+.. _number_of_models:
+.. figure:: /_static/number-of-div-models-10.png
+   :align: center
+   :width: 600 px
+   :figwidth: 60 %
+   :alt: number-of-models plot
+   
+   The number of divergence models for 10 taxa.
+
+As a result, if we look at the prior probability of each divergence model with
+:math:`1,2,\ldots,10` divergence-time parameters, we see that it is *very*
+non-uniform (Figure probability_of_models_).
+
+.. _probability_of_models:
+.. figure:: /_static/prob-of-div-models-10.png
+   :align: center
+   :width: 600 px
+   :figwidth: 60 %
+   :alt: probability-of-models plot
+   
+   The average prior probability of a divergence model with 1 to 10 divergence
+   events.
 
