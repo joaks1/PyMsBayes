@@ -477,8 +477,10 @@ placing much less prior weight in unlikely regions of parameters space, gamma
 priors on divergence times is much less likely to spuriously support models of
 shared divergences across taxa :cite:`Oaks2014dpp`.
 
-A non-parametric approach to divergence models
-==============================================
+.. _prior_on_divergence_models:
+
+Prior on divergence models
+==========================
 
 In addition to placing priors on all of the parameters of the divergence
 models, we also have to place a prior on the divergence models themselves.
@@ -507,9 +509,9 @@ possible divergence models, respectively.
 The number of possible models quickly explodes as we compare more taxa!
 So, how do we put a prior on all of them?!
 
-|msbayes|_ avoids this problem by assigning equal prior probability to all
+|msbayes|_ approaches this problem by assigning equal prior probability to all
 possible *number* of divergence events (divergence-time parameters).
-However, it is important to realize that this strategy can create a **very**
+However, it is important to realize that this strategy can create a *very*
 non-uniform prior on the divergence *models*.
 This is because there are *many* more ways to assign our taxa to intermediate
 numbers of divergence events.
@@ -527,8 +529,12 @@ divergence events (i.e., the number of possible divergence models with
    
    The number of divergence models for 10 taxa.
 
-As a result, if we look at the prior probability of each divergence model with
-:math:`1,2,\ldots,10` divergence-time parameters, we see that it is *very*
+As we can see, for 10 taxa, there are over 40,000 different models of
+divergence with five divergence-time parameters, whereas there is only one
+model with one or 10 divergence-time parameters.
+Thus, if we place a uniform prior on the *number* of divergence-time
+parameters, as is done in |msbayes|_, the prior probability of each *divergence
+model* with :math:`1,2,\ldots,10` divergence-time parameters is *very*
 non-uniform (Figure probability_of_models_).
 
 .. _probability_of_models:
@@ -540,4 +546,28 @@ non-uniform (Figure probability_of_models_).
    
    The average prior probability of a divergence model with 1 to 10 divergence
    events.
+
+Almost all of the prior probability mass is placed on the divergence models
+with one and ten divergence-time parameters.
+If we consider that the marginal likelihood of the model with 10
+divergence-time parameters will be very small under a uniform prior on
+divergence times (see the ":ref:`prior_on_divergence_times`" section),
+|msbayes|_ effectively is placing most of the prior probability on the model of
+divergence with a single divergence event (a single divergence-time parameter
+shared across all taxa).
+Due to this interaction between the uniform priors on divergence times and the
+*number* of divergence events, |msbayes|_ often incorrectly supports models
+with very few divergence events shared across taxa
+:cite:`Oaks2014dpp,Oaks2014reply,Oaks2012`.
+
+|dpp-msbayes|_ takes a non-parametric approach to this problem, and treats the
+number of divergence events, and the assignment of the taxa to the events, as a
+Dirichlet process :cite:`Ferguson1973`.
+This assigns prior probabilities directly to the divergence models and avoids
+the combinatorial problem created when assigning prior probabilities to the 
+number of events (Figure probability_of_models_).
+Also, the "clumpiness" of the Dirichlet process is controlled by a
+concentration parameter, which makes it a very flexible prior to use for
+divergence models (I.e., we can control how much co-divergence we expect across
+taxa *a priori*).
 
