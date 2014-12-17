@@ -560,6 +560,11 @@ Due to this interaction between the uniform priors on divergence times and the
 with very few divergence events shared across taxa
 :cite:`Oaks2014dpp,Oaks2014reply,Oaks2012`.
 
+.. _dpp:
+
+Dirichlet-process prior on divergence models
+--------------------------------------------
+
 |dpp-msbayes|_ takes a non-parametric approach to this problem, and treats the
 number of divergence events, and the assignment of the taxa to the events, as a
 Dirichlet process :cite:`Ferguson1973`.
