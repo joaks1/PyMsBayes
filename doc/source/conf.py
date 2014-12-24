@@ -420,3 +420,7 @@ for macro in f:
     latex_elements['preamble'] += macro + '\n'
     # used when building html version
     pngmath_latex_preamble += macro + '\n'
+
+def setup(app):
+    app.add_javascript('dpp.js')
+

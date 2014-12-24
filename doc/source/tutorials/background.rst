@@ -572,7 +572,58 @@ This assigns prior probabilities directly to the divergence models and avoids
 the combinatorial problem created when assigning prior probabilities to the 
 number of events (Figure probability_of_models_).
 Also, the "clumpiness" of the Dirichlet process is controlled by a
-concentration parameter, which makes it a very flexible prior to use for
-divergence models (I.e., we can control how much co-divergence we expect across
-taxa *a priori*).
+concentration parameter (:math:`\alpha`), which makes it a very flexible prior
+to use for divergence models (I.e., we can control how much co-divergence we
+expect across taxa *a priori*).
+
+The basic idea of the Dirichlet process is quite simple; you simply assign
+random variables (divergence times of our population pairs) to categories
+(divergence events) one at a time following a very simple rule. When assigning
+the :math:`n^{th}` random variable, you assign it to its own category (i.e.,
+a new category) with probability
+
+.. math::
+    :label: dppnewcat
+
+    \frac{\alpha}{\alpha + n -1}
+
+or you assign it to an existing category :math:`x` with probability
+
+.. math::
+    :label: dppexistingcat
+
+    \frac{n_x}{\alpha + n -1}
+
+where :math:`n_x` is the number of random variables already assigned to
+category :math:`x`.
+For example, we have to assign our first pair of lizard population to a
+divergence event.
+Next we assign the second pair to either a new divergence event with
+probability :math:`\alpha/\alpha + 1` or to the same divergence event as the
+first pair with probability :math:`1/\alpha + 1`.
+Simply repeat until all the lizard species have been assigned to a divergence
+event.
+
+As discussed in the ":ref:`comparative_divergence_models`" section above, there
+are a total of five divergence models when we have three taxa to compare (i.e.,
+there are five ways to assign our three lizard species to divergence events).
+So, we can use a probability tree to see the probability of all possible
+assignments (models) given the concentration parameter.
+Below, you can adjust the concentration parameter and see how it affects the
+prior probability of all five possible divergence models.
+
+.. raw:: html
+
+    <div id="dpp_div" name="dpp_div" align="center">
+        <form id="dpp_3_form" name="dpp_3_form">
+            <label>Concentration parameter: </label>
+            <input id="cparam" type="number" label="label" name="concentration_param" min="0.0" max="100000.0" step="any" value="1.5" onkeypress="parse_key_press(event, 3);"></input>
+            <input id="update_3_button" type="button" value="Update" onclick="update_dpp_tree(3,'../_static/dpp-3-example-blank.png',1.0);"></input>
+            <input type="text" name="StackOverflow1370021" value="Fix IE bug" style="display: none;"></input>
+        </form>
+        <canvas id="dpp_3_canvas" width="600" height="450" style="border: 1px solid rgb(211, 211, 211); align:center;"></canvas>
+        <script type="text/javascript">
+            update_dpp_tree(3, "../_static/dpp-3-example-blank.png", "1");
+        </script>
+    </div>
 
