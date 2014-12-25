@@ -19,6 +19,31 @@ Role directive styles
     color: red;
 }
 
+/*******************************************************************************
+Admonition styles
+*******************************************************************************/
+
+/* make definition lists a bit prettier */
+dl {
+    padding: 1em;
+}
+dt {
+    font-weight: bold;
+    font-style: italic;
+}
+dt:after {
+    content: ":";
+}
+
+.definitions {
+}
+
+.keypoint {
+}
+
+/*******************************************************************************
+Page header styles
+*******************************************************************************/
 
 .pageheader {
     text-align: left;
