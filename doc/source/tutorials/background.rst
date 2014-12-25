@@ -137,6 +137,26 @@ Next, let's jump to the ":ref:`bayesian_divergence_model_choice`" section to
 see how we can use the information in the sequence data to infer the temporal
 distribution of the population divergences across the three lizard species.
 
+.. admonition:: Definitions
+    :class: definitions
+
+    Taxon
+        A pair of populations that diverged in the past. We are interested in
+        comparing the timing of this divergence to other pairs of populations.
+        I will use taxon interchangeably with *species* and *population pair*.
+
+    Divergence event
+        Synonymous with *divergence-time parameter*. It is a parameter of a
+        *divergence model* that represents a time point in the past at which
+        one or more of the taxa diverged.
+
+    Divergence model
+        A particular assignment (set partiton) of taxa to divergence-time
+        parameter(s). It can range from all taxa being assigned to a single
+        divergence-time parameter (i.e., "simultaneous" divergence) to each
+        taxon being assigned to a unique divergence-time parameter (i.e., no
+        co-divergence). Sometimes I get sloppy and just use *model*.
+
 .. _bayesian_divergence_model_choice:
 
 Bayesian divergence-model choice
@@ -265,18 +285,19 @@ By jointly sampling over the posterior of all the divergence models, Equation
 times for each of our pairs of populations (i.e., we get estimates of
 divergence times that account for uncertainty in divergence models).
 
-.. admonition:: Take home
+.. admonition:: Key point
+    :class: keypoint
 
-    The key take home here is that the *marginal* likelihoods are the "guts" of
-    Bayesian model choice, as shown in Equation :eq:`postmass`.
-    I.e., it is the *marginal* probability of our data under a given model that
-    updates our prior expectation and informs the posterior probability of that
-    model.
+    The key take home here is that the :bolditalic:`marginal` likelihoods are
+    the "guts" of Bayesian model choice, as shown in Equation :eq:`postmass`.
+    I.e., it is the :bolditalic:`marginal` probability of our data under a
+    given model that updates our prior expectation and informs the posterior
+    probability of that model.
     As you might expect, because the marginal likelihoods are weighted by the
-    priors on parameters, the posterior probabilities of the models can be quite
-    sensitive to these priors.
-    :hlight:`NOTE`, it is important to realize here that the posterior probability of
-    the models can be very sensitive to the priors on the
+    priors on parameters, the posterior probabilities of the models can be
+    quite sensitive to these priors.
+    :hlight:`NOTE`, it is important to realize here that the posterior
+    probability of the models can be very sensitive to the priors on the
     :bolditalic:`parameters`, not just the priors on the :bolditalic:`models`
     themselves.
     Thus, we have to choose the priors on parameters carefully, and should always
