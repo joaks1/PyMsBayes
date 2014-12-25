@@ -1,5 +1,25 @@
 @import url("sphinxdoc.css");
 
+/*******************************************************************************
+Role directive styles
+*******************************************************************************/
+
+.strike {
+    text-decoration: line-through;
+}
+
+.bolditalic {
+    font-weight: bold;
+    font-style: italic;
+}
+
+.hlight {
+    font-weight: bold;
+    font-style: italic;
+    color: red;
+}
+
+
 .pageheader {
     text-align: left;
     padding: 20px 20px;

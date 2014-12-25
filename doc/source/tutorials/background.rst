@@ -1,3 +1,6 @@
+.. role:: bolditalic
+.. role:: hlight 
+
 .. _background:
 
 **********
@@ -262,20 +265,24 @@ By jointly sampling over the posterior of all the divergence models, Equation
 times for each of our pairs of populations (i.e., we get estimates of
 divergence times that account for uncertainty in divergence models).
 
-The key take home here is that the *marginal* likelihoods are the "guts" of
-Bayesian model choice, as shown in Equation :eq:`postmass`.
-I.e., it is the *marginal* probability of our data under a given model that
-updates our prior expectation and informs the posterior probability of that
-model.
-As you might expect, because the marginal likelihoods are weighted by the
-priors on parameters, the posterior probabilities of the models can be quite
-sensitive to these priors.
-NOTE, it is important to realize here that the posterior probability of the
-models can be very sensitive to the priors on the *parameters*, not just the
-priors on the *models* themselves.
-Thus, we have to choose the priors on parameters carefully, and should always
-assess the sensitivity of our results to differences in these prior
-assumptions.
+.. admonition:: Take home
+
+    The key take home here is that the *marginal* likelihoods are the "guts" of
+    Bayesian model choice, as shown in Equation :eq:`postmass`.
+    I.e., it is the *marginal* probability of our data under a given model that
+    updates our prior expectation and informs the posterior probability of that
+    model.
+    As you might expect, because the marginal likelihoods are weighted by the
+    priors on parameters, the posterior probabilities of the models can be quite
+    sensitive to these priors.
+    :hlight:`NOTE`, it is important to realize here that the posterior probability of
+    the models can be very sensitive to the priors on the
+    :bolditalic:`parameters`, not just the priors on the :bolditalic:`models`
+    themselves.
+    Thus, we have to choose the priors on parameters carefully, and should always
+    assess the sensitivity of our results to differences in these prior
+    assumptions.
+
 We will discuss how the choice of prior distribution on divergence times can
 have a major affect on posterior probabilities of divergence models for both
 |dpp-msbayes|_ and |msbayes|_ in the ":ref:`prior_on_divergence_times`"
