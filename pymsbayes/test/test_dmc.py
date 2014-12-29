@@ -310,15 +310,26 @@ class DmcTestCase(PyMsBayesTestCase):
         self.assertSameFiles([results1_2['sample'], results2_2['sample']])
 
 
-    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
-            "EXHAUSTIVE test")
+    def convert_time(self, t, mean_theta, mu = 1.0):
+        return t * (mean_theta / mu)
+
+    def convert_sps_time(self, t, mu = 1.0):
+        return t / mu
+
+    def get_div_time_list(self, posterior_sample_path, taxon_index = 1):
+        header_key = 'PRI.t.' + str(taxon_index)
+        times = []
+        with open(posterior_sample_path, 'rU') as file_stream:
+            header = [x.strip() for x in file_stream.next().split()]
+            index = header.index(header_key)
+            for line in file_stream:
+                l = [x.strip() for x in line.split()]
+                times.append(float(l[index]))
+        return times
+
+    # @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+    #         "EXHAUSTIVE test")
     def test_time_scale(self):
-
-        def convert_time(t, mean_theta, mu = 1.0):
-            return t * (mean_theta / mu)
-
-        def convert_sps_time(t, mu = 1.0):
-            return t / mu
 
         args = ['-o', self.np_new_cfg,
                 '-p', self.np_new_cfg,
@@ -352,74 +363,81 @@ class DmcTestCase(PyMsBayesTestCase):
 
         results_old = configobj.ConfigObj(results1['summary'])
         results_sps = configobj.ConfigObj(results2['summary'])
+        old_times = self.get_div_time_list(results1['sample'])
+        sps_times = self.get_div_time_list(results2['sample'])
 
         mean_theta = 0.001
-        self.assertAlmostEqual(
-                convert_time(t = float(results_old['PRI.E.t']['mean']),
+
+        self.assertEqual(len(old_times), len(sps_times))
+        for i in range(len(old_times)):
+            self.assertAlmostEqual(
+                    self.convert_time(t = old_times[i],
                         mean_theta = mean_theta,
                         mu = 1.0),
-                convert_sps_time(t = float(results_sps['PRI.E.t']['mean']),
+                    self.convert_sps_time(t = sps_times[i], 
+                        mu = 1.0),
+                    places = 7)
+        self.assertAlmostEqual(
+                self.convert_time(t = float(results_old['PRI.E.t']['mean']),
+                        mean_theta = mean_theta,
+                        mu = 1.0),
+                self.convert_sps_time(t = float(results_sps['PRI.E.t']['mean']),
                         mu = 1.0),
                 places = 7)
         self.assertAlmostEqual(
-                convert_time(t = float(results_old['PRI.E.t']['mean']),
+                self.convert_time(t = float(results_old['PRI.E.t']['mean']),
                         mean_theta = mean_theta,
                         mu = 1e-8),
-                convert_sps_time(t = float(results_sps['PRI.E.t']['mean']),
+                self.convert_sps_time(t = float(results_sps['PRI.E.t']['mean']),
                         mu = 1e-8),
                 places = 3)
         self.assertAlmostEqual(
-                convert_time(t = float(results_old['PRI.E.t']['median']),
+                self.convert_time(t = float(results_old['PRI.E.t']['median']),
                         mean_theta = mean_theta,
                         mu = 1.0),
-                convert_sps_time(t = float(results_sps['PRI.E.t']['median']),
+                self.convert_sps_time(t = float(results_sps['PRI.E.t']['median']),
                         mu = 1.0),
                 places = 7)
         self.assertAlmostEqual(
-                convert_time(t = float(results_old['PRI.omega']['median']),
+                self.convert_time(t = float(results_old['PRI.omega']['median']),
                         mean_theta = mean_theta,
                         mu = 1.0),
-                convert_sps_time(t = float(results_sps['PRI.omega']['median']),
+                self.convert_sps_time(t = float(results_sps['PRI.omega']['median']),
                         mu = 1.0),
                 places = 7)
         self.assertAlmostEqual(
-                convert_time(t = float(results_old['PRI.E.t']['range'][0]),
+                self.convert_time(t = float(results_old['PRI.E.t']['range'][0]),
                         mean_theta = mean_theta,
                         mu = 1.0),
-                convert_sps_time(t = float(results_sps['PRI.E.t']['range'][0]),
+                self.convert_sps_time(t = float(results_sps['PRI.E.t']['range'][0]),
                         mu = 1.0),
                 places = 7)
         self.assertAlmostEqual(
-                convert_time(t = float(results_old['PRI.E.t']['range'][1]),
+                self.convert_time(t = float(results_old['PRI.E.t']['range'][1]),
                         mean_theta = mean_theta,
                         mu = 1.0),
-                convert_sps_time(t = float(results_sps['PRI.E.t']['range'][1]),
+                self.convert_sps_time(t = float(results_sps['PRI.E.t']['range'][1]),
                         mu = 1.0),
                 places = 7)
         self.assertAlmostEqual(
-                convert_time(t = float(results_old['PRI.omega']['range'][0]),
+                self.convert_time(t = float(results_old['PRI.omega']['range'][0]),
                         mean_theta = mean_theta,
                         mu = 1.0),
-                convert_sps_time(t = float(results_sps['PRI.omega']['range'][0]),
+                self.convert_sps_time(t = float(results_sps['PRI.omega']['range'][0]),
                         mu = 1.0),
                 places = 7)
         self.assertAlmostEqual(
-                convert_time(t = float(results_old['PRI.omega']['range'][1]),
+                self.convert_time(t = float(results_old['PRI.omega']['range'][1]),
                         mean_theta = mean_theta,
                         mu = 1.0),
-                convert_sps_time(t = float(results_sps['PRI.omega']['range'][1]),
+                self.convert_sps_time(t = float(results_sps['PRI.omega']['range'][1]),
                         mu = 1.0),
                 places = 7)
+
 
     # @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
     #         "EXHAUSTIVE test")
     def test_time_scale_old(self):
-
-        def convert_time(t, mean_theta, mu = 1.0):
-            return t * (mean_theta / mu)
-
-        def convert_sps_time(t, mu = 1.0):
-            return t / mu
 
         args = ['-o', self.np_cfg,
                 '-p', self.np_cfg,
@@ -453,62 +471,185 @@ class DmcTestCase(PyMsBayesTestCase):
 
         results_old = configobj.ConfigObj(results1['summary'])
         results_sps = configobj.ConfigObj(results2['summary'])
+        old_times = self.get_div_time_list(results1['sample'])
+        sps_times = self.get_div_time_list(results2['sample'])
 
         mean_theta = 0.05
-        self.assertAlmostEqual(
-                convert_time(t = float(results_old['PRI.E.t']['mean']),
+
+        self.assertEqual(len(old_times), len(sps_times))
+        for i in range(len(old_times)):
+            self.assertAlmostEqual(
+                    self.convert_time(t = old_times[i],
                         mean_theta = mean_theta,
                         mu = 1.0),
-                convert_sps_time(t = float(results_sps['PRI.E.t']['mean']),
+                    self.convert_sps_time(t = sps_times[i], 
+                        mu = 1.0),
+                    places = 7)
+        self.assertAlmostEqual(
+                self.convert_time(t = float(results_old['PRI.E.t']['mean']),
+                        mean_theta = mean_theta,
+                        mu = 1.0),
+                self.convert_sps_time(t = float(results_sps['PRI.E.t']['mean']),
                         mu = 1.0),
                 places = 7)
         self.assertAlmostEqual(
-                convert_time(t = float(results_old['PRI.E.t']['mean']),
+                self.convert_time(t = float(results_old['PRI.E.t']['mean']),
                         mean_theta = mean_theta,
                         mu = 1e-8),
-                convert_sps_time(t = float(results_sps['PRI.E.t']['mean']),
+                self.convert_sps_time(t = float(results_sps['PRI.E.t']['mean']),
                         mu = 1e-8),
                 places = 3)
         self.assertAlmostEqual(
-                convert_time(t = float(results_old['PRI.E.t']['median']),
+                self.convert_time(t = float(results_old['PRI.E.t']['median']),
                         mean_theta = mean_theta,
                         mu = 1.0),
-                convert_sps_time(t = float(results_sps['PRI.E.t']['median']),
+                self.convert_sps_time(t = float(results_sps['PRI.E.t']['median']),
                         mu = 1.0),
                 places = 7)
         self.assertAlmostEqual(
-                convert_time(t = float(results_old['PRI.omega']['median']),
+                self.convert_time(t = float(results_old['PRI.omega']['median']),
                         mean_theta = mean_theta,
                         mu = 1.0),
-                convert_sps_time(t = float(results_sps['PRI.omega']['median']),
+                self.convert_sps_time(t = float(results_sps['PRI.omega']['median']),
                         mu = 1.0),
                 places = 7)
         self.assertAlmostEqual(
-                convert_time(t = float(results_old['PRI.E.t']['range'][0]),
+                self.convert_time(t = float(results_old['PRI.E.t']['range'][0]),
                         mean_theta = mean_theta,
                         mu = 1.0),
-                convert_sps_time(t = float(results_sps['PRI.E.t']['range'][0]),
+                self.convert_sps_time(t = float(results_sps['PRI.E.t']['range'][0]),
                         mu = 1.0),
                 places = 7)
         self.assertAlmostEqual(
-                convert_time(t = float(results_old['PRI.E.t']['range'][1]),
+                self.convert_time(t = float(results_old['PRI.E.t']['range'][1]),
                         mean_theta = mean_theta,
                         mu = 1.0),
-                convert_sps_time(t = float(results_sps['PRI.E.t']['range'][1]),
+                self.convert_sps_time(t = float(results_sps['PRI.E.t']['range'][1]),
                         mu = 1.0),
                 places = 7)
         self.assertAlmostEqual(
-                convert_time(t = float(results_old['PRI.omega']['range'][0]),
+                self.convert_time(t = float(results_old['PRI.omega']['range'][0]),
                         mean_theta = mean_theta,
                         mu = 1.0),
-                convert_sps_time(t = float(results_sps['PRI.omega']['range'][0]),
+                self.convert_sps_time(t = float(results_sps['PRI.omega']['range'][0]),
                         mu = 1.0),
                 places = 7)
         self.assertAlmostEqual(
-                convert_time(t = float(results_old['PRI.omega']['range'][1]),
+                self.convert_time(t = float(results_old['PRI.omega']['range'][1]),
                         mean_theta = mean_theta,
                         mu = 1.0),
-                convert_sps_time(t = float(results_sps['PRI.omega']['range'][1]),
+                self.convert_sps_time(t = float(results_sps['PRI.omega']['range'][1]),
+                        mu = 1.0),
+                places = 7)
+
+    # @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+    #         "EXHAUSTIVE test")
+    def test_time_scale_multi_locus(self):
+
+        cu_cfg_path = package_paths.data_path('4pairs_5loci_cu_time.cfg')
+        args = ['-o', cu_cfg_path,
+                '-p', cu_cfg_path,
+                '-r', 1,
+                '-n', 400,
+                '--num-posterior-samples', 200,
+                '--num-standardizing-samples', 300,
+                '-q', 100,
+                '--np', 4,
+                '--seed', self.seed,
+                '--debug']
+        self._exe_dmc(args, return_code=0)
+        results1 = self.get_result_paths(1, 'm1', 1, 1)
+        self.assertTrue(os.path.exists(results1['prior-dir']))
+        self.assertTrue(os.path.exists(results1['sample']))
+
+        out_dir1 = self.get_test_subdir(prefix='sps-')
+
+        sps_cfg_path = package_paths.data_path('4pairs_5loci_sps_time.cfg')
+        args = ['-o', sps_cfg_path,
+                '-p', sps_cfg_path,
+                '-r', 1,
+                '-n', 400,
+                '--num-posterior-samples', 200,
+                '--num-standardizing-samples', 300,
+                '-q', 100,
+                '--np', 4,
+                '--seed', self.seed,
+                '--debug']
+        self._exe_dmc(args, return_code=0, output_dir = out_dir1)
+        results2 = self.get_result_paths(1, 'm1', 1, 1, output_dir = out_dir1)
+        self.assertTrue(os.path.exists(results2['prior-dir']))
+        self.assertTrue(os.path.exists(results2['sample']))
+
+        results_old = configobj.ConfigObj(results1['summary'])
+        results_sps = configobj.ConfigObj(results2['summary'])
+        old_times = self.get_div_time_list(results1['sample'])
+        sps_times = self.get_div_time_list(results2['sample'])
+
+        mean_theta = 0.001
+
+        self.assertEqual(len(old_times), len(sps_times))
+        for i in range(len(old_times)):
+            self.assertAlmostEqual(
+                    self.convert_time(t = old_times[i],
+                        mean_theta = mean_theta,
+                        mu = 1.0),
+                    self.convert_sps_time(t = sps_times[i], 
+                        mu = 1.0),
+                    places = 7)
+        self.assertAlmostEqual(
+                self.convert_time(t = float(results_old['PRI.E.t']['mean']),
+                        mean_theta = mean_theta,
+                        mu = 1.0),
+                self.convert_sps_time(t = float(results_sps['PRI.E.t']['mean']),
+                        mu = 1.0),
+                places = 7)
+        self.assertAlmostEqual(
+                self.convert_time(t = float(results_old['PRI.E.t']['mean']),
+                        mean_theta = mean_theta,
+                        mu = 1e-8),
+                self.convert_sps_time(t = float(results_sps['PRI.E.t']['mean']),
+                        mu = 1e-8),
+                places = 3)
+        self.assertAlmostEqual(
+                self.convert_time(t = float(results_old['PRI.E.t']['median']),
+                        mean_theta = mean_theta,
+                        mu = 1.0),
+                self.convert_sps_time(t = float(results_sps['PRI.E.t']['median']),
+                        mu = 1.0),
+                places = 7)
+        self.assertAlmostEqual(
+                self.convert_time(t = float(results_old['PRI.omega']['median']),
+                        mean_theta = mean_theta,
+                        mu = 1.0),
+                self.convert_sps_time(t = float(results_sps['PRI.omega']['median']),
+                        mu = 1.0),
+                places = 7)
+        self.assertAlmostEqual(
+                self.convert_time(t = float(results_old['PRI.E.t']['range'][0]),
+                        mean_theta = mean_theta,
+                        mu = 1.0),
+                self.convert_sps_time(t = float(results_sps['PRI.E.t']['range'][0]),
+                        mu = 1.0),
+                places = 7)
+        self.assertAlmostEqual(
+                self.convert_time(t = float(results_old['PRI.E.t']['range'][1]),
+                        mean_theta = mean_theta,
+                        mu = 1.0),
+                self.convert_sps_time(t = float(results_sps['PRI.E.t']['range'][1]),
+                        mu = 1.0),
+                places = 7)
+        self.assertAlmostEqual(
+                self.convert_time(t = float(results_old['PRI.omega']['range'][0]),
+                        mean_theta = mean_theta,
+                        mu = 1.0),
+                self.convert_sps_time(t = float(results_sps['PRI.omega']['range'][0]),
+                        mu = 1.0),
+                places = 7)
+        self.assertAlmostEqual(
+                self.convert_time(t = float(results_old['PRI.omega']['range'][1]),
+                        mean_theta = mean_theta,
+                        mu = 1.0),
+                self.convert_sps_time(t = float(results_sps['PRI.omega']['range'][1]),
                         mu = 1.0),
                 places = 7)
 
