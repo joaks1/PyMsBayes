@@ -18,6 +18,12 @@ from pymsbayes.utils.parsing import (TAU_PATTERNS,
         MEAN_TAU_PATTERNS,
         OMEGA_PATTERNS,
         HEADER_PATTERN)
+_CV_INCLUDED = False
+try:
+    from pymsbayes.utils.parsing import CV_PATTERNS
+    _CV_INCLUDED = True 
+except ImportError:
+    pass
 from pymsbayes.config import MsBayesConfig
 from pymsbayes.utils.stats import SampleSummarizer
 from pymsbayes.utils import probability
@@ -95,6 +101,8 @@ class PyMsBayesTestCase(unittest.TestCase):
     def get_expected_indices(self, num_pairs, dummy_column=True,
             parameters_reported=True):
         num_summary_params = 4
+        if _CV_INCLUDED:
+            num_summary_params += 1
         num_params = 4*num_pairs
         num_default_stats = 4*num_pairs
         start = 0

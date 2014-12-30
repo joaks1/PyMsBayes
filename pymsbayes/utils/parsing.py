@@ -79,6 +79,9 @@ MEAN_TAU_PATTERNS = [
 OMEGA_PATTERNS = [
         re.compile(r'^\s*PRI\.omega\s*$'),
         ]
+CV_PATTERNS = [
+        re.compile(r'^\s*PRI\.cv\s*$'),
+        ]
 DIV_MODEL_PATTERNS = [
         re.compile(r'^\s*PRI\.div\.model\s*$'),
         ]
@@ -265,7 +268,8 @@ def prior_for_msreject(in_file, out_file,
 
 def parameter_density_iter(parameter_density_file,
         parameter_patterns = DIV_MODEL_PATTERNS + MODEL_PATTERNS + \
-                PSI_PATTERNS + MEAN_TAU_PATTERNS + OMEGA_PATTERNS):
+                PSI_PATTERNS + MEAN_TAU_PATTERNS + OMEGA_PATTERNS + \
+                CV_PATTERNS):
     dens_file, close = process_file_arg(parameter_density_file)
     try:
         header = parse_header(dens_file, seek = False)
@@ -276,7 +280,6 @@ def parameter_density_iter(parameter_density_file,
         heads_to_dens_tups = dict(zip([header[i] for i in parameter_indices],
                 [None for i in range(len(parameter_indices))]))
         if not len(parameter_indices) == len(set(indices_to_heads.itervalues())):
-            dens_file.close()
             raise errors.ParameterParsingError('some parameters were found in '
                     'multiple columns in density file {0!r}'.format(
                             dens_file.name))
@@ -295,7 +298,8 @@ def parameter_density_iter(parameter_density_file,
 
 def parse_parameter_density_file(parameter_density_file,
         parameter_patterns = DIV_MODEL_PATTERNS + MODEL_PATTERNS + \
-                PSI_PATTERNS + MEAN_TAU_PATTERNS + OMEGA_PATTERNS):
+                PSI_PATTERNS + MEAN_TAU_PATTERNS + OMEGA_PATTERNS + \
+                CV_PATTERNS):
     val_dens_tups = None
     for pd in parameter_density_iter(parameter_density_file):
         if not val_dens_tups:
@@ -323,6 +327,13 @@ def parameter_iter(file_obj, include_line = False, include_thetas = False):
                 'columns'.format(post_file.name, len(omega_indices)))
     if omega_indices:
         indices['omega'] = omega_indices
+    cv_indices = functions.get_indices_of_patterns(header, CV_PATTERNS)
+    if len(cv_indices) > 1:
+        post_file.close()
+        raise errors.ParameterParsingError('posterior file {0} has {1} cv '
+                'columns'.format(post_file.name, len(cv_indices)))
+    if cv_indices:
+        indices['cv'] = cv_indices
     t_indices = functions.get_indices_of_patterns(header, TAU_PATTERNS)
     if t_indices:
         indices['taus'] = t_indices
@@ -371,7 +382,7 @@ def parameter_iter(file_obj, include_line = False, include_thetas = False):
                         '{1} columns at line {2}; expecting {3}'.format(
                                 post_file.name, len(l), i + 2, len(header)))
             for k, idx_list in indices.iteritems():
-                if k in ['mean_tau', 'omega']:
+                if k in ['mean_tau', 'omega', 'cv']:
                     samples[k] = [float(l[i]) for i in idx_list]
                 elif k in ['psi', 'model', 'div_model']:
                     samples[k] = [int(l[i]) for i in idx_list]

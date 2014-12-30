@@ -238,7 +238,8 @@ def main_cli():
             mk_new_dir)
     from pymsbayes.utils.parsing import (get_patterns_from_prefixes,
             DEFAULT_STAT_PATTERNS, DIV_MODEL_PATTERNS, MODEL_PATTERNS,
-            PSI_PATTERNS, MEAN_TAU_PATTERNS, OMEGA_PATTERNS, line_count)
+            PSI_PATTERNS, MEAN_TAU_PATTERNS, OMEGA_PATTERNS, CV_PATTERNS,
+            line_count)
     from pymsbayes.utils import sumresults
     from pymsbayes.manager import Manager
     from pymsbayes.utils.tempfs import TempFileSystem
@@ -381,6 +382,7 @@ def main_cli():
             msbayes_exe_path = None,
             abctoolbox_bandwidth = args.bandwidth,
             omega_threshold = 0.01,
+            cv_threshold = 0.01,
             compress = args.compress,
             reporting_frequency = args.reporting_frequency,
             keep_temps = args.keep_temps,

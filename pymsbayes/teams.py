@@ -58,6 +58,7 @@ class ABCTeam(object):
             msbayes_exe_path = None,
             abctoolbox_bandwidth = None,
             omega_threshold = 0.01,
+            cv_threshold = 0.01,
             compress = True,
             keep_temps = False,
             reporting_frequency = None,
@@ -124,6 +125,7 @@ class ABCTeam(object):
         self.msbayes_exe_path = msbayes_exe_path
         self.abctoolbox_bandwidth = abctoolbox_bandwidth
         self.omega_threshold = omega_threshold
+        self.cv_threshold = cv_threshold
         self.compress = compress
         self.num_processors = num_processors
         self.num_posterior_samples = num_posterior_samples
@@ -751,6 +753,7 @@ class ABCTeam(object):
                                 abctoolbox_num_posterior_quantiles = \
                                         self.num_posterior_density_quantiles,
                                 omega_threshold = self.omega_threshold,
+                                cv_threshold = self.cv_threshold,
                                 compress = self.compress,
                                 keep_temps = self.keep_temps,
                                 tag = model_idx))
@@ -813,6 +816,7 @@ class ABCTeam(object):
                                 abctoolbox_num_posterior_quantiles = \
                                         self.num_posterior_density_quantiles,
                                 omega_threshold = self.omega_threshold,
+                                cv_threshold = self.cv_threshold,
                                 compress = self.compress,
                                 keep_temps = self.keep_temps,
                                 tag = model_idx)
@@ -857,6 +861,7 @@ class ABCTeam(object):
                                 abctoolbox_num_posterior_quantiles = \
                                         self.num_posterior_density_quantiles,
                                 omega_threshold = self.omega_threshold,
+                                cv_threshold = self.cv_threshold,
                                 compress = self.compress,
                                 keep_temps = self.keep_temps,
                                 tag = model_idx)
@@ -1149,6 +1154,7 @@ class RejectionTeam(object):
             abctoolbox_exe_path = None,
             abctoolbox_bandwidth = None,
             omega_threshold = 0.01,
+            cv_threshold = 0.01,
             compress = True,
             keep_temps = False,
             index = 1,
@@ -1169,6 +1175,7 @@ class RejectionTeam(object):
         self.abctoolbox_exe_path = abctoolbox_exe_path
         self.abctoolbox_bandwidth = abctoolbox_bandwidth
         self.omega_threshold = omega_threshold
+        self.cv_threshold = cv_threshold
         self.compress = compress
         self.prior_paths = [p for p in prior_paths]
         if summary_in_path:
@@ -1187,6 +1194,7 @@ class RejectionTeam(object):
         self.model_results_path = None
         self.psi_results_path = None
         self.omega_results_path = None
+        self.cv_results_path = None
         self.posterior_summary_path = None
         self.regress_summary_path = None
         self.regress_posterior_path = None
@@ -1278,6 +1286,7 @@ class RejectionTeam(object):
                 abctoolbox_num_posterior_quantiles = \
                         self.num_posterior_density_quantiles,
                 omega_threshold = self.omega_threshold,
+                cv_threshold = self.cv_threshold,
                 compress = self.compress,
                 keep_temps = self.keep_temps,
                 tag = self.tag)
@@ -1289,6 +1298,7 @@ class RejectionTeam(object):
         self.model_results_path = pw.model_results_path
         self.psi_results_path = pw.psi_results_path
         self.omega_results_path = pw.omega_results_path
+        self.cv_results_path = pw.cv_results_path
         self.posterior_summary_path = pw.posterior_summary_path
         self.regress_summary_path = pw.regress_summary_path
         self.regress_posterior_path = pw.regress_posterior_path
@@ -1299,6 +1309,7 @@ class ModelProbabilityEstimatorTeam(object):
             config_paths,
             num_samples = 1000,
             omega_threshold = 0.01,
+            cv_threshold = 0.01,
             num_processors = 4,
             rng = None):
         self.__class__.count += 1
@@ -1308,6 +1319,7 @@ class ModelProbabilityEstimatorTeam(object):
             self.rng = GLOBAL_RNG
         self.np = num_processors
         self.omega_threshold = omega_threshold
+        self.cv_threshold = cv_threshold
         self.configs = dict(zip(config_paths,
             [config.MsBayesConfig(c) for c in config_paths]))
         self.psi_summaries = {}
@@ -1329,6 +1341,10 @@ class ModelProbabilityEstimatorTeam(object):
                 [stats.SampleSummary() for c in self.configs.iterkeys()]))
         self.omega_probs = dict(zip(self.configs.iterkeys(),
                 [None for c in self.configs.iterkeys()]))
+        self.cv_summaries = dict(zip(self.configs.iterkeys(),
+                [stats.SampleSummary() for c in self.configs.iterkeys()]))
+        self.cv_probs = dict(zip(self.configs.iterkeys(),
+                [None for c in self.configs.iterkeys()]))
         self.num_samples = num_samples
         if self.np > self.num_samples:
             self.np = self.num_samples
@@ -1347,6 +1363,7 @@ class ModelProbabilityEstimatorTeam(object):
                         config = cfg,
                         num_samples = sample_size,
                         omega_threshold = self.omega_threshold,
+                        cv_threshold = self.cv_threshold,
                         tag = path)
                 eworkers.append(w)
         _LOG.info('{0}: Generating samples...'.format(self.name))
@@ -1362,6 +1379,7 @@ class ModelProbabilityEstimatorTeam(object):
                 self.shared_div_summaries[w.tag][k].update(
                         w.shared_div_summary[k])
             self.omega_summaries[w.tag].update(w.omega_summary)
+            self.cv_summaries[w.tag].update(w.cv_summary)
         for path in self.configs.iterkeys():
             total = 0.0
             for k, s in self.psi_summaries[path].iteritems():
@@ -1385,6 +1403,7 @@ class ModelProbabilityEstimatorTeam(object):
                                         self.configs[path].npairs],
                                 self.psi_probs[path][1]))
             self.omega_probs[path] = self.omega_summaries[path].mean
+            self.cv_probs[path] = self.cv_summaries[path].mean
 
 class DivModelSimulatorTeam(object):
     count = 0

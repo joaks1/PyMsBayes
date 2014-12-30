@@ -63,6 +63,7 @@ class DmcTestCase(PyMsBayesTestCase):
         paths['psi'] = p + '-psi-results.txt'
         paths['model'] = p + '-model-results.txt'
         paths['omega'] = p + '-omega-results.txt'
+        paths['cv'] = p + '-cv-results.txt'
         paths['div'] = p + '-div-model-results.txt'
         paths['glm-summary'] = p + '-glm-posterior-summary.txt'
         paths['glm-density'] = p + '-glm-posterior-density-estimates.txt'

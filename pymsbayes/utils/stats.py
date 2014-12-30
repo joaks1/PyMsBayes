@@ -374,18 +374,28 @@ def summarize_discrete_parameters_from_densities(
                 parsing.PSI_PATTERNS +
                 parsing.DIV_MODEL_PATTERNS),
         include_omega_summary = False,
-        omega_threshold = 0.01):
+        omega_threshold = 0.01,
+        include_cv_summary = False,
+        cv_threshold = 0.01):
+    patterns = list(discrete_parameter_patterns)
     if include_omega_summary:
-        discrete_parameter_patterns += parsing.OMEGA_PATTERNS
+        patterns += parsing.OMEGA_PATTERNS
+    if include_cv_summary:
+        patterns += parsing.CV_PATTERNS
     densities = None
     for i, pd in enumerate(parsing.parameter_density_iter(
             parameter_density_file,
-            discrete_parameter_patterns)):
+            patterns)):
         if not densities:
             densities = dict(zip(pd.keys(), [{} for i in range(len(pd))]))
         for k, val_dens_tup in pd.iteritems():
             if k == 'PRI.omega':
                 if val_dens_tup[0] < omega_threshold:
+                    densities[k][0] = densities[k].get(0, 0.0) + val_dens_tup[1]
+                else:
+                    densities[k][1] = densities[k].get(1, 0.0) + val_dens_tup[1]
+            elif k == 'PRI.cv':
+                if val_dens_tup[0] < cv_threshold:
                     densities[k][0] = densities[k].get(0, 0.0) + val_dens_tup[1]
                 else:
                     densities[k][1] = densities[k].get(1, 0.0) + val_dens_tup[1]
