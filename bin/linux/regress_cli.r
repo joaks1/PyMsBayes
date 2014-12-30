@@ -10,7 +10,7 @@ stdAnalysis = function(obs.infile,
         tol=1,
         rejmethod=F,
         stat_prefixes=c("pi","wattTheta","pi.net","tajD.denom"),
-        continuous_prefixes=c("PRI.E.t", "PRI.omega"),
+        continuous_prefixes=c("PRI.E.t", "PRI.omega", "PRI.cv"),
         discrete_prefixes=c("PRI.Psi", "PRI.model"),
         stat_indices = NULL,
         discrete_indices = NULL,
@@ -91,9 +91,10 @@ stdAnalysis = function(obs.infile,
     #   		    PRI.var.t="tau_var")
     # set min, max boundary of prior parameters, and verbose print message
     # PRI.omega >= 0, PRI.E.t >= 0, PRI.Psi > 0
-    min.val <- list(PRI.Psi = 1, PRI.var.t = 0, PRI.E.t = 0, PRI.omega = 0 )
+    min.val <- list(PRI.Psi = 1, PRI.var.t = 0, PRI.E.t = 0, PRI.omega = 0, PRI.cv = 0 )
     max.val <- list(PRI.Psi = nPairs)
     verbose.print <- list(PRI.omega = "(=Var(t)/E(t))",
+                          PRI.cv = "(=sd(t)/E(t))",
                           PRI.Psi="(= number of possible divtimes)",
                           PRI.E.t="(= E(t))")
     # PRI.Tau* >= 0
@@ -231,6 +232,11 @@ stdAnalysis = function(obs.infile,
             omega.post = result[[p]]$x
             omega.prob = length(omega.post[omega.post<0.01]) / length(omega.post)
             cat("post_prob_zero = ", omega.prob, "\n", sep="")
+        }
+        if (p == "PRI.cv") {
+            cv.post = result[[p]]$x
+            cv.prob = length(cv.post[cv.post<0.01]) / length(cv.post)
+            cat("post_prob_zero = ", cv.prob, "\n", sep="")
         }
         adjusted_samples[[p]] = result[[p]]$x
     }
@@ -847,11 +853,11 @@ option_list = list(
                 "'./adjusted-posterior-samples.txt'.",
                 sep = '\n\t\t')),
     make_option("--continuous-prefixes", type="character",
-            default="PRI.omega,PRI.E.t",
+            default="PRI.omega,PRI.E.t,PRI.cv",
             dest="continuous_prefixes",
             help=paste(
                 "The comma-separated prefixes of continuous parameters",
-                "to analyze. The default is 'PRI.omega,PRI.E.t'. If you",
+                "to analyze. The default is 'PRI.omega,PRI.E.t,PRI.cv'. If you",
                 "specify an empty string, no continuous parameters will",
                 "will be analyzed.",
                 sep = '\n\t\t')),
