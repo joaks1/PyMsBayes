@@ -323,7 +323,7 @@ while (<RAND>) {
         if (defined($opt_m)) {
             $headString .= "\tPRI.model";
         }
-	    $headString .= "\tPRI.Psi\tPRI.var.t\tPRI.E.t\tPRI.omega";
+	    $headString .= "\tPRI.Psi\tPRI.var.t\tPRI.E.t\tPRI.omega\tPRI.cv";
 	    push @priorCache, $headString;
 	    $prepPriorHeader = 0;  # print this only 1 time
 	}
@@ -562,7 +562,7 @@ sub ExtractMspriorConf {
 
     my %result =();
 
-    my @generalKwdArr = qw(lowerTheta upperTheta lowerTau upperTau upperMig upperRec upperAncPopSize reps numTauClasses  constrain subParamConstrain numTaxonLocusPairs numTaxonPairs numLoci prngSeed configFile);
+    my @generalKwdArr = qw(lowerTheta upperTheta lowerTau upperTau upperMig upperRec upperAncPopSize timeInSubsPerSite reps numTauClasses  constrain subParamConstrain numTaxonLocusPairs numTaxonPairs numLoci prngSeed configFile);
 
     for my $kkk (@generalKwdArr) {
 	if ($mspriorConfOut =~ /\s*$kkk\s*=\s*([^\s\n]+)\s*\n/) {
@@ -618,7 +618,7 @@ sub MkNewMspriorBatchConf {
     my %confHash = %$mspriorConfHashRef;
 
     # the following kwd should match with SetupParams() in setup.c
-    my @generalKwdArr = qw(lowerTheta upperTheta lowerTau upperTau upperMig upperRec upperAncPopSize reps numTauClasses constrain subParamConstrain prngSeed);
+    my @generalKwdArr = qw(lowerTheta upperTheta lowerTau upperTau upperMig upperRec upperAncPopSize timeInSubsPerSite reps numTauClasses constrain subParamConstrain prngSeed);
 
     open CONFIN, "<$oldConfFileName" || die "Can't open $oldConfFileName\n";
     my $conf = "";
@@ -667,9 +667,13 @@ sub SummarizeTau {
     
     my $mean = $sum / $n;
     my $var = ($n==1) ? 'NA': ($ss -  $n * ($mean ** 2)) / ($n-1); # estimated, or sample var
+    if ($var < 1e-15) {
+        $var = 0.0;
+    }
     my $dispersionIndex = ($n==1 || $mean == 0) ? 'NA': $var/$mean;
+    my $cv = ($n==1 || $mean == 0) ? 'NA': ($var ** 0.5)/$mean;
     
-    return ($var, $mean, $dispersionIndex);
+    return ($var, $mean, $dispersionIndex, $cv);
 }
 
 sub GetTauVector {

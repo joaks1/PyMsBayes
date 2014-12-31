@@ -53,6 +53,14 @@ def main_cli():
                     'times. The estimated prior probability that the '
                     'dispersion index is less than this threshold will '
                     'be reported for each config.'))
+    parser.add_argument('-c', '--cv-threshold',
+            action = 'store',
+            type = float,
+            default = 0.01,
+            help = ('The threshold for the coefficient of variation (CV) of '
+                    'divegence times. The estimated prior probability that the '
+                    'CV is less than this threshold will '
+                    'be reported for each config.'))
     parser.add_argument('--seed',
             action = 'store',
             type = int,
@@ -100,6 +108,7 @@ def main_cli():
             config_paths = args.configs,
             num_samples = args.num_prior_samples,
             omega_threshold = args.dispersion_threshold,
+            cv_threshold = args.cv_threshold,
             num_processors = args.np)
     prob_esimator_team.start()
 
@@ -113,6 +122,9 @@ def main_cli():
         sys.stdout.write('\tdispersion of div times < {0}: {1}\n'.format(
                 args.dispersion_threshold,
                 prob_esimator_team.omega_probs[path]))
+        sys.stdout.write('\tCV of div times < {0}: {1}\n'.format(
+                args.cv_threshold,
+                prob_esimator_team.cv_probs[path]))
 
     stop_time = datetime.datetime.now()
     log.info('[run_stats]')
