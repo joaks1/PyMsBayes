@@ -596,15 +596,15 @@ Dirichlet-process prior on divergence models
 |dpp-msbayes|_ takes a non-parametric approach to this problem, and treats the
 number of divergence events, and the assignment of the taxa to the events, as a
 Dirichlet process :cite:`Ferguson1973`.
-This assigns prior probabilities directly to the divergence models and avoids
+This assigns prior probabilities directly to the divergence *models* and avoids
 the combinatorial problem created when assigning prior probabilities to the 
-number of events (Figure probability_of_models_).
+*number* of events (Figure probability_of_models_).
 Also, the "clumpiness" of the Dirichlet process is controlled by a
 concentration parameter (:math:`\alpha`), which makes it a very flexible prior
 to use for divergence models (I.e., we can control how much co-divergence we
 expect across taxa *a priori*).
 
-The basic idea of the Dirichlet process is quite simple; you simply assign
+The basic idea of the Dirichlet process is quite simple; you assign
 random variables (divergence times of our population pairs) to categories
 (divergence events) one at a time following a very simple rule. When assigning
 the :math:`n^{th}` random variable, you assign it to its own category (i.e.,
@@ -624,22 +624,29 @@ or you assign it to an existing category :math:`x` with probability
 
 where :math:`n_x` is the number of random variables already assigned to
 category :math:`x`.
-For example, we have to assign our first pair of lizard population to a
-divergence event.
-Next we assign the second pair to either a new divergence event with
-probability :math:`\alpha/\alpha + 1` or to the same divergence event as the
-first pair with probability :math:`1/\alpha + 1`.
-Simply repeat until all the lizard species have been assigned to a divergence
-event.
+OK, that might not sound very simple, but it is if we just walk through
+an example using our three lizard species.
+First, we have to assign our first lizard specie ("A") to a
+divergence event with probability 1.0 (the species had to diverge
+sometime!); let's call this the "blue" divergence event.
+Next we assign the second species ("B") to either a new ("red") divergence
+event with probability :math:`\alpha/\alpha + 1` or to the same "blue"
+divergence event as the first species with probability :math:`1/\alpha + 1`.
+For this example, let's say it gets assigned to the "blue" event.
+Lastly, we assign the third species ("C") to either a new ("red") divergence
+event with probability :math:`\alpha/\alpha + 2` or to the same "blue"
+divergence event as the first two species with probability :math:`2/\alpha +
+2`.
 
-As discussed in the ":ref:`comparative_divergence_models`" section above, there
-are a total of five divergence models when we have three taxa to compare (i.e.,
-there are five ways to assign our three lizard species to divergence events).
-So, we can use a probability tree to see the probability of all possible
-assignments (models) given the concentration parameter.
-Below, you can adjust the concentration parameter and see how it affects the
-prior probability of all five possible divergence models.
+If we draw out all possible assignments as a tree, we get Figure dpp_tree_
+below. You can adjust the concentration parameter to get a feel for how it
+affects the prior probability of each divergence model. Notice that as the
+concentration parameter increases we place more and more probability on the
+divergence models with less clustering (less shared divergences), whereas we
+place more and more probability on clustered models (shared divergences) as we
+decrease the concentration parameter.
 
+.. _dpp_tree:
 .. raw:: html
 
     <div id="dpp_div" name="dpp_div" align="center">
@@ -655,3 +662,68 @@ prior probability of all five possible divergence models.
         </script>
     </div>
 
+
+.. _sorting_taxa:
+
+Re-sorting the taxa during ABC algorithm
+========================================
+
+As discussed in :cite:`Oaks2014dpp`, before |msbayes|_ compares the simulated
+and observed summary statistics to determine whether or not to retain the set
+of parameters for the posterior sample, it re-sorts them.
+Thus, the summary statistics being compared were calculated from alignments of
+:hlight:`different` taxa and/or loci.
+In order for this to be mathematically valid, :hlight:`all` of the alignments
+must have :hlight:`identical`:
+
+#. Length
+#. Numbers of sequences
+#. HKY85 substitution model parameters
+#. Mutation-rate multipliers
+#. Ploidy multipliers
+
+Furthermore, you must have the same loci for all of the taxa.
+If any of these conditions are not met, which is the case for almost
+all empirical datasets, the re-sorting that is done by |msbayes|_ is
+invalid, and can produce biased results.
+
+For example, below are some results based on analyses of 100,000 simulated
+datasets.
+All of the simulated datasets had a single locus for six taxa, with varying
+numbers of individuals per population and varying sequence lengths across taxa.
+All of the other conditions specified above were met, and the prior was
+exactly correct (no model misspecification).
+When analyzing these datasets under the original |msbayes|_ model, but
+maintaining the order of the taxa, the method does well, as shown at the top of
+Figure model_choice_ below.
+When the taxa are re-sorted during the ABC algorithm, the method is strongly
+biased toward over-estimating the probability of simultaneous divergence
+(Figure model_choice_ bottom).
+
+.. _model_choice:
+.. figure:: /_static/mc-no-sort.jpg
+   :align: center
+   :width: 600 px
+   :figwidth: 60 %
+   :alt: no sorting model choice plot
+   
+.. figure:: /_static/mc-sort.jpg
+   :align: center
+   :width: 600 px
+   :figwidth: 60 %
+   :alt: sorting model choice plot
+
+   Model choice behavior without (top) and with (bottom) re-sorting of the
+   taxa.
+
+The take-home message here is:
+
+.. admonition:: :hlight:`Important`
+    :class: keypoint
+
+    :hlight:`Do not use the sorting options in` |msbayes|_ :hlight:`or`
+    |dpp-msbayes|_:hlight:`!!`
+
+
+|pmb|_ allows you to use the models of |msbayes|_ and |dpp-msbayes|_
+while maintaining the order of the taxa.

@@ -1819,6 +1819,7 @@ class ProbabilityValidationPlotGrid(object):
             omega_validation_probs_glm,
             omega_symbol = r'\Omega',
             psi_symbol = r'\Psi',
+            label_schema = 'uppercase',
             plot_glm = True,
             math_font = None,
             width = 8,
@@ -1846,6 +1847,7 @@ class ProbabilityValidationPlotGrid(object):
         self.margin_top = margin_top
         self.padding_between_horizontal = padding_between_horizontal
         self.padding_between_vertical = padding_between_vertical
+        self.label_schema = label_schema
         self.tab = tab
         self.num_columns = 2
         self.psi = psi_validation_probs
@@ -1917,7 +1919,7 @@ class ProbabilityValidationPlotGrid(object):
                 num_columns = self.num_columns,
                 share_x = True,
                 share_y = True,
-                label_schema = 'uppercase',
+                label_schema = self.label_schema,
                 width = self.width,
                 height = self.height,
                 auto_height = self.auto_height)
@@ -2534,6 +2536,7 @@ class ValidationResult(object):
             omega_symbol = r'\Omega',
             psi_symbol = r'\Psi',
             mean_time_symbol = r'E(\tau)',
+            label_schema = 'uppercase',
             math_font = None,
             prob_plot_glm = True,
             prob_plot_height = 9,
@@ -2552,6 +2555,7 @@ class ValidationResult(object):
         self.omega_symbol = omega_symbol
         self.psi_symbol = psi_symbol
         self.mean_time_symbol = mean_time_symbol
+        self.label_schema = label_schema
         self.math_font = math_font
         self.prob_plot_glm = prob_plot_glm
         self.prob_plot_height = prob_plot_height
@@ -2622,6 +2626,7 @@ class ValidationResult(object):
                 omega_validation_probs_glm = self.omega.validation_probs_glm,
                 omega_symbol = self.omega_symbol,
                 psi_symbol = self.psi_symbol,
+                label_schema = self.label_schema,
                 plot_glm = self.prob_plot_glm,
                 height = self.prob_plot_height,
                 margin_left = self.prob_plot_margin_left,
@@ -2653,6 +2658,7 @@ def plot_validation_results(info_path,
         omega_symbol = r'\Omega',
         psi_symbol = r'\Psi',
         mean_time_symbol = r'E(\tau)',
+        label_schema = 'uppercase',
         math_font = None,
         plot_accuracy = True,
         prob_plot_glm = True,
@@ -2691,6 +2697,7 @@ def plot_validation_results(info_path,
                     omega_symbol = omega_symbol,
                     psi_symbol = psi_symbol,
                     mean_time_symbol = mean_time_symbol,
+                    label_schema = label_schema,
                     prob_plot_glm = prob_plot_glm,
                     prob_plot_height = prob_plot_height,
                     prob_plot_margin_left = prob_plot_margin_left,
