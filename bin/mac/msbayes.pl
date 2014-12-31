@@ -667,6 +667,9 @@ sub SummarizeTau {
     
     my $mean = $sum / $n;
     my $var = ($n==1) ? 'NA': ($ss -  $n * ($mean ** 2)) / ($n-1); # estimated, or sample var
+    if ($var < 1e-15) {
+        $var = 0.0;
+    }
     my $dispersionIndex = ($n==1 || $mean == 0) ? 'NA': $var/$mean;
     my $cv = ($n==1 || $mean == 0) ? 'NA': ($var ** 0.5)/$mean;
     
