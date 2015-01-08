@@ -7,6 +7,8 @@
 The Configuration File
 **********************
 
+.. _sample_config:
+
 Configuration files are used to control analysis settings for |dpp-msbayes|_
 and |msbayes|_.
 |pmb|_ allows you to use |dpp-msbayes|_ and |msbayes|_ configuration files (and
@@ -82,8 +84,7 @@ There are two main differences to the preamble between |pmb|_ and
    So, if you prefer the model implemented in |msbayes|_, |pmb|_ is useful as a
    "safer" interface for it.
 
-Below we walk through all of the preamble options for the |dpp-msbayes|_
-preamble.
+Below we walk through all of the options for the |dpp-msbayes|_ preamble.
 If you want to use the |msbayes|_ model with |pmb|_, please see the
 `msBayes documentation
 <https://docs.google.com/document/d/15heQlz60cGe6GWKcXqf1AIYMBZ6p2sKuGct-EoEHiNU/edit>`_
@@ -102,6 +103,9 @@ for information about the preamble.
 The shape and scale parameters of a gamma-distributed prior on the
 concentration parameter of the Dirichlet-process prior on divergence models.
 
+See the ":ref:`dpp`" section for more information on the Dirichlet process
+and the concentration parameter that controls it.
+
 
 .. _theta_parameterization:
 
@@ -109,16 +113,15 @@ concentration parameter of the Dirichlet-process prior on divergence models.
 -------------------
 
 |dpp-msbayes|_ gives you full control over the parameterization of the
-population sizes for each pair of populations, which we will refer to as
+population sizes for each pair of populations.
+We will refer to the sizes of the ancestral and two descendant populations as
 :math:`\ancestralTheta{}`, :math:`\descendantTheta{1}{}`, and
-:math:`\descendantTheta{2}{}` for the ancestral, and two descendant
-populations.
+:math:`\descendantTheta{2}{}`.
 
 This setting is controlled by a sequence of three integers that always starts
 with ``0`` and increments by 1 whenever a free parameter is added.
-The first two integers represent :math:`\descendantTheta{1}{}` and
-:math:`\descendantTheta{2}{}`, and the last integer represents
-:math:`\ancestralTheta{}`.
+The first, second, and third integers represent :math:`\descendantTheta{1}{}`,
+:math:`\descendantTheta{2}{}`, and :math:`\ancestralTheta{}`, respectively.
 
 ``000`` is one extreme, where :math:`\ancestralTheta{}`,
 :math:`\descendantTheta{1}{}`, and :math:`\descendantTheta{2}{}` are all
@@ -128,9 +131,10 @@ vary among pairs).
 ``012`` is the other extreme, where :math:`\ancestralTheta{}`,
 :math:`\descendantTheta{1}{}`, and :math:`\descendantTheta{2}{}` are all
 estimated as independent parameters for each pair of populations.
-This is most similar to the original |msbayes|_
-However, the descendant population sizes are constrained to be negatively
-correlated in |msbayes|_ (see :cite:`Oaks2012` and :cite:`Oaks2014dpp`).
+This is most similar to the original |msbayes|_.
+However, the descendant population sizes are *not* constrained to be negatively
+correlated, as they are in |msbayes|_ (see :cite:`Oaks2014dpp` and
+:cite:`Oaks2012`).
 
 Another example is ``001``: the descendant populations share the same size
 parameter, but the ancestral population size is free to vary.
@@ -146,7 +150,7 @@ same size as the ancestral, and the other is free to vary.
 
 These settings define the shape and scale parameters of a gamma prior on the
 effective population sizes. Population sizes are scaled by the per-site
-mutation rate (:math:`\mu`): :math:`4N_e\mu`.
+mutation rate (:math:`\mu`): :math:`4\effectivePopSize\mutationRate`.
 
 
 .. _ancestral_theta_prior:
@@ -154,12 +158,22 @@ mutation rate (:math:`\mu`): :math:`4N_e\mu`.
 ``ancestralThetaShape`` / ``ancestralThetaScale``
 -------------------------------------------------
 
-If these settings are both provided and both are positive, they define the
+If these settings are both provided, and are both positive, they define the
 shape and scale parameters of a gamma prior on the effective population size of
-ancestral populations.
+the ancestral population of each pair of populations.
 
-If they are excluded, or both are zero, the ``thetaShape`` and ``thetaScale``
-settings are used for the gamma prior on ancestral population size parameters.
+If they are excluded, or both are zero, the :ref:`theta_prior`
+settings are used for the gamma prior on ancestral population sizes (i.e.,
+all population size parameters have the same prior).
+
+.. note::
+    :class: keypoint
+
+    If you specify a setting such as ``000`` for the
+    :ref:`theta_parameterization` option, the ancestral population size is
+    constrained to be the same as the descendant populations, and thus the
+    :ref:`ancestral_theta_prior` options will be overridden and have no affect.
+
 
 .. _divergence_time_prior:
 
@@ -168,7 +182,7 @@ settings are used for the gamma prior on ancestral population size parameters.
 
 These settings define the shape and scale parameters of a gamma prior
 on divergence times. 
-See the timescale_setting_ ``timeInSubsPerSite`` setting for the information on
+See the :ref:`timescale_setting` setting for the information on
 the time units.
 
 
@@ -183,13 +197,13 @@ This setting controls the time scale of the model and has two settings:
   For example, a divergence of 0.05 means that, on average, 5% of sites have
   changed since the populations diverged (so you expect 10% divergence between
   the populations since the population divergence).
-  Thus, you can convert these units to the number of generations by dividing by
-  the mutation rate.
+  Thus, you can convert these units to the number of generations or years by
+  dividing by the mutation rate.
 
 * ``timeInSubsPerSite = 0``: Time units are in coalescent units,
   :math:`\globalcoalunit` generations, where :math:`\globalpopsize` is the size of a
-  constant reference population based on the mean of the theta_prior_
-  (defined by settings ``thetaShape`` and ``thetaScale``).
+  constant reference population based on the mean of the prior on theta
+  (defined by the :ref:`theta_prior` settings ).
 
   If we use :math:`\globaltheta` to represent the mean of the theta prior, then
   
@@ -211,16 +225,19 @@ This setting controls the time scale of the model and has two settings:
       for the theta_prior_.
       It also requires you to re-scale the divergence_time_prior_ every time
       you change the theta_prior_.
-      Scaling time by the expected substitutions per site is much more straight
-      forward.
+      Having time in units of expected substitutions per site is much more
+      straight forward (i.e., ``timeInSubsPerSite = 1``).
 
+
+.. _bottleneck_prior:
 
 ``bottleProportionShapeA`` / ``bottleProportionShapeB``
 -------------------------------------------------------
 
-If both are positive, these settings define the shape parameters alpha and
-beta, respectively, of a beta prior on the magnitude of a post-divergence
-bottleneck in each of the descendant populations.
+If both are positive, these settings define a beta prior on the magnitude of a
+post-divergence bottleneck in each of the descendant populations.
+``bottleProportionShapeA`` and ``bottleProportionShapeB`` correspond to the
+shape parameters alpha and beta, respectively, of the beta prior.
 
 The bottleneck magnitude is the proportion of the effective population size
 that remains following the bottleneck.
@@ -237,8 +254,7 @@ model).
     bottleneck (it begins at speciation in forward time). There is one of these
     parameters for each pair of populations (i.e., the descendant populations
     of each pair share the same bottleneck-end-time parameter).
-    Thus if either or both of the
-    ``bottleProportionShapeA``/``bottleProportionShapeB`` settings are zero or
+    Thus if either or both of the :ref:`bottleneck_prior` settings are zero or
     less, you are also removing these bottleneck timing parameters from the
     model.
     This means you are removing :math:`3\npairs{}` parameters from the model,
@@ -302,5 +318,56 @@ empirical analyses.
 The Sample Table
 ================
 
-Blah
+Delimited by the ``BEGIN SAMPLE_TBL`` and ``END SAMPLE_TBL`` lines is the
+sample table section of our :ref:`example configuration file<sample_config>`
+above.
+This is a tab-delimited table where each column represents information or
+parameter values for each row, which represents a locus for a particular taxon
+(i.e., each row will correspond to a sequence alignment we wish to include in
+our analysis).
 
+.. _sample_table_columns:
+
+.. admonition:: Sample Table Columns 
+    :class: definitions
+
+    Column 1---Taxon label
+        A unique label must be used to identify each pair of populations in the
+        analysis.
+    Column 2---Locus label
+        A unique label must be used to identify each locus in the analysis.
+    Column 3---Ploidy and/or generation-time multiplier
+        The number in this column is used to scale for differences in ploidy
+        among loci or for differences in generation-times among taxa.
+        In our :ref:`example configuration file<sample_config>` 1.0 is used for
+        loci from a diploid nuclear genome, whereas 0.25 is used for a region
+        of the mitochondrial genome (because its haploid and maternally
+        inherited).
+        However, if a taxon "species-3" had :math:`1/4` the generation times of
+        the other two taxa, we would specify "1.0" for the third column for its
+        mitochondrial locus, and "4.0" for the third column for its nuclear
+        loci.
+    Column 4---Mutation-rate multiplier
+        The number in this column is used to scale for differences in mutation
+        rates among taxa and/or loci.
+        In our :ref:`example configuration file<sample_config>`, we are
+        assuming that the mitochondrial locus ("locus-mt") is evolving
+        four-times faster than the other loci (hence, the "4.0" in this fourth
+        column for the three rows representing the mitochondrial locus).
+    Columns 5 and 6---Number of gene copies from Populations 1 and 2
+        For example, for "locus-1" of "species-1" in our :ref:`example
+        configuration file<sample_config>`, we have "10" and "8" in Columns 5
+        and 6.
+        Thus, the first 10 sequences in the "``species-1-locus-1.fasta``" file
+        specified in Column 12 must be from one population, and the last 8
+        sequences must be from the other population.
+        NOTE, which population is "1" or "2" is completely arbitrary. However,
+        the numbers in Columns 5 and 6 must correspond to the first and
+        last sequences, respectively, in the sequence file specified in Column
+        12.
+    Column 7---The transition/transversion rate ratio
+        This is the transition/transversion rate ratio ("Kappa") of the HKY85
+        model of nucleotide substitution :cite:`HKY` for this alignment.
+        NOTE: This is the transition/transversion *rate* ratio, not the "count"
+        ratio. I.e., Kappa = 1 is equal to the Jukes-Cantor model.
+        
