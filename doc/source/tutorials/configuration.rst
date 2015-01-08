@@ -38,16 +38,16 @@ Here is an example of a configuration file for |dpp-msbayes|_::
     species-1	locus-3	1.0	1.0	6	8	8.38	524	0.26	0.23	0.26	species-1-locus-3.fasta
     species-1	locus-4	1.0	1.0	8	10	5.20	345	0.25	0.23	0.24	species-1-locus-4.fasta
     species-1	locus-5	1.0	1.0	8	8	29.59	417	0.27	0.23	0.21	species-1-locus-5.fasta
-    species-1	locus-mt	0.25	4.0	5	5	8.15	600	0.22	0.24	0.27	species-1-locus-mt.fasta
+    species-1	mito-1	0.25	4.0	5	5	8.15	600	0.22	0.24	0.27	species-1-mito-1.fasta
     species-2	locus-1	1.0	1.0	6	10	7.53	400	0.25	0.24	0.26	species-2-locus-1.fasta
     species-2	locus-3	1.0	1.0	10	8	11.14	550	0.27	0.22	0.24	species-2-locus-3.fasta
     species-2	locus-4	1.0	1.0	8	8	9.39	350	0.24	0.24	0.23	species-2-locus-4.fasta
     species-2	locus-5	1.0	1.0	10	10	13.32	450	0.26	0.24	0.22	species-2-locus-5.fasta
-    species-2	locus-mt	0.25	4.0	4	5	7.59	549	0.23	0.26	0.23	species-2-locus-mt.fasta
+    species-2	mito-1	0.25	4.0	4	5	7.59	549	0.23	0.26	0.23	species-2-mito-1.fasta
     species-3	locus-1	1.0	1.0	10	6	17.03	367	0.25	0.23	0.27	species-3-locus-1.fasta
     species-3	locus-3	1.0	1.0	8	10	59.17	541	0.26	0.22	0.25	species-3-locus-3.fasta
     species-3	locus-4	1.0	1.0	6	8	6.90	333	0.28	0.23	0.21	species-3-locus-4.fasta
-    species-3	locus-mt	0.25	4.0	5	4	11.42	587	0.22	0.22	0.25	species-3-locus-mt.fasta
+    species-3	mito-1	0.25	4.0	5	4	11.42	587	0.22	0.22	0.25	species-3-mito-1.fasta
     END SAMPLE_TBL
 
 A configuration file has two parts:
@@ -351,7 +351,7 @@ our analysis).
         The number in this column is used to scale for differences in mutation
         rates among taxa and/or loci.
         In our :ref:`example configuration file<sample_config>`, we are
-        assuming that the mitochondrial locus ("locus-mt") is evolving
+        assuming that the mitochondrial locus ("mito-1") is evolving
         four-times faster than the other loci (hence, the "4.0" in this fourth
         column for the three rows representing the mitochondrial locus).
     Columns 5 and 6---Number of gene copies from Populations 1 and 2
@@ -370,4 +370,18 @@ our analysis).
         model of nucleotide substitution :cite:`HKY` for this alignment.
         NOTE: This is the transition/transversion *rate* ratio, not the "count"
         ratio. I.e., Kappa = 1 is equal to the Jukes-Cantor model.
+    Column 8---The length of the alignment
+        The number of columns in the alignment specified in Column 12.
+    Columns 9, 10, and 11---Base frequencies
+        Equilibrium frequencies of nucleotide bases A, C, and G, respectively.
+        The frequency of T is simply 1 minus the sum of these three columns.
+    Column 12---Path to sequence alignment
+        The path to the fasta-formatted file containing the aligned sequences.
+        The first sequences in the file should correspond to Column 5, and the
+        last sequences in the file should correspond to Column 6.
+        If only the name of the file is given (as in the :ref:`example
+        configuration file<sample_config>` above), the file must be in the
+        same directory ("folder") as the configuration file.
+        The paths can be relative (e.g.,
+        ``../alignments/species-1-locus-1.fasta``).
         
