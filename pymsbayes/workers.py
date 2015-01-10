@@ -1840,6 +1840,60 @@ class DivModelSimulator(object):
         self.div_models.add_iter(self.get_prior_sample_iter())
         self.finished = True
 
+class DppSimWorker(object):
+    count = 0
+    def __init__(self,
+            alpha,
+            num_elements,
+            base_distribution,
+            num_samples = 1000,
+            rng = None,
+            tag = None):
+        self.__class__.count += 1
+        self.name = self.__class__.__name__ + '-' + str(self.count)
+        self.alpha = alpha
+        self.num_elements = num_elements
+        self.base_distribution = base_distribution
+        self.num_samples = num_samples
+        self.div_models = stats.PartitionCollection()
+        self.rng = rng
+        self.tag = tag
+        self.psi_summary = dict(zip([i + 1 for i in range(self.npairs)],
+                [stats.SampleSummary() for i in range(self.npairs)]))
+        self.finished = False
+
+    def get_prior_sample_iter(self):
+        p = stats.Partition()
+        return p.dirichlet_process_draw_iter(
+                alpha = self.alpha,
+                num_samples = self.num_samples,
+                num_elements = self.num_elements,
+                base_distribution = self.base_distribution,
+                rng = self.rng)
+
+    def start(self):
+        self.div_models.add_iter(self.get_prior_sample_iter())
+        self.finished = True
+
+        psi_summarizer = dict(zip([i + 1 for i in range(self.npairs)],
+                [stats.SampleSummarizer() for i in range(self.npairs)]))
+        prior_sample_iter = self.get_prior_sample_iter()
+        rng = self.rng
+        if not rng:
+            rng = GLOBAL_RNG
+        for partition in prior_sample_iter:
+            for k in psi_summarizer.iterkeys():
+                if len(partition.values) == k:
+                    psi_summarizer[k].add_sample(1)
+                else:
+                    psi_summarizer[k].add_sample(0)
+        for k in self.psi_summary.iterkeys():
+            self.psi_summary[k].update(stats.SampleSummary(
+                sample_size = psi_summarizer[k].n,
+                mean = psi_summarizer[k].mean,
+                variance = psi_summarizer[k].variance))
+        self.finished = True
+
 
 class GeneTreeSimWorker(GenericWorker):
     count = 0
