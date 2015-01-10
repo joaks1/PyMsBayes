@@ -960,8 +960,13 @@ class Partition(object):
         alpha = precision
         n = len(self.partition)
         current_exp_ncats = self.get_dpp_expected_num_cats(alpha)
-        if expected_num_cats <= 1.0:
-            expected_num_cats = 1.01
+        if expected_num_cats > len(self.partition):
+            raise Exception('the expected number of cats cannot be greater '
+                    'than the number of elements')
+        elif expected_num_cats == len(self.partition):
+            expected_num_cats = len(self.partition) - 0.001
+        elif expected_num_cats < 1.001:
+            expected_num_cats = 1.001
         increase = False
         if current_exp_ncats < expected_num_cats:
             increase = True
