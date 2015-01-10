@@ -1845,8 +1845,8 @@ class DppSimWorker(object):
     def __init__(self,
             alpha,
             num_elements,
-            base_distribution,
             num_samples = 1000,
+            base_distribution = None,
             rng = None,
             tag = None):
         self.__class__.count += 1
@@ -1858,8 +1858,8 @@ class DppSimWorker(object):
         self.div_models = stats.PartitionCollection()
         self.rng = rng
         self.tag = tag
-        self.psi_summary = dict(zip([i + 1 for i in range(self.npairs)],
-                [stats.SampleSummary() for i in range(self.npairs)]))
+        self.psi_summary = dict(zip([i + 1 for i in range(self.num_elements)],
+                [stats.SampleSummary() for i in range(self.num_elements)]))
         self.finished = False
 
     def get_prior_sample_iter(self):
@@ -1872,16 +1872,13 @@ class DppSimWorker(object):
                 rng = self.rng)
 
     def start(self):
-        self.div_models.add_iter(self.get_prior_sample_iter())
-        self.finished = True
-
-        psi_summarizer = dict(zip([i + 1 for i in range(self.npairs)],
-                [stats.SampleSummarizer() for i in range(self.npairs)]))
-        prior_sample_iter = self.get_prior_sample_iter()
+        psi_summarizer = dict(zip([i + 1 for i in range(self.num_elements)],
+                [stats.SampleSummarizer() for i in range(self.num_elements)]))
         rng = self.rng
         if not rng:
             rng = GLOBAL_RNG
-        for partition in prior_sample_iter:
+        for partition in self.get_prior_sample_iter():
+            self.div_models.add(partition)
             for k in psi_summarizer.iterkeys():
                 if len(partition.values) == k:
                     psi_summarizer[k].add_sample(1)

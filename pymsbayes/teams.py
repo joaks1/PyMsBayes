@@ -1456,8 +1456,8 @@ class DppSimTeam(object):
     def __init__(self,
             alpha,
             num_elements,
-            base_distribution,
             num_samples = 1000,
+            base_distribution = None,
             num_processors = 4,
             rng = None):
         self.__class__.count += 1
@@ -1491,7 +1491,7 @@ class DppSimTeam(object):
             w = workers.DppSimWorker(
                     alpha = self.alpha,
                     num_elements = self.num_elements,
-                    base_distribution self.base_distribution,
+                    base_distribution = self.base_distribution,
                     num_samples = sample_size,
                     rng = self.rng)
             sworkers.append(w)
@@ -1506,8 +1506,7 @@ class DppSimTeam(object):
                     w.div_models.partitions.itervalues())
             for k in self.psi_summary.iterkeys():
                 self.psi_summary[k].update(w.psi_summary[k])
-        for path in self.configs.iterkeys():
-            total = 0.0
+        total = 0.0
         for k, s in self.psi_summary.iteritems():
             self.psi_probs[k] = s.mean
             total += s.mean
