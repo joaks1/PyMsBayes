@@ -19,6 +19,10 @@ _program_info = {
     'license': 'GNU GPL version 3 or later',}
 
 def main():
+    keys_to_print = {
+            'ncats': 'expected number of categories',
+            'concentration': 'concentration parameter',
+    }
     parameter_options = ['concentration', 'ncats']
     description = '{name} {version}'.format(**_program_info)
     parser = argparse.ArgumentParser(description = description,
@@ -56,6 +60,12 @@ def main():
                     'the reported concentration parameter and the\n'
                     'prior expectation for the number of\n'
                     'categories is equal to `ncats`.'))
+    parser.add_argument('--reps',
+            action = 'store',
+            type = int,
+            required = False,
+            help = ('The number of replicates to simulate for '
+                    'proabability estimates.'))
     parser.add_argument('npairs',
             metavar='N',
             type=argparse_utils.arg_is_nonnegative_int,
@@ -63,7 +73,11 @@ def main():
 
     args = parser.parse_args()
 
+
+    from pymsbayes.teams import DppSimTeam
+    from pymsbayes.utils import GLOBAL_RNG, probability
     from pymsbayes.utils.stats import Partition
+
     p = Partition('0' * args.npairs)
 
     results = dict(zip(parameter_options,
@@ -81,16 +95,39 @@ def main():
         raise Exception('parameter option {0} is not valid'.format(
                 args.parameter))
 
+    alpha = results['concentration']
     if args.shape:
         results['shape'] = args.shape
         results['scale'] = results['concentration'] / args.shape
         parameter_options.extend(['shape', 'scale'])
+        alpha = probability.GammaDistribution(
+                shape = results['shape'],
+                scale = results['scale'])
         
-    sys.stdout.write('number_of_elements = {0}\n'.format(args.npairs))
+    sys.stdout.write('number of elements = {0}\n'.format(args.npairs))
     for key in parameter_options:
         sys.stdout.write('{0} = {1}\n'.format(
-                key,
+                keys_to_print.get(key, key),
                 results[key]))
+
+    if args.reps:
+        if not args.seed:
+            args.seed = random.randint(1, 999999999)
+        log.info('Using seed {0}'.format(args.seed))
+        GLOBAL_RNG.seed(args.seed)
+
+        sim_team = DppSimTeam(
+                alpha = alpha,
+                num_elements = args.npairs,
+                base_distribution = None,
+                num_samples = args.num_prior_samples,
+                num_processors = args.np)
+        sim_team.start()
+
+        for k, p in sim_team.psi_probs.iteritems():
+            sys.stdout.write('\tnum of divergence events = {0}: {1}\n'.format(
+                    k,
+                    p))
 
 if __name__ == '__main__':
     main()
