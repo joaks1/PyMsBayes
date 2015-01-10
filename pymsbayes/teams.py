@@ -1450,3 +1450,68 @@ class DivModelSimulatorTeam(object):
         for w in sworkers:
             self.div_models[w.tag].add_iter(
                     w.div_models.partitions.itervalues())
+
+class DppSimTeam(object):
+    count = 0
+    def __init__(self,
+            alpha,
+            num_elements,
+            base_distribution,
+            num_samples = 1000,
+            num_processors = 4,
+            rng = None):
+        self.__class__.count += 1
+        self.name = self.__class__.__name__ + '-' + str(self.count)
+        self.rng = rng
+        if not rng:
+            self.rng = GLOBAL_RNG
+        self.np = num_processors
+        self.alpha = alpha
+        self.num_elements = num_elements
+        self.base_distribution = base_distribution
+        self.div_models = stats.PartitionCollection()
+        self.finished = False
+        self.num_samples = num_samples
+        if self.np > self.num_samples:
+            self.np = self.num_samples
+        self.batch_size, self.remainder = functions.long_division(
+                self.num_samples,
+                self.np)
+        self.psi_summary = dict(zip([i + 1 for i in range(self.num_elements)],
+                [stats.SampleSummary() for i in range(self.num_elements)]))
+        self.psi_probs = dict(zip([i + 1 for i in range(self.num_elements)],
+                [None for i in range(self.num_elements)]))
+
+    def start(self):
+        sworkers = []
+        for i in range(self.np):
+            sample_size = self.batch_size
+            if i == (self.np - 1):
+                sample_size += self.remainder
+            w = workers.DppSimWorker(
+                    alpha = self.alpha,
+                    num_elements = self.num_elements,
+                    base_distribution self.base_distribution,
+                    num_samples = sample_size,
+                    rng = self.rng)
+            sworkers.append(w)
+        _LOG.info('{0}: Generating samples...'.format(self.name))
+        sworkers = manager.Manager.run_workers(
+                workers = sworkers,
+                num_processors = self.np)
+        _LOG.info('{0}: Done!'.format(self.name))
+        _LOG.info('{0}: Summarizing results...'.format(self.name))
+        for w in sworkers:
+            self.div_models.add_iter(
+                    w.div_models.partitions.itervalues())
+            for k in self.psi_summary.iterkeys():
+                self.psi_summary[k].update(w.psi_summary[k])
+        for path in self.configs.iterkeys():
+            total = 0.0
+        for k, s in self.psi_summary.iteritems():
+            self.psi_probs[k] = s.mean
+            total += s.mean
+        if not probability.almost_equal(total, 1.0, places=7):
+            raise Exception('Error in estimating probabilities of the '
+                    'number of divergences for {0}. The total probability '
+                    'summed to {1}'.format(path, total))
