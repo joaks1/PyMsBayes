@@ -3018,6 +3018,56 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
 
         MSBAYES_SORT_INDEX.reset_default()
 
+class DppSimWorkerTestCase(PyMsBayesTestCase):
+    def test_3_elements(self):
+        alpha = 2.0
+        num_elements = 3
+        num_samples = 100000
+        sim_worker = workers.DppSimWorker(
+                alpha = alpha,
+                num_elements = num_elements,
+                num_samples = num_samples)
+        sim_worker.start()
+        total = 0.0
+        for i in range(num_elements):
+            self.assertEqual(sim_worker.psi_summary[i + 1].n, num_samples)
+            total += sim_worker.psi_summary[i + 1].mean
+        self.assertAlmostEqual(sim_worker.psi_summary[1].mean, 
+                (1.0/(alpha + 1.0))*(2.0/(alpha + 2.0)), places = 2)
+        self.assertAlmostEqual(sim_worker.psi_summary[3].mean, 
+                (alpha/(alpha + 1.0))*(alpha/(alpha + 2.0)), places = 2)
+        self.assertAlmostEqual(1.0, total, places = 7)
+
+    def test_5_elements(self):
+        alpha = 2.0
+        num_elements = 5
+        num_samples = 100000
+        sim_worker = workers.DppSimWorker(
+                alpha = alpha,
+                num_elements = num_elements,
+                num_samples = num_samples)
+        sim_worker.start()
+        total = 0.0
+        for i in range(num_elements):
+            self.assertEqual(sim_worker.psi_summary[i + 1].n, num_samples)
+            total += sim_worker.psi_summary[i + 1].mean
+        self.assertAlmostEqual(sim_worker.psi_summary[1].mean, (
+                (1.0/(alpha + 1.0))*
+                (2.0/(alpha + 2.0))*
+                (3.0/(alpha + 3.0))*
+                (4.0/(alpha + 4.0))
+                ),
+                places = 2)
+        self.assertAlmostEqual(sim_worker.psi_summary[5].mean, (
+                (alpha/(alpha + 1.0))*
+                (alpha/(alpha + 2.0))*
+                (alpha/(alpha + 3.0))*
+                (alpha/(alpha + 4.0))
+                ),
+                places = 2)
+        self.assertAlmostEqual(1.0, total, places = 7)
+
+
 if __name__ == '__main__':
     unittest.main()
 
