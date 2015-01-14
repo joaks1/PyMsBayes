@@ -145,6 +145,9 @@ rst_epilog = """
 .. _abacus: https://github.com/joaks1/abacus.git
 .. |abacus_url| replace:: https://github.com/joaks1/abacus.git
 
+.. |dppsum| replace:: dmc_dpp_summary.py
+.. |ldppsum| replace:: ``dmc_dpp_summary.py``
+
 .. |MsBayesWorker| replace:: :class:`~pymsbayes.workers.MsBayesWorker`
 .. |Manager| replace:: :class:`~pymsbayes.manager.Manager`
 

@@ -7,5 +7,6 @@ PyMsBayes Tutorials
 
     background.rst
     configuration.rst
+    selecting-priors.rst
     simple-empirical-analysis.rst
 
