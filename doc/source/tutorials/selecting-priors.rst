@@ -31,14 +31,14 @@ Gamma basics
 
 All of the gamma priors in |dpp-msbayes| have two parameters: The shape
 (:math:`\gshape`) and scale (:math:`\gscale`) parameters.
-The mean and variance of a gamma distribution are :math:`\gshape\gscale` and
-:math:`\gshape\gscale^2`, respectively.
+With this parameterization, the mean and variance of a gamma distribution are
+:math:`\gshape\gscale` and :math:`\gshape\gscale^2`, respectively.
 
-As you might have guessed, shape parameter controls the shape of the
+As you might have guessed, the shape parameter controls the shape of the
 distribution, while the scale parameter controls the scale.
 You can think of it this way: all gamma distributions with the same value of
 the shape parameter have the same shape, and differences among them in the
-scale parameter just "re-scales" the x-axis.
+scale parameter simply "re-scale" the x-axis.
 When the shape is :math:`\gshape = 1`, the gamma becomes an exponential
 distribution with a mean of :math:`\gscale`.
 When the shape is less than or equal to 1, the mode, or "peak", of the
@@ -47,7 +47,7 @@ When the shape is greater than 1, the mode is greater than zero
 (:math:`(\gshape-1)\gscale`).
 
 When thinking about the gamma distribution as a prior, the shape parameter
-represents how much *a prior* knowledge we have about a parameter.
+represents how much *a priori* knowledge we have about a parameter.
 A larger value means we are more certain about the value of the parameter *a
 priori*, whereas a smaller means we are less certain.
 The scale parameter simply "shifts" the distribution along the x-axis to "fit"
@@ -59,10 +59,10 @@ our prior expectations.
 Using R to help visualize gamma priors
 --------------------------------------
 
-Let's say we have strong prior knowledge that the value of a parameter is
-around 10.0, and we are pretty sure that it's less than 15.0.
+Let's say we have prior knowledge that the value of a parameter is around 10.0,
+and we are pretty sure that it's greater than 5.0, but less than 15.0.
 Because, we want the prior to be centered near 10.0, we can take advantage of
-the fact that the mean of a gamma distribution should be around
+the fact that the mean of the gamma distribution should be around
 :math:`\gshape\gscale = 10.0`.
 We can use some quick-and-dirty R to get a rough idea of what a gamma prior
 with this mean and a shape of 1.0 (i.e., an exponential prior) will look like:
@@ -89,8 +89,8 @@ illustration of this prior:
     
 .. code-block:: r
 
-    > mx = qgamma(0.999, shape=1.0, scale=10.0)
-    > x = seq(from=0, to=mx, by=mx/1000)
+    > x.max = qgamma(0.999, shape=1.0, scale=10.0)
+    > x = seq(from=0, to=x.max, by=x.max/1000)
     > dens = dgamma(x, shape=1.0, scale=10.0)
     > plot(x, dens, type='l')
 
@@ -105,17 +105,19 @@ which will give us something like:
 
     Gamma(1, 10)
 
-We said that we were quite confident the parameter is less than 15.0.
-It looks like this prior puts too much prior probability on values greater than
-15.
-We can use R to see that the prior probability of this parameter being greater
-than 15.0 is about 0.22:
+We said that we were quite confident the parameter is between 5.0 and 15.0.
+It looks like this prior puts too much prior probability on values less than 5
+and greater than 15.
+We can use R to see that the prior probability of this parameter being less
+than 5.0 or greater than 15.0 is about 0.39 and 0.22, respectively:
 
 .. code-block:: r
 
+    > pgamma(5.0, shape=1.0, scale=10.0, lower.tail=T)
+    [1] 0.3934693
     > pgamma(15.0, shape=1.0, scale=10.0, lower.tail=F)
     [1] 0.2231302
-
+    
 So, it looks like we need to increase our prior knowledge. Let's try a shape
 parameter of 2.0 (we need to adjust the scale parameter to 5.0 to keep the mean
 of 10.0):
@@ -123,25 +125,30 @@ of 10.0):
 
 .. code-block:: r
 
+    > pgamma(5.0, shape=2.0, scale=5.0, lower.tail=T)
+    [1] 0.2642411
     > pgamma(15.0, shape=2.0, scale=5.0, lower.tail=F)
     [1] 0.1991483
 
-Hmmm... Still too much prior probability on values over 15. Let's try
+Hmmm... Still too much prior probability on values outside of 5--15. Let's try
 a shape of 10.0:
 
 .. code-block:: r
 
+    > pgamma(5.0, shape=10.0, scale=1.0, lower.tail=T)
+    [1] 0.03182806
     > pgamma(15.0, shape=10.0, scale=1.0, lower.tail=F)
     [1] 0.06985366
     
 Let's assume this fits our prior expectation pretty well (i.e., we want to
-state *a priori* that the probability of the prior being less than 15 is 0.93).
+state *a priori* that the probability of the prior being between 5 and 15 is
+about 0.9).
 Let's take a look at this gamma prior with a shape and mean of 10.0:
 
 .. code-block:: r
 
-    > mx = qgamma(0.999, shape=10.0, scale=1.0)
-    > x = seq(from=0, to=mx, by=mx/1000)
+    > x.max = qgamma(0.999, shape=10.0, scale=1.0)
+    > x = seq(from=0, to=x.max, by=x.max/1000)
     > dens = dgamma(x, shape=10.0, scale=1.0)
     > plot(x, dens, type='l')
 
@@ -154,6 +161,12 @@ Let's take a look at this gamma prior with a shape and mean of 10.0:
 
     Gamma(10, 1)
 
+Hopefully this example gives you the necessary tools for choosing the shape and
+scale parameters for a gamma-distributed prior that reflects your prior
+uncertainty about a parameter.
+Next, let's talk specifically about choosing priors for the parameters of the
+|dpp-msbayes|_ model.
+
 
 .. contents:: Priors 
     :local:
@@ -165,16 +178,16 @@ Concentration parameter of the Dirichlet process
 ================================================
 
 We have to choose a gamma-distributed prior for the concentration parameter
-(:math:`\alpha`) of the Dirichlet process controlling the assignment of taxa to
-divergence events.
+(:math:`\alpha`) of the Dirichlet process that controls the assignment of taxa
+to divergence events.
 From the ":ref:`dpp`" section, we know that as the concentration parameter
 decreases, we are putting more prior probability on models of divergence that
 are more clustered (i.e., models with fewer shared divergence events).
 Alternatively, as we increase :math:`\alpha`, we place more prior probability
 on divergence models with less co-divergence among taxa.
 
-|pmb|_ comes with a program named |ldppsum| that helps us to
-get a feel for this.
+|pmb|_ comes with a program named |ldppsum| that helps guide our choice
+of the prior on the concentration parameter.
 Let's say we have sequence data from 10 taxa, and we want to know what
 value of the concentration parameter corresponds with a prior mean
 of 5 divergence events.
@@ -206,7 +219,7 @@ Which reports::
     expected number of categories = 4.99909319002
 
 Ok, that's useful, but what about the probability of other numbers of events?
-Well, we can use the ``--reps`` option to tell |dppsum| to use simulations to
+Well, we can use the ``--reps`` option to tell |ldppsum| to use simulations to
 estimate such probabilities:
 
 .. parsed-literal::
@@ -214,9 +227,9 @@ estimate such probabilities:
     $ |dppsum| ncats 5 10 --reps 10000
 
 This generates 10000 random divergence models under a Dirichlet process prior,
-and reports the estimated prior probabilites of all possible values for the
-number of divergence event. It also reports the exact value of the number of
-possible divergence models for each number of divergence events::
+and reports the estimated prior probabilites for the possible numbers of
+divergence events (it also reports the number of possible divergence models for
+each number of divergence events)::
 
     number of elements = 10
     concentration parameter = 3.30149636133
@@ -237,17 +250,19 @@ possible divergence models for each number of divergence events::
     	p(ncats = 9) = 0.0048 (n = 45)
     	p(ncats = 10) = 0.0008 (n = 1)
 
-For example, this output tells us that the prior probability of a divergence
-model with 2 divergence-time parameters, under aDirichlet process with 10 taxa
+This output tells us, for example, that the prior probability of a divergence
+model with 2 divergence-time parameters, under a Dirichlet process with 10 taxa
 and a concentation parameter of about 3.3, is approximately 0.028.
 It also tells us that there are 511 possible divergence models with 2
 divergence events (i.e., 511 different ways of assigning our taxa to 2
 divergence events).
 
+Above, we were just assuming the value of the concentration parameter is fixed
+at 3.3.
 This is all well and good, but in our |dpp-msbayes|_ :ref:`configuration
 file<config>`, we need to specify the shape and scale parameters for a gamma
 prior on the concentration parameter.
-No problem, |dppsum| can help us with that too.
+No problem, |ldppsum| can help us with that too.
 If we want to essentially fix the concentration parameter to 3.3, we can
 specify a very large shape parameter for the gamma prior:
 
@@ -282,10 +297,10 @@ The output will be something like:
 
 As you can see, aside from some estimation error due to a finite number of
 simulation replicates, the probabilities are nearly identical to our previous
-command.
-Notice that |dppsum| now reports the ``shape`` and ``scale`` parameters
-(highlighted above); these correspond the shape and scale parameters of a gamma
-prior on the concentration parameter.
+prior where the concentration parameter was fixed to 3.3.
+Notice that |ldppsum| now reports the ``shape`` and ``scale`` parameters
+(highlighted above); these correspond to the shape and scale parameters of a
+gamma prior on the concentration parameter.
 So, if we put the following in our configuration file:
 
 .. parsed-literal::
@@ -297,3 +312,139 @@ we will be using a Dirichlet process prior with a (nearly) fixed concentration
 parameter of 3.3, which, on average, yields divergence models with 5 divergence
 events.
 
+Now, let's say we have 20 pairs of taxa, and we want the prior mean for the
+number of divergence events to be 15. We can uses |ldppsum| to get an idea
+of what such a Dirichlet process would look like if we essentially fix
+the concentration parameter to the corresponding value associated with a
+mean of 15 events:
+
+.. parsed-literal::
+
+    $ |dppsum| ncats 15 20 --reps 10000 --shape 1000
+
+The output will looks something like:
+
+.. parsed-literal::
+
+    number of elements = 20
+    concentration parameter = 25.5940195547
+    expected number of categories = 15.0
+    shape = 1000.0
+    scale = 0.0255940195547
+    
+    Starting simulations to estimate probabilities...
+    Using seed 780386083
+    
+    Estimated probabilities of the number of categories:
+    	p(ncats = 1) = 0.0000 (n = 1)
+    	p(ncats = 2) = 0.0000 (n = 524287)
+    	p(ncats = 3) = 0.0000 (n = 580606446)
+    	p(ncats = 4) = 0.0000 (n = 45232115901)
+    	p(ncats = 5) = 0.0000 (n = 749206090500)
+    	p(ncats = 6) = 0.0000 (n = 4306078895384)
+    	p(ncats = 7) = 0.0000 (n = 11143554045652)
+    	p(ncats = 8) = 0.0004 (n = 15170932662679)
+    	p(ncats = 9) = 0.0008 (n = 12011282644725)
+    	p(ncats = 10) = 0.0080 (n = 5917584964655)
+    	p(ncats = 11) = 0.0216 (n = 1900842429486)
+    	p(ncats = 12) = 0.0664 (n = 411016633391)
+    	p(ncats = 13) = 0.1108 (n = 61068660380)
+    	p(ncats = 14) = 0.1828 (n = 6302524580)
+    	p(ncats = 15) = 0.2072 (n = 452329200)
+    	p(ncats = 16) = 0.1932 (n = 22350954)
+    	p(ncats = 17) = 0.1252 (n = 741285)
+    	p(ncats = 18) = 0.0660 (n = 15675)
+    	p(ncats = 19) = 0.0168 (n = 190)
+    	p(ncats = 20) = 0.0008 (n = 1)
+
+From this output, we can see that the number of possible models of divergence
+is now enormous (e.g., there are more than 15 trillion ways to assign the 20
+taxa to 8 divergence events!!).
+We also see that by essentially fixing the concentration parameter (i.e., using
+a large value of 1000 for the shape parameter of the gamma prior on the
+concentration parameter), we will fail to sample many of the possible numbers
+of divergence events during the ABC algorithm under reasonable computational
+limits.
+In such a case, a smaller value on the shape parameter is probably necessary
+to make the Dirichlet process more diffuse:
+
+.. parsed-literal::
+
+    $ |dppsum| ncats 15 20 --reps 10000 --shape 2
+
+    number of elements = 20
+    concentration parameter = 25.5940195547
+    expected number of categories = 15.0
+    shape = 2.0
+    scale = 12.7970097773
+    
+    Starting simulations to estimate probabilities...
+    Using seed 619880880
+    
+    Estimated probabilities of the number of categories:
+    	p(ncats = 1) = 0.0004 (n = 1)
+    	p(ncats = 2) = 0.0012 (n = 524287)
+    	p(ncats = 3) = 0.0048 (n = 580606446)
+    	p(ncats = 4) = 0.0056 (n = 45232115901)
+    	p(ncats = 5) = 0.0088 (n = 749206090500)
+    	p(ncats = 6) = 0.0140 (n = 4306078895384)
+    	p(ncats = 7) = 0.0212 (n = 11143554045652)
+    	p(ncats = 8) = 0.0300 (n = 15170932662679)
+    	p(ncats = 9) = 0.0320 (n = 12011282644725)
+    	p(ncats = 10) = 0.0520 (n = 5917584964655)
+    	p(ncats = 11) = 0.0596 (n = 1900842429486)
+    	p(ncats = 12) = 0.0876 (n = 411016633391)
+    	p(ncats = 13) = 0.0932 (n = 61068660380)
+    	p(ncats = 14) = 0.1092 (n = 6302524580)
+    	p(ncats = 15) = 0.1244 (n = 452329200)
+    	p(ncats = 16) = 0.1264 (n = 22350954)
+    	p(ncats = 17) = 0.1100 (n = 741285)
+    	p(ncats = 18) = 0.0716 (n = 15675)
+    	p(ncats = 19) = 0.0356 (n = 190)
+    	p(ncats = 20) = 0.0124 (n = 1)
+    
+We can see from the output above, that with a shape parameter of 2.0 for the
+gamma prior on the concentration parameter, the prior probability of the number
+of divergence events is now more spread out.
+
+.. important:: 
+    :class: keypoint
+
+    Given the number of possible divergence models is now over 50 trillion
+    (!!), it is clear that the naive ABC rejection algorithm implemented in
+    |msbayes|_ and |dpp-msbayes|_ will fail to sample most of these models
+    within reasonable computational limits.
+    Thus, it is questionable whether either method is appropriate when the
+    number of taxa is around 15 or more.
+    If you use either method with this many pairs of taxa, you should run
+    multiple replicates, each with large numbers of samples from the prior, to
+    make sure your estimates are stabilizing and converging.
+
+The examples above where to illustrate the tools available to help you select
+a prior on the concentration parameter.
+You will need to decide what prior is appropriate to represent your prior
+expectations for your particular system.
+
+An important point about the concentration parameter
+----------------------------------------------------
+
+It is important to note that values of the concentration parameter of the
+Dirichlet process are always specific to the number taxa.
+For example, above we saw that for 10 taxa, a concentration parameter
+of 3.3 corresponded to a prior mean of 5 divergence events.
+However, when the number of taxa is 20, a concentration parameter of
+3.3 does **NOT** correspond to a prior mean of 5:
+
+.. parsed-literal::
+
+    $ |dppsum| concentration 3.3 20
+
+    number of elements = 20
+    concentration parameter = 3.3
+    expected number of categories = 6.90365997028
+    
+It actually corresponds to a prior mean of about 6.9.
+So, you cannot simply choose your "favorite" prior for the concentration
+parameter and apply it blindly for all datasets.
+When you are analyzing a dataset with a different number of taxa, you need to
+reassess your prior on the concentration parameter.
