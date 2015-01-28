@@ -261,6 +261,8 @@ model).
     where ":math:`\npairs{}`" is the number of pairs of populations.
 
 
+.. _bottleneck_parameterization:
+
 ``bottleProportionShared``
 --------------------------
 

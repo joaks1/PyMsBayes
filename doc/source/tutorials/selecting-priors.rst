@@ -168,6 +168,7 @@ Next, let's talk specifically about choosing priors for the parameters of the
 |dpp-msbayes|_ model.
 
 
+
 .. contents:: Priors 
     :local:
 
@@ -418,18 +419,20 @@ of divergence events is now more spread out.
     number of taxa is around 15 or more.
     If you use either method with this many pairs of taxa, you should run
     multiple replicates, each with large numbers of samples from the prior, to
-    make sure your estimates are stabilizing and converging.
+    make sure your estimates are stabilizing as the samples increase within
+    each run, and converging to similar values across runs.
 
 The examples above where to illustrate the tools available to help you select
 a prior on the concentration parameter.
 You will need to decide what prior is appropriate to represent your prior
 expectations for your particular system.
 
-An important point about the concentration parameter
-----------------------------------------------------
 
-It is important to note that values of the concentration parameter of the
-Dirichlet process are always specific to the number taxa.
+:hlight:`An important point about the concentration parameter`
+--------------------------------------------------------------
+
+It is important to note that values of the DPP concentration parameter are
+always specific to the number taxa.
 For example, above we saw that for 10 taxa, a concentration parameter
 of 3.3 corresponded to a prior mean of 5 divergence events.
 However, when the number of taxa is 20, a concentration parameter of
@@ -448,3 +451,161 @@ So, you cannot simply choose your "favorite" prior for the concentration
 parameter and apply it blindly for all datasets.
 When you are analyzing a dataset with a different number of taxa, you need to
 reassess your prior on the concentration parameter.
+
+
+.. _population_size:
+
+Population size
+===============
+
+Another important parameter for which we need to choose a prior is the
+effective population size of the ancestral and descendant populations
+in the model.
+See the following sections for more information about the role of the
+population-size parameters in the model and how to control them:
+
+*   :ref:`parameterization<theta_parameterization>`
+*   :ref:`theta configuration<theta_prior>`
+*   :ref:`ancestral theta configuration<ancestral_theta_prior>`
+
+The effective population sizes are scaled by the per-site mutation rate
+(:math:`\mu`): :math:`4\effectivePopSize\mutationRate`.
+Thus, for example, if we expect, *a priori*, that our populations are no bigger
+than 100,000 individuals, and the per-site mutation rate is no faster than
+:math:`1 \times 10^{-8}` per generation, then we do not expect the effective
+population size to exceed :math:`4(100000)(1 \times 10^{-8}) = 0.004`.
+
+
+.. _time_unit_note:
+
+.. note:: 
+    :class: keypoint
+
+    The per-site mutation rate should be in units of generations.
+
+
+If we expect the effective population size to be less than 0.004, but
+we do not know how much less, perhaps an exponential distribution (i.e., a
+gamma distribution with a shape parameter of 1) is a reasonable prior.
+
+Let's use some of the tools we learned about in the :ref:`section introducing
+gamma distributions<gamma_in_r>` to choose a reasonable prior for this example.
+A gamma with a shape parameter of 1 is an exponential, but we still need to
+choose our scale parameter.
+Let's see how much of our prior probability will fall on values greater
+than 0.004 if we use an exponential with a mean of 0.002.
+Because the shape parameter is 1, this means the scale parameter is simply
+0.002 (remember, the mean is simply the product of the shape and scale):
+
+
+.. code-block:: r
+
+    > pgamma(0.004, shape=1.0, scale=0.002, lower.tail=F)
+    [1] 0.1353353
+
+Perhaps this seems like too much prior probability greater than 0.004; let's
+try a scale parameter of 0.001:
+
+.. code-block:: r
+
+    > pgamma(0.004, shape=1.0, scale=0.001, lower.tail=F)
+    [1] 0.01831564
+
+If this seems to fit our prior expectations, we can take a look at this prior:
+
+.. code-block:: r
+
+x.max = qgamma(0.999, shape=1.0, scale=0.001)
+x = seq(from=0, to=x.max, by=x.max/1000)
+dens = dgamma(x, shape=1.0, scale=0.001)
+plot(x, dens, type='l')
+
+which will give us something like:
+
+.. _gamma_1_001_plot:
+.. figure:: /_static/gamma_1_001_plot.png
+    :align: center
+    :width: 600 px
+    :figwidth: 60 %
+    :alt: gamma(1, 10) plot
+
+    Gamma(1, 10)
+
+If you feel you have more prior knowledge than is represented by this
+exponential (for example, perhaps you expect the effective population size to
+be greater than 0.0005), then you can increase the shape parameter accordingly,
+until you end up with a distribution that fits your prior uncertainty.
+You can use the examples in the :ref:`section introducing gamma
+distributions<gamma_in_r>` as a guide for doing this.
+
+
+
+.. _divergence_time:
+
+Divergence time
+===============
+
+We also need to choose a gamma-distributed prior for the divergence
+times of the pairs of populations.
+See the following sections for more information about how time is
+scaled in |msbayes|_ and |dpp-msbayes|_:
+
+*   :ref:`time-scale setting<timescale_setting>`
+*   :ref:`divergence time configuration<divergence_time_prior>`
+
+For now, let's assume we are using the ``timeInSubsPerSite = 1`` setting so
+that time is (reasonably) scaled by the expected substitutions per site.
+Let's say we are confident that all of our pairs of taxa diverged within the
+past 10 million generations, and we expect their per-site mutation rates are no
+faster than :math:`1 \times 10^{-8}` per generation, then the number of
+substitutions per site that have accumulated since the populations diverged is
+probably no greater than :math:`(10^{7})(10^{-8}) = 0.1`.
+
+If we expect most of our species pairs diverged recently, but probably no
+greater than 0.1 substitutions-per-site ago, perhaps an exponential prior
+(i.e., a gamma prior with a shape of 1) is a reasonable choice.
+Again, let's figure out a value for the scale parameter that limits
+the prior probability of values greater than 0.1 to meet our prior
+expectations. Let's try scale of 0.05:
+
+.. code-block:: r
+
+    > pgamma(0.1, shape=1.0, scale=0.05, lower.tail=F)
+    [1] 0.1353353
+
+If ~ 0.14 is seems like too much prior probability for values greater than
+0.1, then we can reduce the scale parameter until we find a value that
+is in line with our prior uncertainty about divergence times.
+Perhaps a scale of 0.03 (prior probability of 0.036 for values greater than
+0.1) is a good "fit."
+
+Again, if you have more prior certainty about divergence times, increase the
+shape parameter and adjust the scale parameter until you find a distribution
+that fits your prior knowledge.
+
+.. note:: 
+    :class: keypoint
+
+    If we use the ``timeInSubsPerSite = 0`` setting, time is scaled by the
+    mutation rate **AND** the mean of the prior on population size.
+    We would select our divergence-time prior as above, but we would have
+    to make sure we are scaling such that time is in units of
+    :math:`\globalcoalunit` generations.
+    See the :ref:`section about the time scale setting<timescale_setting>` for
+    more information about such scaling.
+    However, there is no reason to scale time by both the mutation rate and the
+    prior on population size, other than to make things more difficult.
+
+.. _bottleneck_proportions:
+
+Bottleneck proportions
+======================
+
+We have the option of specifying a beta-distributed prior to control the
+magnitude of post-divergence bottlenecks in the descendant populations.
+Please see the following sections for more information about the role of the
+bottleneck parameters in the model and how to control them:
+
+*   :ref:`bottleneck parameterization<bottleneck_parameterization>`
+*   :ref:`bottleneck configuration<bottleneck_prior>`
+
