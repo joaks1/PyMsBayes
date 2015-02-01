@@ -8,6 +8,7 @@
 Selecting Priors
 ****************
 
+
 .. _gamma_intro:
 
 An introduction to the gamma probability distribution
@@ -168,15 +169,18 @@ Next, let's talk specifically about choosing priors for the parameters of the
 |dpp-msbayes|_ model.
 
 
+Important priors for the |dpp-msbayes|_ model
+============================================
 
-.. contents:: Priors 
+.. contents:: 
     :local:
+    :depth: 1
 
 
 .. _concentration_parameter:
 
 Concentration parameter of the Dirichlet process
-================================================
+------------------------------------------------
 
 We have to choose a gamma-distributed prior for the concentration parameter
 (:math:`\alpha`) of the Dirichlet process that controls the assignment of taxa
@@ -422,14 +426,19 @@ of divergence events is now more spread out.
     make sure your estimates are stabilizing as the samples increase within
     each run, and converging to similar values across runs.
 
-The examples above where to illustrate the tools available to help you select
+The examples above were to illustrate the tools available to help you select
 a prior on the concentration parameter.
 You will need to decide what prior is appropriate to represent your prior
 expectations for your particular system.
+Whatever gamma-distributed prior you choose for your data, you need to 
+update your :ref:`configuration file<config>` accordingly::
+
+    concentrationShape = 2.0
+    concentrationScale = 12.797
 
 
 :hlight:`An important point about the concentration parameter`
---------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 It is important to note that values of the DPP concentration parameter are
 always specific to the number taxa.
@@ -456,7 +465,7 @@ reassess your prior on the concentration parameter.
 .. _population_size:
 
 Population size
-===============
+---------------
 
 Another important parameter for which we need to choose a prior is the
 effective population size of the ancestral and descendant populations
@@ -527,9 +536,9 @@ which will give us something like:
     :align: center
     :width: 600 px
     :figwidth: 60 %
-    :alt: gamma(1, 10) plot
+    :alt: gamma(1, 0.001) plot
 
-    Gamma(1, 10)
+    Gamma(1, 0.001)
 
 If you feel you have more prior knowledge than is represented by this
 exponential (for example, perhaps you expect the effective population size to
@@ -537,13 +546,18 @@ be greater than 0.0005), then you can increase the shape parameter accordingly,
 until you end up with a distribution that fits your prior uncertainty.
 You can use the examples in the :ref:`section introducing gamma
 distributions<gamma_in_r>` as a guide for doing this.
+When you choose your prior distribution, simply update your :ref:`configuration
+file<config>` accordingly::
+
+    thetaShape = 1.0
+    thetaScale = 0.001
 
 
 
 .. _divergence_time:
 
 Divergence time
-===============
+---------------
 
 We also need to choose a gamma-distributed prior for the divergence
 times of the pairs of populations.
@@ -582,15 +596,24 @@ Perhaps a scale of 0.03 (prior probability of 0.036 for values greater than
 Again, if you have more prior certainty about divergence times, increase the
 shape parameter and adjust the scale parameter until you find a distribution
 that fits your prior knowledge.
+When you choose your prior distribution, simply update your :ref:`configuration
+file<config>` accordingly::
+
+    tauShape = 1.0
+    tauScale = 0.03
+
 
 .. note:: 
     :class: keypoint
 
     If we use the ``timeInSubsPerSite = 0`` setting, time is scaled by the
-    mutation rate **AND** the mean of the prior on population size.
-    We would select our divergence-time prior as above, but we would have
-    to make sure we are scaling such that time is in units of
-    :math:`\globalcoalunit` generations.
+    mutation rate **AND** the mean of the prior on population size
+    (:ref:`thetaShape/thetaScale<theta_prior>`).
+    We would select our divergence-time prior as above, but we would have to
+    make sure we are working in units of :math:`\globalcoalunit` generations...
+    and if we change the prior on population size
+    (:ref:`thetaShape/thetaScale<theta_prior>`), we have to change the prior on
+    divergence times accordingly.
     See the :ref:`section about the time scale setting<timescale_setting>` for
     more information about such scaling.
     However, there is no reason to scale time by both the mutation rate and the
@@ -599,7 +622,7 @@ that fits your prior knowledge.
 .. _bottleneck_proportions:
 
 Bottleneck proportions
-======================
+----------------------
 
 We have the option of specifying a beta-distributed prior to control the
 magnitude of post-divergence bottlenecks in the descendant populations.
@@ -609,3 +632,81 @@ bottleneck parameters in the model and how to control them:
 *   :ref:`bottleneck parameterization<bottleneck_parameterization>`
 *   :ref:`bottleneck configuration<bottleneck_prior>`
 
+If we want to remove bottlnecks from the model, we update our 
+:ref:`configuration file<config>` to::
+
+    bottleProportionShapeA = 0
+    bottleProportionShapeB = 0
+
+The beta distribution is a very flexible continuous probability distribution
+for variables between 0 and 1.
+Because the bottleneck parameters are proportions (the proportion of the
+effective population size that remains during the bottleneck), a
+beta-distributed prior is a suitable choice.
+The beta distribution has two shape parameters :math:`\bshapea` and
+:math:`\bshapeb`.
+When :math:`\bshapea` and :math:`\bshapeb` are both 1, the beta converges
+to a uniform distribution.
+We can confirm this with a little R code:
+
+.. code-block:: r
+
+    > x = seq(0, 1, by=1/1000)
+    > dens = dbeta(x, shape1=1, shape2=1)
+    > plot(x, dens, type='l')
+
+which should look like a nice uniform distribution from 0 to 1:
+
+.. _beta_1_1_plot:
+.. figure:: /_static/beta_1_1_plot.png
+    :align: center
+    :width: 600 px
+    :figwidth: 60 %
+    :alt: beta(1, 1) plot
+
+    Beta(1, 1)
+
+If we want to place more prior weight on larger proportions (i.e., the bottlenecks are less severe),
+we can increase :math:`\bshapea`. For example, let's try :math:`\bshapea = 5` looks like:
+
+.. code-block:: r
+
+    > x = seq(0, 1, by=1/1000)
+    > dens = dbeta(x, shape1=5, shape2=1)
+    > plot(x, dens, type='l')
+
+which should look like:
+
+.. _beta_5_1_plot:
+.. figure:: /_static/beta_5_1_plot.png
+    :align: center
+    :width: 600 px
+    :figwidth: 60 %
+    :alt: beta(5, 1) plot
+
+    Beta(5, 1)
+
+Likewise, we could place a strong prior on severe bottlenecks (i.e., small proportions) if
+we increase :math:`\bshapeb`. For example, let's try :math:`\bshapeb = 10`:
+
+.. code-block:: r
+
+    > x = seq(0, 1, by=1/1000)
+    > dens = dbeta(x, shape1=5, shape2=1)
+    > plot(x, dens, type='l')
+
+which should look like:
+
+.. _beta_1_10_plot:
+.. figure:: /_static/beta_1_10_plot.png
+    :align: center
+    :width: 600 px
+    :figwidth: 60 %
+    :alt: beta(1, 10) plot
+
+    Beta(1, 10)
+
+:math:`\bshapea` and :math:`\bshapeb` can be any positive number, and a beta
+distribution of just about any shape is possible, so you have a lot of
+flexibility to represent your prior knowledge about bottleneck
+severity.

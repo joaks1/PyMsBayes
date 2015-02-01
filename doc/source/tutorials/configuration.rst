@@ -240,7 +240,7 @@ post-divergence bottleneck in each of the descendant populations.
 shape parameters alpha and beta, respectively, of the beta prior.
 
 The bottleneck magnitude is the proportion of the effective population size
-that remains following the bottleneck.
+that remains during the bottleneck.
 For example, a value of 0.95 would mean that bottleneck reduces the effective
 population size by 5%.
 
