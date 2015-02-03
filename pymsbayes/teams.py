@@ -215,7 +215,15 @@ class ABCTeam(object):
         self.num_observed = 0
         self.n_observed_map = dict(zip(self.observed_stats_paths.keys(),
                 [0 for i in self.observed_stats_paths.iterkeys()]))
-        self.num_samples_processed = None
+        self.num_samples_processed = dict(zip(self.observed_stats_paths.keys(),
+                [{} for i in self.observed_stats_paths.iterkeys()]))
+        if not self.global_estimate_only:
+            for d in self.num_samples_processed.values():
+                for i in self.models.keys():
+                    d[i] = 0
+        else:
+            for d in self.num_samples_process.values():
+                d['combined'] = 0 
         self.keep_temps = keep_temps
         self.duplicate_rejection_workers = False
         self.num_samples_generated = 0
@@ -539,17 +547,6 @@ class ABCTeam(object):
                 (not self.use_previous_priors) and
                 (self.num_batches > 1)):
             self.duplicate_rejection_workers = True
-        if not self.global_estimate_only:
-            self.num_samples_processed = dict(zip(self.models.keys(),
-                    [self.num_posterior_samples * \
-                            self.num_observed for i in range(len(
-                                    self.models.keys()))]))
-        else:
-            self.num_samples_processed = {
-                    'combined': self.num_posterior_samples * self.num_observed}
-        if self.duplicate_rejection_workers:
-            for model_idx in self.num_samples_processed.iterkeys():
-                self.num_samples_processed[model_idx] *= self.num_processors
 
     def _write_keys(self):
         out, close = fileio.process_file_arg(self.model_key_path, 'w')
@@ -585,6 +582,7 @@ class ABCTeam(object):
                     for model_idx, p_paths in post_paths.iteritems():
                         for k, p_path in enumerate(p_paths):
                             prior_paths = []
+                            appended_posterior = False
                             if os.path.exists(p_path):
                                 temp_post_path = self.temp_fs.get_file_path(
                                         parent = self.old_posterior_temp_dir,
@@ -597,6 +595,7 @@ class ABCTeam(object):
                                         register = False)
                                 shutil.copy(p_path, temp_post_path)
                                 prior_paths.append(temp_post_path)
+                                appended_posterior = True
                             rw = workers.EuRejectWorker(
                                     temp_fs = self.temp_fs,
                                     observed_path = obs_path,
@@ -612,6 +611,8 @@ class ABCTeam(object):
                                     exe_path = self.eureject_exe_path,
                                     keep_temps = self.keep_temps,
                                     tag = model_idx)
+                            rw.appended_posterior = appended_posterior
+                            rw.observed_tag = observed_idx
                             if rejection_workers.has_key(rw.tag):
                                 rejection_workers[rw.tag].append(rw)
                             else:
@@ -761,8 +762,6 @@ class ABCTeam(object):
                     yield posterior_workers
     
     def _run_rejection_on_provided_priors(self, remove_files = True):
-        for k in self.num_samples_processed.iterkeys():
-            self.num_samples_processed[k] = 0
         for observed_idx, n_observed in self.n_observed_map.iteritems():
             if observed_idx < self.start_from_observed:
                 continue
@@ -884,7 +883,7 @@ class ABCTeam(object):
                 if rejection_workers:
                     rejection_workers = self._run_workers(rejection_workers)
                     for rw in rejection_workers:
-                        self.num_samples_processed[rw.tag] += \
+                        self.num_samples_processed[observed_idx][rw.tag] += \
                                 rw.num_processed
                 if global_rejection_workers:
                     global_rejection_workers = self._run_workers(
@@ -970,8 +969,11 @@ class ABCTeam(object):
                         to_run.append(rej_worker_batch[model_idx][j])
             to_run = self._run_workers(to_run)
             for rej_worker in to_run:
-                self.num_samples_processed[rej_worker.tag] += \
-                        (rej_worker.num_processed - self.num_posterior_samples)
+                self.num_samples_processed[rej_worker.observed_tag][rej_worker.tag] += \
+                        rej_worker.num_processed
+                if getattr(rej_worker, 'appended_posterior', False):
+                    self.num_samples_processed[rej_worker.observed_tag][rej_worker.tag] -= \
+                            self.num_posterior_samples
             self._purge_old_posterior_temp_dir()
         if remove_files:
             for path_list in prior_paths.itervalues():
@@ -1127,8 +1129,9 @@ class ABCTeam(object):
         self._run_final_rejections()
 
         _LOG.info('Number of samples processed:')
-        for k, n in self.num_samples_processed.iteritems():
-            _LOG.info('    {0}: {1}'.format(k, n))
+        for obs_idx, d in self.num_samples_processed.iteritems():
+            for model_idx, n in d.iteritems():
+                _LOG.info('    d{0}-m{1}: {2}'.format(obs_idx, model_idx, n))
 
         _LOG.info('Running final regressions...')
         self._run_regression_workers(self.num_prior_batch_iters,
