@@ -215,15 +215,8 @@ class ABCTeam(object):
         self.num_observed = 0
         self.n_observed_map = dict(zip(self.observed_stats_paths.keys(),
                 [0 for i in self.observed_stats_paths.iterkeys()]))
-        self.num_samples_processed = dict(zip(self.observed_stats_paths.keys(),
-                [{} for i in self.observed_stats_paths.iterkeys()]))
-        if not self.global_estimate_only:
-            for d in self.num_samples_processed.values():
-                for i in self.models.keys():
-                    d[i] = 0
-        else:
-            for d in self.num_samples_process.values():
-                d['combined'] = 0 
+        self.num_samples_processed = 0
+        self.analysis_to_track = None
         self.keep_temps = keep_temps
         self.duplicate_rejection_workers = False
         self.num_samples_generated = 0
@@ -613,6 +606,7 @@ class ABCTeam(object):
                                     tag = model_idx)
                             rw.appended_posterior = appended_posterior
                             rw.observed_tag = observed_idx
+                            rw.simulation_tag = j
                             if rejection_workers.has_key(rw.tag):
                                 rejection_workers[rw.tag].append(rw)
                             else:
@@ -883,8 +877,7 @@ class ABCTeam(object):
                 if rejection_workers:
                     rejection_workers = self._run_workers(rejection_workers)
                     for rw in rejection_workers:
-                        self.num_samples_processed[observed_idx][rw.tag] += \
-                                rw.num_processed
+                        self._update_progress(rw, observed_idx, rw.tag, j)
                 if global_rejection_workers:
                     global_rejection_workers = self._run_workers(
                             global_rejection_workers)
@@ -893,6 +886,23 @@ class ABCTeam(object):
                         self.temp_fs.remove_file(rw.posterior_path)
                     for rw in global_rejection_workers:
                         self.temp_fs.remove_file(rw.posterior_path)
+
+    def _update_progress(self, rejection_worker,
+            observed_index,
+            model_index,
+            simulation_index):
+        if self.analysis_to_track is None:
+            self.analysis_to_track = [observed_index,
+                    model_index,
+                    simulation_index]
+        if self.analysis_to_track != [observed_index,
+                rejection_worker.tag,
+                simulation_index]:
+            return
+        self.num_samples_processed += rejection_worker.num_processed
+        if getattr(rejection_worker, 'appended_posterior', False):
+            self.num_samples_processed -= self.num_posterior_samples
+
 
     def _run_workers(self, worker_iter, queue_max = 500):
         return manager.Manager.run_workers(
@@ -969,11 +979,10 @@ class ABCTeam(object):
                         to_run.append(rej_worker_batch[model_idx][j])
             to_run = self._run_workers(to_run)
             for rej_worker in to_run:
-                self.num_samples_processed[rej_worker.observed_tag][rej_worker.tag] += \
-                        rej_worker.num_processed
-                if getattr(rej_worker, 'appended_posterior', False):
-                    self.num_samples_processed[rej_worker.observed_tag][rej_worker.tag] -= \
-                            self.num_posterior_samples
+                self._update_progress(rej_worker,
+                        rej_worker.observed_tag,
+                        rej_worker.tag,
+                        rej_worker.simulation_tag)
             self._purge_old_posterior_temp_dir()
         if remove_files:
             for path_list in prior_paths.itervalues():
@@ -1129,9 +1138,7 @@ class ABCTeam(object):
         self._run_final_rejections()
 
         _LOG.info('Number of samples processed:')
-        for obs_idx, d in self.num_samples_processed.iteritems():
-            for model_idx, n in d.iteritems():
-                _LOG.info('    d{0}-m{1}: {2}'.format(obs_idx, model_idx, n))
+        _LOG.info('    {0}'.format(self.num_samples_processed))
 
         _LOG.info('Running final regressions...')
         self._run_regression_workers(self.num_prior_batch_iters,
