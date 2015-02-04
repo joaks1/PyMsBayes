@@ -359,7 +359,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
             compressed = False):
         prefix = '{0}d{1}-{2}-s{3}-{4}'.format(abc_team.output_prefix,
                 observed_idx, abc_team.model_strings[model_idx], sim_idx,
-                abc_team.iter_count)
+                abc_team.num_samples_processed)
         p = os.path.join(abc_team.model_dirs[observed_idx][model_idx],
                 prefix)
         paths = {}
@@ -991,7 +991,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(abct2.finished)
         self.assertEqual(abct2.num_samples_generated, 4000)
         self.assertEqual(abct2.num_samples_summarized, 1600)
-        self.assertEqual(abct2.num_samples_processed, 2000)
+        self.assertEqual(abct2.num_samples_processed, 4000)
 
         res1 = self.get_result_paths(abct1, 1, 'combined', 1)
         res2 = self.get_result_paths(abct2, 1, 'combined', 1)
@@ -1416,9 +1416,6 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(abct2.finished)
         self.assertEqual(abct2.num_samples_generated, 4000)
         self.assertEqual(abct2.num_samples_summarized, 1600)
-
-        print "HERE"
-        print "{0}".format(os.listdir(abct2.summary_dir))
 
         abct3 = ABCTeam(
                 temp_fs = self.temp_fs,
