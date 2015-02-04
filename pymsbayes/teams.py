@@ -153,7 +153,6 @@ class ABCTeam(object):
             self.num_batches_remaining = 0
             self.num_prior_batch_iters = 1
             self.reporting_frequency = None
-            self.reporting_indices = None
         else:
             self.models = dict(zip(
                     [i + 1 for i in range(len(config_paths))],
@@ -196,13 +195,6 @@ class ABCTeam(object):
             if self.num_prior_batch_iters < 1:
                 self.num_prior_batch_iters = 1
             self.reporting_frequency = reporting_frequency
-            self.reporting_indices = None
-            if self.reporting_frequency and self.reporting_frequency > 0:
-                rep_indices = range(0, self.num_prior_batch_iters,
-                        self.reporting_frequency)
-                if rep_indices[-1] >= (self.num_prior_batch_iters - 1):
-                    rep_indices.pop(-1)
-                self.reporting_indices = rep_indices
         self.model_dirs = {}
         for obs_idx, obs_dir in self.observed_dirs.iteritems():
             self.model_dirs[obs_idx] = {}
@@ -216,6 +208,7 @@ class ABCTeam(object):
         self.n_observed_map = dict(zip(self.observed_stats_paths.keys(),
                 [0 for i in self.observed_stats_paths.iterkeys()]))
         self.num_samples_processed = 0
+        self.num_samples_at_last_report = 0
         self.analysis_to_track = None
         self.keep_temps = keep_temps
         self.duplicate_rejection_workers = False
@@ -229,6 +222,15 @@ class ABCTeam(object):
         self.prior_summary_worker_iter = self._prior_summary_worker_iter()
         self.prior_worker_iter = self._prior_worker_iter()
         self.iter_count = 0
+        _LOG.info('Batch size is {0} prior samples.'.format(self.batch_size))
+        if self.reporting_frequency:
+            mp_batch = self.batch_size * self.num_processors
+            if self.reporting_frequency % mp_batch != 0:
+                self.reporting_frequency -= (self.reporting_frequency % mp_batch)
+            if self.reporting_frequency < mp_batch:
+                self.reporting_frequency = mp_batch
+            _LOG.info('Using reporting frequency of {0} samples.'.format(
+                    self.reporting_frequency))
         self.finished = False
 
     def _parse_previous_prior_dir(self):
@@ -511,7 +513,7 @@ class ABCTeam(object):
                         seed = seed,
                         schema = 'abctoolbox',
                         stat_patterns = self.stat_patterns,
-                        summary_worker = sum_worker,
+                        summary_worker = None,
                         write_header_file = False,
                         tag = model_index)
                 prior_workers.append(worker)
@@ -698,7 +700,7 @@ class ABCTeam(object):
                 if rejection_workers:
                     yield rejection_workers
 
-    def _regression_worker_iter(self, batch_index, max_num_workers = 500):
+    def _regression_worker_iter(self, max_num_workers = 500):
         for observed_idx, n_observed in self.n_observed_map.iteritems():
             if observed_idx < self.start_from_observed:
                 continue
@@ -722,11 +724,11 @@ class ABCTeam(object):
                         if model_idx == 'combined':
                             fname_prefix = self.output_prefix + \
                                     '-'.join(fname_parts[1:5] + \
-                                            [str(batch_index)])
+                                            [str(self.num_samples_processed)])
                         else:
                             fname_prefix = self.output_prefix + \
                                     '-'.join(fname_parts[1:4] + \
-                                            [str(batch_index)])
+                                            [str(self.num_samples_processed)])
                         out_prefix = os.path.join(
                                 self.model_dirs[observed_idx][model_idx],
                                 fname_prefix)
@@ -1013,9 +1015,8 @@ class ABCTeam(object):
         for i, rej_worker_batch in enumerate(self._final_rejection_worker_iter()):
             rej_worker_batch = self._run_workers(rej_worker_batch)
 
-    def _run_regression_workers(self, batch_index, remove_files = False):
-        for i, reg_worker_batch in enumerate(self._regression_worker_iter(
-                batch_index)):
+    def _run_regression_workers(self, remove_files = False):
+        for i, reg_worker_batch in enumerate(self._regression_worker_iter()):
             reg_worker_batch = self._run_workers(reg_worker_batch)
             if remove_files:
                 for reg_worker in reg_worker_batch:
@@ -1114,13 +1115,18 @@ class ABCTeam(object):
                     write_priors = False)
 
             for i, prior_worker_batch in enumerate(self.prior_worker_iter):
-                if self.reporting_indices and (i == self.reporting_indices[0]):
-                    self.reporting_indices.pop(0)
-                    _LOG.info('Reporting results at iteration {0} of {1}'
-                            '...'.format((i + 1), self.num_prior_batch_iters))
+                if self.reporting_frequency and ((self.num_samples_processed -
+                        self.num_samples_at_last_report) >= 
+                        self.reporting_frequency):
+                    self.num_samples_at_last_report = self.num_samples_processed
+                    _LOG.info('Reporting results based on {0} samples at '
+                            'iteration {1} of {2}...'.format(
+                                self.num_samples_processed,
+                                i,
+                                self.num_prior_batch_iters))
                     self._run_merging_rejection_workers(remove_files = False)
                     self._run_final_rejections()
-                    self._run_regression_workers(i+1, remove_files = False)
+                    self._run_regression_workers(remove_files = False)
 
                 _LOG.info('Running prior worker batch {0} of {1}...'.format(
                         (i + 1), self.num_prior_batch_iters))
@@ -1141,8 +1147,7 @@ class ABCTeam(object):
         _LOG.info('    {0}'.format(self.num_samples_processed))
 
         _LOG.info('Running final regressions...')
-        self._run_regression_workers(self.num_prior_batch_iters,
-                remove_files = True)
+        self._run_regression_workers(remove_files = True)
         self.finished = True
 
 
