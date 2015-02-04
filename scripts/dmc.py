@@ -58,7 +58,7 @@ def main_cli():
                     'be provided).'))
     parser.add_argument('-r', '--reps',
             action = 'store',
-            type = int,
+            type = argparse_utils.arg_is_nonnegative_int,
             default = 0,
             help = ('This option has two effects. First, it signifies that '
                     'the analysis will be simulation based (i.e., no real '
@@ -67,13 +67,13 @@ def main_cli():
                     'sets to simulate and analyze).'))
     parser.add_argument('-n', '--num-prior-samples',
             action = 'store',
-            type = int,
+            type = argparse_utils.arg_is_positive_int,
             default = 1000000,
             help = ('The number of prior samples to simulate for each prior '
                     'config specified with `-p`.'))
     parser.add_argument('--prior-batch-size',
             action = 'store',
-            type = int,
+            type = argparse_utils.arg_is_positive_int,
             default = 10000,
             help = ('The number of prior samples to simulate for each batch.'))
     parser.add_argument('--generate-samples-only',
@@ -84,19 +84,19 @@ def main_cli():
                     'for other purposes.'))
     parser.add_argument('--num-posterior-samples',
             action = 'store',
-            type = int,
+            type = argparse_utils.arg_is_positive_int,
             default = 1000,
             help = ('The number of posterior samples desired for each '
                     'analysis. Default: 1000.'))
     parser.add_argument('--num-standardizing-samples',
             action = 'store',
-            type = int,
+            type = argparse_utils.arg_is_positive_int,
             default = 10000,
             help = ('The number of prior samples desired to use for '
                     'standardizing statistics. Default: 10000.'))
     parser.add_argument('--np',
             action = 'store',
-            type = int,
+            type = argparse_utils.arg_is_positive_int,
             default = multiprocessing.cpu_count(),
             help = ('The maximum number of processes to run in parallel. The '
                     'default is the number of CPUs available on the machine.'))
@@ -134,21 +134,24 @@ def main_cli():
                     '`num-posterior-samples`.'))
     parser.add_argument('-q', '--num-posterior-quantiles',
             action = 'store',
-            type = int,
+            type = argparse_utils.arg_is_positive_int,
             default = 1000,
             help = ('The number of equally spaced quantiles at which to '
                     'evaluate the GLM-estimated posterior density. '
                     'Default: 1000.'))
     parser.add_argument('--reporting-frequency',
             action = 'store',
-            type = int,
+            type = argparse_utils.arg_is_nonnegative_int,
             default = 0,
-            help = ('How frequently (in batch iterations) to run regression '
-                    'and report current results. '
-                    'Default: 0 (only report final results).'))
+            help = ('Suggested frequency (in number of prior samples) for '
+                    'running regression and reporting current results. '
+                    'Default: 0 (only report final results). '
+                    'If a value is given, it may be adjusted so that the '
+                    'reporting frequency is a multiple of the multi-processed '
+                    'batch size.'))
     parser.add_argument('--sort-index',
             action = 'store',
-            type = int,
+            type = argparse_utils.arg_is_nonnegative_int,
             default = 0,
             choices = range(12),
             help = argparse_utils.get_sort_index_help_message())
@@ -185,7 +188,7 @@ def main_cli():
                     '`--start-from` option to restart an analysis.'))
     parser.add_argument('--start-from-simulation-index',
             action = 'store',
-            type = int,
+            type = argparse_utils.arg_is_nonnegative_int,
             default = 0,
             help = ('The simulation index at which to begin analyses. Must be '
                     'used in combination with either the number of simulation '
@@ -196,7 +199,7 @@ def main_cli():
                     'needs to be restarted.'))
     parser.add_argument('--start-from-observed-index',
             action = 'store',
-            type = int,
+            type = argparse_utils.arg_is_nonnegative_int,
             default = 0,
             help = ('The observed config index at which to begin analyses. '
                     'Can be used in combination with the `--data-key-path` '
