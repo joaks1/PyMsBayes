@@ -170,7 +170,7 @@ Next, let's talk specifically about choosing priors for the parameters of the
 
 
 Important priors for the |dpp-msbayes|_ model
-============================================
+=============================================
 
 .. contents:: 
     :local:
@@ -710,3 +710,12 @@ which should look like:
 distribution of just about any shape is possible, so you have a lot of
 flexibility to represent your prior knowledge about bottleneck
 severity.
+
+If, for example, the :ref:`beta(<beta_5_1_plot>`:math:`\bshapea=5, \bshapeb=1`)
+distribution is a good match to your prior uncertainty, you would
+specify this prior in the configuration file by::
+
+    bottleProportionShapeA = 5
+    bottleProportionShapeB = 1
+
+

@@ -1,3 +1,384 @@
+.. role:: bolditalic
+.. role:: hlight 
+.. role:: codehlight 
+
+.. _simple_empirical_analysis:
+
 ***************************
 A Simple Empirical Analysis
 ***************************
+
+In this section, we will walk through an example of how to run an analysis
+using |pmb|_.
+In this tutorial, I will assume that you have successfully
+:ref:`installed<installation>` |pmb|, and
+read the following sections:
+
+*   :ref:`Background<background>`
+*   :ref:`The Configuration File<config>`
+*   :ref:`Selecting Priors<selecting_priors>`
+
+We will continue with the example that was introduced in the
+:ref:`background<background>` section:
+Three lizard species co-distributed across a putative dispersal barrier that
+was formed by a past geological event.
+
+The Setup
+=========
+
+We will start with a properly formatted configuration file and sequence
+alignments for each species.
+These can be found in the |lizard-config-dir|_ and |lizard-seq-dir|_
+directories, respectively.
+For information about how the configuration file and sequence files need to be
+formatted, please see :ref:`the section on the configuration file<config>`.
+Also, both |msbayes|_ and |dpp-msbayes|_ come with a Perl script called
+``convertIM.pl``, which takes sequence files formatted for the popular
+program IM, and creates the configuration file and sequence files needed
+form |msbayes|_.
+You might want to use this script if your are starting with IM files.
+After you run the ``convertIM.pl`` you will have to update the preamble of the
+configuration file to specify the priors for the |dpp-msbayes|_ model.
+See the sections about :ref:`selecting priors<selecting_priors>` and the
+:ref:`configuration file<config>` for details about how to modify the preamble.
+
+Ok, let's take a look at our configuration file |lizard-dpp-config|_::
+
+    concentrationShape = 1000.0
+    concentrationScale = 0.00437
+    thetaShape = 4.0
+    thetaScale = 0.001
+    ancestralThetaShape = 0
+    ancestralThetaScale = 0
+    thetaParameters = 000
+    tauShape = 1.0
+    tauScale = 0.02
+    timeInSubsPerSite = 1
+    bottleProportionShapeA = 0
+    bottleProportionShapeB = 0
+    bottleProportionShared = 0
+    migrationShape = 0
+    migrationScale = 0
+    numTauClasses = 0
+    
+    BEGIN SAMPLE_TBL
+    species-1	locus-1	1.0	1.0	10	8	32.422050	389	0.271215	0.240174	0.266343	../sequences/species-1-locus-1.fasta
+    species-1	locus-2	1.0	1.0	8	6	5.507905	500	0.254861	0.225477	0.246877	../sequences/species-1-locus-2.fasta
+    species-1	locus-3	1.0	1.0	6	8	8.379708	524	0.260506	0.233269	0.266142	../sequences/species-1-locus-3.fasta
+    species-1	locus-4	1.0	1.0	8	10	5.204980	345	0.251830	0.232765	0.249506	../sequences/species-1-locus-4.fasta
+    species-1	locus-5	1.0	1.0	8	8	29.592792	417	0.272341	0.237232	0.210548	../sequences/species-1-locus-5.fasta
+    species-1	locus-mt	0.25	4.0	5	5	8.153262	600	0.222976	0.242721	0.271977	../sequences/species-1-locus-mt.fasta
+    species-2	locus-1	1.0	1.0	6	10	7.536519	400	0.256404	0.246540	0.266092	../sequences/species-2-locus-1.fasta
+    species-2	locus-3	1.0	1.0	10	8	11.148510	550	0.270202	0.229906	0.249895	../sequences/species-2-locus-3.fasta
+    species-2	locus-4	1.0	1.0	8	8	9.391906	350	0.246659	0.242283	0.237685	../sequences/species-2-locus-4.fasta
+    species-2	locus-5	1.0	1.0	10	10	13.327843	450	0.264189	0.240497	0.227266	../sequences/species-2-locus-5.fasta
+    species-2	locus-mt	0.25	4.0	4	5	7.595008	549	0.233664	0.264141	0.234924	../sequences/species-2-locus-mt.fasta
+    species-3	locus-1	1.0	1.0	10	6	17.035406	367	0.258149	0.231107	0.276950	../sequences/species-3-locus-1.fasta
+    species-3	locus-3	1.0	1.0	8	10	59.177467	541	0.262631	0.225555	0.251191	../sequences/species-3-locus-3.fasta
+    species-3	locus-4	1.0	1.0	6	8	6.901196	333	0.287292	0.230559	0.215738	../sequences/species-3-locus-4.fasta
+    species-3	locus-mt	0.25	4.0	5	4	11.423634	587	0.227487	0.222071	0.259081	../sequences/species-3-locus-mt.fasta
+    END SAMPLE_TBL
+
+From the sample table, we see that we have 3 species and 6 loci.
+For "species-2," we are missing "locus-2," and for "species-3," we are missing
+"locus-2" and "locus-5".
+In the preamble, we specify our parameterization and priors for the
+|dpp-msbayes|_ model.
+We are specifying a relatively "simple" model; there is no migration, no
+population bottlenecks, and only one population-size parameter (theta) per
+species.
+
+
+|ldmc|
+======
+
+The main program for running analyses with |pmb|_ is |ldmc| (the
+mnemonic here is **d**\ ivergence-\ **m**\ odel **c**\ hoice).
+We can take a look at the help menu for |ldmc| by entering the following
+command line:
+
+.. parsed-literal::
+
+    $ |dmc| -h
+
+Which should print the following help menu to the terminal::
+
+    usage: dmc.py [-h] -o OBSERVED_CONFIGS [OBSERVED_CONFIGS ...] -p PRIOR_CONFIGS
+                  [PRIOR_CONFIGS ...] [-r REPS] [-n NUM_PRIOR_SAMPLES]
+                  [--prior-batch-size PRIOR_BATCH_SIZE] [--generate-samples-only]
+                  [--num-posterior-samples NUM_POSTERIOR_SAMPLES]
+                  [--num-standardizing-samples NUM_STANDARDIZING_SAMPLES]
+                  [--np NP] [--output-dir OUTPUT_DIR] [--temp-dir TEMP_DIR]
+                  [--staging-dir STAGING_DIR]
+                  [-s [STAT_PREFIXES [STAT_PREFIXES ...]]] [-b BANDWIDTH]
+                  [-q NUM_POSTERIOR_QUANTILES]
+                  [--reporting-frequency REPORTING_FREQUENCY]
+                  [--sort-index {0,1,2,3,4,5,6,7,8,9,10,11}]
+                  [--no-global-estimate] [--compress] [--keep-temps] [--seed SEED]
+                  [--output-prefix OUTPUT_PREFIX] [--data-key-path DATA_KEY_PATH]
+                  [--start-from-simulation-index START_FROM_SIMULATION_INDEX]
+                  [--start-from-observed-index START_FROM_OBSERVED_INDEX]
+                  [--dry-run] [--version] [--quiet] [--debug]
+    
+    dmc.py Version 0.2.4
+    
+    optional arguments:
+      -h, --help            show this help message and exit
+      -o OBSERVED_CONFIGS [OBSERVED_CONFIGS ...], --observed-configs OBSERVED_CONFIGS [OBSERVED_CONFIGS ...]
+                            One or more msBayes config files to be used to either
+                            calculate or simulate observed summary statistics. If
+                            used in combination with `-r` each config will be used
+                            to simulate pseudo-observed data. If analyzing real
+                            data, do not use the `-r` option, and the fasta files
+                            specified within the config must exist and contain the
+                            sequence data.
+      -p PRIOR_CONFIGS [PRIOR_CONFIGS ...], --prior-configs PRIOR_CONFIGS [PRIOR_CONFIGS ...]
+                            One or more config files to be used to generate prior
+                            samples. If more than one config is specified, they
+                            should be separated by spaces. This option can also be
+                            used to specify the path to a directory containing the
+                            prior samples and summary statistic means and standard
+                            deviations generated by a previous run using the
+                            `generate-samples-only` option. These files should be
+                            found in the directory `pymsbayes-output/prior-stats-
+                            summaries`. The`pymsbayes-output/model-key.txt` also
+                            needs to be present. If specifying this directory, it
+                            should be the only argument (i.e., no other
+                            directories or config files can be provided).
+      -r REPS, --reps REPS  This option has two effects. First, it signifies that
+                            the analysis will be simulation based (i.e., no real
+                            data will be used). Second, it specifies how many
+                            simulation replicates to perform (i.e., how many data
+                            sets to simulate and analyze).
+      -n NUM_PRIOR_SAMPLES, --num-prior-samples NUM_PRIOR_SAMPLES
+                            The number of prior samples to simulate for each prior
+                            config specified with `-p`.
+      --prior-batch-size PRIOR_BATCH_SIZE
+                            The number of prior samples to simulate for each
+                            batch.
+      --generate-samples-only
+                            Only generate samples from models as requested. I.e.,
+                            No analyses are performed to approximate posteriors.
+                            This option can be useful if you want the prior
+                            samples for other purposes.
+      --num-posterior-samples NUM_POSTERIOR_SAMPLES
+                            The number of posterior samples desired for each
+                            analysis. Default: 1000.
+      --num-standardizing-samples NUM_STANDARDIZING_SAMPLES
+                            The number of prior samples desired to use for
+                            standardizing statistics. Default: 10000.
+      --np NP               The maximum number of processes to run in parallel.
+                            The default is the number of CPUs available on the
+                            machine.
+      --output-dir OUTPUT_DIR
+                            The directory in which all output files will be
+                            written. The default is to use the directory of the
+                            first observed config file.
+      --temp-dir TEMP_DIR   A directory to temporarily stage files. The default is
+                            to use the output directory.
+      --staging-dir STAGING_DIR
+                            A directory to temporarily stage prior files. This
+                            option can be useful on clusters to speed up I/O while
+                            generating prior samples. You can designate a local
+                            temp directory on a compute node to avoid constant
+                            writing to a shared drive. The default is to use the
+                            `temp-dir`.
+      -s [STAT_PREFIXES [STAT_PREFIXES ...]], --stat-prefixes [STAT_PREFIXES [STAT_PREFIXES ...]]
+                            Prefixes of summary statistics to use in the analyses.
+                            The prefixes should be separated by spaces. Default:
+                            `-s pi wattTheta pi.net tajD.denom`.
+      -b BANDWIDTH, --bandwidth BANDWIDTH
+                            Smoothing parameter for the posterior kernal density
+                            estimation. This option is used for the `glm`
+                            regression method. The default is 2 / `num-posterior-
+                            samples`.
+      -q NUM_POSTERIOR_QUANTILES, --num-posterior-quantiles NUM_POSTERIOR_QUANTILES
+                            The number of equally spaced quantiles at which to
+                            evaluate the GLM-estimated posterior density. Default:
+                            1000.
+      --reporting-frequency REPORTING_FREQUENCY
+                            Suggested frequency (in number of prior samples) for
+                            running regression and reporting current results.
+                            Default: 0 (only report final results). If a value is
+                            given, it may be adjusted so that the reporting
+                            frequency is a multiple of the multi-processed batch
+                            size.
+      --sort-index {0,1,2,3,4,5,6,7,8,9,10,11}
+                            The sorting index used by
+                            `dpp-msbayes.pl`/`msbayes.pl` and `obsSumStats.pl`
+                            scripts to determine how the summary statistic vectors
+                            calculated from the alignments of the observed and
+                            simulated data are to be grouped and sorted.
+                            The default is 0.
+                            0:    Do not group or sort. The identity and order of
+                                  the summary statistics of each alignment are
+                                  maintained and compared when calculating
+                                  Euclidean distance.
+                            1-7:  **NOTE**, options 1-7 all re-sort the summary
+                                  statistics in some way, and thus compare the
+                                  statistics from *different* alignments when
+                                  calculating the Euclidean distance.  This is not
+                                  valid and these options should *NOT* be used.
+                                  They are maintained for backwards compatibility
+                                  with the original msBayes.
+                            8-11: All of these options group the summary
+                                  statistics from multiple loci by taxon and then
+                                  calculate moments of each statistic across the
+                                  loci for each taxon, and then use these moments
+                                  to calculate Euclidean distance. The order of
+                                  the taxa is maintained, and so this is valid,
+                                  but you are losing a lot of information
+                                  contained in your loci by simply taking the mean
+                                  (option 11) across them. If you have A LOT of
+                                  loci, this sacrifice might be necessary to
+                                  reduce the number of summary statistics.
+                                  **NOTE**, options 8-10 are NOT well tested.
+                                  8:  Use the first 4 moments (mean, variance,
+                                      skewness, and kurtosis) of each statistic.
+                                  9:  Use the first 3 moments (mean, variance,
+                                      and skewness) of each statistic.
+                                  10: Use the first 2 moments (mean and variance)
+                                      of each statistic.
+                                  11: Use the first 1 moment (mean) of each
+                                      statistic.
+      --no-global-estimate  If multiple prior models are specified, by default a
+                            global estimate is performed averaging over all
+                            models. This option prevents the global estimation
+                            (i.e., only inferences for each model are made).
+      --compress            Compress large results files.
+      --keep-temps          Keep all temporary files.
+      --seed SEED           Random number seed to use for the analysis.
+      --output-prefix OUTPUT_PREFIX
+                            Prefix to use at beginning of output files. The
+                            default is no prefix.
+      --data-key-path DATA_KEY_PATH
+                            The path to a `data-key.txt` file generated by a
+                            previous run. This file should be found in the
+                            directory `pymsbayes-output/data-key.txt`. This option
+                            will override the `-o`/`--observed-configs` option,
+                            and is intended to be used in combination with the
+                            `--start-from` option to restart an analysis.
+      --start-from-simulation-index START_FROM_SIMULATION_INDEX
+                            The simulation index at which to begin analyses. Must
+                            be used in combination with either the number of
+                            simulation replicates (`-r`/`--reps`) or the `--data-
+                            key-path` option, and must be a positive integer that
+                            is less than the number of simulation replicates. This
+                            option can be useful if an analysis needs to be
+                            restarted.
+      --start-from-observed-index START_FROM_OBSERVED_INDEX
+                            The observed config index at which to begin analyses.
+                            Can be used in combination with the `--data-key-path`
+                            option to restart long-running, multi-observed-config
+                            analyses
+      --dry-run             Do not run analyses; only process settings
+      --version             Report version and exit.
+      --quiet               Run without verbose messaging.
+      --debug               Run in debugging mode.
+
+If the help menu is not printed to the terminal, |pmb|_ may not be installed
+correctly; please see the :ref:`installation section<installation>`.
+
+
+Running a short example analysis
+--------------------------------
+
+If you are in the directory with the example configuration files
+(|lizard-config-dir|), we can run an example analysis by entering the following
+command:
+
+.. parsed-literal::
+
+    $ |dmc| -o dpp-simple.cfg -p dpp-simple.cfg -n 5000
+
+This should take a few minutes or less to run on a modern laptop.
+Let's look at what each option is doing:
+
+    ``-o dpp-simple.cfg``
+        Tells the program to use the sequence alignments specified in the
+        ``dpp-simple.cfg`` configuration file to calculate the observed summary
+        statistics.
+    ``-p dpp-simple.cfg``
+        Tells the program to use the model specified in the ``dpp-simple.cfg``
+        file as the prior.
+    ``-n 5000``
+        Tells the program to simulate 5000 datasets under the prior specified
+        in ``dpp-simple.cfg`` during the ABC rejection algorithm.
+
+By default, |ldmc| will retain the "best" 1000 simulations as the approximate
+posterior sample.
+A sample of 5000 simulations from the prior is far too small for a meaningful
+approximation of the posterior, but it will allow you to perform a successful
+(hopefully!) analysis and see some output in a short amount of time.
+
+That's it! |ldmc| does the full analysis for you: It calculates the observed
+summary statistics, simulates datasets from the prior and calculates summary
+statistics from them, performs rejection to get the approximate posterior
+sample, and performs a post-hoc regression-adjusted of the posterior sample
+(using |abctb|_).
+It also spreads all this work over multiple processors (|ldmc| uses all the
+processors on your computer by default).
+
+
+The output
+^^^^^^^^^^
+
+Let's take a look at the output generated by the (very) short analysis
+we ran above.
+There should be a new directory named |result-dir| that was created when you
+ran the analysis.
+This directory contains all of the results organized in a rather convoluted
+hierarchy of folders and files.
+One file inside the result directory is |info-path|, which looks something
+like::
+
+    [pymsbayes]
+        version = Version 0.2.4
+        output_directory = /home/jamie/software/dev/PyMsBayes/examples/lizards/configs/pymsbayes-results
+        temp_directory = /home/jamie/software/dev/PyMsBayes/examples/lizards/configs/pymsbayes-results/temp-files-LkLsum
+        sort_index = 0
+        simulation_reps = 0
+        seed = 922800765
+        num_processors = 4
+        num_prior_samples = 5000
+        num_standardizing_samples = 5000
+        bandwidth = 0.002
+        posterior_quantiles = 1000
+        posterior_sample_size = 1000
+        stat_patterns = ^\s*pi\.\d+\s*$, ^\s*wattTheta\.\d+\s*$, ^\s*pi\.net\.\d+\s*$, ^\s*tajD\.denom\.\d+\s*$
+        num_taxon_pairs = 3
+        dry_run = False
+        [[tool_paths]]
+            dpp_msbayes = /home/jamie/software/dev/PyMsBayes/bin/linux/dpp-msbayes.pl
+            msbayes = /home/jamie/software/dev/PyMsBayes/bin/linux/msbayes.pl
+            eureject = /home/jamie/software/dev/PyMsBayes/bin/linux/eureject
+            abcestimator = /home/jamie/software/dev/PyMsBayes/bin/linux/ABCestimator
+        [[observed_configs]]
+            1 = ../dpp-simple.cfg
+        [[observed_paths]]
+            1 = observed-summary-stats/observed-1.txt
+        [[prior_configs]]
+            1 = ../dpp-simple.cfg
+        [[run_stats]]
+            start_time = 2015-02-05 12:36:44.292840
+            stop_time = 2015-02-05 12:37:23.341727
+            total_duration = 0:00:39.048887
+
+This file is useful, because it contains:
+
+#.  The settings that were used for the analysis.
+#.  The paths to the external tools that were used for the analysis.
+#.  A key for all of the observed and prior configuration files
+    specified in the analysis (only one file for this simple example).
+#.  And some run statistics.
+
+The result directory also contains the |observed-stats-dir|, which contains the
+observed summary statistics calculated from the datasets specified in all of
+the observed configuration files. Because there was only one observed
+configuration file in our simple analysis, there is only a single file,
+|observed-stats-dir|\ ``/observed-1.txt``; The ``1`` in the file name
+corresponds to the key in the |info-path| file (this is useful in more
+complicated analyses).
+
+
+

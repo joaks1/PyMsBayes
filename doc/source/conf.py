@@ -147,22 +147,30 @@ rst_epilog = """
 
 .. |dppsum| replace:: dmc_dpp_summary.py
 .. |ldppsum| replace:: ``dmc_dpp_summary.py``
+.. |dmc| replace:: dmc.py
+.. |ldmc| replace:: ``dmc.py``
 
 .. |MsBayesWorker| replace:: :class:`~pymsbayes.workers.MsBayesWorker`
 .. |Manager| replace:: :class:`~pymsbayes.manager.Manager`
 
-.. |True| replace:: `True`
-.. |False| replace:: `False`
-.. |None| replace:: `None`
+.. |True| replace:: ``True``
+.. |False| replace:: ``False``
+.. |None| replace:: ``None``
 
-.. |example-dir| replace:: `PyMsBayes/examples`
+.. |example-dir| replace:: ``PyMsBayes/examples``
 .. _example-dir: https://github.com/joaks1/PyMsBayes/tree/master/examples
-.. |lizard-dir| replace:: `PyMsBayes/examples/lizards`
+.. |lizard-dir| replace:: ``PyMsBayes/examples/lizards``
 .. _lizard-dir: https://github.com/joaks1/PyMsBayes/tree/master/examples/lizards
-.. |lizard-seq-dir| replace:: `PyMsBayes/examples/lizards/sequences`
+.. |lizard-seq-dir| replace:: ``PyMsBayes/examples/lizards/sequences``
 .. _lizard-seq-dir: https://github.com/joaks1/PyMsBayes/tree/master/examples/lizards/sequences
-.. |lizard-config-dir| replace:: `PyMsBayes/examples/lizards/configs`
+.. |lizard-config-dir| replace:: ``PyMsBayes/examples/lizards/configs``
 .. _lizard-config-dir: https://github.com/joaks1/PyMsBayes/tree/master/examples/lizards/configs
+.. |lizard-dpp-config| replace:: ``PyMsBayes/examples/lizards/configs/dpp-simple.cfg``
+.. _lizard-dpp-config: https://github.com/joaks1/PyMsBayes/tree/master/examples/lizards/configs/dpp-simple.cfg
+.. |result-dir| replace:: ``pymsbayes-results``
+.. |info-path| replace:: ``pymsbayes-results/pymsbayes.info.txt``
+.. |output-dir| replace:: ``pymsbayes-results/pymsbayes-output``
+.. |observed-stats-dir| replace:: ``pymsbayes-results/observed-summary-stats``
 """.format(this_year = time.strftime('%Y'))
 
 # If true, keep warnings as "system message" paragraphs in the built documents.
