@@ -359,7 +359,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
             compressed = False):
         prefix = '{0}d{1}-{2}-s{3}-{4}'.format(abc_team.output_prefix,
                 observed_idx, abc_team.model_strings[model_idx], sim_idx,
-                abc_team.iter_count)
+                abc_team.num_samples_processed)
         p = os.path.join(abc_team.model_dirs[observed_idx][model_idx],
                 prefix)
         paths = {}
@@ -420,7 +420,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(abct.finished)
         self.assertEqual(abct.num_samples_generated, 2000)
         self.assertEqual(abct.num_samples_summarized, 800)
-        self.assertEqual(abct.num_samples_processed[1], 2000)
+        self.assertEqual(abct.num_samples_processed, 2000)
 
         res = self.get_result_paths(abct, 1, 1, 1)
 
@@ -646,7 +646,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(abct.finished)
         self.assertEqual(abct.num_samples_generated, 2000)
         self.assertEqual(abct.num_samples_summarized, 800)
-        self.assertEqual(abct.num_samples_processed[1], 2000)
+        self.assertEqual(abct.num_samples_processed, 2000)
 
         res = self.get_result_paths(abct, 1, 1, 1)
 
@@ -800,7 +800,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(abct1.finished)
         self.assertEqual(abct1.num_samples_generated, 2000)
         self.assertEqual(abct1.num_samples_summarized, 800)
-        self.assertEqual(abct1.num_samples_processed[1], 2000)
+        self.assertEqual(abct1.num_samples_processed, 2000)
 
         self.rng.seed(self.seed)
 
@@ -902,8 +902,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(abct.finished)
         self.assertEqual(abct.num_samples_generated, 4000)
         self.assertEqual(abct.num_samples_summarized, 1600)
-        self.assertEqual(abct.num_samples_processed[1], 2000)
-        self.assertEqual(abct.num_samples_processed[2], 2000)
+        self.assertEqual(abct.num_samples_processed, 2000)
 
         for i in [1, 2, 'combined']:
             res = self.get_result_paths(abct, 1, i, 1)
@@ -992,7 +991,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(abct2.finished)
         self.assertEqual(abct2.num_samples_generated, 4000)
         self.assertEqual(abct2.num_samples_summarized, 1600)
-        self.assertEqual(abct2.num_samples_processed['combined'], 4000)
+        self.assertEqual(abct2.num_samples_processed, 4000)
 
         res1 = self.get_result_paths(abct1, 1, 'combined', 1)
         res2 = self.get_result_paths(abct2, 1, 'combined', 1)
@@ -1059,8 +1058,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(abct.finished)
         self.assertEqual(abct.num_samples_generated, 4000)
         self.assertEqual(abct.num_samples_summarized, 1600)
-        self.assertEqual(abct.num_samples_processed[1], 4000)
-        self.assertEqual(abct.num_samples_processed[2], 4000)
+        self.assertEqual(abct.num_samples_processed, 2000)
 
         for i in [1, 2, 'combined']:
             for j in [1, 2]:
@@ -1137,8 +1135,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(abct.finished)
         self.assertEqual(abct.num_samples_generated, 4000)
         self.assertEqual(abct.num_samples_summarized, 1600)
-        self.assertEqual(abct.num_samples_processed[1], 4000)
-        self.assertEqual(abct.num_samples_processed[2], 4000)
+        self.assertEqual(abct.num_samples_processed, 2000)
 
         for i in [1, 2]:
             for j in [1, 2]:
@@ -1214,8 +1211,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(abct.finished)
         self.assertEqual(abct.num_samples_generated, 4000)
         self.assertEqual(abct.num_samples_summarized, 1600)
-        self.assertEqual(abct.num_samples_processed[1], 4000)
-        self.assertEqual(abct.num_samples_processed[2], 4000)
+        self.assertEqual(abct.num_samples_processed, 2000)
 
         base_dir_list = os.listdir(abct.output_dir)
         self.assertTrue('d1' in base_dir_list)
@@ -1297,8 +1293,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(abct1.finished)
         self.assertEqual(abct1.num_samples_generated, 4000)
         self.assertEqual(abct1.num_samples_summarized, 1600)
-        self.assertEqual(abct1.num_samples_processed[1], 4000)
-        self.assertEqual(abct1.num_samples_processed[2], 4000)
+        self.assertEqual(abct1.num_samples_processed, 2000)
 
         self.rng.seed(self.seed)
 
@@ -1328,8 +1323,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(abct2.finished)
         self.assertEqual(abct2.num_samples_generated, 4000)
         self.assertEqual(abct2.num_samples_summarized, 1600)
-        self.assertEqual(abct2.num_samples_processed[1], 4000)
-        self.assertEqual(abct2.num_samples_processed[2], 4000)
+        self.assertEqual(abct2.num_samples_processed, 2000)
 
         for i in [1, 2]:
             for j in [1, 2, 'combined']:
@@ -1391,8 +1385,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertTrue(abct1.finished)
         self.assertEqual(abct1.num_samples_generated, 4000)
         self.assertEqual(abct1.num_samples_summarized, 1600)
-        self.assertEqual(abct1.num_samples_processed[1], 8000)
-        self.assertEqual(abct1.num_samples_processed[2], 8000)
+        self.assertEqual(abct1.num_samples_processed, 2000)
 
         self.rng.seed(self.seed)
 
@@ -1446,8 +1439,7 @@ class ABCTeamTestCase(PyMsBayesTestCase):
         self.assertFalse(abct3.finished)
         abct3.run()
         self.assertTrue(abct3.finished)
-        self.assertEqual(abct3.num_samples_processed[1], 8000)
-        self.assertEqual(abct3.num_samples_processed[2], 8000)
+        self.assertEqual(abct3.num_samples_processed, 2000)
 
         for i in [1, 2]:
             for j in [1, 2, 'combined']:

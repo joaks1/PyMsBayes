@@ -140,6 +140,7 @@ class ABCTeam(object):
         self.summary_paths = None
         self.previous_prior_dir = None
         self.use_previous_priors = False
+        self.logging_to_trace = False
         if previous_prior_dir:
             self.use_previous_priors = True
             self.previous_prior_dir = fileio.expand_path(previous_prior_dir)
@@ -153,7 +154,6 @@ class ABCTeam(object):
             self.num_batches_remaining = 0
             self.num_prior_batch_iters = 1
             self.reporting_frequency = None
-            self.reporting_indices = None
         else:
             self.models = dict(zip(
                     [i + 1 for i in range(len(config_paths))],
@@ -196,13 +196,6 @@ class ABCTeam(object):
             if self.num_prior_batch_iters < 1:
                 self.num_prior_batch_iters = 1
             self.reporting_frequency = reporting_frequency
-            self.reporting_indices = None
-            if self.reporting_frequency and self.reporting_frequency > 0:
-                rep_indices = range(0, self.num_prior_batch_iters,
-                        self.reporting_frequency)
-                if rep_indices[-1] >= (self.num_prior_batch_iters - 1):
-                    rep_indices.pop(-1)
-                self.reporting_indices = rep_indices
         self.model_dirs = {}
         for obs_idx, obs_dir in self.observed_dirs.iteritems():
             self.model_dirs[obs_idx] = {}
@@ -215,7 +208,9 @@ class ABCTeam(object):
         self.num_observed = 0
         self.n_observed_map = dict(zip(self.observed_stats_paths.keys(),
                 [0 for i in self.observed_stats_paths.iterkeys()]))
-        self.num_samples_processed = None
+        self.num_samples_processed = 0
+        self.num_samples_at_last_report = 0
+        self.analysis_to_track = None
         self.keep_temps = keep_temps
         self.duplicate_rejection_workers = False
         self.num_samples_generated = 0
@@ -228,6 +223,18 @@ class ABCTeam(object):
         self.prior_summary_worker_iter = self._prior_summary_worker_iter()
         self.prior_worker_iter = self._prior_worker_iter()
         self.iter_count = 0
+        _LOG.info('Batch size is {0} prior samples.'.format(self.batch_size))
+        if self.reporting_frequency:
+            self.logging_to_trace = True
+            mp_batch = self.batch_size * self.num_processors
+            if self.global_estimate_only:
+                mp_batch *= len(self.models)
+            if self.reporting_frequency % mp_batch != 0:
+                self.reporting_frequency -= (self.reporting_frequency % mp_batch)
+            if self.reporting_frequency < mp_batch:
+                self.reporting_frequency = mp_batch
+            _LOG.info('Using reporting frequency of {0} samples.'.format(
+                    self.reporting_frequency))
         self.finished = False
 
     def _parse_previous_prior_dir(self):
@@ -510,7 +517,7 @@ class ABCTeam(object):
                         seed = seed,
                         schema = 'abctoolbox',
                         stat_patterns = self.stat_patterns,
-                        summary_worker = sum_worker,
+                        summary_worker = None,
                         write_header_file = False,
                         tag = model_index)
                 prior_workers.append(worker)
@@ -539,17 +546,6 @@ class ABCTeam(object):
                 (not self.use_previous_priors) and
                 (self.num_batches > 1)):
             self.duplicate_rejection_workers = True
-        if not self.global_estimate_only:
-            self.num_samples_processed = dict(zip(self.models.keys(),
-                    [self.num_posterior_samples * \
-                            self.num_observed for i in range(len(
-                                    self.models.keys()))]))
-        else:
-            self.num_samples_processed = {
-                    'combined': self.num_posterior_samples * self.num_observed}
-        if self.duplicate_rejection_workers:
-            for model_idx in self.num_samples_processed.iterkeys():
-                self.num_samples_processed[model_idx] *= self.num_processors
 
     def _write_keys(self):
         out, close = fileio.process_file_arg(self.model_key_path, 'w')
@@ -585,6 +581,7 @@ class ABCTeam(object):
                     for model_idx, p_paths in post_paths.iteritems():
                         for k, p_path in enumerate(p_paths):
                             prior_paths = []
+                            appended_posterior = False
                             if os.path.exists(p_path):
                                 temp_post_path = self.temp_fs.get_file_path(
                                         parent = self.old_posterior_temp_dir,
@@ -597,6 +594,7 @@ class ABCTeam(object):
                                         register = False)
                                 shutil.copy(p_path, temp_post_path)
                                 prior_paths.append(temp_post_path)
+                                appended_posterior = True
                             rw = workers.EuRejectWorker(
                                     temp_fs = self.temp_fs,
                                     observed_path = obs_path,
@@ -612,6 +610,9 @@ class ABCTeam(object):
                                     exe_path = self.eureject_exe_path,
                                     keep_temps = self.keep_temps,
                                     tag = model_idx)
+                            rw.appended_posterior = appended_posterior
+                            rw.observed_tag = observed_idx
+                            rw.simulation_tag = j
                             if rejection_workers.has_key(rw.tag):
                                 rejection_workers[rw.tag].append(rw)
                             else:
@@ -703,7 +704,7 @@ class ABCTeam(object):
                 if rejection_workers:
                     yield rejection_workers
 
-    def _regression_worker_iter(self, batch_index, max_num_workers = 500):
+    def _regression_worker_iter(self, max_num_workers = 500):
         for observed_idx, n_observed in self.n_observed_map.iteritems():
             if observed_idx < self.start_from_observed:
                 continue
@@ -725,23 +726,28 @@ class ABCTeam(object):
                     for model_idx, p_paths in post_paths.iteritems():
                         fname_parts = os.path.basename(p_paths[0]).split('-')
                         if model_idx == 'combined':
-                            fname_prefix = self.output_prefix + \
-                                    '-'.join(fname_parts[1:5] + \
-                                            [str(batch_index)])
+                            trace_prefix = self.output_prefix + \
+                                    '-'.join(fname_parts[1:5])
+                            fname_prefix = '-'.join([trace_prefix,
+                                    str(self.num_samples_processed)])
                         else:
-                            fname_prefix = self.output_prefix + \
-                                    '-'.join(fname_parts[1:4] + \
-                                            [str(batch_index)])
+                            trace_prefix = self.output_prefix + \
+                                    '-'.join(fname_parts[1:4])
+                            fname_prefix = '-'.join([trace_prefix,
+                                    str(self.num_samples_processed)])
                         out_prefix = os.path.join(
                                 self.model_dirs[observed_idx][model_idx],
                                 fname_prefix)
+                        trace_path = os.path.join(
+                                self.model_dirs[observed_idx][model_idx],
+                                trace_prefix + '-trace.txt')
                         post_out_path = out_prefix + '-posterior-sample.txt'
                         if model_idx == 'combined':
                             model_indices = self.models.keys()
                         else:
                             model_indices = [model_idx]
 
-                        posterior_workers.append(workers.PosteriorWorker(
+                        pw = workers.PosteriorWorker(
                                 temp_fs = self.temp_fs,
                                 observed_path = obs_path,
                                 posterior_path = p_paths[0],
@@ -756,13 +762,13 @@ class ABCTeam(object):
                                 cv_threshold = self.cv_threshold,
                                 compress = self.compress,
                                 keep_temps = self.keep_temps,
-                                tag = model_idx))
+                                tag = model_idx)
+                        pw.trace_path = trace_path
+                        posterior_workers.append(pw)
                 if posterior_workers:
                     yield posterior_workers
     
     def _run_rejection_on_provided_priors(self, remove_files = True):
-        for k in self.num_samples_processed.iterkeys():
-            self.num_samples_processed[k] = 0
         for observed_idx, n_observed in self.n_observed_map.iteritems():
             if observed_idx < self.start_from_observed:
                 continue
@@ -791,11 +797,11 @@ class ABCTeam(object):
                         if model_idx == 'combined':
                             fname_prefix = self.output_prefix + \
                                     '-'.join(fname_parts[1:5] + \
-                                            [str(self.num_prior_batch_iters)])
+                                            [str(self.num_samples_processed)])
                         else:
                             fname_prefix = self.output_prefix + \
                                     '-'.join(fname_parts[1:4] + \
-                                            [str(self.num_prior_batch_iters)])
+                                            [str(self.num_samples_processed)])
                         out_prefix = os.path.join(
                                 self.model_dirs[observed_idx][model_idx],
                                 fname_prefix)
@@ -804,22 +810,6 @@ class ABCTeam(object):
                             model_indices = self.models.keys()
                         else:
                             model_indices = [model_idx]
-                        pw = workers.PosteriorWorker(
-                                temp_fs = self.temp_fs,
-                                observed_path = obs_path,
-                                posterior_path = p_path,
-                                num_taxon_pairs = self.num_taxon_pairs,
-                                posterior_out_path = post_out_path,
-                                output_prefix = out_prefix,
-                                model_indices = model_indices,
-                                abctoolbox_exe_path = self.abctoolbox_exe_path,
-                                abctoolbox_num_posterior_quantiles = \
-                                        self.num_posterior_density_quantiles,
-                                omega_threshold = self.omega_threshold,
-                                cv_threshold = self.cv_threshold,
-                                compress = self.compress,
-                                keep_temps = self.keep_temps,
-                                tag = model_idx)
                         rw = workers.EuRejectWorker(
                                 temp_fs = self.temp_fs,
                                 observed_path = obs_path,
@@ -831,10 +821,12 @@ class ABCTeam(object):
                                         self.summary_paths[model_idx],
                                 summary_out_path = None,
                                 posterior_path = p_path,
-                                regression_worker = pw,
+                                regression_worker = None,
                                 exe_path = self.eureject_exe_path,
                                 keep_temps = self.keep_temps,
                                 tag = model_idx)
+                        rw.observed_tag = observed_idx
+                        rw.simulation_tag = j
                         rejection_workers.append(rw)
                     if combined_post_paths and self.global_estimate:
                         p_path = combined_post_paths[0]
@@ -842,29 +834,13 @@ class ABCTeam(object):
                         fname_parts = os.path.basename(p_path).split('-')
                         fname_prefix = self.output_prefix + \
                                 '-'.join(fname_parts[1:5] + \
-                                        [str(self.num_prior_batch_iters)])
+                                            [str(self.num_samples_processed)])
                         out_prefix = os.path.join(
                                 self.model_dirs[observed_idx][model_idx],
                                 fname_prefix)
                         post_out_path = out_prefix + '-posterior-sample.txt'
                         model_indices = self.models.keys()
                         prior_paths = [pp[0] for pp in post_paths.itervalues()]
-                        pw = workers.PosteriorWorker(
-                                temp_fs = self.temp_fs,
-                                observed_path = obs_path,
-                                posterior_path = p_path,
-                                num_taxon_pairs = self.num_taxon_pairs,
-                                posterior_out_path = post_out_path,
-                                output_prefix = out_prefix,
-                                model_indices = model_indices,
-                                abctoolbox_exe_path = self.abctoolbox_exe_path,
-                                abctoolbox_num_posterior_quantiles = \
-                                        self.num_posterior_density_quantiles,
-                                omega_threshold = self.omega_threshold,
-                                cv_threshold = self.cv_threshold,
-                                compress = self.compress,
-                                keep_temps = self.keep_temps,
-                                tag = model_idx)
                         rw = workers.EuRejectWorker(
                                 temp_fs = self.temp_fs,
                                 observed_path = obs_path,
@@ -876,24 +852,46 @@ class ABCTeam(object):
                                         self.summary_paths[model_idx],
                                 summary_out_path = None,
                                 posterior_path = p_path,
-                                regression_worker = pw,
+                                regression_worker = None,
                                 exe_path = self.eureject_exe_path,
                                 keep_temps = self.keep_temps,
                                 tag = model_idx)
+                        rw.observed_tag = observed_idx
+                        rw.simulation_tag = j
                         global_rejection_workers.append(rw)
                 if rejection_workers:
                     rejection_workers = self._run_workers(rejection_workers)
                     for rw in rejection_workers:
-                        self.num_samples_processed[rw.tag] += \
-                                rw.num_processed
+                        self._update_progress(rw, rw.observed_tag, rw.tag,
+                                rw.simulation_tag)
                 if global_rejection_workers:
                     global_rejection_workers = self._run_workers(
                             global_rejection_workers)
+                    for rw in global_rejection_workers:
+                        self._update_progress(rw, rw.observed_tag, rw.tag,
+                                rw.simulation_tag)
                 if remove_files:
                     for rw in rejection_workers:
                         self.temp_fs.remove_file(rw.posterior_path)
                     for rw in global_rejection_workers:
                         self.temp_fs.remove_file(rw.posterior_path)
+
+    def _update_progress(self, rejection_worker,
+            observed_index,
+            model_index,
+            simulation_index):
+        if self.analysis_to_track is None:
+            self.analysis_to_track = [observed_index,
+                    model_index,
+                    simulation_index]
+        if self.analysis_to_track != [observed_index,
+                rejection_worker.tag,
+                simulation_index]:
+            return
+        self.num_samples_processed += rejection_worker.num_processed
+        if getattr(rejection_worker, 'appended_posterior', False):
+            self.num_samples_processed -= self.num_posterior_samples
+
 
     def _run_workers(self, worker_iter, queue_max = 500):
         return manager.Manager.run_workers(
@@ -970,8 +968,10 @@ class ABCTeam(object):
                         to_run.append(rej_worker_batch[model_idx][j])
             to_run = self._run_workers(to_run)
             for rej_worker in to_run:
-                self.num_samples_processed[rej_worker.tag] += \
-                        (rej_worker.num_processed - self.num_posterior_samples)
+                self._update_progress(rej_worker,
+                        rej_worker.observed_tag,
+                        rej_worker.tag,
+                        rej_worker.simulation_tag)
             self._purge_old_posterior_temp_dir()
         if remove_files:
             for path_list in prior_paths.itervalues():
@@ -1002,10 +1002,30 @@ class ABCTeam(object):
         for i, rej_worker_batch in enumerate(self._final_rejection_worker_iter()):
             rej_worker_batch = self._run_workers(rej_worker_batch)
 
-    def _run_regression_workers(self, batch_index, remove_files = False):
-        for i, reg_worker_batch in enumerate(self._regression_worker_iter(
-                batch_index)):
+    def _run_regression_workers(self, log_to_trace = False,
+            remove_files = False):
+        for i, reg_worker_batch in enumerate(self._regression_worker_iter()):
             reg_worker_batch = self._run_workers(reg_worker_batch)
+            if log_to_trace and self.logging_to_trace:
+                for reg_worker in reg_worker_batch:
+                    d = {}
+                    for p, s in reg_worker.unadjusted_summaries.iteritems():
+                        d[p] = s['mean']
+                    for n, prob in reg_worker.psi_probs.iteritems():
+                        d['prob_psi_' + str(n)] = prob
+                    k = sorted(d.keys())
+                    if not os.path.exists(reg_worker.trace_path):
+                        with open(reg_worker.trace_path, 'w') as tr:
+                            tr.write('{0}\n'.format(
+                                    '\t'.join(['nsamples'] + k)))
+                            tr.write('{0}\n'.format(
+                                    '\t'.join([str(self.num_samples_processed)] + \
+                                            [str(d[x]) for x in k])))
+                    else:
+                        with open(reg_worker.trace_path, 'a') as tr:
+                            tr.write('{0}\n'.format(
+                                    '\t'.join([str(self.num_samples_processed)] + \
+                                            [str(d[x]) for x in k])))
             if remove_files:
                 for reg_worker in reg_worker_batch:
                     self.temp_fs.remove_file(reg_worker.posterior_path)
@@ -1093,9 +1113,14 @@ class ABCTeam(object):
     def _run_full_analysis(self):
         if self.use_previous_priors:
             _LOG.info('Running full analyses on provided priors...')
-            self._run_rejection_on_provided_priors()
+            self._run_rejection_on_provided_priors(remove_files = False)
             self.iter_count += 1
+            _LOG.info('Running final regressions...')
+            self._run_regression_workers(log_to_trace = True,
+                    remove_files = True)
             self.finished = True
+            _LOG.info('Number of samples processed:')
+            _LOG.info('    {0}'.format(self.num_samples_processed))
             return
 
         else:
@@ -1103,13 +1128,19 @@ class ABCTeam(object):
                     write_priors = False)
 
             for i, prior_worker_batch in enumerate(self.prior_worker_iter):
-                if self.reporting_indices and (i == self.reporting_indices[0]):
-                    self.reporting_indices.pop(0)
-                    _LOG.info('Reporting results at iteration {0} of {1}'
-                            '...'.format((i + 1), self.num_prior_batch_iters))
+                if self.reporting_frequency and ((self.num_samples_processed -
+                        self.num_samples_at_last_report) >= 
+                        self.reporting_frequency):
+                    self.num_samples_at_last_report = self.num_samples_processed
+                    _LOG.info('Reporting results based on {0} samples at '
+                            'iteration {1} of {2}...'.format(
+                                self.num_samples_processed,
+                                i,
+                                self.num_prior_batch_iters))
                     self._run_merging_rejection_workers(remove_files = False)
                     self._run_final_rejections()
-                    self._run_regression_workers(i+1, remove_files = False)
+                    self._run_regression_workers(log_to_trace = True,
+                            remove_files = False)
 
                 _LOG.info('Running prior worker batch {0} of {1}...'.format(
                         (i + 1), self.num_prior_batch_iters))
@@ -1127,12 +1158,10 @@ class ABCTeam(object):
         self._run_final_rejections()
 
         _LOG.info('Number of samples processed:')
-        for k, n in self.num_samples_processed.iteritems():
-            _LOG.info('    {0}: {1}'.format(k, n))
+        _LOG.info('    {0}'.format(self.num_samples_processed))
 
         _LOG.info('Running final regressions...')
-        self._run_regression_workers(self.num_prior_batch_iters,
-                remove_files = True)
+        self._run_regression_workers(log_to_trace = True, remove_files = True)
         self.finished = True
 
 

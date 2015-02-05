@@ -49,11 +49,11 @@ class DmcTestCase(PyMsBayesTestCase):
         self.tear_down()
 
     def get_result_paths(self, observed_idx, model_str, sim_idx,
-            iter_count, compressed = False, output_dir=None):
+            num_prior_samples, compressed = False, output_dir=None):
         if not output_dir:
             output_dir = self.output_dir
         prefix = '{0}d{1}-{2}-s{3}-{4}'.format(self.output_prefix,
-                observed_idx, model_str, sim_idx, iter_count)
+                observed_idx, model_str, sim_idx, num_prior_samples)
         p = os.path.join(output_dir, 'pymsbayes-results',
                 'pymsbayes-output', 'd' + str(observed_idx), model_str,
                 prefix)
@@ -125,7 +125,7 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed,
                 '--debug']
         self._exe_dmc(args, return_code=0)
-        results1 = self.get_result_paths(1, 'm1', 1, 1)
+        results1 = self.get_result_paths(1, 'm1', 1, 400)
         self.assertTrue(os.path.exists(results1['prior-dir']))
         self.assertTrue(os.path.exists(results1['sample']))
 
@@ -142,7 +142,7 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed,
                 '--debug']
         self._exe_dmc(args, return_code=0, output_dir = out_dir1)
-        results2 = self.get_result_paths(1, 'm1', 1, 1, output_dir = out_dir1)
+        results2 = self.get_result_paths(1, 'm1', 1, 400, output_dir = out_dir1)
         self.assertTrue(os.path.exists(results2['prior-dir']))
         self.assertTrue(os.path.exists(results2['sample']))
 
@@ -163,7 +163,7 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed + 1,
                 '--debug']
         self._exe_dmc(args, return_code=0, output_dir = out_dir2)
-        results3 = self.get_result_paths(1, 'm1', 1, 1, output_dir = out_dir2)
+        results3 = self.get_result_paths(1, 'm1', 1, 400, output_dir = out_dir2)
         self.assertTrue(os.path.exists(results3['prior-dir']))
         self.assertTrue(os.path.exists(results3['sample']))
         self.assertNotEqual(results1['prior-dir'], results3['prior-dir'])
@@ -185,7 +185,7 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed,
                 '--debug']
         self._exe_dmc(args, return_code=0)
-        results1 = self.get_result_paths(1, 'm1', 1, 1)
+        results1 = self.get_result_paths(1, 'm1', 1, 400)
         self.assertTrue(os.path.exists(results1['prior-dir']))
         self.assertTrue(os.path.exists(results1['sample']))
 
@@ -203,7 +203,7 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed,
                 '--debug']
         self._exe_dmc(args, return_code=0, output_dir = out_dir1)
-        results2 = self.get_result_paths(1, 'm1', 1, 1, output_dir = out_dir1)
+        results2 = self.get_result_paths(1, 'm1', 1, 400, output_dir = out_dir1)
         self.assertTrue(os.path.exists(results2['prior-dir']))
         self.assertFalse(os.path.exists(results2['sample']))
 
@@ -220,7 +220,7 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed,
                 '--debug']
         self._exe_dmc(args, return_code=0, output_dir = out_dir2)
-        results3 = self.get_result_paths(1, 'm1', 1, 1, output_dir = out_dir2)
+        results3 = self.get_result_paths(1, 'm1', 1, 400, output_dir = out_dir2)
 
         self.assertNotEqual(results1['prior-dir'], results3['prior-dir'])
         self.assertNotEqual(results1['sample'], results3['sample'])
@@ -241,7 +241,7 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed,
                 '--debug']
         self._exe_dmc(args, return_code=0)
-        results1 = self.get_result_paths(1, 'm1', 1, 1)
+        results1 = self.get_result_paths(1, 'm1', 1, 400)
         self.assertTrue(os.path.exists(results1['prior-dir']))
         self.assertTrue(os.path.exists(results1['sample']))
         self.assertFalse(self._has_non_sorted_results(results1['div']))
@@ -260,7 +260,7 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed,
                 '--debug']
         self._exe_dmc(args, return_code=0, output_dir = out_dir1)
-        results2 = self.get_result_paths(1, 'm1', 1, 1, output_dir = out_dir1)
+        results2 = self.get_result_paths(1, 'm1', 1, 400, output_dir = out_dir1)
         self.assertTrue(os.path.exists(results2['prior-dir']))
         self.assertTrue(os.path.exists(results2['sample']))
         self.assertTrue(self._has_non_sorted_results(results2['div']))
@@ -279,9 +279,9 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed,
                 '--debug']
         self._exe_dmc(args, return_code=0)
-        results1_1 = self.get_result_paths(1, 'm1', 1, 1)
-        results1_2 = self.get_result_paths(1, 'm2', 1, 1)
-        results1_c = self.get_result_paths(1, 'm12-combined', 1, 1)
+        results1_1 = self.get_result_paths(1, 'm1', 1, 400)
+        results1_2 = self.get_result_paths(1, 'm2', 1, 400)
+        results1_c = self.get_result_paths(1, 'm12-combined', 1, 400)
         self.assertTrue(os.path.exists(results1_1['sample']))
         self.assertTrue(os.path.exists(results1_2['sample']))
         self.assertTrue(os.path.exists(results1_c['sample']))
@@ -300,9 +300,9 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed,
                 '--debug']
         self._exe_dmc(args, return_code=0, output_dir = out_dir1)
-        results2_1 = self.get_result_paths(1, 'm1', 1, 1, output_dir = out_dir1)
-        results2_2 = self.get_result_paths(1, 'm2', 1, 1, output_dir = out_dir1)
-        results2_c = self.get_result_paths(1, 'm12-combined', 1, 1, output_dir = out_dir1)
+        results2_1 = self.get_result_paths(1, 'm1', 1, 400, output_dir = out_dir1)
+        results2_2 = self.get_result_paths(1, 'm2', 1, 400, output_dir = out_dir1)
+        results2_c = self.get_result_paths(1, 'm12-combined', 1, 400, output_dir = out_dir1)
         self.assertTrue(os.path.exists(results2_1['sample']))
         self.assertTrue(os.path.exists(results2_2['sample']))
         self.assertFalse(os.path.exists(results2_c['sample']))
@@ -344,7 +344,7 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed,
                 '--debug']
         self._exe_dmc(args, return_code=0)
-        results1 = self.get_result_paths(1, 'm1', 1, 1)
+        results1 = self.get_result_paths(1, 'm1', 1, 400)
         self.assertTrue(os.path.exists(results1['prior-dir']))
         self.assertTrue(os.path.exists(results1['sample']))
 
@@ -360,7 +360,7 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed,
                 '--debug']
         self._exe_dmc(args, return_code=0, output_dir = out_dir1)
-        results2 = self.get_result_paths(1, 'm1', 1, 1, output_dir = out_dir1)
+        results2 = self.get_result_paths(1, 'm1', 1, 400, output_dir = out_dir1)
         self.assertTrue(os.path.exists(results2['prior-dir']))
         self.assertTrue(os.path.exists(results2['sample']))
 
@@ -458,7 +458,7 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed,
                 '--debug']
         self._exe_dmc(args, return_code=0)
-        results1 = self.get_result_paths(1, 'm1', 1, 1)
+        results1 = self.get_result_paths(1, 'm1', 1, 400)
         self.assertTrue(os.path.exists(results1['prior-dir']))
         self.assertTrue(os.path.exists(results1['sample']))
 
@@ -474,7 +474,7 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed,
                 '--debug']
         self._exe_dmc(args, return_code=0, output_dir = out_dir1)
-        results2 = self.get_result_paths(1, 'm1', 1, 1, output_dir = out_dir1)
+        results2 = self.get_result_paths(1, 'm1', 1, 400, output_dir = out_dir1)
         self.assertTrue(os.path.exists(results2['prior-dir']))
         self.assertTrue(os.path.exists(results2['sample']))
 
@@ -573,7 +573,7 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed,
                 '--debug']
         self._exe_dmc(args, return_code=0)
-        results1 = self.get_result_paths(1, 'm1', 1, 1)
+        results1 = self.get_result_paths(1, 'm1', 1, 400)
         self.assertTrue(os.path.exists(results1['prior-dir']))
         self.assertTrue(os.path.exists(results1['sample']))
 
@@ -591,7 +591,7 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed,
                 '--debug']
         self._exe_dmc(args, return_code=0, output_dir = out_dir1)
-        results2 = self.get_result_paths(1, 'm1', 1, 1, output_dir = out_dir1)
+        results2 = self.get_result_paths(1, 'm1', 1, 400, output_dir = out_dir1)
         self.assertTrue(os.path.exists(results2['prior-dir']))
         self.assertTrue(os.path.exists(results2['sample']))
 
@@ -690,7 +690,7 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed,
                 '--debug']
         self._exe_dmc(args, return_code=0)
-        results1 = self.get_result_paths(1, 'm1', 1, 1)
+        results1 = self.get_result_paths(1, 'm1', 1, 400)
         self.assertTrue(os.path.exists(results1['prior-dir']))
         self.assertTrue(os.path.exists(results1['sample']))
 
@@ -708,7 +708,7 @@ class DmcTestCase(PyMsBayesTestCase):
                 '--seed', self.seed,
                 '--debug']
         self._exe_dmc(args, return_code=0, output_dir = out_dir1)
-        results2 = self.get_result_paths(1, 'm1', 1, 1, output_dir = out_dir1)
+        results2 = self.get_result_paths(1, 'm1', 1, 400, output_dir = out_dir1)
         self.assertTrue(os.path.exists(results2['prior-dir']))
         self.assertTrue(os.path.exists(results2['sample']))
 
