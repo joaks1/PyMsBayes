@@ -27,7 +27,7 @@ reporting_freq=100000
 sort_index=0
 seed=845225390
 
-output_dir="../results/sample-output"
+output_dir="../results/sample-output/lizard-analysis"
 if [ ! -d "$output_dir" ]
 then
     mkdir -p $output_dir
@@ -35,7 +35,7 @@ fi
 
 dmc.py --np $nprocs \
     -o ../configs/dpp-simple.cfg \
-    -p ../configs/msbayes.cfg \
+    -p ../configs/dpp-simple.cfg ../configs/msbayes.cfg \
     -n $nprior \
     --prior-batch-size $batch_size \
     --num-posterior-samples $npost \
