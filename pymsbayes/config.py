@@ -8,14 +8,15 @@ from cStringIO import StringIO
 import ConfigParser
 
 from pymsbayes import fileio
-from pymsbayes.utils import probability
+from pymsbayes.utils import probability, errors
+from pymsbayes.utils.containers import OrderedDict
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
 
 class MsBayesConfig(object):
-    _begin_pattern = re.compile(r'^begin\s*sample_tbl$', re.IGNORECASE)
-    _end_pattern = re.compile(r'^end\s*sample_tbl$', re.IGNORECASE)
+    _table_begin_pattern = re.compile(r'^begin\s*sample_tbl$', re.IGNORECASE)
+    _table_end_pattern = re.compile(r'^end\s*sample_tbl$', re.IGNORECASE)
 
     def __init__(self, cfg_file):
         self.theta = None
@@ -33,7 +34,7 @@ class MsBayesConfig(object):
         self.bottle_proportion = None
         self.bottle_proportion_shared = None
         self.taxa = []
-        self.sample_table = []
+        self.sample_table = None
         self._parse_config(cfg_file)
 
     @classmethod
@@ -42,7 +43,7 @@ class MsBayesConfig(object):
         for i in range(100):
             try:
                 line = cfg_stream.next()
-                if cls._begin_pattern.match(line.strip()):
+                if cls._table_begin_pattern.match(line.strip()):
                     if close:
                         cfg_stream.close()
                     return True
@@ -68,10 +69,12 @@ class MsBayesConfig(object):
         preamble.write('[preamble]\n')
         table_started = False
         for i, line in enumerate(cfg_stream):
-            if self._end_pattern.match(line.strip()):
+            if self._table_end_pattern.match(line.strip()):
+                table.write(line)
                 break
-            if self._begin_pattern.match(line.strip()):
+            if self._table_begin_pattern.match(line.strip()):
                 table_started = True
+                table.write(line)
                 continue
             if table_started:
                 table.write(line)
@@ -82,13 +85,19 @@ class MsBayesConfig(object):
         return preamble, table
 
     def _parse_table(self, table):
-        self.sample_table = []
-        for i, row in enumerate(table):
-            r = row.strip().split()
-            if r and (r[0] not in self.taxa):
-                self.taxa.append(r[0])
-            self.sample_table.append(r)
-        self.npairs = len(self.taxa)
+        self.sample_table = SampleTable(table)
+        self.taxa = list(self.sample_table.taxa)
+        self.npairs = len(self.taxa) 
+
+    def _get_taxa(self):
+        return self.sample_table.taxa
+
+    taxa = property(_get_taxa)
+
+    def _get_npairs(self):
+        return self.sample_table.npairs
+
+    npairs = property(_get_npairs)
     
     def _get_gamma_or_uniform_distribution(self, shape, scale):
         if shape > 0.0 and scale > 0.0:
@@ -293,20 +302,156 @@ class MsBayesConfig(object):
             s.write('{0} = {1}\n'.format(k, settings[k]))
         return s.getvalue()
 
-    def get_sample_table(self):
-        s = StringIO()
-        s.write('BEGIN SAMPLE_TBL\n')
-        for row in self.sample_table:
-            s.write('{0}\n'.format('\t'.join(row)))
-        s.write('END SAMPLE_TBL\n')
-        return s.getvalue()
-    
     def __str__(self):
-        return '\n'.join([self.get_preamble() + self.get_sample_table()])
+        return '\n'.join([self.get_preamble() + str(self.sample_table)])
 
     def write(self, file_obj):
         out, close = fileio.process_file_arg(file_obj, 'w')
         out.write(self.__str__())
         if close:
             out.close()
+
+
+class SampleTable(object):
+    _begin_pattern = re.compile(r'^begin\s*sample_tbl$', re.IGNORECASE)
+    _end_pattern = re.compile(r'^end\s*sample_tbl$', re.IGNORECASE)
+
+    def __init__(self, config_file):
+        self.alignments = None
+        self._ordering = []
+        self._parse_table(config_file)
+
+    def _parse_table(self, config_file):
+        self.alignments = OrderedDict()
+        cfg_stream, close = fileio.process_file_arg(config_file)
+        try:
+            table_started = False
+            row_num = 0
+            for i, l in enumerate(cfg_stream):
+                line = l.strip()
+                if self._end_pattern.match(line):
+                    if not table_started:
+                        raise errors.SampleTableError(
+                                'hit end of sample table before beginning')
+                    if len(self.alignments) < 1:
+                        raise errors.SampleTableError(
+                                'no rows found in sample table')
+                    break
+                if self._begin_pattern.match(line):
+                    table_started = True
+                    continue
+                if not table_started:
+                    continue
+                if (line == '') or (line.startswith('#')):
+                    continue
+                row_num += 1
+                try:
+                    al = AlignmentConfig(line)
+                except errors.SampleTableRowError as e:
+                    _LOG.error('sample table row {0} is invalid'.format(
+                            row_num))
+                    raise e
+                if not al.taxon_name in self.alignments:
+                    self.alignments[al.taxon_name] = OrderedDict()
+                    self.alignments[al.taxon_name][al.locus_name] = al
+                    self._ordering.append((al.taxon_name, al.locus_name))
+                    continue
+                if al.locus_name in self.alignments[al.taxon_name]:
+                    raise errors.SampleTableError('locus {0} found twice '
+                            'for taxon {1} at row {2} of sample '
+                            'table'.format(al.locus_name, al.taxon_name,
+                                    row_num))
+                self.alignments[al.taxon_name][al.locus_name] = al
+                self._ordering.append((al.taxon_name, al.locus_name))
+        finally:
+            if close:
+                cfg_stream.close()
+
+    def _get_taxa(self):
+        return self.alignments.keys()
+
+    taxa = property(_get_taxa)
+
+    def _get_loci(self):
+        l = []
+        for t, d in self.alignments.iteritems():
+            for locus in d.iterkeys():
+                if not locus in l:
+                    l.append(locus)
+        return l
+
+    loci = property(_get_loci)
+
+    def _get_number_of_taxa(self):
+        return len(self.taxa)
+
+    npairs = property(_get_number_of_taxa)
+
+    def get_sample_table_string(self):    
+        return '\n'.join(('BEGIN SAMPLE_TBL',
+                '\n'.join((str(self.alignments[t][l]) for t, l in self._ordering)),
+                'END SAMPLE_TBL'))
+
+    def __str__(self):
+        return self.get_sample_table_string()
+
+    def __eq__(self, other):
+        if not isinstance(other, SampleTable):
+            return False
+        if self.alignments != other.alignments:
+            return False
+        if self._ordering != self._ordering:
+            return False
+        return True
+                                   
+
+class AlignmentConfig(object):     
+
+    def __init__(self, sample_table_row = None):
+        self.taxon_name = None
+        self.locus_name = None
+        self.ploidy_multiplier = None
+        self.mutation_rate_multiplier = None
+        self.number_of_gene_copies = None
+        self.kappa = None
+        self.length = None
+        self.base_frequencies = None
+        self.path = None
+        if sample_table_row:
+            self._parse_sample_table_row(sample_table_row)
+
+    def _parse_sample_table_row(self, sample_table_row):
+        row = sample_table_row
+        if isinstance(sample_table_row, str):
+            row = [e.strip() for e in sample_table_row.split()]
+        if len(row) != 12:
+            raise errors.SampleTableRowError(
+                    'sample table row has {0} columns'.format(len(row)))
+        self.taxon_name, self.locus_name = row[0:2]
+        self.ploidy_multiplier, self.mutation_rate_multiplier = (
+                float(x) for x in row[2:4])
+        self.number_of_gene_copies = tuple(int(x) for x in row[4:6])
+        self.kappa, self.length = float(row[6]), int(row[7])
+        self.base_frequencies = tuple(float(x) for x in row[8:11])
+        self.path = row[11]
+
+    def get_sample_table_row_elements(self):
+        return(self.taxon_name,
+                self.locus_name,
+                self.ploidy_multiplier,
+                self.ploidy_multiplier,
+                self.mutation_rate_multiplier,
+                self.number_of_gene_copies[0],
+                self.number_of_gene_copies[1],
+                self.kappa,
+                self.base_frequencies[0],
+                self.base_frequencies[1],
+                self.base_frequencies[2],
+                self.path)
+
+    def get_sample_table_row_string(self):
+        return '\t'.join([str(e) for e in self.get_sample_table_row_elements])
+        
+    def __str__(self):
+        return self.get_sample_table_row_string()
 

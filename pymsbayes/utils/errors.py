@@ -28,3 +28,10 @@ class ParameterParsingError(PyMsBayesError):
     def __init__(self, *args, **kwargs):
         PyMsBayesError.__init__(self, *args, **kwargs)
 
+class SampleTableRowError(PyMsBayesError):
+    def __init__(self, *args, **kwargs):
+        PyMsBayesError.__init__(self, *args, **kwargs)
+
+class SampleTableError(PyMsBayesError):
+    def __init__(self, *args, **kwargs):
+        PyMsBayesError.__init__(self, *args, **kwargs)
