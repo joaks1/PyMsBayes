@@ -89,16 +89,6 @@ class MsBayesConfig(object):
         self.taxa = list(self.sample_table.taxa)
         self.npairs = len(self.taxa) 
 
-    def _get_taxa(self):
-        return self.sample_table.taxa
-
-    taxa = property(_get_taxa)
-
-    def _get_npairs(self):
-        return self.sample_table.npairs
-
-    npairs = property(_get_npairs)
-    
     def _get_gamma_or_uniform_distribution(self, shape, scale):
         if shape > 0.0 and scale > 0.0:
             return probability.GammaDistribution(shape, scale)
@@ -326,6 +316,7 @@ class SampleTable(object):
         cfg_stream, close = fileio.process_file_arg(config_file)
         try:
             table_started = False
+            table_finished = False
             row_num = 0
             for i, l in enumerate(cfg_stream):
                 line = l.strip()
@@ -336,6 +327,7 @@ class SampleTable(object):
                     if len(self.alignments) < 1:
                         raise errors.SampleTableError(
                                 'no rows found in sample table')
+                    table_finished = True
                     break
                 if self._begin_pattern.match(line):
                     table_started = True
@@ -363,6 +355,10 @@ class SampleTable(object):
                                     row_num))
                 self.alignments[al.taxon_name][al.locus_name] = al
                 self._ordering.append((al.taxon_name, al.locus_name))
+            if not table_started:
+                raise errors.SampleTableError('no sample table found')
+            if not table_finished:
+                raise errors.SampleTableError('no end of table found')
         finally:
             if close:
                 cfg_stream.close()
@@ -395,11 +391,19 @@ class SampleTable(object):
     def __str__(self):
         return self.get_sample_table_string()
 
-    def __eq__(self, other):
+    def equals(self, other):
         if not isinstance(other, SampleTable):
             return False
-        if self.alignments != other.alignments:
+        if len(self.alignments) != len(other.alignments):
             return False
+        for i1, i2 in zip(self.alignments.items(), other.alignments.items()):
+            if i1[0] != i2[0]:
+                return False
+            for t1, t2 in zip(i1[1].items(), i2[1].items()):
+                if t1[0] != t2[0]:
+                    return False
+                if not t1[1].equals(t2[1]):
+                    return False
         if self._ordering != self._ordering:
             return False
         return True
@@ -410,47 +414,94 @@ class AlignmentConfig(object):
     def __init__(self, sample_table_row = None):
         self.taxon_name = None
         self.locus_name = None
-        self.ploidy_multiplier = None
-        self.mutation_rate_multiplier = None
-        self.number_of_gene_copies = None
-        self.kappa = None
-        self.length = None
-        self.base_frequencies = None
+        self._ploidy_multiplier = None
+        self._mutation_rate_multiplier = None
+        self._number_of_gene_copies = None
+        self._kappa = None
+        self._length = None
+        self._base_frequencies = None
         self.path = None
-        if sample_table_row:
+        if sample_table_row != None:
             self._parse_sample_table_row(sample_table_row)
 
     def _parse_sample_table_row(self, sample_table_row):
-        row = sample_table_row
         if isinstance(sample_table_row, str):
             row = [e.strip() for e in sample_table_row.split()]
+        else:
+            row = list(sample_table_row)
         if len(row) != 12:
             raise errors.SampleTableRowError(
                     'sample table row has {0} columns'.format(len(row)))
         self.taxon_name, self.locus_name = row[0:2]
-        self.ploidy_multiplier, self.mutation_rate_multiplier = (
-                float(x) for x in row[2:4])
-        self.number_of_gene_copies = tuple(int(x) for x in row[4:6])
-        self.kappa, self.length = float(row[6]), int(row[7])
-        self.base_frequencies = tuple(float(x) for x in row[8:11])
+        self._ploidy_multiplier, self._mutation_rate_multiplier = row[2:4]
+        self._number_of_gene_copies = tuple(row[4:6])
+        self._kappa, self._length = row[6:8] 
+        self._base_frequencies = tuple(row[8:11])
         self.path = row[11]
+
+    def _get_ploidy_multiplier(self):
+        return float(self._ploidy_multiplier)
+
+    ploidy_multiplier = property(_get_ploidy_multiplier)
+
+    def _get_mutation_rate_multiplier(self):
+        return float(self._mutation_rate_multiplier)
+
+    mutation_rate_multiplier = property(_get_mutation_rate_multiplier)
+
+    def _get_number_of_gene_copies(self):
+        return tuple(int(x) for x in self._number_of_gene_copies)
+
+    number_of_gene_copies = property(_get_number_of_gene_copies)
+
+    def _get_kappa(self):
+        return float(self._kappa)
+
+    kappa = property(_get_kappa)
+
+    def _get_length(self):
+        return int(self._length)
+
+    length = property(_get_length)
+
+    def _get_base_frequencies(self):
+        return tuple(float(x) for x in self._base_frequencies)
+
+    base_frequencies = property(_get_base_frequencies)
 
     def get_sample_table_row_elements(self):
         return(self.taxon_name,
                 self.locus_name,
                 self.ploidy_multiplier,
-                self.ploidy_multiplier,
                 self.mutation_rate_multiplier,
                 self.number_of_gene_copies[0],
                 self.number_of_gene_copies[1],
                 self.kappa,
+                self.length,
                 self.base_frequencies[0],
                 self.base_frequencies[1],
                 self.base_frequencies[2],
                 self.path)
 
+    def get_sample_table_row_element_strings(self):
+        return(self.taxon_name,
+                self.locus_name,
+                self._ploidy_multiplier,
+                self._mutation_rate_multiplier,
+                self._number_of_gene_copies[0],
+                self._number_of_gene_copies[1],
+                self._kappa,
+                self._length,
+                self._base_frequencies[0],
+                self._base_frequencies[1],
+                self._base_frequencies[2],
+                self.path)
+
     def get_sample_table_row_string(self):
-        return '\t'.join([str(e) for e in self.get_sample_table_row_elements])
+        return '\t'.join([str(e) for e in self.get_sample_table_row_element_strings()])
+
+    def equals(self, other):
+        return self.__dict__ == other.__dict__
         
     def __str__(self):
         return self.get_sample_table_row_string()
