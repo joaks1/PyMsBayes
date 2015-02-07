@@ -292,6 +292,11 @@ class MsBayesConfig(object):
             s.write('{0} = {1}\n'.format(k, settings[k]))
         return s.getvalue()
 
+    def equal_sample_table(self, config):
+        if not isinstance(config, MsBayesConfig):
+            config = MsBayesConfig(config)
+        return self.sample_table.equals(config.sample_table)
+
     def __str__(self):
         return '\n'.join([self.get_preamble() + str(self.sample_table)])
 
@@ -398,6 +403,8 @@ class SampleTable(object):
             return False
         for i1, i2 in zip(self.alignments.items(), other.alignments.items()):
             if i1[0] != i2[0]:
+                return False
+            if len(i1[1]) != len(i2[1]):
                 return False
             for t1, t2 in zip(i1[1].items(), i2[1].items()):
                 if t1[0] != t2[0]:

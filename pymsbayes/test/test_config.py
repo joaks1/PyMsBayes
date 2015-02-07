@@ -215,6 +215,10 @@ class SampleTableTestCase(unittest.TestCase):
         self.update_stream()
         st3 = SampleTable(self.stream)
         self.assertFalse(st1.equals(st3))
+        self.rows.pop(-1)
+        self.update_stream()
+        st4 = SampleTable(self.stream)
+        self.assertFalse(st4.equals(st3))
 
     def test_duplicate_taxon_locus_pair(self):
         self.rows[-1][0] = 'species-1'
@@ -458,6 +462,48 @@ END SAMPLE_TBL
         s.seek(0)
         c2 = MsBayesConfig(s)
         self.assertSameConfigs([c, c2])
+
+    def test_equal_sample_table(self):
+        p1 = {'c_shape': 2,
+             'c_scale': 5,
+             'theta_shape': 2.0,
+             'theta_scale': 0.002,
+             'tau_shape': 1.0,
+             'tau_scale': 5.0,
+             'a_theta_shape': 1,
+             'a_theta_scale': 0.01,
+             'theta_params': '001',
+             'migration_shape': 1.5,
+             'migration_scale': 0.1,
+             'recombination_shape': 0.0,
+             'recombination_scale': 0.0,
+             'psi': 0,}
+        p2 = {'c_shape': 1000,
+             'c_scale': 0.003,
+             'theta_shape': 1.0,
+             'theta_scale': 0.02,
+             'tau_shape': 2.0,
+             'tau_scale': 2.0,
+             'a_theta_shape': 1,
+             'a_theta_scale': 0.01,
+             'theta_params': '001',
+             'migration_shape': 1.5,
+             'migration_scale': 0.1,
+             'recombination_shape': 0.0,
+             'recombination_scale': 0.0,
+             'psi': 0,}
+        cfg1 = StringIO()
+        self._update_config(cfg1, p1, multi_locus=True, new_impl=True)
+        c1 = MsBayesConfig(cfg1)
+        cfg2 = StringIO()
+        self._update_config(cfg2, p2, multi_locus=True, new_impl=True)
+        c2 = MsBayesConfig(cfg2)
+        cfg3 = StringIO()
+        self._update_config(cfg3, p2, multi_locus=False, new_impl=True)
+        c3 = MsBayesConfig(cfg3)
+        self.assertTrue(c1.equal_sample_table(c2))
+        self.assertFalse(c1.equal_sample_table(c3))
+
 
 if __name__ == '__main__':
     unittest.main()
