@@ -182,7 +182,7 @@ class PyMsBayesTestCase(unittest.TestCase):
                     c2.bottle_proportion_shared)
             self.assertEqual(c1.theta_parameters, c2.theta_parameters)
             self.assertEqual(c1.taxa, c2.taxa)
-            self.assertEqual(c1.sample_table, c2.sample_table)
+            self.assertTrue(c1.sample_table.equals(c2.sample_table))
             if c1.psi:
                 self.assertSameDistributions(c1.psi, c2.psi)
             else:
