@@ -338,17 +338,18 @@ def main_cli():
     info.write('\tstat_patterns = {0}'.format(
             ', '.join([p.pattern for p in stat_patterns])))
 
-    num_taxon_pairs = None
+    # vet observed configs
+    ref_config_path = args.observed_configs[0]
+    ref_config = MsBayesConfig(ref_config_path) 
+    all_config_paths = []
+    num_taxon_pairs = ref_config.npairs
+    assert num_taxon_pairs > 0
     for config in args.observed_configs:
-        cfg = MsBayesConfig(config)
-        assert cfg.npairs > 0
-        if not num_taxon_pairs:
-            num_taxon_pairs = cfg.npairs
-        else:
-            if num_taxon_pairs != cfg.npairs:
-                raise ValueError('observed config {0} has {1} taxon pairs, '
-                        'whereas the prior configs have {2} pairs'.format(
-                                config, cfg.npairs, num_taxon_pairs))
+        all_config_paths.append(config)
+        if not ref_config.equal_sample_table(config):
+            raise ValueError('sample tables in config {0} and {1} differ; '
+                        'all sample tables must be the same.'.format(
+                            ref_config_path, config))
 
     info.write('\tnum_taxon_pairs = {0}'.format(num_taxon_pairs))
     info.write('\tdry_run = {0}'.format(args.dry_run))
@@ -401,13 +402,12 @@ def main_cli():
         models_to_configs[k] = v
         configs_to_models[v] = k
         cfg = MsBayesConfig(v)
-        assert cfg.npairs > 0
-        if not num_taxon_pairs:
-            num_taxon_pairs = cfg.npairs
-        else:
-            if num_taxon_pairs != cfg.npairs:
-                raise ValueError('prior configs have different numbers of '
-                        'taxon pairs')
+        all_config_paths.append(v)
+        # vet prior configs
+        if not ref_config.equal_sample_table(cfg):
+            raise ValueError('sample tables in config {0} and {1} differ; '
+                        'all sample tables must be the same.'.format(
+                            ref_config_path, v))
 
     info.write('\t[[observed_paths]]')
     for i in sorted(abc_team.observed_stats_paths.iterkeys()):
@@ -450,6 +450,34 @@ def main_cli():
             obs_workers = Manager.run_workers(
                 workers = obs_workers,
                 num_processors = args.np)
+
+            # re-vet all configs to see if some were changed by obsSumStats.pl
+            new_ref_config = ref_config
+            ref_modified = False
+            # new ref because if all configs were updated all is good
+            if not ref_config.equal_sample_table(ref_config_path):
+                ref_modified = True
+                new_ref_config = MsBayesConfig(ref_config_path)
+                log.warning("""
+                    The alignment lengths in config {0} have been corrected
+                    by for sites with ambiguous bases by obsSumStats.pl.
+                    """.format(ref_config_path))
+            for config in all_config_paths:
+                if not new_ref_config.equal_sample_table(config):
+                    corrected_config = config
+                    if ref_modified:
+                        corrected_config = ref_config_path
+                    raise ValueError("""
+                        The sample tables in configs {0} and {1} differ because
+                        obsSumStats.pl modified alignment lengths in config {2}
+                        to correct for sites with ambiguous bases found in the
+                        alignments. Please make sure the sample tables in all
+                        configs will be the same after correcting alignment
+                        lengths for ambiguous sites. You can do this by copying
+                        and pasting the sample table in {2} that has been
+                        corrected by obsSumStats.pl into the other configs that
+                        were not corrected.
+                        """.format(ref_config_path, config, corrected_config))
 
         else:
             log.info('Simulating summary statistics from observed configs...')
