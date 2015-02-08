@@ -5,13 +5,15 @@ import os
 import sys
 import re
 import random
+import shutil
 import configobj
 
 from pymsbayes.test.support import package_paths
 from pymsbayes.test.support.pymsbayes_test_case import PyMsBayesTestCase
 from pymsbayes.test import TestLevel
-from pymsbayes.utils import GLOBAL_RNG
+from pymsbayes.utils import GLOBAL_RNG, errors
 from pymsbayes.fileio import process_file_arg
+from pymsbayes.cli import main_dmc
 from pymsbayes.utils.messaging import get_logger
 
 _LOG = get_logger(__name__)
@@ -101,6 +103,14 @@ class DmcTestCase(PyMsBayesTestCase):
         self._exe_script(script_name = 'dmc.py', args = args,
                 stdout = stdout, stderr = stderr,
                 return_code = return_code)
+
+    def exe_main_dmc(self, args, output_dir = None):
+        if not output_dir:
+            output_dir = self.output_dir
+        args += ['--output-prefix', self.output_prefix,
+                 '--output-dir', output_dir]
+        main_dmc.main_cli(args)
+
 
     def test_help(self):
         self._exe_dmc(['-h'], return_code=0)
@@ -791,6 +801,38 @@ class DmcTestCase(PyMsBayesTestCase):
                         mu = 1.0),
                 places = 7)
 
+    def test_diff_sample_table_error(self):
+        observed_config = package_paths.data_path('negros_panay_new.cfg')
+        prior_config = package_paths.data_path('negros_panay_3pairs.cfg')
+        args = ['-o', observed_config,
+                '-p', prior_config,
+                '-r', '1',
+                ]
+        self.assertRaises(errors.SampleTableError, self.exe_main_dmc, args)
+        args = ['-o', observed_config,
+                '-p', prior_config,
+                ]
+        self.assertRaises(errors.SampleTableError, self.exe_main_dmc, args)
+
+        prior_config = package_paths.data_path('negros_panay_new_diff.cfg')
+        args = ['-o', observed_config,
+                '-p', prior_config,
+                '-r', '1',
+                ]
+        self.assertRaises(errors.SampleTableError, self.exe_main_dmc, args)
+        args = ['-o', observed_config,
+                '-p', prior_config,
+                ]
+        self.assertRaises(errors.SampleTableError, self.exe_main_dmc, args)
+
+    def test_modified_sample_table_error(self):
+        observed_config = package_paths.data_path('ambig_config1.cfg')
+        prior_config = package_paths.data_path('ambig_config2.cfg')
+        args = ['-o', observed_config,
+                '-p', prior_config,
+                ]
+        self.assertRaises(errors.SampleTableError, self.exe_main_dmc, args)
+        shutil.move(observed_config + '.orig', observed_config)
 
 if __name__ == '__main__':
     unittest.main()
