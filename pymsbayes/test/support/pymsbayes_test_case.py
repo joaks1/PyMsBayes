@@ -175,6 +175,8 @@ class PyMsBayesTestCase(unittest.TestCase):
         configs = list(cfgs)
         c1 = configs.pop(0)
         for c2 in cfgs:
+            self.assertEqual(c1.time_in_subs_per_site,
+                    c2.time_in_subs_per_site)
             self.assertEqual(c1.npairs, c2.npairs)
             self.assertEqual(c1.implementation, c2.implementation)
             self.assertEqual(c1.div_model_prior, c2.div_model_prior)

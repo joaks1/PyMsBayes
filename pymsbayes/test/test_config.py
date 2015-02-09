@@ -231,9 +231,11 @@ class MsBayesConfigTestCase(PyMsBayesTestCase):
     def setUp(self):
         self.cfg = StringIO()
 
-    def _update_config(self, cfg, params, multi_locus=False, new_impl=False):
-        if new_impl:
-            cfg.write("""concentrationShape = {c_shape}
+    def _update_config(self, cfg, params, multi_locus=False, new_impl=False,
+            time_in_subs_per_site = False):
+        if not time_in_subs_per_site:
+            if new_impl:
+                cfg.write("""concentrationShape = {c_shape}
 concentrationScale = {c_scale}
 thetaShape = {theta_shape}
 thetaScale = {theta_scale}
@@ -250,10 +252,42 @@ numTauClasses = {psi}
 constrain = 0
 subParamConstrain = 111111111
 """.format(**params))
-        else:
-            cfg.write("""upperTheta = 0.1
+            else:
+                cfg.write("""upperTheta = 0.1
 lowerTheta = {ltheta}
 upperTau = {utau}
+numTauClasses = {psi}
+upperMig = {umig}
+upperRec = {urec}
+upperAncPopSize = {atheta}
+constrain = 0
+subParamConstrain = 111111111
+""".format(**params))
+        else:
+            if new_impl:
+                cfg.write("""concentrationShape = {c_shape}
+concentrationScale = {c_scale}
+thetaShape = {theta_shape}
+thetaScale = {theta_scale}
+ancestralThetaShape = {a_theta_shape}
+ancestralThetaScale = {a_theta_scale}
+thetaParameters = {theta_params}
+tauShape = {tau_shape}
+tauScale = {tau_scale}
+timeInSubsPerSite = 1
+migrationShape = {migration_shape}
+migrationScale = {migration_scale}
+recombinationShape = {recombination_shape}
+recombinationScale = {recombination_scale}
+numTauClasses = {psi}
+constrain = 0
+subParamConstrain = 111111111
+""".format(**params))
+            else:
+                cfg.write("""upperTheta = 0.1
+lowerTheta = {ltheta}
+upperTau = {utau}
+timeInSubsPerSite = 1
 numTauClasses = {psi}
 upperMig = {umig}
 upperRec = {urec}
@@ -323,6 +357,7 @@ END SAMPLE_TBL
         self.assertEqual(c.dpp_concentration, None)
         self.assertEqual(c.theta_parameters, None)
         self.assertEqual(c.implementation, 'old')
+        self.assertFalse(c.time_in_subs_per_site)
 
         self.assertSameDistributions(c.psi, DiscreteUniformDistribution(1,4))
         self.assertSameDistributions(c.tau, ContinuousUniformDistribution(0,10))
@@ -350,6 +385,59 @@ END SAMPLE_TBL
         c2 = MsBayesConfig(s)
         self.assertSameConfigs([c, c2])
 
+    def test_single_locus_time_in_subs(self):
+        p = {'ltheta': 0.0001,
+             'utheta': 0.1,
+             'utau': 10.0,
+             'psi': 0,
+             'umig': 0.0,
+             'urec': 0.0,
+             'atheta': 1.0,}
+        self._update_config(self.cfg, p, time_in_subs_per_site = True)
+        _LOG.debug('testing config:\n\n{0}\n'.format(self.cfg.getvalue()))
+        c = MsBayesConfig(self.cfg)
+        self.assertEqual(c.npairs, 4)
+        self.assertIsInstance(c.psi, DiscreteUniformDistribution)
+        self.assertIsInstance(c.tau, ContinuousUniformDistribution)
+        self.assertIsInstance(c.recombination, ContinuousUniformDistribution)
+        self.assertIsInstance(c.migration, ContinuousUniformDistribution)
+        self.assertIsInstance(c.a_theta, ContinuousUniformDistribution)
+        self.assertIsInstance(c.theta, ContinuousUniformDistribution)
+        self.assertIsInstance(c.d_theta, BetaDistribution)
+        self.assertEqual(c.div_model_prior, 'psi')
+        self.assertEqual(c.dpp_concentration, None)
+        self.assertEqual(c.theta_parameters, None)
+        self.assertEqual(c.implementation, 'old')
+        self.assertTrue(c.time_in_subs_per_site)
+
+        self.assertSameDistributions(c.psi, DiscreteUniformDistribution(1,4))
+        self.assertSameDistributions(c.tau, ContinuousUniformDistribution(0,10))
+        self.assertSameDistributions(c.recombination, ContinuousUniformDistribution(0,0))
+        self.assertSameDistributions(c.migration, ContinuousUniformDistribution(0,0))
+        self.assertSameDistributions(c.a_theta, ContinuousUniformDistribution(0.0001,0.1))
+        self.assertSameDistributions(c.theta, ContinuousUniformDistribution(0.0001,0.1))
+        self.assertSameDistributions(c.d_theta, BetaDistribution(1,1,2))
+
+    def test_single_locus_time_in_subs_round_trip(self):
+        p = {'ltheta': 0.0001,
+             'utheta': 0.1,
+             'utau': 10.0,
+             'psi': 0,
+             'umig': 0.0,
+             'urec': 0.0,
+             'atheta': 1.0,}
+        self._update_config(self.cfg, p, time_in_subs_per_site = True)
+        _LOG.debug('testing config:\n\n{0}\n'.format(self.cfg.getvalue()))
+        c = MsBayesConfig(self.cfg)
+        s = StringIO()
+        c.write(s)
+        _LOG.debug('written config:\n\n{0}\n'.format(s.getvalue()))
+        s.seek(0)
+        c2 = MsBayesConfig(s)
+        self.assertTrue(c.time_in_subs_per_site)
+        self.assertTrue(c2.time_in_subs_per_site)
+        self.assertSameConfigs([c, c2])
+
     def test_multi_locus(self):
         p = {'ltheta': 0.0001,
              'utheta': 0.1,
@@ -373,6 +461,7 @@ END SAMPLE_TBL
         self.assertEqual(c.dpp_concentration, None)
         self.assertEqual(c.theta_parameters, None)
         self.assertEqual(c.implementation, 'old')
+        self.assertFalse(c.time_in_subs_per_site)
 
         self.assertSameDistributions(c.psi, DiscreteUniformDistribution(1,4))
         self.assertSameDistributions(c.tau, ContinuousUniformDistribution(0,10))
@@ -430,6 +519,7 @@ END SAMPLE_TBL
         self.assertIsInstance(c.dpp_concentration, GammaDistribution)
         self.assertEqual(c.theta_parameters, [0, 0, 1])
         self.assertEqual(c.implementation, 'new')
+        self.assertFalse(c.time_in_subs_per_site)
 
         self.assertSameDistributions(c.dpp_concentration, GammaDistribution(2, 5))
         self.assertSameDistributions(c.tau, GammaDistribution(1, 5))

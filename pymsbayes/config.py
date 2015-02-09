@@ -23,6 +23,7 @@ class MsBayesConfig(object):
         self.d_theta = None
         self.a_theta = None
         self.tau = None
+        self.time_in_subs_per_site = None
         self.migration = None
         self.recombination = None
         self.psi = None
@@ -108,6 +109,8 @@ class MsBayesConfig(object):
     def _set_priors(self, preamble):
         kwargs = self._parse_preamble(preamble)
         psi = int(kwargs.get('numtauclasses', 0))
+        time_units = int(kwargs.get('timeinsubspersite', 0))
+        self.time_in_subs_per_site = bool(time_units)
         for k in ['concentrationshape', 'concentrationscale', 'taushape',
                 'tauscale', 'thetashape', 'thetascale', 'ancestralthetashape',
                 'ancestralthetascale', 'thetaparameters']:
@@ -227,6 +230,7 @@ class MsBayesConfig(object):
         d['lowerTheta'] = self.theta.minimum
         d['upperTau'] = self.tau.maximum
         d['lowerTau'] = self.tau.minimum
+        d['timeInSubsPerSite'] = int(self.time_in_subs_per_site)
         d['upperAncPopSize'] = self.a_theta.maximum /self.theta.maximum
         if self.div_model_prior.lower() == 'constrained':
             assert self.psi.maximum == self.psi.minimum
@@ -257,6 +261,7 @@ class MsBayesConfig(object):
         d['thetaParameters'] = ''.join([str(x) for x in self.theta_parameters])
         d['tauShape'], d['tauScale'] = \
                 self._get_gamma_or_uniform_settings(self.tau)
+        d['timeInSubsPerSite'] = int(self.time_in_subs_per_site)
         if self.bottle_proportion:
             d['bottleProportionShapeA'] = self.bottle_proportion.alpha
             d['bottleProportionShapeB'] = self.bottle_proportion.beta
