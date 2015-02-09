@@ -322,6 +322,9 @@ models where the posterior can be solved exactly. "Approximate-likelihood
 Bayesian computation" would be much more useful, but then we would lose the
 beloved acronym ABC.)
 
+
+.. _abc_algorithm:
+
 Approximate-*likelihood* Bayesian computation
 =============================================
 

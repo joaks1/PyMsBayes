@@ -157,16 +157,16 @@ rst_epilog = """
 .. |False| replace:: ``False``
 .. |None| replace:: ``None``
 
-.. |example-dir| replace:: ``PyMsBayes/examples``
-.. _example-dir: https://github.com/joaks1/PyMsBayes/tree/master/examples
-.. |lizard-dir| replace:: ``PyMsBayes/examples/lizards``
-.. _lizard-dir: https://github.com/joaks1/PyMsBayes/tree/master/examples/lizards
-.. |lizard-seq-dir| replace:: ``PyMsBayes/examples/lizards/sequences``
-.. _lizard-seq-dir: https://github.com/joaks1/PyMsBayes/tree/master/examples/lizards/sequences
-.. |lizard-config-dir| replace:: ``PyMsBayes/examples/lizards/configs``
-.. _lizard-config-dir: https://github.com/joaks1/PyMsBayes/tree/master/examples/lizards/configs
-.. |lizard-dpp-config| replace:: ``PyMsBayes/examples/lizards/configs/dpp-simple.cfg``
-.. _lizard-dpp-config: https://github.com/joaks1/PyMsBayes/tree/master/examples/lizards/configs/dpp-simple.cfg
+.. |example-dir| replace:: ``pymsbayes-tutorial-data``
+.. _example-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/
+.. |lizard-dir| replace:: ``pymsbayes-tutorial-data/lizards``
+.. _lizard-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards
+.. |lizard-seq-dir| replace:: ``pymsbayes-tutorial-data/lizards/sequences``
+.. _lizard-seq-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/sequences
+.. |lizard-config-dir| replace:: ``pymsbayes-tutorial-data/lizards/configs``
+.. _lizard-config-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/configs
+.. |lizard-dpp-config| replace:: ``pymsbayes-tutorial-data/lizards/configs/dpp-simple.cfg``
+.. _lizard-dpp-config: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/configs/dpp-simple.cfg
 .. |result-dir| replace:: ``pymsbayes-results``
 .. |info-path| replace:: ``pymsbayes-results/pymsbayes.info.txt``
 .. |output-dir| replace:: ``pymsbayes-results/pymsbayes-output``
