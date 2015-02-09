@@ -31,18 +31,18 @@ def main_cli():
             action = 'store',
             type = argparse_utils.arg_is_positive_int,
             default = 100000,
-            help = ('The number of prior samples to simulate for estimating'
+            help = ('The number of prior samples to simulate for estimating '
                     'prior probabilities.'))
-    parser.add_argument('-i', '--iteration-index',
+    parser.add_argument('-i', '--sample-index',
             action = 'store',
             type = argparse_utils.arg_is_positive_int,
-            help = ('The batch iteration index of results to be summarized. '
+            help = ('The prior-sample index of results to be summarized. '
                     'Output files should have a consistent schema. For '
                     'example, a results file for divergence models might look '
                     'something like '
-                    '`d1-m1-s1-151-div-model-results.txt`. In this example, '
-                    'the batch iteration index is "151". The default is to '
-                    'use the largest batch iteration index, which is probably '
+                    '`d1-m1-s1-1000000-div-model-results.txt`. In this example, '
+                    'the prior-sample index is "1000000". The default is to '
+                    'use the largest prior-sample index, which is probably '
                     'what you want.'))
     parser.add_argument('-o', '--output-dir',
             action = 'store',
@@ -61,8 +61,8 @@ def main_cli():
             type = argparse_utils.arg_is_positive_float,
             default = None,
             help = ('The mutation rate with which to scale time to units of '
-                    'generations. The default is to keep the timescale in '
-                    'units of Nc generations.'))
+                    'generations. By default, time is not scaled to '
+                    'generations.'))
     parser.add_argument('--seed',
             action = 'store',
             type = argparse_utils.arg_is_positive_int,
@@ -139,11 +139,14 @@ def main_cli():
             config_path = results.prior_index_to_config[prior_idx]
             time_multiplier = 1.0
             if args.mu is not None:
-                try:
-                    mean_theta = prior_cfg.theta.mean
-                except:
-                    mean_theta = prior_cfg.d_theta.mean
-                time_multiplier = mean_theta / args.mu
+                if prior_cfg.time_in_subs_per_site:
+                    time_multiplier = 1.0 / args.mu
+                else:
+                    try:
+                        mean_theta = prior_cfg.theta.mean
+                    except:
+                        mean_theta = prior_cfg.d_theta.mean
+                    time_multiplier = mean_theta / args.mu
 
             if results.sort_index == 0:
                 #plot marginal times
