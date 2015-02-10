@@ -291,8 +291,8 @@ If the help menu is not printed to the terminal, |pmb|_ may not be installed
 correctly; please see the :ref:`installation section<installation>`.
 
 
-Running a short example analysis
---------------------------------
+Running a (very) short example analysis
+---------------------------------------
 
 If you are in the directory with the example configuration files
 (|lizard-config-dir|), we can run an example analysis by entering the following
@@ -316,16 +316,11 @@ Let's look at what each option is doing:
         Tells the program to simulate 5000 datasets under the prior specified
         in ``dpp-simple.cfg`` (i.e. "get 5000 samples from the prior").
         
-        and retain the parameter values associated with
-        the datasets that yield summary statistics most similar to the
-        observed summary statistics (see the :ref:`section on the ABC
-        algorithm<abc_algorithm>` for more details).
-
 By default, |ldmc| will retain the "best" 1000 simulations as the approximate
 posterior sample (use the ``--num-posterior-samples`` option to adjust this);
-i.e., the parameter values associated with the simulated datasets that yield
-summary statistics most similar to the observed summary statistics (see the
-:ref:`section on the ABC algorithm<abc_algorithm>` for more details).
+i.e., the parameter values associated with the 1000 simulated datasets that
+yield summary statistics most similar to the observed summary statistics (see
+the :ref:`section on the ABC algorithm<abc_algorithm>` for more details).
 A sample of 5000 simulations from the prior is far too small for a meaningful
 approximation of the posterior, but it will allow you to perform a successful
 (hopefully!) analysis and see some output in a short amount of time.
@@ -349,6 +344,10 @@ There should be a new directory named |result-dir| that was created when you
 ran the analysis.
 This directory contains all of the results organized in a rather convoluted
 hierarchy of folders and files.
+
+The info file
+^^^^^^^^^^^^^
+
 One file inside the result directory is |info-path|, which looks something
 like::
 
@@ -392,13 +391,127 @@ This file is useful, because it contains:
     specified in the analysis (only one file for this simple example).
 #.  And some run statistics.
 
+The observed summary statistics
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 The result directory also contains the |observed-stats-dir|, which contains the
 observed summary statistics calculated from the datasets specified in all of
 the observed configuration files. Because there was only one observed
-configuration file in our simple analysis, there is only a single file,
-|observed-stats-dir|\ ``/observed-1.txt``; The ``1`` in the file name
-corresponds to the key in the |info-path| file (this is useful in more
-complicated analyses).
+configuration file in our simple analysis (i.e., ``-o dpp-simple.cfg``), there
+is only a single file, |observed-stats-dir|\ ``/observed-1.txt``; The ``1`` in
+the file name corresponds to the key in the |info-path| file (this is useful in
+more complicated analyses).
 
 
+The data and model keys and corresponding directories
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The "meat" of the results lies within the |output-dir| directory.
+Inside this directory, we see two "key" files.
+``data-key.txt``, which contains::
+
+    d1 = ../observed-summary-stats/observed-1.txt
+
+and ``model-key.txt``, which contains::
+
+    m1 = ../../dpp-simple.cfg
+
+These are keys to the subdirectories within the |output-dir| directory.
+For example, from these keys, we know that the |output-dir|\ ``/d1/m1``
+directory will contain the results of observed summary statistics
+``observed-1.txt`` analyzed under the ``dpp-simple.cfg`` model.
+
+This system of keys and nested directories may seem unnecessarily confusing,
+and is certainly overkill for a simple analysis under a single model, However,
+this system is actually very nice when running complicated, simulation-based
+analyses with many data models, each with 1000s of simulated datasets, all
+analysed under many analysis models.
+
+
+The results files
+^^^^^^^^^^^^^^^^^
+
+Within the
+|output-dir|\ ``/d1/m1``
+directory you will find the following results files:
+
+*   ``d1-m1-s1-5000-cv-results.txt``
+*   ``d1-m1-s1-5000-div-model-results.txt``
+*   ``d1-m1-s1-5000-glm-posterior-density-estimates.txt``
+*   ``d1-m1-s1-5000-glm-posterior-summary.txt``
+*   ``d1-m1-s1-5000-model-results.txt``
+*   ``d1-m1-s1-5000-omega-results.txt``
+*   ``d1-m1-s1-5000-posterior-sample.txt``
+*   ``d1-m1-s1-5000-posterior-summary.txt``
+*   ``d1-m1-s1-5000-psi-results.txt``
+
+Let's break down the information in the files' prefix ``d1-m1-s1-5000``:
+
+    ``d1``
+        This tells us these results are from the "d1" observed data
+        (``observed-1.txt`` according to ``data-key.txt``).
+    ``m1``
+        This tells us the observed data were analyzed under the "m1" model
+        (``dpp-simple.cfg`` according to ``model-key.txt``).
+    ``s1``
+        This tells us these results are from simulation replicate 1 ("s1").
+        We analyzed "real" empirical data, and so there were no simulated
+        datasets and "s1" here is not very useful. However, when we perform
+        simulation-based analyses with thousands of simulated observed
+        datasets(e.g., power analyses), the "s#" part of the file names
+        corresponds to each simulation replicate.
+    ``5000``
+        This tells us the results are based on 5000 random samples from the
+        prior.
+
+Ok, now let's look at what is in each file:
+
+    ``posterior-sample.txt``
+        The approximate posterior sample. The parameter values, parameter
+        summaries, and associated summary statitics of the samples from the
+        prior that were closest to the observed summary statistics.
+    ``posterior-summary.txt``
+        Various summaries (mean, median, mode, range, etc.) of the parameter
+        estimates (summarized from the posterior samples in
+        ``posterior-sample.txt``).
+    ``glm-posterior-density-estimates.txt``
+        The GLM-adjusted posterior density estimates of several parameters
+        and parameter summaries. This is the output of |abctb|_.
+    ``glm-posterior-summary.txt``
+        A summary (mean, median, mode, etc) of the GLM-adjusted posterior
+        density estimates from the ``glm-posterior-density-estimates.txt``
+        file. More output of |abctb|_
+    ``psi-results.txt``
+        The estimated posterior probabilities of the number of divergence
+        events shared across the taxa.
+    ``div-model-results.txt``
+        The estimated posterior probabilites of the model of divergence.
+    ``omega-results.txt``
+        In the original |msbayes|_ "omega" is used to denote the
+        dispersion index (variance / mean) of the divergence times
+        across the pairs of populations.
+        :hlight:`omega is NOT a parameter of either the |msbayes|_ or
+        |dpp-msbayes|_ model`. Rather, it is a statistic summarizing
+        the variance in divergences across taxa.
+        This is calculated for every posterior sample, and this file
+        tells us the proportion of those posterior samples that
+        has a dispersion index of divergence times less than some
+        arbitrary threshold (0.01 by default). This is an estimate
+        of the posterior probability that the dispersion index is
+        less than the threshold.
+        It also reports the GLM-adjusted posterior probability the dispersion
+        index is smaller than the threshold. However, :cite:`Oaks2012`,
+        :cite:`Oaks2014reply`, and :cite:`Oaks2014dpp` showed that the
+        unadjusted posterior estimate was much more accurate than estimates
+        adjusted vial GLM or multinomial logistic regression.
+    ``cv-results.txt``
+        Similar to the ``omega-results.txt`` file, but containing the results
+        for the coefficient of variation (standard deviation / mean) of the
+        divergence times across the pairs of populations.
+        The coefficient of variation is unitless, and thus comparable across
+        analyses and across time scales, unlike the dispersion index.
+    ``model-results.txt``
+        The posterior probability of the prior models. Because we only analyzed
+        the data under a single model, this result is not meaningful in this
+        example.
 
