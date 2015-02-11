@@ -129,6 +129,8 @@ rst_epilog = """
 .. |git| replace:: Git
 .. _Git: http://git-scm.com/
 .. |gpl3| replace:: http://www.gnu.org/licenses/gpl-3.0-standalone.html
+.. |mpl| replace:: ``matplotlib``
+.. _mpl: http://matplotlib.org/
 
 .. |dpp-msbayes| replace:: dpp-msbayes
 .. _dpp-msbayes: https://github.com/joaks1/dpp-msbayes.git
@@ -149,6 +151,8 @@ rst_epilog = """
 .. |ldppsum| replace:: ``dmc_dpp_summary.py``
 .. |dmc| replace:: dmc.py
 .. |ldmc| replace:: ``dmc.py``
+.. |dmcpr| replace:: dmc_plot_results.py
+.. |ldmcpr| replace:: ``dmc_plot_results.py``
 
 .. |MsBayesWorker| replace:: :class:`~pymsbayes.workers.MsBayesWorker`
 .. |Manager| replace:: :class:`~pymsbayes.manager.Manager`

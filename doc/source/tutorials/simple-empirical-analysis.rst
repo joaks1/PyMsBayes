@@ -431,6 +431,10 @@ analysed under many analysis models.
 The results files
 ^^^^^^^^^^^^^^^^^
 
+For this section, it might be helpful to checkout :ref:`the detailed key for
+the parameters included in the output<parameter_key>`, to get familiar with the
+syntax of the output.
+
 Within the
 |output-dir|\ ``/d1/m1``
 directory you will find the following results files:
@@ -454,11 +458,11 @@ Let's break down the information in the files' prefix ``d1-m1-s1-5000``:
         This tells us the observed data were analyzed under the "m1" model
         (``dpp-simple.cfg`` according to ``model-key.txt``).
     ``s1``
-        This tells us these results are from simulation replicate 1 ("s1").
-        We analyzed "real" empirical data, and so there were no simulated
-        datasets and "s1" here is not very useful. However, when we perform
+        This tells us these results are from simulation replicate 1 ("s1").  We
+        analyzed "real" empirical data (there were no simulated datasets), and
+        "s1" here is not very meaningful. However, when we perform
         simulation-based analyses with thousands of simulated observed
-        datasets(e.g., power analyses), the "s#" part of the file names
+        datasets(e.g., power analyses), the "s#" part of the file name
         corresponds to each simulation replicate.
     ``5000``
         This tells us the results are based on 5000 random samples from the
@@ -480,18 +484,35 @@ Ok, now let's look at what is in each file:
     ``glm-posterior-summary.txt``
         A summary (mean, median, mode, etc) of the GLM-adjusted posterior
         density estimates from the ``glm-posterior-density-estimates.txt``
-        file. More output of |abctb|_
+        file. This is output of |abctb|_.
     ``psi-results.txt``
         The estimated posterior probabilities of the number of divergence
         events shared across the taxa.
     ``div-model-results.txt``
         The estimated posterior probabilites of the model of divergence.
+        The first model shows the assignment of taxon pairs to divergence-time
+        parameters.
+        For example, if we have 3 taxa, ``0, 1, 2`` is the most general model
+        in which all three taxa have their own divergence-time parameter.
+        ``0, 1, 0`` indicates that the first and third taxon share the same
+        divergence time-parameter, and the second taxon has its own
+        divergence-time parameter.
+        The second column is the estimated posterior probability of the
+        divergence model.
+        The third column is the GLM-regression-adjusted posterior probability
+        of the divergence model.
+        NOTE, :cite:`Oaks2012`, :cite:`Oaks2014reply`, and :cite:`Oaks2014dpp`
+        showed that the unadjusted posterior estimate was much more accurate
+        than estimates adjusted via GLM or multinomial logistic regression.
+        The last column shows the divergence model (as in the first column)
+        annotated with conditional divergence-time estimates (i.e.,
+        divergence-time estimates conditional on the divergence model).
     ``omega-results.txt``
         In the original |msbayes|_ "omega" is used to denote the
         dispersion index (variance / mean) of the divergence times
         across the pairs of populations.
-        :hlight:`omega is NOT a parameter of either the |msbayes|_ or
-        |dpp-msbayes|_ model`. Rather, it is a statistic summarizing
+        :hlight:`omega is NOT a parameter of either the msBayes or
+        dpp-msbayes model`. Rather, it is a statistic summarizing
         the variance in divergences across taxa.
         This is calculated for every posterior sample, and this file
         tells us the proportion of those posterior samples that
@@ -499,11 +520,11 @@ Ok, now let's look at what is in each file:
         arbitrary threshold (0.01 by default). This is an estimate
         of the posterior probability that the dispersion index is
         less than the threshold.
-        It also reports the GLM-adjusted posterior probability the dispersion
-        index is smaller than the threshold. However, :cite:`Oaks2012`,
-        :cite:`Oaks2014reply`, and :cite:`Oaks2014dpp` showed that the
-        unadjusted posterior estimate was much more accurate than estimates
-        adjusted vial GLM or multinomial logistic regression.
+        It also reports the GLM-regression-adjusted posterior probability the
+        dispersion index is smaller than the threshold. However,
+        :cite:`Oaks2012`, :cite:`Oaks2014reply`, and :cite:`Oaks2014dpp` showed
+        that the unadjusted posterior estimate was much more accurate than
+        estimates adjusted via GLM or multinomial logistic regression.
     ``cv-results.txt``
         Similar to the ``omega-results.txt`` file, but containing the results
         for the coefficient of variation (standard deviation / mean) of the
@@ -515,3 +536,120 @@ Ok, now let's look at what is in each file:
         the data under a single model, this result is not meaningful in this
         example.
 
+
+Plotting the results
+--------------------
+
+If you have |mpl|_ installed on your computer, you can also plot the results of
+the analysis using the |ldmcpr| program.
+Let's take a look at the help menu:
+
+.. parsed-literal::
+
+    $ |dmcpr| -h
+
+    usage: dmc_plot_results.py [-h] [-n NUM_PRIOR_SAMPLES] [-i SAMPLE_INDEX]
+                               [-o OUTPUT_DIR] [--np NP] [-m MU] [--seed SEED]
+                               [--version] [--quiet] [--debug]
+                               PYMSBAYES-INFO-FILE
+    
+    dmc_plot_results.py Version 0.1.1
+    
+    positional arguments:
+      PYMSBAYES-INFO-FILE   Path to `pymsbayes-info.txt` file.
+    
+    optional arguments:
+      -h, --help            show this help message and exit
+      -n NUM_PRIOR_SAMPLES, --num-prior-samples NUM_PRIOR_SAMPLES
+                            The number of prior samples to simulate for estimating
+                            prior probabilities.
+      -i SAMPLE_INDEX, --sample-index SAMPLE_INDEX
+                            The prior-sample index of results to be summarized.
+                            Output files should have a consistent schema. For
+                            example, a results file for divergence models might
+                            look something like `d1-m1-s1-1000000-div-model-
+                            results.txt`. In this example, the prior-sample index
+                            is "1000000". The default is to use the largest prior-
+                            sample index, which is probably what you want.
+      -o OUTPUT_DIR, --output-dir OUTPUT_DIR
+                            The directory in which all output plots will be
+                            written. The default is to use the directory of the
+                            pymsbayes info file.
+      --np NP               The maximum number of processes to run in parallel.
+                            The default is the number of CPUs available on the
+                            machine.
+      -m MU, --mu MU        The mutation rate with which to scale time to units of
+                            generations. By default, time is not scaled to
+                            generations.
+      --seed SEED           Random number seed to use for the analysis.
+      --version             Report version and exit.
+      --quiet               Run without verbose messaging.
+      --debug               Run in debugging mode.
+
+
+Let's go ahead and plot the results of our short example analysis.
+All we have to do is tell the program where the ``pymbayes-info.txt`` file
+resides:
+
+.. parsed-literal::
+
+    $ |dmcpr| pymsbayes-results/pymsbayes-info.txt
+
+This will create the directory
+|result-dir|\ ``/plots`` 
+with several PDFs of plots summarizing the results (you can use the
+``-o``/``--output-dir`` to specify an alternative directory):
+
+*   ``d1-m1-s1-5000-marginal-divergence-times.pdf``
+*   ``d1-m1-s1-5000-number-of-divergences-bayes-factors-only.pdf``
+*   ``d1-m1-s1-5000-number-of-divergences.pdf``
+*   ``d1-m1-s1-5000-ordered-div-models.pdf``
+
+The marginal divergence time plot
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _marginal_div_time_plot:
+.. figure:: /_static/d1-m1-s1-5000-marginal-divergence-times.png
+   :align: center
+   :width: 800 px
+   :figwidth: 80 %
+   :alt: marginal divergence times
+   
+   Estimated marginal divergence times
+
+
+The divergence models plot
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _div_model_plot:
+.. figure:: /_static/d1-m1-s1-5000-ordered-div-models.png
+   :align: center
+   :width: 300 px
+   :figwidth: 50 %
+   :alt: divergence models 
+   
+   Posterior probabilities of the divergence models
+
+The number of divergence events plots 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _number_of_divergences_plot:
+.. figure:: /_static/d1-m1-s1-5000-number-of-divergences.png
+   :align: center
+   :width: 300 px
+   :figwidth: 50 %
+   :alt: number of divergence events
+   
+   Posterior probabilities of the number of divergence events
+
+The number of divergence events Bayes factor plot 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _number_of_divergences_bf_plot:
+.. figure:: /_static/d1-m1-s1-5000-number-of-divergences-bayes-factors-only.png
+   :align: center
+   :width: 400 px
+   :figwidth: 50 %
+   :alt: number of divergence events Bayes factors
+   
+   Bayes factors for the number of divergence events

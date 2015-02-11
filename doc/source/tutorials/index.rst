@@ -10,4 +10,5 @@ PyMsBayes Tutorials
     selecting-priors.rst
     get-example-data.rst
     simple-empirical-analysis.rst
+    parameter-key.rst
 
