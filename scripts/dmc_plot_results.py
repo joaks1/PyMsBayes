@@ -185,13 +185,22 @@ def main_cli():
                                     result_path_prefix,
                                     'div-model-results'))
                 else:
+                    height = 12.0
+                    margin_top = 0.99
+                    margin_left = 0.03
+                    padding_between_vertical = 0.8
+                    if prior_cfg.npairs < 4:
+                        height *= 0.8
+                        margin_top -= 0.01
+                        margin_left += 0.05
+                        padding_between_vertical += 0.3
                     width = (0.38 * prior_cfg.npairs) + 1.5
                     div_model_plot = plotting.OrderedDivergenceModelPlotGrid(
                             div_model_results_path = div_model_path,
                             config_path = config_path,
                             num_top_models = 10,
                             time_multiplier = time_multiplier,
-                            height = 12.0,
+                            height = height,
                             width = width,
                             plot_label_schema = 'uppercase',
                             plot_label_offset = 0,
@@ -200,11 +209,12 @@ def main_cli():
                             y_title_size = 14.0,
                             y_tick_label_size = 10.0,
                             right_text_size = 10.0,
-                            margin_left = 0.03,
+                            margin_left = margin_left,
                             margin_bottom = 0.0,
                             margin_right = 1,
-                            margin_top = 0.99,
-                            padding_between_vertical = 0.8)
+                            margin_top = margin_top,
+                            padding_between_vertical = padding_between_vertical,
+                            tab = 0.08)
                     plot = div_model_plot.create_grid()
                     div_model_plot_path = '{0}{1}'.format(out_prefix,
                             'ordered-div-models.pdf')
@@ -237,7 +247,8 @@ def main_cli():
                             margin_bottom = 0.0,
                             margin_right = 1,
                             margin_top = 0.99,
-                            padding_between_vertical = 0.8)
+                            padding_between_vertical = 0.8,
+                            tab = 0.08)
                     plot = div_model_plot.create_grid()
                     div_model_plot_path = '{0}{1}'.format(out_prefix,
                             'ordered-div-models.pdf')
@@ -290,6 +301,8 @@ def main_cli():
                     for n in sorted(num_div_summary.psi_bayes_factors.keys()):
                         out.write('{0}\t{1}\n'.format(n,
                                 num_div_summary.psi_bayes_factors[n]))
+
+    log.info('The plots are in: {0}'.format(args.output_dir))
 
 def get_result_path(path_prefix, name):
     p = '{0}{1}.txt'.format(path_prefix, name)
