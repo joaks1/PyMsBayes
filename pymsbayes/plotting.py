@@ -2771,7 +2771,8 @@ class UnorderedDivergenceModelPlotGrid(object):
             margin_bottom = 0.0,
             margin_right = 1,
             margin_top = 0.99,
-            padding_between_vertical = 0.8):
+            padding_between_vertical = 0.8,
+            tab = 0.08):
         self.model_results = sumresults.UnorderedDivergenceModelResults(
                 div_model_results_path = div_model_results_path,
                 inclusion_threshold = num_top_models)
@@ -2790,6 +2791,7 @@ class UnorderedDivergenceModelPlotGrid(object):
         self.margin_bottom = margin_bottom
         self.margin_top = margin_top
         self.padding_between_vertical = padding_between_vertical
+        self.tab = tab
         self.subplots = []
         self.plot_grid = None
         self.time_multiplier = time_multiplier
@@ -2818,7 +2820,8 @@ class UnorderedDivergenceModelPlotGrid(object):
                     labels_in_plot = True)
             s = r'$p(\mathbf{{t}} \, | \, B_{{\epsilon}}(S*)) = {0:.3f}$'.format(m.prob)
             sp = ScatterPlot(error_data_list = [ed],
-                    right_text = s)
+                    right_text = s,
+                    tab = self.tab)
             sp.right_text_size = self.right_text_size
             self.subplots.append(sp)
         fig = plt.figure()
@@ -2877,7 +2880,8 @@ class OrderedDivergenceModelPlotGrid(object):
             margin_bottom = 0.0,
             margin_right = 1,
             margin_top = 0.99,
-            padding_between_vertical = 0.8):
+            padding_between_vertical = 0.8,
+            tab = 0.08):
         self.model_results = sumresults.OrderedDivergenceModelResults(
                 div_model_results_path = div_model_results_path,
                 inclusion_threshold = num_top_models)
@@ -2901,6 +2905,7 @@ class OrderedDivergenceModelPlotGrid(object):
         self.margin_bottom = margin_bottom
         self.margin_top = margin_top
         self.padding_between_vertical = padding_between_vertical
+        self.tab = tab
         self.time_multiplier = time_multiplier
         self.subplots = []
         self.plot_grid = None
@@ -2942,7 +2947,8 @@ class OrderedDivergenceModelPlotGrid(object):
             sp = ScatterPlot(error_data_list = [ed],
                     horizontal_lines = horizontal_lines,
                     right_text = s,
-                    left_text = l)
+                    left_text = l,
+                    tab = self.tab)
             sp.right_text_size = self.right_text_size
             sp.left_text_size = self.right_text_size
             self.subplots.append(sp)
@@ -2964,7 +2970,7 @@ class OrderedDivergenceModelPlotGrid(object):
         self.plot_grid = PlotGrid(subplots = self.subplots,
                 num_columns = 1,
                 share_x = True,
-                share_y = True,
+                share_y = False,
                 label_schema = self.plot_label_schema,
                 label_offset = self.plot_label_offset,
                 y_title = self.y_title,
@@ -2979,9 +2985,9 @@ class OrderedDivergenceModelPlotGrid(object):
         self.plot_grid.margin_right = self.margin_right
         self.plot_grid.margin_top = self.margin_top
         self.plot_grid.padding_between_vertical = self.padding_between_vertical
-        self.plot_grid.reset_figure()
-        # self.plot_grid.set_shared_x_limits()
         # self.plot_grid.reset_figure()
+        self.plot_grid.set_shared_y_limits()
+        self.plot_grid.reset_figure()
         return self.plot_grid
 
 class NumberOfDivergencesSummary(object):
