@@ -617,6 +617,9 @@ The marginal divergence time plot
    
    Estimated marginal divergence times
 
+This plot shows the posterior median and 95% highest posterior density (HPD) of
+divergence times, averaged over all models of divergence.
+
 
 The divergence models plot
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -629,6 +632,11 @@ The divergence models plot
    :alt: divergence models 
    
    Posterior probabilities of the divergence models
+
+This plot shows the estimated divergence times conditional on models of
+divergence.
+The models are shown from top to bottom in order of decreasing posterior
+probability, which is given.
 
 The number of divergence events plots 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
