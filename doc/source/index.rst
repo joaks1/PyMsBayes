@@ -4,3 +4,5 @@
 
 .. include:: thanks/acknowledgments.rst
 
+.. include:: intro/users-group.rst
+

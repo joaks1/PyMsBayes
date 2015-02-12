@@ -117,6 +117,9 @@ rst_epilog = """
 .. |pmb_gh_url| replace:: https://github.com/joaks1/PyMsBayes
 .. |pmb_tutorials_doc| replace:: /tutorials/index
 .. |pmb_copyright| replace:: **Copyright 2013-{this_year} Jamie R. Oaks**
+.. |pmb-user-group| replace:: PyMsBayes user's group
+.. _pmb-user-group: https://groups.google.com/forum/?hl=en#!forum/pymsbayes-users
+.. |pmb-user-group-url| replace:: https://groups.google.com/forum/?hl=en#!forum/pymsbayes-users
 
 .. |python| replace:: Python
 .. _python: http://www.python.org/
@@ -167,12 +170,18 @@ rst_epilog = """
 .. _example-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/
 .. |lizard-dir| replace:: ``pymsbayes-tutorial-data/lizards``
 .. _lizard-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards
+.. |lizard-bin-dir| replace:: ``pymsbayes-tutorial-data/lizards/bin``
+.. _lizard-bin-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/bin
+.. |lizard-example-qsub| replace:: ``pymsbayes-tutorial-data/lizards/bin/example-qsub.sh``
+.. _lizard-example-qsub: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/bin/example-qsub.sh
 .. |lizard-seq-dir| replace:: ``pymsbayes-tutorial-data/lizards/sequences``
 .. _lizard-seq-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/sequences
 .. |lizard-config-dir| replace:: ``pymsbayes-tutorial-data/lizards/configs``
 .. _lizard-config-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/configs
 .. |lizard-dpp-config| replace:: ``pymsbayes-tutorial-data/lizards/configs/dpp-simple.cfg``
 .. _lizard-dpp-config: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/configs/dpp-simple.cfg
+.. |lizard-example-results| replace:: ``pymsbayes-tutorial-data/lizards/results/sample-output/lizard-analysis``
+.. _lizard-example-results: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/results/sample-output/lizard-analysis
 .. |result-dir| replace:: ``pymsbayes-results``
 .. |info-path| replace:: ``pymsbayes-results/pymsbayes.info.txt``
 .. |output-dir| replace:: ``pymsbayes-results/pymsbayes-output``

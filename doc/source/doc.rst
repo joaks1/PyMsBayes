@@ -19,6 +19,7 @@ Contents:
     tutorials/index
     changes
     thanks/acknowledgments
+    intro/users-group
     license/license-short
     zbib/references
 
