@@ -153,6 +153,8 @@ rst_epilog = """
 .. |ldmc| replace:: ``dmc.py``
 .. |dmcpr| replace:: dmc_plot_results.py
 .. |ldmcpr| replace:: ``dmc_plot_results.py``
+.. |dmcpp| replace:: dmc_posterior_probs.py
+.. |ldmcpp| replace:: ``dmc_posterior_probs.py``
 
 .. |MsBayesWorker| replace:: :class:`~pymsbayes.workers.MsBayesWorker`
 .. |Manager| replace:: :class:`~pymsbayes.manager.Manager`

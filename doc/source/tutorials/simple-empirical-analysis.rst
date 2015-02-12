@@ -2,6 +2,10 @@
 .. role:: hlight 
 .. role:: codehlight 
 
+.. contents:: 
+    :local:
+    :depth: 3
+
 .. _simple_empirical_analysis:
 
 ***************************
@@ -486,18 +490,20 @@ Ok, now let's look at what is in each file:
         density estimates from the ``glm-posterior-density-estimates.txt``
         file. This is output of |abctb|_.
     ``psi-results.txt``
-        The estimated posterior probabilities of the number of divergence
+        The approximate posterior probabilities of the number of divergence
         events shared across the taxa.
     ``div-model-results.txt``
-        The estimated posterior probabilites of the model of divergence.
-        The first model shows the assignment of taxon pairs to divergence-time
+        The approximate posterior probabilities of the model of divergence.
+        The first column shows the assignment of taxon pairs to divergence-time
         parameters.
         For example, if we have 3 taxa, ``0, 1, 2`` is the most general model
         in which all three taxa have their own divergence-time parameter.
         ``0, 1, 0`` indicates that the first and third taxon share the same
         divergence time-parameter, and the second taxon has its own
         divergence-time parameter.
-        The second column is the estimated posterior probability of the
+        The order of the taxa in the models is the same as the order they
+        appear in the sample table of the configuration file.
+        The second column is the approximate posterior probability of the
         divergence model.
         The third column is the GLM-regression-adjusted posterior probability
         of the divergence model.
@@ -538,7 +544,7 @@ Ok, now let's look at what is in each file:
 
 
 Plotting the results
---------------------
+====================
 
 If you have |mpl|_ installed on your computer, you can also plot the results of
 the analysis using the |ldmcpr| program.
@@ -605,8 +611,18 @@ with several PDFs of plots summarizing the results (you can use the
 *   ``d1-m1-s1-5000-number-of-divergences.pdf``
 *   ``d1-m1-s1-5000-ordered-div-models.pdf``
 
+Also included in the |result-dir|\ ``/plots`` directory is
+a text file named:
+
+*   ``d1-m1-s1-5000-number-of-divergences-bayes-factors.txt``
+
+which contains the Bayes factors for the number of divergence events that is
+plotted in :ref:`the number-of-divergence-events plot shown
+below<number_of_divergence_events>`.
+
+
 The marginal divergence time plot
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------
 
 .. _marginal_div_time_plot:
 .. figure:: /_static/d1-m1-s1-5000-marginal-divergence-times.png
@@ -622,7 +638,7 @@ divergence times, averaged over all models of divergence.
 
 
 The divergence models plot
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------
 
 .. _div_model_plot:
 .. figure:: /_static/d1-m1-s1-5000-ordered-div-models.png
@@ -635,11 +651,24 @@ The divergence models plot
 
 This plot shows the estimated divergence times conditional on models of
 divergence.
-The models are shown from top to bottom in order of decreasing posterior
-probability, which is given.
+The divergence models are shown from top to bottom in order of decreasing
+posterior probability, which is given at the top right of each model plot.
+Also, given at the top left of each plot is the number of divergence-time
+parameters in the model.
+Each dotted line represents the estimated median and 95% HPD interval of the
+divergence time for one of the divergence-time parameters (conditional on the
+divergence model). 
+If there are more than 10 possible divergence models (i.e., the number of pairs
+of taxa is greater than 3), only the 10 models with the highest posterior
+probability are plotted.
+This is a graphical depiction of the divergence models listed in the
+``div-model-results.txt`` file.
+
+
+.. _number_of_divergence_events:
 
 The number of divergence events plots 
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------------------
 
 .. _number_of_divergences_plot:
 .. figure:: /_static/d1-m1-s1-5000-number-of-divergences.png
@@ -650,8 +679,21 @@ The number of divergence events plots
    
    Posterior probabilities of the number of divergence events
 
+This plot shows (A) the posterior probablity (B) prior probability,
+and (C) Bayes factor (2ln(BF)) for the number of of divergence
+events.
+The Bayes factor for each number of divergence events compares that number of
+events to all other possible number of events.
+As expected, because we only simulated 5000 samples from the prior for this
+"toy" example, the posterior sample is very similar to the prior.
+Also given at the top is the posterior estimate (and 95% highest posterior
+density interval) for :ref:`the dispersion index of divergence times
+(PRI.omega)<pri_omega>`.
+
+.. _number_of_divergence_events_bf:
+
 The number of divergence events Bayes factor plot 
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------------------------------
 
 .. _number_of_divergences_bf_plot:
 .. figure:: /_static/d1-m1-s1-5000-number-of-divergences-bayes-factors-only.png
@@ -661,3 +703,177 @@ The number of divergence events Bayes factor plot
    :alt: number of divergence events Bayes factors
    
    Bayes factors for the number of divergence events
+
+This plot is the same plot as (C) in :ref:`the plots of the number of
+divergence events above<number_of_divergence_events>`.
+Here the Bayes factor plot is on its own, because it is often of interest.
+
+
+.. _dmc_posterior_probs:
+
+Summarzing results about divergence-time scenarios
+==================================================
+
+There's another useful program included in |pmb|_ called |ldmcpp|.
+This allows us to estimate the posterior probability (and Bayes factor if we
+wish) of any arbitrary divergence time scenario.
+
+For example, if we are interested in the posterior probability that
+the first and third species in our analysis co-diverged, we can
+enter the following at the command line:
+
+.. parsed-literal::
+
+    $ |dmcpp| -e 0==2 dpp-simple.cfg pymsbayes-results/pymsbayes-output/d1/m1/d1-m1-s1-5000-posterior-sample.txt
+
+which will produce output like::
+
+    l[0] == l[2] --- species-1 == species-3:
+    ----------------------------------------
+    posterior probability = 0.223
+
+telling us that the approximate posterior probability that "species-1" and
+"species-3" co-diverged is 0.223.
+
+If we also want to know the approximate Bayes factor of this scenario, we can
+specify the number of prior simulations to use to estimate the prior
+probability of the scenario with the ``-n`` option:
+
+.. parsed-literal::
+
+    $ |dmcpp| -e 0==2 -n 10000 dpp-simple.cfg pymsbayes-results/pymsbayes-output/d1/m1/d1-m1-s1-5000-posterior-sample.txt
+
+which now produces output like::
+
+    l[0] == l[2] --- species-1 == species-3:
+    ----------------------------------------
+    posterior probability = 0.223
+    prior probability = 0.1864
+    Bayes factor = 1.25270518833
+    2ln(Bayes factor) = 0.450610727151
+
+Any scenario is possible. For example, if we want to know the approximated 
+probability that the first and third pair of populations co-diverged **AND**
+diverged more recently than the second pair of populations.
+
+.. parsed-literal::
+
+    $ |dmcpp| -e "0 == 2 < 1" -n 10000 dpp-simple.cfg pymsbayes-results/pymsbayes-output/d1/m1/d1-m1-s1-5000-posterior-sample.txt
+
+which produces the output::
+
+    l[0] == l[2] < l[1] --- species-1 == species-3 < species-2:
+    -----------------------------------------------------------
+    posterior probability = 0.091
+    prior probability = 0.0552
+    Bayes factor = 1.71347714482
+    2ln(Bayes factor) = 1.07704944788
+
+The expressions designated by the ``-e`` option are very flexible.
+For example, we used ``-e "0 == 2 < 1"`` above.
+We could also have used ``-e "(0 == 2) and (0 < 1)"``, which is equivalent.
+
+We can also specify an arbitrary number of scenarios, for example:
+
+.. parsed-literal::
+
+    $ |dmcpp| -e "0 == 2" -e "0 > 1" -e "1 == 2 and 1 > 0" -e "0 == 1 or 0 == 2" -n 10000 dpp-simple.cfg pymsbayes-results/pymsbayes-output/d1/m1/d1-m1-s1-5000-posterior-sample.txt
+
+which will report the approximate posterior probabilities of all of the
+scenarios::
+
+    l[0] == l[2] --- species-1 == species-3:
+    ----------------------------------------
+    posterior probability = 0.223
+    prior probability = 0.1844
+    Bayes factor = 1.26940482472
+    2ln(Bayes factor) = 0.477096297341
+    
+    
+    l[0] > l[1] --- species-1 > species-2:
+    --------------------------------------
+    posterior probability = 0.298
+    prior probability = 0.3956
+    Bayes factor = 0.648555765846
+    2ln(Bayes factor) = -0.866014573741
+    
+    
+    l[1] == l[2] and l[1] > l[0] --- species-2 == species-3 and species-2 > species-1:
+    ----------------------------------------------------------------------------------
+    posterior probability = 0.054
+    prior probability = 0.0636
+    Bayes factor = 0.840440384539
+    2ln(Bayes factor) = -0.347658514434
+    
+    
+    l[0] == l[1] or l[0] == l[2] --- species-1 == species-2 or species-1 == species-3:
+    ----------------------------------------------------------------------------------
+    posterior probability = 0.389
+    prior probability = 0.3152
+    Bayes factor = 1.38320303738
+    2ln(Bayes factor) = 0.648803702581
+
+In summary the main options of |ldmcpp| are:
+
+#.  ``-e <SCENARIO-EXPRESSION>``: The expression of the divergence
+    scenario we are interested in.
+#.  ``-n <INTEGER>``: The number of simulations to perform to get an
+    approximation of the prior probability (if we want Bayes factors).
+
+The last two arguments must be:
+
+#.  The path the configuration file that defines the model under which data
+    were analyzed.
+#.  The path to the posterior sample file.
+
+For more information about options, you can use ``dmc_posterior_probs.py -h``
+to check out the help menu::
+
+    usage: dmc_posterior_probs.py [-h] -e TAXON-INDEX-EXPRESSION
+                                  [-n NUM_PRIOR_SAMPLES] [--np NP] [--seed SEED]
+                                  [--version] [--quiet] [--debug]
+                                  CONFIG-FILE POSTERIOR-SAMPLE-FILE
+    
+    dmc_posterior_probs.py Version 0.1.1
+    
+    positional arguments:
+      CONFIG-FILE           msBayes config file used to estimate the posterior
+                            sample.
+      POSTERIOR-SAMPLE-FILE
+                            Path to posterior sample file (i.e., `*-posterior-
+                            sample.txt`).
+    
+    optional arguments:
+      -h, --help            show this help message and exit
+      -e TAXON-INDEX-EXPRESSION, --expression TAXON-INDEX-EXPRESSION
+                            A conditional expression of divergence times based on
+                            the taxon-pair indices for which to calculate the
+                            posterior probability of being true. Indices
+                            correspond to the order that pairs of taxa appear in
+                            the sample table of the config, starting at 0 for the
+                            first taxon-pair to appear in the table (starting from
+                            the top). E.g., `-e "0 == 3 == 4"` would request the
+                            proportion of times the 1st, 4th, and 5th taxon-pairs
+                            (in order of appearance in the sample table of the
+                            config) share the same divergence time in the
+                            posterior sample, whereas `-e "0 > 1" would request
+                            the proportion of times the the 1st taxon-pair
+                            diverged further back in time than the 2nd taxon-pair
+                            in the posterior sample.
+      -n NUM_PRIOR_SAMPLES, --num-prior-samples NUM_PRIOR_SAMPLES
+                            The number of prior samples to simulate for estimating
+                            prior probabilities; prior probabilities and Bayes
+                            factors will be reported. The default is to only
+                            report posterior probabilities.
+      --np NP               The maximum number of processes to run in parallel for
+                            prior simulations. The default is the number of CPUs
+                            available on the machine. This option is only relevant
+                            if the number of prior samples is specified using the
+                            `-n` argument.
+      --seed SEED           Random number seed to use for simulations. This option
+                            is only relevant if the number of prior samples is
+                            specified using the `-n` argument.
+      --version             Report version and exit.
+      --quiet               Run without verbose messaging.
+      --debug               Run in debugging mode.
+    

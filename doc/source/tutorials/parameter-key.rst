@@ -101,6 +101,8 @@ The variance of the divergence times across all pairs of populations.
 :hlight:`NOTE`, this is the variance across all the population pairs, not
 the divergence-time parameters (which can be shared across pairs).
 
+.. _pri_omega:
+
 PRI.omega
 ---------
 
@@ -116,3 +118,4 @@ The coefficient of variation (CV; i.e., standard deviation / mean) of the
 divergence times across all pairs of populations.
 :hlight:`NOTE`, this is the CV across all the population pairs, not the
 divergence-time parameters (which can be shared across pairs).
+
