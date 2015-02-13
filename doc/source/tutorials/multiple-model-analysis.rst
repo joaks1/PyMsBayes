@@ -50,6 +50,25 @@ data under both models simultaneously.
 This will take a little longer to run than the previous analysis, but should
 finish in less than a few minutes or so on a modern laptop.
 
+The ``msbayes.cfg`` configuration file has the following preamble::
+
+    lowerTheta = 0.0
+    upperTheta = 0.01
+    timeInSubsPerSite = 1
+    lowerTau = 0.0
+    upperTau = 0.1
+    numTauClasses = 0
+    upperMig = 0.0
+    upperRec = 0.0
+    upperAncPopSize = 1.0
+
+This specifies an |msbayes|_ model that is roughly equivalent to the
+|dpp-msbayes|_ model specified in ``dpp-simple.cfg`` in terms of prior
+uncertainty about divergence times and population sizes.
+Notice that |pmb|_ and the version of |msbayes| that comes with |dpp-msbayes|_
+support the the options ``lowerTau`` and ``timeInSubsPerSite``,
+which are not supported in |msbayes|_ version of :cite:`Huang2011`.
+
 The output
 ==========
 
@@ -211,5 +230,194 @@ independent analyses "converged" to similar estimates.
 Plotting the results
 --------------------
 
-...
+Go ahead and navigate into the |lizard-example-results|\ ``/``\ |result-dir|
+directory.
+From there, we will use |ldmcpr| to plot the results of the multi-model
+analysis that was run for 10 million prior samples.
+Once again, we just have to tell |ldmcpr| where to find the
+``pymsbayes-info.txt`` file, which is in our current working
+directory:
+
+.. parsed-literal::
+
+    $ |dmcpr| pymsbayes-info.txt
+
+This will create a ``plots`` directory, which now has two sets of plots: one
+for each model we used to analyze the data ("m1" = ``dpp-simple.cfg`` and "m2"
+= ``msbayes.cfg`` according to the ``model-key.txt`` output file):
+
+*   ``d1-m1-s1-10000000-marginal-divergence-times.pdf``
+*   ``d1-m1-s1-10000000-number-of-divergences-bayes-factors-only.pdf``
+*   ``d1-m1-s1-10000000-number-of-divergences.pdf``
+*   ``d1-m1-s1-10000000-ordered-div-models.pdf``
+*   ``d1-m2-s1-10000000-marginal-divergence-times.pdf``
+*   ``d1-m2-s1-10000000-number-of-divergences-bayes-factors-only.pdf``
+*   ``d1-m2-s1-10000000-number-of-divergences.pdf``
+*   ``d1-m2-s1-10000000-ordered-div-models.pdf``
+
+Now, we can compare the results from both the |dpp-msbayes|_ and
+|msbayes|_ models.
+I know what the truth is, because I simulated the data we are
+analyzing on the following species tree.
+
+.. _lizard_species_tree:
+.. figure:: /_static/lizard-species-tree.png
+    :align: center
+    :width: 600 px
+    :figwidth: 60%
+    :alt: lizard species tree
+
+    The true species tree for the three pairs of lizard populations.
+
+So, "species-1" and "species-3" co-diverged 0.01 units (expected substitutions
+per site) ago, and "species-2" diverged earlier, at 0.02 units ago.
+
+The marginal divergence time plots
+----------------------------------
+
+.. _dpp_marginal_div_time_plot:
+.. figure:: /_static/d1-m1-s1-10000000-marginal-divergence-times.png
+   :align: center
+   :width: 800 px
+   :figwidth: 80 %
+   :alt: marginal divergence times
+   
+   Estimated marginal divergence times under the DPP model
+
+.. _msbayes_marginal_div_time_plot:
+.. figure:: /_static/d1-m2-s1-10000000-marginal-divergence-times.png
+   :align: center
+   :width: 800 px
+   :figwidth: 80 %
+   :alt: marginal divergence times
+   
+   Estimated marginal divergence times under the msBayes model
+
+We see that under the |dpp-msbayes|_ model, the 95% HPD for the divergence time
+of all three species contain the true value, whereas only one of the three
+contain  the true value under the |msbayes|_ model.
+
+
+The number of divergence events plots 
+-------------------------------------
+
+.. _dpp_number_of_divergences_plot:
+.. figure:: /_static/d1-m1-s1-10000000-number-of-divergences.png
+   :align: center
+   :width: 300 px
+   :figwidth: 50 %
+   :alt: number of divergence events
+   
+   Posterior probabilities of the number of divergence events
+   under the DPP model
+
+.. _msbayes_number_of_divergences_plot:
+.. figure:: /_static/d1-m2-s1-10000000-number-of-divergences.png
+   :align: center
+   :width: 300 px
+   :figwidth: 50 %
+   :alt: number of divergence events
+   
+   Posterior probabilities of the number of divergence events
+   under the msBayes model
+
+The |dpp-msbayes|_ model correctly estimates that there were
+two events, but with quite a bit of uncertainty.
+The |msbayes|_ model is quite confident that there was a single divergence
+event, and actually has support against the correct answer of two events
+(negative 2ln(Bayes factor)).
+This plot shows the estimated divergence times conditional on models of
+divergence.
+
+
+The divergence models plot
+--------------------------
+
+.. _dpp_div_model_plot:
+.. figure:: /_static/d1-m1-s1-10000000-ordered-div-models.png
+   :align: center
+   :width: 300 px
+   :figwidth: 50 %
+   :alt: divergence models 
+   
+   Posterior probabilities of the divergence models under the DPP model
+
+.. _msbayes_div_model_plot:
+.. figure:: /_static/d1-m2-s1-10000000-ordered-div-models.png
+   :align: center
+   :width: 300 px
+   :figwidth: 50 %
+   :alt: divergence models 
+   
+   Posterior probabilities of the divergence models under the msBayes model
+
+Both models infer the wrong divergence model.
+The |dpp-msbayes|_ weakly supports the most general divergence model with three
+divergence events, whereas the |msbayes|_ model quite strongly supports the
+model with a single divergence event.
+The second most probable divergence model under both analyses is the correct
+model; the |dpp-msbayes|_ model approximates a larger posterior probability for
+the correct model (0.201 vs 0.078).
+We can use, |ldmcpp| to determine the support for the correct
+divergence-time scenario under both models, which we do in the
+next section.
+
+Summarzing results about divergence-time scenarios
+==================================================
+
+So, we know the correct divergence-time scenario is
+"species-1 == species-3 < species-2", so let's compare the
+support for this divergence model under the |dpp-msbayes|_ 
+and |msbayes|_ model:
+
+.. parsed-literal::
+
+    $ dmc_posterior_probs.py -e "0 == 2 < 1" -n 10000 \
+        ../../../../configs/dpp-simple.cfg \
+        pymsbayes-output/d1/m1/d1-m1-s1-10000000-posterior-sample.txt.gz 
+
+Here, ``-e "0 == 2 < 1"`` argument is the true divergence scenario we are
+interested in, where "0 = species-1", "1 = species-2", and "2 = species-3" are
+the indices of the taxa as they appear in the configuration file.
+The ``-n 10000`` argument tells the program to perform 10000 simulations
+to estimate the prior probability of the scenario (to allow Bayes
+factors to be calculated).
+The second to last argument is the path to the configuration file
+that specifies the |dpp-msbayes|_ model.
+The last option is the path to the approximate posterior sample from the
+analysis under the |dpp-msbayes|_ models specified in the configuration file.
+
+Here is the output::
+
+    l[0] == l[2] < l[1] --- species-1 == species-3 < species-2:
+    -----------------------------------------------------------
+    posterior probability = 0.184
+    prior probability = 0.066
+    Bayes factor = 3.19102792632
+    2ln(Bayes factor) = 2.32068619769
+
+Let's do the same thing for the |msbayes|_ model:
+
+.. parsed-literal::
+
+    $ dmc_posterior_probs.py -e "0 == 2 < 1" -n 10000 \
+        ../../../../configs/msbayes.cfg \
+        pymsbayes-output/d1/m2/d1-m2-s1-10000000-posterior-sample.txt.gz 
+
+Notice, in the last argument (the path to the posterior sample),
+we are using "m2" in instead of "m1" to specify the posterior
+sample from the analysis under the |msbayes|_ model specified
+in ``msbayes.cfg``.
+Here is the output::
+
+    l[0] == l[2] < l[1] --- species-1 == species-3 < species-2:
+    -----------------------------------------------------------
+    posterior probability = 0.071
+    prior probability = 0.0764
+    Bayes factor = 0.923917515315
+    2ln(Bayes factor) = -0.158264960929
+
+As we can see, the |dpp-msbayes|_ model approximates moderate support (2ln(BF)
+= 2.32, whereas the |msbayes|_ model actually has support *against* the correct
+divergence model (2ln(BF) = -0.16).
 

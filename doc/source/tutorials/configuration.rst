@@ -193,40 +193,46 @@ the time units.
 
 This setting controls the time scale of the model and has two settings:
 
-* ``timeInSubsPerSite = 1``: Time units are in expected substitutions per site.
-  For example, a divergence of 0.05 means that, on average, 5% of sites have
-  changed since the populations diverged (so you expect 10% divergence between
-  the populations since the population divergence).
-  Thus, you can convert these units to the number of generations or years by
-  dividing by the mutation rate.
+*   ``timeInSubsPerSite = 1``: Time units are in expected substitutions per
+    site.
+    For example, a divergence of 0.05 means that, on average, 5% of sites have
+    changed since the populations diverged (so you expect 10% divergence
+    between the populations since the population divergence).
+    Thus, you can convert these units to the number of generations or years by
+    dividing by the mutation rate.
 
-* ``timeInSubsPerSite = 0``: Time units are in coalescent units,
-  :math:`\globalcoalunit` generations, where :math:`\globalpopsize` is the size of a
-  constant reference population based on the mean of the prior on theta
-  (defined by the :ref:`theta_prior` settings ).
+*   ``timeInSubsPerSite = 0``: Time units are in coalescent units,
+    :math:`\globalcoalunit` generations, where :math:`\globalpopsize` is the
+    size of a constant reference population based on the mean of the prior on
+    theta (defined by the :ref:`theta_prior` settings ).
 
-  If we use :math:`\globaltheta` to represent the mean of the theta prior, then
-  
-  .. math::
-      \globalcoalunit = \frac{\globaltheta}{\mutationRate},
+    If we use :math:`\globaltheta` to represent the mean of the theta prior,
+    then
+    
+    .. math::
+        \globalcoalunit = \frac{\globaltheta}{\mutationRate},
 
-  where :math:`\mutationRate` is the per-site mutation rate.  Thus, you can
-  convert these ":math:`\globalcoalunit` generations" units to the number of
-  generations by assuming a mutation rate and multiplying by
-  :math:`(\globaltheta/\mutationRate)`.  See :cite:`Oaks2014dpp` for more
-  details.
+    where :math:`\mutationRate` is the per-site mutation rate.  Thus, you can
+    convert these ":math:`\globalcoalunit` generations" units to the number of
+    generations by assuming a mutation rate and multiplying by
+    :math:`(\globaltheta/\mutationRate)`.  See :cite:`Oaks2014dpp` for more
+    details.
 
-  .. note::
-      :hlight:`Why use the mean of the prior on theta to scale time?`
-      I have no idea.
-      This is legacy from |msbayes|_, and is the default setting.
-      However, I strongly discourage using this time scale, because it makes it
-      very difficult to compare results across analyses with different settings
-      for the theta_prior_.
-      It also requires you to re-scale the divergence_time_prior_ every time
-      you change the theta_prior_.
-      Having time in units of expected substitutions per site is much more
-      straight forward (i.e., ``timeInSubsPerSite = 1``).
+    |pmb|_ supports the use of the ``timeInSubsPerSite`` option for |msbayes|_
+    configuration files as well.
+
+
+    .. note::
+        :hlight:`Why use the mean of the prior on theta to scale time?`
+        I have no idea.
+        This is legacy from |msbayes|_, and is the default setting.
+        However, I strongly discourage using this time scale, because it makes it
+        very difficult to compare results across analyses with different settings
+        for the theta_prior_.
+        It also requires you to re-scale the divergence_time_prior_ every time
+        you change the theta_prior_.
+        Having time in units of expected substitutions per site is much more
+        straight forward (i.e., ``timeInSubsPerSite = 1``).
 
 
 .. _bottleneck_prior:
