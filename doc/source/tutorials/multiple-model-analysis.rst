@@ -142,11 +142,9 @@ multi-model analysis we ran above, but run for much longer.
 You can find these results in the directory, |lizard-example-results|_.
 
 These results were generated via the following command, which took
-less than a day to run on a laptop:
+less than a day to run on a laptop::
 
-.. parsed-literal::
-
-    $ |dmc| --np 8 \
+    $ dmc.py --np 8 \
         -o dpp-simple.cfg \
         -p dpp-simple.cfg msbayes.cfg \
         -n 10000000 \

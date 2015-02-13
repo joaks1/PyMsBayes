@@ -11,5 +11,6 @@ PyMsBayes Tutorials
     get-example-data.rst
     simple-empirical-analysis.rst
     multiple-model-analysis.rst
+    simulation-analysis.rst
     parameter-key.rst
 
