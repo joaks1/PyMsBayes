@@ -63,6 +63,12 @@ def main_cli():
             help = ('The mutation rate with which to scale time to units of '
                     'generations. By default, time is not scaled to '
                     'generations.'))
+    parser.add_argument('--extension',
+            action = 'store',
+            type = str,
+            default = 'pdf',
+            help = ('The file format extension of the plots (e.g., "pdf", '
+                    '"png"). The default is pdf.'))
     parser.add_argument('--seed',
             action = 'store',
             type = argparse_utils.arg_is_positive_int,
@@ -175,7 +181,7 @@ def main_cli():
                             label_axis_label_size = 14.0,
                             usetex = False)
                     marginal_times_path = '{0}{1}'.format(out_prefix,
-                            'marginal-divergence-times.pdf')
+                            'marginal-divergence-times.' + args.extension)
                     marginal_times_plot.savefig(marginal_times_path)
 
                 #plot top ordered models
@@ -217,7 +223,7 @@ def main_cli():
                             tab = 0.08)
                     plot = div_model_plot.create_grid()
                     div_model_plot_path = '{0}{1}'.format(out_prefix,
-                            'ordered-div-models.pdf')
+                            'ordered-div-models.' + args.extension)
                     plot.savefig(div_model_plot_path)
 
             else:
@@ -251,7 +257,7 @@ def main_cli():
                             tab = 0.08)
                     plot = div_model_plot.create_grid()
                     div_model_plot_path = '{0}{1}'.format(out_prefix,
-                            'ordered-div-models.pdf')
+                            'ordered-div-models.' + args.extension)
                     plot.savefig(div_model_plot_path)
 
             #plot ndiv plot
@@ -287,11 +293,12 @@ def main_cli():
                         margin_right = 1.0,
                         padding_between_vertical = 1.0)
                 num_div_plot_path = '{0}{1}'.format(out_prefix,
-                        'number-of-divergences.pdf')
+                        'number-of-divergences.' + args.extension)
                 num_div_summary.save_plot(num_div_plot_path)
 
                 bf_plot_path = '{0}{1}'.format(out_prefix,
-                        'number-of-divergences-bayes-factors-only.pdf')
+                        ('number-of-divergences-bayes-factors-only.' +
+                                args.extension))
                 num_div_summary.save_bf_plot(bf_plot_path)
                 
                 num_div_bf_path = '{0}{1}'.format(out_prefix,
