@@ -288,12 +288,17 @@ class DMCSimulationResults(object):
                 'median': omega_median,
                 'mode_glm': omega_mode_glm}
         results['omega'].update(omega_results)
-        try:
+        if 'PRI.cv' in true_params:
             cv_true = float(true_params['PRI.cv'])
-            cv_mode_min = float(summary['PRI.cv']['modes'][0].strip('()'))
-            cv_mode_max = float(summary['PRI.cv']['modes'][1].strip('()'))
-            cv_median = float(summary['PRI.cv']['median'])
-            cv_mode_glm = float(summary['PRI.cv']['mode_glm'])
+            try:
+                cv_mode_min = float(summary['PRI.cv']['modes'][0].strip('()'))
+                cv_mode_max = float(summary['PRI.cv']['modes'][1].strip('()'))
+                cv_median = float(summary['PRI.cv']['median'])
+                cv_mode_glm = float(summary['PRI.cv']['mode_glm'])
+            except:
+                _LOG.error('Problem extracting "PRI.cv" info from posterior '
+                        'summary file {0!r}'.format(paths['summary']))
+                raise
             cv_mode = (cv_mode_min + cv_mode_max) / float(2)
             cv_results = parse_cv_results_file(paths['cv'])
             results['cv'] = {'true': cv_true,
@@ -301,9 +306,6 @@ class DMCSimulationResults(object):
                     'median': cv_median,
                     'mode_glm': cv_mode_glm}
             results['cv'].update(cv_results)
-        except:
-            _LOG.error('Problem extracting "PRI.cv" info from posterior '
-                    'summary file {0!r}'.format(paths['summary']))
         psi_true = int(true_params['PRI.Psi'])
         try:
             psi_mode = summary['PRI.Psi']['modes']
@@ -371,7 +373,7 @@ class DMCSimulationResults(object):
              'model_true': result['model']['true'],
              'model_mode': result['model']['mode'],
              'model_mode_glm': result['model']['mode_glm']}
-        try:
+        if 'cv' in result:
             d['cv_true'] =  result['cv']['true']
             d['cv_mode'] = result['cv']['mode']
             d['cv_median'] = result['cv']['median']
@@ -379,8 +381,6 @@ class DMCSimulationResults(object):
             d['cv_threshold'] = result['cv']['threshold']
             d['cv_prob_less'] = result['cv']['prob_less']
             d['cv_prob_less_glm'] = result['cv']['prob_less_glm']
-        except KeyError:
-            pass
         for i in result['psi']['probs'].iterkeys():
             d['psi_{0}_prob'.format(i)] = result['psi']['probs'][i]['prob']
             d['psi_{0}_prob_glm'.format(i)] = result['psi']['probs'][i][
