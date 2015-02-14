@@ -66,7 +66,7 @@ This specifies an |msbayes|_ model that is roughly equivalent to the
 |dpp-msbayes|_ model specified in ``dpp-simple.cfg`` in terms of prior
 uncertainty about divergence times and population sizes.
 Notice that |pmb|_ and the version of |msbayes| that comes with |dpp-msbayes|_
-support the the options ``lowerTau`` and ``timeInSubsPerSite``,
+support the options ``lowerTau`` and ``timeInSubsPerSite``,
 which are not supported in |msbayes|_ version of :cite:`Huang2011`.
 
 The output
@@ -275,6 +275,11 @@ per site) ago, and "species-2" diverged earlier, at 0.02 units ago.
 The marginal divergence time plots
 ----------------------------------
 
+We see below that under the |dpp-msbayes|_ model, the 95% HPD for the
+divergence time of all three species contain the true value, whereas only one
+of the three contain  the true value under the |msbayes|_ model.
+
+
 .. _dpp_marginal_div_time_plot:
 .. figure:: /_static/d1-m1-s1-10000000-marginal-divergence-times.png
    :align: center
@@ -293,13 +298,17 @@ The marginal divergence time plots
    
    Estimated marginal divergence times under the msBayes model
 
-We see that under the |dpp-msbayes|_ model, the 95% HPD for the divergence time
-of all three species contain the true value, whereas only one of the three
-contain  the true value under the |msbayes|_ model.
-
 
 The number of divergence events plots 
 -------------------------------------
+
+The |dpp-msbayes|_ model correctly estimates that there were two events, but
+with quite a bit of uncertainty (:ref:`see plot
+below<dpp_number_of_divergences_plot>`.)
+The |msbayes|_ model is quite confident that there was a single divergence
+event, and actually has support against the correct answer of two events
+(negative 2ln(Bayes factor))
+(:ref:`see plot below<msbayes_number_of_divergences_plot>`.)
 
 .. _dpp_number_of_divergences_plot:
 .. figure:: /_static/d1-m1-s1-10000000-number-of-divergences.png
@@ -321,17 +330,22 @@ The number of divergence events plots
    Posterior probabilities of the number of divergence events
    under the msBayes model
 
-The |dpp-msbayes|_ model correctly estimates that there were
-two events, but with quite a bit of uncertainty.
-The |msbayes|_ model is quite confident that there was a single divergence
-event, and actually has support against the correct answer of two events
-(negative 2ln(Bayes factor)).
-This plot shows the estimated divergence times conditional on models of
-divergence.
 
 
 The divergence models plot
 --------------------------
+
+The plots of the divergence models below show that both the |dpp-msbayes|_ and
+|msbayes|_ model infers the wrong divergence model.
+The |dpp-msbayes|_ weakly supports the most general divergence model with three
+divergence events, whereas the |msbayes|_ model quite strongly supports the
+model with a single divergence event.
+The second most probable divergence model under both analyses is the correct
+model; the |dpp-msbayes|_ model approximates a larger posterior probability for
+the correct model (0.201 vs 0.078).
+We can use, |ldmcpp| to determine the support for the correct
+divergence-time scenario under both models, which we do in the
+next section.
 
 .. _dpp_div_model_plot:
 .. figure:: /_static/d1-m1-s1-10000000-ordered-div-models.png
@@ -351,16 +365,6 @@ The divergence models plot
    
    Posterior probabilities of the divergence models under the msBayes model
 
-Both models infer the wrong divergence model.
-The |dpp-msbayes|_ weakly supports the most general divergence model with three
-divergence events, whereas the |msbayes|_ model quite strongly supports the
-model with a single divergence event.
-The second most probable divergence model under both analyses is the correct
-model; the |dpp-msbayes|_ model approximates a larger posterior probability for
-the correct model (0.201 vs 0.078).
-We can use, |ldmcpp| to determine the support for the correct
-divergence-time scenario under both models, which we do in the
-next section.
 
 Summarzing results about divergence-time scenarios
 ==================================================
@@ -368,17 +372,15 @@ Summarzing results about divergence-time scenarios
 So, we know the correct divergence-time scenario is
 "species-1 == species-3 < species-2", so let's compare the
 support for this divergence model under the |dpp-msbayes|_ 
-and |msbayes|_ model:
-
-.. parsed-literal::
+and |msbayes|_ model::
 
     $ dmc_posterior_probs.py -e "0 == 2 < 1" -n 10000 \
         ../../../../configs/dpp-simple.cfg \
         pymsbayes-output/d1/m1/d1-m1-s1-10000000-posterior-sample.txt.gz 
 
-Here, ``-e "0 == 2 < 1"`` argument is the true divergence scenario we are
+Here, the ``-e "0 == 2 < 1"`` argument is the true divergence scenario we are
 interested in, where "0 = species-1", "1 = species-2", and "2 = species-3" are
-the indices of the taxa as they appear in the configuration file.
+the indices of the taxa in the order they appear in the configuration file.
 The ``-n 10000`` argument tells the program to perform 10000 simulations
 to estimate the prior probability of the scenario (to allow Bayes
 factors to be calculated).
@@ -386,6 +388,8 @@ The second to last argument is the path to the configuration file
 that specifies the |dpp-msbayes|_ model.
 The last option is the path to the approximate posterior sample from the
 analysis under the |dpp-msbayes|_ models specified in the configuration file.
+This posterior-sample file is gzipped, but that's okay, because |pmb|_ can
+handle gzipped files just fine.
 
 Here is the output::
 
@@ -396,9 +400,7 @@ Here is the output::
     Bayes factor = 3.19102792632
     2ln(Bayes factor) = 2.32068619769
 
-Let's do the same thing for the |msbayes|_ model:
-
-.. parsed-literal::
+Let's do the same thing for the |msbayes|_ model::
 
     $ dmc_posterior_probs.py -e "0 == 2 < 1" -n 10000 \
         ../../../../configs/msbayes.cfg \
@@ -418,6 +420,7 @@ Here is the output::
     2ln(Bayes factor) = -0.158264960929
 
 As we can see, the |dpp-msbayes|_ model approximates moderate support (2ln(BF)
-= 2.32, whereas the |msbayes|_ model actually has support *against* the correct
-divergence model (2ln(BF) = -0.16).
+= 2.32 for the correct model of divergence, whereas the |msbayes|_ model
+actually results in support *against* the correct divergence model (2ln(BF) =
+-0.16).
 

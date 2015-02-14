@@ -152,6 +152,8 @@ rst_epilog = """
 
 .. |dppsum| replace:: dmc_dpp_summary.py
 .. |ldppsum| replace:: ``dmc_dpp_summary.py``
+.. |dmcss| replace:: dmc_sum_sims.py
+.. |ldmcss| replace:: ``dmc_sum_sims.py``
 .. |dmc| replace:: dmc.py
 .. |ldmc| replace:: ``dmc.py``
 .. |dmcpr| replace:: dmc_plot_results.py
@@ -178,6 +180,8 @@ rst_epilog = """
 .. _lizard-seq-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/sequences
 .. |lizard-config-dir| replace:: ``pymsbayes-tutorial-data/lizards/configs``
 .. _lizard-config-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/configs
+.. |lizard-sim-config-dir| replace:: ``pymsbayes-tutorial-data/lizards/configs/simulated-data-configs``
+.. _lizard-sim-config-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/configs/simulated-data-configs
 .. |lizard-dpp-config| replace:: ``pymsbayes-tutorial-data/lizards/configs/dpp-simple.cfg``
 .. _lizard-dpp-config: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/configs/dpp-simple.cfg
 .. |lizard-example-results| replace:: ``pymsbayes-tutorial-data/lizards/results/sample-output/lizard-analysis``

@@ -679,7 +679,7 @@ The number of divergence events plots
    
    Posterior probabilities of the number of divergence events
 
-This plot shows (A) the posterior probablity (B) prior probability,
+This plot shows (A) the posterior probability (B) prior probability,
 and (C) Bayes factor (2ln(BF)) for the number of of divergence
 events.
 The Bayes factor for each number of divergence events compares that number of
