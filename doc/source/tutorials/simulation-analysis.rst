@@ -108,7 +108,7 @@ trivial example.
 **NOTE**, the results of this example analysis will not be meaningful, because
 5000 samples from the prior models are not sufficient for a meaningful
 approximation of the posterior.
-The command above took less than 7 minutes to run on my laptop.
+The command above took less than 3 minutes to run on my laptop.
 
 After running this example simulation-based analysis you should have a new
 ``pymsbayes-results`` directory within the |lizard-sim-config-dir|_ (by default
@@ -180,3 +180,76 @@ the output directories:
 
 These files summarize the results across the analyses of all 100 simulated
 datasets.
+We can also tell |ldmcss| to create some plots summarzing the results:
+
+.. parsed-literal::
+
+    $ |dmcss| |result-dir|\ ``pymsbayes-info.txt`` --plot
+
+This will create a new directory |result-dir|\ ``plots`` with 6 PDF files
+containing plots:
+
+*   ``dpp-simple_accuracy_cv_median.pdf``
+*   ``dpp-simple_power_psi_mode.pdf``
+*   ``dpp-simple_power_psi_prob.pdf``
+*   ``msbayes_accuracy_cv_median.pdf``
+*   ``msbayes_power_psi_mode.pdf``
+*   ``msbayes_power_psi_prob.pdf``
+
+Three of the PDFs summarize the results when the simulated data were analyzed
+under the model specified in the ``dpp-simple.cfg`` configuration file, and
+thus their file names begin with ``dpp-simple``.
+The other three summarize the results when the simulated data were analyzed
+under the model specified in ``msbayes.cfg``, and thus their file names begin
+with ``msbayes``.
+
+Let's take a look at the three kinds of plots that are created.
+
+CV accuracy plots
+=================
+
+These plots simply compares the true versus estimated (posterior median) values
+for the coefficient of variation (CV) of divergence times.
+
+.. _cv_accuracy_plot:
+.. figure:: /_static/dpp-simple_accuracy_cv_median.png
+    :align: center
+    :width: 600 px
+    :figwidth: 60%
+    :alt: CV accuracy plots
+
+    The true versus estimated values of the coefficient of variation of
+    divergence times.
+
+Histograms of the estimates of the number of divergence events
+==============================================================
+
+These plot shows a histogram of the estimated (posterior mode) number of
+divergence events across all the analyses of simulated data.
+
+.. _power_psi_mode_plot:
+.. figure:: /_static/dpp-simple_power_psi_mode.png
+    :align: center
+    :width: 600 px
+    :figwidth: 60%
+    :alt: Histograms of the estimated number of divergence events
+
+    Histograms of the estimated number of divergence events.
+
+
+Histograms of the support for the single divergence model
+=========================================================
+
+These plots show the histograms of the approximated posterior probability of
+the single-divergence-event model across all the analyses of simulated data.
+
+.. _power_psi_prob_plot:
+.. figure:: /_static/dpp-simple_power_psi_prob.png
+    :align: center
+    :width: 600 px
+    :figwidth: 60%
+    :alt: Histogram of the support for the single divergence model
+
+    Histogram of the support (posterior probability) for the single divergence
+    model.
+

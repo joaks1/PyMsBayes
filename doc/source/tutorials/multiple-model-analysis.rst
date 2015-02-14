@@ -331,6 +331,16 @@ event, and actually has support against the correct answer of two events
    under the msBayes model
 
 
+.. note::
+    
+    Despite inferring multiple divergence events, the dispersion index of
+    divergence times (:math:`D_T`; or "omega" in |msbayes|_ literature) is
+    estimated to be zero.
+    This is a great example of how "omega" is extremely sensitive to the scale
+    of the divergence times and is **not** a very useful measure of
+    "simultaneous divergence".
+
+
 
 The divergence models plot
 --------------------------

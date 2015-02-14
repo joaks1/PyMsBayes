@@ -624,6 +624,9 @@ below<number_of_divergence_events>`.
 The marginal divergence time plot
 ---------------------------------
 
+This plot shows the posterior median and 95% highest posterior density (HPD) of
+divergence times, averaged over all models of divergence.
+
 .. _marginal_div_time_plot:
 .. figure:: /_static/d1-m1-s1-5000-marginal-divergence-times.png
    :align: center
@@ -633,24 +636,13 @@ The marginal divergence time plot
    
    Estimated marginal divergence times
 
-This plot shows the posterior median and 95% highest posterior density (HPD) of
-divergence times, averaged over all models of divergence.
 
 
 The divergence models plot
 --------------------------
 
-.. _div_model_plot:
-.. figure:: /_static/d1-m1-s1-5000-ordered-div-models.png
-   :align: center
-   :width: 300 px
-   :figwidth: 50 %
-   :alt: divergence models 
-   
-   Posterior probabilities of the divergence models
-
-This plot shows the estimated divergence times conditional on models of
-divergence.
+The :ref:`plot below<div_model_plot>` shows the estimated divergence times
+conditional on models of divergence.
 The divergence models are shown from top to bottom in order of decreasing
 posterior probability, which is given at the top right of each model plot.
 Also, given at the top left of each plot is the number of divergence-time
@@ -664,11 +656,31 @@ probability are plotted.
 This is a graphical depiction of the divergence models listed in the
 ``div-model-results.txt`` file.
 
+.. _div_model_plot:
+.. figure:: /_static/d1-m1-s1-5000-ordered-div-models.png
+   :align: center
+   :width: 300 px
+   :figwidth: 50 %
+   :alt: divergence models 
+   
+   Posterior probabilities of the divergence models
+
 
 .. _number_of_divergence_events:
 
 The number of divergence events plots 
 -------------------------------------
+
+The :ref:`plot below<number_of_divergences_plot>` shows (A) the posterior
+probability (B) prior probability, and (C) Bayes factor (2ln(BF)) for the
+number of of divergence events.
+The Bayes factor for each number of divergence events compares that number of
+events to all other possible number of events.
+As expected, because we only simulated 5000 samples from the prior for this
+"toy" example, the posterior sample is very similar to the prior.
+Also given at the top is the posterior estimate (and 95% highest posterior
+density interval) for :ref:`the dispersion index of divergence times
+(PRI.omega)<pri_omega>`.
 
 .. _number_of_divergences_plot:
 .. figure:: /_static/d1-m1-s1-5000-number-of-divergences.png
@@ -679,21 +691,23 @@ The number of divergence events plots
    
    Posterior probabilities of the number of divergence events
 
-This plot shows (A) the posterior probability (B) prior probability,
-and (C) Bayes factor (2ln(BF)) for the number of of divergence
-events.
-The Bayes factor for each number of divergence events compares that number of
-events to all other possible number of events.
-As expected, because we only simulated 5000 samples from the prior for this
-"toy" example, the posterior sample is very similar to the prior.
-Also given at the top is the posterior estimate (and 95% highest posterior
-density interval) for :ref:`the dispersion index of divergence times
-(PRI.omega)<pri_omega>`.
+.. note::
+    
+    Despite inferring multiple divergence events, the dispersion index of
+    divergence times (:math:`D_T`; or "omega" in |msbayes|_ literature) is
+    estimated to be zero.
+    This is a great example of how "omega" is extremely sensitive to the scale
+    of the divergence times and is **not** a very useful measure of
+    "simultaneous divergence".
 
 .. _number_of_divergence_events_bf:
 
 The number of divergence events Bayes factor plot 
 -------------------------------------------------
+
+This plot is the same plot as (C) in :ref:`the plots of the number of
+divergence events above<number_of_divergence_events>`.
+Here the Bayes factor plot is on its own, because it is often of interest.
 
 .. _number_of_divergences_bf_plot:
 .. figure:: /_static/d1-m1-s1-5000-number-of-divergences-bayes-factors-only.png
@@ -704,9 +718,6 @@ The number of divergence events Bayes factor plot
    
    Bayes factors for the number of divergence events
 
-This plot is the same plot as (C) in :ref:`the plots of the number of
-divergence events above<number_of_divergence_events>`.
-Here the Bayes factor plot is on its own, because it is often of interest.
 
 
 .. _dmc_posterior_probs:
