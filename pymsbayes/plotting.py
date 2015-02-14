@@ -1474,40 +1474,51 @@ class PowerPlotGrid(object):
             if len([e for e in estimates if ((e > 0.00000001) or (e < -0.00000001))]) < 1:
                 self.bins = list(functions.frange(0, 0.1, 20,
                         include_end_point = True))
-            hd = HistData(x = estimates,
-                    normed = True,
-                    bins = self.bins,
-                    histtype = 'bar',
-                    align = 'mid',
-                    orientation = 'vertical',
-                    zorder = 0)
-            # freqs = stats.get_freqs(estimates)
-            # s = ScatterPlot()
-            # f, bins, patches = hd.plot(s.ax)
-            # for i, v in enumerate(f):
-            #     assert probability.almost_equal(v, freqs.get(i + 1, 0))
-            xticks_obj = None
-            if (self.variable == 'psi') or (self.variable == 'tau_exclusion'):
-                tick_labels = []
-                for x in self.bins[0:-1]:
-                    if x % 2:
-                        tick_labels.append(str(x))
-                    else:
-                        tick_labels.append('')
-                kwargs = {'labels': tick_labels,
-                          'horizontalalignment': 'left'}
-                if self.xtick_label_size:
-                    kwargs['size'] = self.xtick_label_size
-                xticks_obj = Ticks(ticks = self.bins,
-                        **kwargs)
             if not self.include_right_text:
                 prob = None
-            hist = ScatterPlot(hist_data_list = [hd],
-                    vertical_lines = self.vertical_lines,
-                    left_text = dist,
-                    right_text = prob,
-                    xticks_obj = xticks_obj,
-                    tab = self.tab)
+            xticks_obj = None
+            if (self.variable == 'psi') or (self.variable == 'tau_exclusion'):
+                freq_dict = stats.get_freqs(estimates)
+                labels = list(range(1, self.num_taxon_pairs + 1))
+                freqs = [freq_dict.get(l, 0.0) for l in labels]
+                hd = BarData(values = freqs,
+                        labels = labels,
+                        width = 1.0,
+                        orientation = 'vertical',
+                        zorder = 0)
+                if self.num_taxon_pairs > 10:
+                    tick_labels = []
+                    for x in self.bins[0:-1]:
+                        if x % 2:
+                            tick_labels.append(str(x))
+                        else:
+                            tick_labels.append('')
+                    kwargs = {'labels': tick_labels,
+                              'horizontalalignment': 'left'}
+                    if self.xtick_label_size:
+                        kwargs['size'] = self.xtick_label_size
+                    xticks_obj = Ticks(ticks = self.bins,
+                            **kwargs)
+                hist = ScatterPlot(bar_data_list = [hd],
+                        vertical_lines = self.vertical_lines,
+                        left_text = dist,
+                        right_text = prob,
+                        xticks_obj = xticks_obj,
+                        tab = self.tab)
+            else:
+                hd = HistData(x = estimates,
+                        normed = True,
+                        bins = self.bins,
+                        histtype = 'bar',
+                        align = 'mid',
+                        orientation = 'vertical',
+                        zorder = 0)
+                hist = ScatterPlot(hist_data_list = [hd],
+                        vertical_lines = self.vertical_lines,
+                        left_text = dist,
+                        right_text = prob,
+                        xticks_obj = xticks_obj,
+                        tab = self.tab)
             if self.variable == 'omega':
                 hist.left_text_size = 12.0
                 hist.right_text_size = 12.0
@@ -1528,8 +1539,6 @@ class PowerPlotGrid(object):
                         labels = ytick_labels)
                 hist.xticks_obj = xticks_obj
                 hist.yticks_obj = yticks_obj
-            if self.variable == 'psi':
-                hist.set_xlim(left = (self.bins[0]), right = (self.bins[-1]))
             if self.text_size:
                 hist.left_text_size = self.text_size
                 hist.right_text_size = self.text_size
