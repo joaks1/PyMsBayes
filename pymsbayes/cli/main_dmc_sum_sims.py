@@ -76,7 +76,6 @@ def parse_results(dmc_sim):
         else:
             prior_index_to_model_type[k] = 'dpp'
         
-
     for observed_index, cfg in observed_configs.iteritems():
         observed_name = observed_index_to_name[observed_index]
         if not psi_results.has_key(observed_name):
@@ -106,9 +105,13 @@ def create_plots(info_path):
         os.mkdir(output_dir)
     (psi_res, cv_res, prior_index_to_name,
             prior_index_to_model_type) = parse_results(dmc_sim)
-    for observed_name in psi_res.iterkeys():
-        for prior_index in psi_res[observed_name].iterkeys():
-            prior_name = prior_index_to_name[prior_index]
+    for prior_index, prior_name in prior_index_to_name.iteritems():
+        cfg_to_psi = {}
+        cfg_to_psi_prob = {}
+        cfg_to_cv = {}
+        cfg_to_cv_prob = {}
+        cfg_to_cv_true_ests = {}
+        for observed_name in psi_res.iterkeys():
             div_model_prior = prior_index_to_model_type[prior_index]
             dpp_concentration_mean = None
             if div_model_prior == 'dpp':
@@ -117,61 +120,46 @@ def create_plots(info_path):
             psi_results = psi_res[observed_name][prior_index]
             cv_results = cv_res[observed_name][prior_index]
             prefix = '_'.join([observed_name, prior_name])
-            cfg_to_psi = {}
-            cfg_to_psi_prob = {}
-            cfg_to_psi_glm = {}
-            cfg_to_psi_prob_glm = {}
             for cfg, psi in psi_results.iteritems():
                 cfg_to_psi[cfg] = psi.mode
                 cfg_to_psi_prob[cfg] = psi.prob
-                cfg_to_psi_glm[cfg] = psi.mode_glm
-                cfg_to_psi_prob_glm[cfg] = psi.prob_glm
-            cfg_to_cv = {}
-            cfg_to_cv_prob = {}
-            cfg_to_cv_glm = {}
-            cfg_to_cv_prob_glm = {}
-            cfg_to_cv_true_ests = {}
-            cfg_to_cv_true_ests_glm = {}
             for cfg, cv in cv_results.iteritems():
                 cfg_to_cv[cfg] = cv.median
                 cfg_to_cv_prob[cfg] = cv.prob
-                cfg_to_cv_glm[cfg] = cv.mode_glm
-                cfg_to_cv_prob_glm[cfg] = cv.prob_glm
                 cfg_to_cv_true_ests[cfg] = {'x': cv.true, 'y': cv.median}
-                cfg_to_cv_true_ests_glm[cfg] = {'x': cv.true, 'y': cv.mode_glm}
 
-            psi_plot = PowerPlotGrid(
-                    observed_config_to_estimates = cfg_to_psi,
-                    variable = 'psi',
-                    variable_symbol = r'|\mathbf{\tau}|',
-                    num_columns = 2,
-                    margin_top = 0.975)
-            fig = psi_plot.create_grid()
-            fig.savefig(os.path.join(output_dir,
-                    prefix + '_power_psi_mode.pdf'))
+        psi_plot = PowerPlotGrid(
+                observed_config_to_estimates = cfg_to_psi,
+                variable = 'psi',
+                variable_symbol = r'|\mathbf{\tau}|',
+                num_columns = 2,
+                margin_top = 0.975)
+        fig = psi_plot.create_grid()
+        fig.savefig(os.path.join(output_dir,
+                prefix + '_power_psi_mode.pdf'))
 
-            psi_prob_plot = ProbabilityPowerPlotGrid(
-                    observed_config_to_estimates = cfg_to_psi_prob,
-                    variable = 'psi',
-                    variable_symbol = r'|\mathbf{\tau}|',
-                    div_model_prior = div_model_prior,
-                    dpp_concentration_mean = dpp_concentration_mean,
-                    bayes_factor = 10,
-                    num_columns = 2)
-            fig = psi_prob_plot.create_grid()
-            fig.savefig(os.path.join(output_dir,
-                    prefix + '_power_psi_prob.pdf'))
+        psi_prob_plot = ProbabilityPowerPlotGrid(
+                observed_config_to_estimates = cfg_to_psi_prob,
+                variable = 'psi',
+                variable_symbol = r'|\mathbf{\tau}|',
+                div_model_prior = div_model_prior,
+                dpp_concentration_mean = dpp_concentration_mean,
+                bayes_factor = 10,
+                num_columns = 2)
+        fig = psi_prob_plot.create_grid()
+        fig.savefig(os.path.join(output_dir,
+                prefix + '_power_psi_prob.pdf'))
 
-            cv_accuracy_plot = AccuracyPowerPlotGrid(
-                    observed_config_to_estimates = cfg_to_cv_true_ests,
-                    variable_symbol = r'CV_T',
-                    num_columns = 2,
-                    padding_between_vertical = 2.0,
-                    margin_left = 0.04,
-                    margin_bottom = 0.03)
-            fig = cv_accuracy_plot.create_grid()
-            fig.savefig(os.path.join(output_dir,
-                    prefix + '_power_accuracy_cv_median.pdf'))
+        cv_accuracy_plot = AccuracyPowerPlotGrid(
+                observed_config_to_estimates = cfg_to_cv_true_ests,
+                variable_symbol = r'CV_T',
+                num_columns = 2,
+                padding_between_vertical = 2.0,
+                margin_left = 0.04,
+                margin_bottom = 0.03)
+        fig = cv_accuracy_plot.create_grid()
+        fig.savefig(os.path.join(output_dir,
+                prefix + '_power_accuracy_cv_median.pdf'))
 
 def main_cli(argv = sys.argv):
     description = '{name} {version}'.format(**_program_info)
@@ -182,6 +170,9 @@ def main_cli(argv = sys.argv):
             metavar='PYMSBAYES-INFO-PATH',
             type=argparse_utils.arg_is_file,
             help=('Path to the "pymsbayes-info.txt" file.'))
+    parser.add_argument('--plot',
+            action = 'store_true',
+            help = 'Create plots from result summaries.')
     parser.add_argument('--quiet',
             action = 'store_true',
             help = 'Run without verbose messaging.')
@@ -210,10 +201,17 @@ def main_cli(argv = sys.argv):
 
     results = sumresults.DMCSimulationResults(args.info_path)
     prior_indices = results.prior_index_to_config.keys()
-    results.write_result_summaries(
-            prior_indices = prior_indices,
-            include_tau_exclusion_info = False)
-    create_plots(args.info_path)
+    test_path = results.get_result_summary_path(
+            results.observed_index_to_path.keys()[0],
+            prior_indices[0])
+    if os.path.exists(test_path):
+        log.warning('summary files already exists; skipping summaries!')
+    else:
+        results.write_result_summaries(
+                prior_indices = prior_indices,
+                include_tau_exclusion_info = False)
+    if args.plot:
+        create_plots(args.info_path)
 
 
 
