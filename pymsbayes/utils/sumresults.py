@@ -264,7 +264,7 @@ class DMCSimulationResults(object):
             tau_mode_glm = float(summary['PRI.E.t']['mode_glm'])
         except:
             _LOG.error('Problem extracting "PRI.E.t" info from posterior '
-                    'summary file {0!r'.format(paths['summary']))
+                    'summary file {0!r}'.format(paths['summary']))
             raise
         tau_mode = (tau_mode_min + tau_mode_max) / float(2)
         results['mean_tau'] = {'true': tau_true,
@@ -279,7 +279,7 @@ class DMCSimulationResults(object):
             omega_mode_glm = float(summary['PRI.omega']['mode_glm'])
         except:
             _LOG.error('Problem extracting "PRI.omega" info from posterior '
-                    'summary file {0!r'.format(paths['summary']))
+                    'summary file {0!r}'.format(paths['summary']))
             raise
         omega_mode = (omega_mode_min + omega_mode_max) / float(2)
         omega_results = parse_omega_results_file(paths['omega'])
@@ -303,13 +303,13 @@ class DMCSimulationResults(object):
             results['cv'].update(cv_results)
         except:
             _LOG.error('Problem extracting "PRI.cv" info from posterior '
-                    'summary file {0!r'.format(paths['summary']))
+                    'summary file {0!r}'.format(paths['summary']))
         psi_true = int(true_params['PRI.Psi'])
         try:
             psi_mode = summary['PRI.Psi']['modes']
         except:
             _LOG.error('Problem extracting "PRI.Psi.modes" info from posterior '
-                    'summary file {0!r'.format(paths['summary']))
+                    'summary file {0!r}'.format(paths['summary']))
             raise
         if not isinstance(psi_mode, str):
             psi_mode = psi_mode[0]
@@ -318,7 +318,7 @@ class DMCSimulationResults(object):
             psi_mode_glm = float(summary['PRI.Psi']['mode_glm'])
         except:
             _LOG.error('Problem extracting "PRI.Psi.mode_glm" info from '
-                    'posterior summary file {0!r'.format(paths['summary']))
+                    'posterior summary file {0!r}'.format(paths['summary']))
             raise
         psi_results = parse_psi_results_file(paths['psi'])
         results['psi'] = {'true': psi_true,
@@ -330,7 +330,7 @@ class DMCSimulationResults(object):
             model_mode = summary['PRI.model']['modes']
         except:
             _LOG.error('Problem extracting "PRI.model.modes" info from '
-                    'posterior summary file {0!r'.format(paths['summary']))
+                    'posterior summary file {0!r}'.format(paths['summary']))
             raise
         if not isinstance(model_mode, str):
             model_mode = model_mode[0]
@@ -339,7 +339,7 @@ class DMCSimulationResults(object):
             model_mode_glm = float(summary['PRI.model']['mode_glm'])
         except:
             _LOG.error('Problem extracting "PRI.model.mode_glm" info from '
-                    'posterior summary file {0!r'.format(paths['summary']))
+                    'posterior summary file {0!r}'.format(paths['summary']))
             raise
         model_results = parse_model_results_file(paths['model'])
         results['model'] = {'true': model_true,
