@@ -111,6 +111,7 @@ def create_plots(info_path):
         cfg_to_cv = {}
         cfg_to_cv_prob = {}
         cfg_to_cv_true_ests = {}
+        prefix = prior_name
         for observed_name in psi_res.iterkeys():
             div_model_prior = prior_index_to_model_type[prior_index]
             dpp_concentration_mean = None
@@ -119,7 +120,6 @@ def create_plots(info_path):
                         prior_index].dpp_concentration.mean
             psi_results = psi_res[observed_name][prior_index]
             cv_results = cv_res[observed_name][prior_index]
-            prefix = '_'.join([observed_name, prior_name])
             for cfg, psi in psi_results.iteritems():
                 cfg_to_psi[cfg] = psi.mode
                 cfg_to_psi_prob[cfg] = psi.prob
@@ -159,7 +159,7 @@ def create_plots(info_path):
                 margin_bottom = 0.03)
         fig = cv_accuracy_plot.create_grid()
         fig.savefig(os.path.join(output_dir,
-                prefix + '_power_accuracy_cv_median.pdf'))
+                prefix + '_accuracy_cv_median.pdf'))
 
 def main_cli(argv = sys.argv):
     description = '{name} {version}'.format(**_program_info)
