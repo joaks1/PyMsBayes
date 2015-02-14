@@ -48,6 +48,26 @@ def parse_omega_results_file(file_obj):
             'prob_less': prob_less,
             'prob_less_glm': prob_less_glm}
 
+def parse_cv_results_file(file_obj):
+    s_iter = parsing.spreadsheet_iter([file_obj], sep = '\t')
+    i = -1
+    for i, d in enumerate(s_iter):
+        pass
+    if i != 0:
+        raise Exception('too many lines in omega results file {0!r}'.format(
+                file_obj))
+    try:
+        threshold = float(d['cv_thresh'])
+        prob_less = float(d['prob_less_than'])
+        prob_less_glm = float(d['glm_prob_less_than'])
+    except Exception:
+        _LOG.error('bad format of omega results file {0!r}'.format(
+                file_obj))
+        raise
+    return {'threshold': threshold,
+            'prob_less': prob_less,
+            'prob_less_glm': prob_less_glm}
+
 def parse_psi_results_file(file_obj):
     s_iter = parsing.spreadsheet_iter([file_obj], sep = '\t')
     results = {}
@@ -268,6 +288,22 @@ class DMCSimulationResults(object):
                 'median': omega_median,
                 'mode_glm': omega_mode_glm}
         results['omega'].update(omega_results)
+        try:
+            cv_true = float(true_params['PRI.cv'])
+            cv_mode_min = float(summary['PRI.cv']['modes'][0].strip('()'))
+            cv_mode_max = float(summary['PRI.cv']['modes'][1].strip('()'))
+            cv_median = float(summary['PRI.cv']['median'])
+            cv_mode_glm = float(summary['PRI.cv']['mode_glm'])
+            cv_mode = (cv_mode_min + cv_mode_max) / float(2)
+            cv_results = parse_cv_results_file(paths['cv'])
+            results['cv'] = {'true': cv_true,
+                    'mode': cv_mode,
+                    'median': cv_median,
+                    'mode_glm': cv_mode_glm}
+            results['cv'].update(cv_results)
+        except:
+            _LOG.error('Problem extracting "PRI.cv" info from posterior '
+                    'summary file {0!r'.format(paths['summary']))
         psi_true = int(true_params['PRI.Psi'])
         try:
             psi_mode = summary['PRI.Psi']['modes']
@@ -335,6 +371,16 @@ class DMCSimulationResults(object):
              'model_true': result['model']['true'],
              'model_mode': result['model']['mode'],
              'model_mode_glm': result['model']['mode_glm']}
+        try:
+            d['cv_true'] =  result['cv']['true']
+            d['cv_mode'] = result['cv']['mode']
+            d['cv_median'] = result['cv']['median']
+            d['cv_mode_glm'] = result['cv']['mode_glm']
+            d['cv_threshold'] = result['cv']['threshold']
+            d['cv_prob_less'] = result['cv']['prob_less']
+            d['cv_prob_less_glm'] = result['cv']['prob_less_glm']
+        except KeyError:
+            pass
         for i in result['psi']['probs'].iterkeys():
             d['psi_{0}_prob'.format(i)] = result['psi']['probs'][i]['prob']
             d['psi_{0}_prob_glm'.format(i)] = result['psi']['probs'][i][
@@ -449,11 +495,13 @@ class DMCSimulationResults(object):
             summary_path = result_prefix + 'posterior-summary.txt'
             psi_path = result_prefix + 'psi-results.txt'
             omega_path = result_prefix + 'omega-results.txt'
+            cv_path = result_prefix + 'cv-results.txt'
             div_model_path = result_prefix + 'div-model-results.txt'
             model_path = result_prefix + 'model-results.txt'
             paths = {'summary': summary_path,
                      'psi': psi_path,
                      'omega': omega_path,
+                     'cv': cv_path,
                      'div-model': div_model_path,
                      'model': model_path}
             yield true_params, paths
