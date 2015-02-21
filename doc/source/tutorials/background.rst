@@ -18,14 +18,14 @@ infer diversification patterns and see if they support patterns predicted by
 past event(s) of interest (e.g., islands fragmented by rises in sea level,
 changes in climate fragmenting communities into refugia, etc.).
 For example, if an event split a community of species 260,000 years ago, we
-might expect the divergences across multiple species co-distributed across the
-barrier created by the event (the ominous "black rectange" below) to be
-temporally clustered.
+might expect the divergences to be temporally clustered across multiple species
+co-distributed across the barrier created by the event (the ominous "black
+rectangle" below).
 More specifically, let's say we are interested in investigating three species
 of lizards that are co-distributed across the putative barrier.
 In order to infer the affect of the historical event on diversification, we
 want to compare, across the three species, the timing of the divergence between
-the populations on oppositie sides of the putative barrier.
+the populations on opposite sides of the putative barrier.
 If the historical event caused divergence, we would expect that each of the
 three pairs of lizard populations (or some subset of them) diverged at the same
 time, as shown in the divergence_model_111_ figure.
