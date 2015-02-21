@@ -12,11 +12,11 @@ Background
 Comparative divergence models
 =============================
 
-Biogeographers often seek to explain diversity on historical events.
-That is, using genetic data from contemporary populations, we would like to
-infer diversification patterns and see if they support patterns predicted by
-past event(s) of interest (e.g., islands fragmented by rises in sea level,
-changes in climate fragmenting communities into refugia, etc.).
+Biogeographers are often interested in understanding how large-scale processes
+affect diversification and community assembly.
+In order to do this, we can infer the history of diversification across
+co-distributed species and test for patterns predicted by historical processes
+of interest (e.g., changes in climate fragmenting communities).
 For example, if an event split a community of species 260,000 years ago, we
 might expect the divergences to be temporally clustered across multiple species
 co-distributed across the barrier created by the event (the ominous "black
@@ -28,7 +28,7 @@ want to compare, across the three species, the timing of the divergence between
 the populations on opposite sides of the putative barrier.
 If the historical event caused divergence, we would expect that each of the
 three pairs of lizard populations (or some subset of them) diverged at the same
-time, as shown in the divergence_model_111_ figure.
+time, as shown in :ref:`the figure below<divergence_model_111>`.
 
 .. _divergence_model_111:
 .. figure:: /_static/div-model-cartoon-111.png
@@ -51,8 +51,8 @@ With three population pairs, there are 4 other possible models of divergence (5
 total possible models).
 Three of these models have two divergence-time parameters.
 We can assign population-pair 1 to a second divergence-time parameter to get
-divergence model :math:`\divModel{2} = 211`, as shown in the divergence_model_211_
-figure.
+divergence model :math:`\divModel{2} = 211`, as shown in
+:ref:`the figure below <divergence_model_211>`.
 
 .. _divergence_model_211:
 .. figure:: /_static/div-model-cartoon-211.png
@@ -65,8 +65,8 @@ figure.
    and population-pairs 2 and 3 assigned to divergence-time parameter 1.
 
 We can also assign population-pair 2 to divergence-time parameter 2 to get
-divergence model :math:`\divModel{3} = 121`, as shown in the divergence_model_121_
-figure.
+divergence model :math:`\divModel{3} = 121`, as :ref:`shown
+below<divergence_model_121>`.
 
 .. _divergence_model_121:
 .. figure:: /_static/div-model-cartoon-121.png
@@ -80,7 +80,8 @@ figure.
 
 And for the last possible divergence model with two divergence-time parameters,
 we assign population-pair 3 to divergence-time parameter 2 to get divergence
-model :math:`\divModel{4} = 112`, as shown in the divergence_model_112_ figure.
+model :math:`\divModel{4} = 112`, as shown in :ref:`the figure
+below<divergence_model_112>`.
 
 .. _divergence_model_112:
 .. figure:: /_static/div-model-cartoon-112.png
@@ -94,7 +95,8 @@ model :math:`\divModel{4} = 112`, as shown in the divergence_model_112_ figure.
 
 Finally, we can add a third divergence-time parameter so that each pair of
 populations is assigned to its own divergence-time parameter (divergence model
-:math:`\divModel{5} = 123`), as shown in the divergence_model_123_ figure.
+:math:`\divModel{5} = 123`), as shown in :ref:`the last divergence-model
+figure<divergence_model_123>`.
 This is the most general model of divergence, and has no co-divergence among
 taxa.
 Biogeographically, we can think of each free divergence-time parameter
@@ -114,14 +116,12 @@ can diverge.
 Being energetic herpetologists, we go out and sample individuals from each of
 the lizard populations, and from those individuals collect DNA sequence data
 from one or more orthologous loci per pair of populations.
-You can find our example sequence data in fasta format in the |lizard-seq-dir|_
-directory.
 We know that the sequences of a locus are related by a genealogy,
 and that the shape of this genealogy is governed by demographic processes.
 We also know that the genetic variation we see in the data accumulated as the
 sequences evolved via mutational processes along the genealogy.
-We can modify our cartoon of model :math:`M_5 = 123` to better
-represent this, as shown in figure pop_divergence_model_123_.
+We can modify our cartoon of model :math:`M_5 = 123` to better represent this,
+as I try to do in :ref:`the figure below <pop_divergence_model_123>`.
 
 .. _pop_divergence_model_123:
 .. figure:: /_static/pop-div-model-cartoon-123.png
@@ -133,9 +133,8 @@ represent this, as shown in figure pop_divergence_model_123_.
    A cartoon showing the most general model of divergence where all three
    pairs of lizard populations diverge at unique times.
 
-Next, let's jump to the ":ref:`bayesian_divergence_model_choice`" section to
-see how we can use the information in the sequence data to infer the temporal
-distribution of the population divergences across the three lizard species.
+Before we go any further, let's clarify some terminology that will be
+used throughout the |pmb|_ documentation:
 
 .. admonition:: Definitions
     :class: definitions
@@ -156,6 +155,12 @@ distribution of the population divergences across the three lizard species.
         divergence-time parameter (i.e., "simultaneous" divergence) to each
         taxon being assigned to a unique divergence-time parameter (i.e., no
         co-divergence). Sometimes I get sloppy and just use *model*.
+
+
+Next, let's jump to the ":ref:`bayesian_divergence_model_choice`" section to
+see how we can use the information in the sequence data to infer the temporal
+distribution of the population divergences across the three lizard species.
+
 
 .. _bayesian_divergence_model_choice:
 
