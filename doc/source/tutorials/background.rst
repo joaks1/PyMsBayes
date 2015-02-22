@@ -120,7 +120,7 @@ We know that the sequences of a locus are related by a genealogy,
 and that the shape of this genealogy is governed by demographic processes.
 We also know that the genetic variation we see in the data accumulated as the
 sequences evolved via mutational processes along the genealogy.
-We can modify our cartoon of model :math:`M_5 = 123` to better represent this,
+We can modify our cartoon of model :math:`\divModel{5} = 123` to better represent this,
 as I try to do in :ref:`the figure below <pop_divergence_model_123>`.
 
 .. _pop_divergence_model_123:
@@ -172,16 +172,14 @@ In the figures above, we used :math:`\divTimeMap{1}, \divTimeMap{2},` and
 pairs of lizard populations. Now, let's use :math:`\divTimeMapVector`
 to represent all three divergence times; that is, 
 :math:`\divTimeMapVector = \divTimeMap{1}, \divTimeMap{2}, \divTimeMap{3}`.
-The number of unique divergence-time values (i.e., the number of free
-divergence-time parameters) within :math:`\divTimeMapVector`, and the
-assignment of the lizard species to these values, depends on the divergence
-model.
-For example, for model :math:`\divModel{1}` in Figure divergence_model_111_
-above, the divergence times would be 
-:math:`\divTimeMapVector = 260, 260, 260`
-(in thousands of years).
-For model :math:`\divModel{5}` in Figure divergence_model_123_ above, the
-divergence times would be 
+The number of unique divergence times (i.e., the number of free divergence-time
+parameters) within :math:`\divTimeMapVector`, and the assignment of the lizard
+species to these times, depends on the divergence model.
+For example, for model :math:`\divModel{1}` in :ref:`Figure Divergence Model
+111<divergence_model_111>` above, the divergence times would be
+:math:`\divTimeMapVector = 260, 260, 260` (in thousands of years).
+For model :math:`\divModel{5}` in :ref:`Figure Divergence Model
+123<divergence_model_123` above, the divergence times would be 
 :math:`\divTimeMapVector = 260, 96, 397`.
 In order to learn about the affect the "black rectangle" had on the
 diversification of these lizard populations, it would be ideal if we could
@@ -190,14 +188,14 @@ sequence data we collected.
 
 In order to do this, we need to assume a probabilistic evolutionary model
 that gave rise to the data we collected.
-If we assume a Markov chain model of nucleotide substitution, we can calculate
+If we assume a Markov-chain model of nucleotide substitution, we can calculate
 the probability of the sequence data given the genealogies and a set of
 parameter values for the substitution model.
 Both |dpp-msbayes|_ and |msbayes|_ assume an HKY85 model of nucleotide
 substitution :cite:`HKY`.
 If we further assume a coalescent model of ancestral processes, we can
-calculate the probability of the genealogies given the parameter values
-for the sizes of the populations.
+calculate the probability of the genealogies given the sizes of the
+populations.
 For simplicity, let's lump all the parameters of the substitution and
 coalescent models for all three pairs of lizard populations into
 :math:`\demographicParamVector`.
@@ -324,8 +322,7 @@ use approximate likelihoods for our numerical integration algorithm.
 (Digression: this is why I do not like the term "approximate Bayesian
 computation." This describes *all* Bayesian applications except for trivial
 models where the posterior can be solved exactly. "Approximate-likelihood
-Bayesian computation" would be much more useful, but then we would lose the
-beloved acronym ABC.)
+Bayesian computation" is a much better description.)
 
 
 .. _abc_algorithm:
@@ -369,7 +366,8 @@ set of parameter values drawn from the prior distribution) and reduce each of
 them to the same three summary statistics.
 Lastly, we retain the sets of parameter values that produced summary statistics
 that fall within the "good enough" zone around our observed data.
-An example of this is animated in the rejection_sampling_ gif below.
+An example of this is animated in the :ref:`rejection sampling gif
+below<rejection_sampling>`.
 
 .. _rejection_sampling:
 .. figure:: /_static/rejection-sampling.gif
@@ -421,8 +419,8 @@ on the posterior probabilities of the divergence models, due to how the priors
 weight the marginal likelihoods of the models
 :cite:`Oaks2014reply` :cite:`Oaks2014dpp`.
 So, we have to take care when we choose a probability distribution to represent
-our prior knowledge about the divergence times of our three lizard population
-pairs.
+our prior knowledge about the divergence times of our three pairs of lizard
+populations.
 This is because this prior has a strong influence on the marginal likelihoods
 of the divergence models.
 As we add divergence-time parameters to a divergence model, the model is forced
@@ -452,8 +450,8 @@ The consequence of this is that we are placing the same amount of prior density
 between 5--10 million years as we are between 0--5, even though we suspect the
 former is quite improbable *a priori*.
 So, why does this matter?
-Well, if we were correct *a priori*, and the likelihood of all three species
-diverging between 5--10 million years is nearly zero, we have imposed a very
+Well, if we were correct *a priori*, and the likelihood of the three species
+diverging between 5--10 million years is small, we have imposed a very
 strong "penalty" for models with more divergence-time parameters.
 The :math:`\divModel{3}` will integrate over a :math:`5 \times 5 \times 5` cube
 with very small likelihood, but a lot of prior weight, which will result in a
@@ -463,7 +461,15 @@ Again, imagine the marginal likelihood of the most general model if we were
 comparing 20 lizard species!!
 The :math:`\divModel{1}` might have the largest marginal likelihood (even if it
 does not explain the data very well) simply because it is "averaged" over less
-space with small likelihood and large prior density.
+space with small likelihood.
+
+A simple example of this is shown in the :ref:`plot below<likelihood_surface>`,
+which compares a one- vs two-parameter model.
+From the plot, it seems intuitive that the model with two divergence-time
+parameters does a much better job of explaining the data.
+However, because it is averaged over a two-dimensional uniform prior, it
+actually has a smaller *marginal* likelihood in this example than the
+constrained model with only one divergence-time parameter.
 
 .. _likelihood_surface:
 .. figure:: /_static/marginal-plot-3d.png
@@ -479,9 +485,9 @@ space with small likelihood and large prior density.
    Despite capturing much less of the likelihood density, the constrained
    1-parameter model has a larger *marginal* likelihood in this example.
 
-If we use a uniform prior in this case, we will likely end up with strong
-posterior support for a model with shared divergence times, even if the three
-pairs of lizard populations diverged at quite different times.
+If we use a uniform prior, we will likely end up with strong posterior support
+for a model with shared divergence times, even if the three pairs of lizard
+populations diverged at quite different times.
 |msbayes|_ uses a uniform prior on divergence times, and this is a key reason
 it will often support models of highly clustered divergences even when taxa
 diverge randomly over quite broad timescales; see :cite:`Oaks2012` and
@@ -493,9 +499,9 @@ In this example, we would like to specify a prior that places most of the prior
 density on divergence times between 0--5 million years, but allows for a tail
 with low density to capture our prior uncertainty up to 10 million years.
 If we look at just one divergence-time dimension (Figure gamma_prior_), we can
-see in the gamma_prior_ figure below that a gamma probability distribution
-works quite well for this; |dpp-msbayes|_ uses a gamma prior on divergence
-times.
+see in :ref:`the figure below<gamma_prior>` that a gamma probability
+distribution works quite well for this; |dpp-msbayes|_ uses a gamma prior on
+divergence times.
 
 .. _gamma_prior:
 .. figure:: /_static/marginal-plot-2d.png
@@ -510,7 +516,7 @@ times.
 
 From a lot of analyses of simulated and empirical data, I have found that by
 placing much less prior weight in unlikely regions of parameters space, gamma
-priors on divergence times is much less likely to spuriously support models of
+priors on divergence times are much less likely to spuriously support models of
 shared divergences across taxa :cite:`Oaks2014dpp`.
 
 .. _prior_on_divergence_models:
@@ -523,7 +529,7 @@ models, we also have to place a prior on the divergence models themselves.
 This can be a bit tricky, because there can be *a lot* of divergence models.
 In our example of :math:`\npairs{} = 3` lizard species above, we saw there were
 five possible models of divergence (i.e., there were five possible ways to
-assign the three species to possible divergence-time parameters):
+assign the three species to divergence-time parameters):
 There was only one way to assign the species to both one and three divergence
 events,
 and there were three ways to assign the three species to two divergence events.
@@ -546,15 +552,15 @@ The number of possible models quickly explodes as we compare more taxa!
 So, how do we put a prior on all of them?!
 
 |msbayes|_ approaches this problem by assigning equal prior probability to all
-possible *number* of divergence events (divergence-time parameters).
+possible *numbers* of divergence events (divergence-time parameters).
 However, it is important to realize that this strategy can create a *very*
 non-uniform prior on the divergence *models*.
 This is because there are *many* more ways to assign our taxa to intermediate
 numbers of divergence events.
-For example, if we are comparing 10 taxa, Figure number_of_models_, shows the
-number of possible assignments of those taxa to :math:`1,2,\ldots,10`
-divergence events (i.e., the number of possible divergence models with
-:math:`1,2,\ldots,10` divergence-time parameters).
+For example, if we are comparing 10 taxa, :ref:`the histogram
+below<number_of_models>` shows the number of possible assignments of those
+taxa to :math:`1,2,\ldots,10` divergence events (i.e., the number of possible
+divergence models with :math:`1,2,\ldots,10` divergence-time parameters).
 
 .. _number_of_models:
 .. figure:: /_static/number-of-div-models-10.png
@@ -571,7 +577,7 @@ model with one or 10 divergence-time parameters.
 Thus, if we place a uniform prior on the *number* of divergence-time
 parameters, as is done in |msbayes|_, the prior probability of each *divergence
 model* with :math:`1,2,\ldots,10` divergence-time parameters is *very*
-non-uniform (Figure probability_of_models_).
+non-uniform, as shown in :ref:`the figure below<probability_of_models>`.
 
 .. _probability_of_models:
 .. figure:: /_static/prob-of-div-models-10.png
