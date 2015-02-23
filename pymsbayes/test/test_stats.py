@@ -994,6 +994,8 @@ class SummarizeDiscreteParametersFromDensitiesTestCase(PyMsBayesTestCase):
         self.set_up()
         self.pdf_path = package_paths.data_path(
                 'abctoolbox_posterior_density_file.txt')
+        self.pdf_cv_path = package_paths.data_path(
+                'abctoolbox_posterior_density_file_cv.txt')
 
     def tearDown(self):
         self.tear_down()
@@ -1017,6 +1019,34 @@ class SummarizeDiscreteParametersFromDensitiesTestCase(PyMsBayesTestCase):
         self.assertAlmostEqual(probs['PRI.omega'][0], 0.9999999999996313,
                 places=14)
         self.assertAlmostEqual(probs['PRI.omega'][1], 3.687050664780145e-13,
+                places=14)
+
+    def test_with_absent_cv(self):
+        probs = summarize_discrete_parameters_from_densities(self.pdf_path,
+                include_cv_summary = True, cv_threshold = 0.01)
+        self.assertEqual(len(probs), 1)
+        self.assertEqual(sorted(probs.keys()), sorted(['PRI.Psi']))
+        self.assertEqual(sorted(probs['PRI.Psi'].keys()), sorted([1, 2]))
+        self.assertAlmostEqual(probs['PRI.Psi'][1], 0.9999999950161, places=12)
+        self.assertAlmostEqual(probs['PRI.Psi'][2], 4.9838793092e-09, places=12)
+
+    def test_with_cv(self):
+        probs = summarize_discrete_parameters_from_densities(self.pdf_cv_path,
+                include_omega_summary = True, omega_threshold = 0.01,
+                include_cv_summary = True, cv_threshold = 0.01)
+        self.assertEqual(len(probs), 3)
+        self.assertEqual(sorted(probs.keys()), sorted(['PRI.Psi', 'PRI.omega',
+                'PRI.cv']))
+        self.assertEqual(sorted(probs['PRI.Psi'].keys()), sorted([1, 2]))
+        self.assertAlmostEqual(probs['PRI.Psi'][1], 0.9999999950161, places=12)
+        self.assertAlmostEqual(probs['PRI.Psi'][2], 4.9838793092e-09, places=12)
+        self.assertAlmostEqual(probs['PRI.omega'][0], 0.9999999999996313,
+                places=14)
+        self.assertAlmostEqual(probs['PRI.omega'][1], 3.687050664780145e-13,
+                places=14)
+        self.assertAlmostEqual(probs['PRI.cv'][0], 0.9999999999996313,
+                places=14)
+        self.assertAlmostEqual(probs['PRI.cv'][1], 3.687050664780145e-13,
                 places=14)
 
 class ListConditionEvaluatorTestCase(unittest.TestCase):

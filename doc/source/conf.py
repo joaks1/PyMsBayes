@@ -36,7 +36,7 @@ extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
-    'sphinx.ext.mathjax',
+    'sphinx.ext.pngmath',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinxcontrib.bibtex',
@@ -117,6 +117,9 @@ rst_epilog = """
 .. |pmb_gh_url| replace:: https://github.com/joaks1/PyMsBayes
 .. |pmb_tutorials_doc| replace:: /tutorials/index
 .. |pmb_copyright| replace:: **Copyright 2013-{this_year} Jamie R. Oaks**
+.. |pmb-user-group| replace:: PyMsBayes user's group
+.. _pmb-user-group: https://groups.google.com/forum/?hl=en#!forum/pymsbayes-users
+.. |pmb-user-group-url| replace:: https://groups.google.com/forum/?hl=en#!forum/pymsbayes-users
 
 .. |python| replace:: Python
 .. _python: http://www.python.org/
@@ -129,6 +132,8 @@ rst_epilog = """
 .. |git| replace:: Git
 .. _Git: http://git-scm.com/
 .. |gpl3| replace:: http://www.gnu.org/licenses/gpl-3.0-standalone.html
+.. |mpl| replace:: ``matplotlib``
+.. _mpl: http://matplotlib.org/
 
 .. |dpp-msbayes| replace:: dpp-msbayes
 .. _dpp-msbayes: https://github.com/joaks1/dpp-msbayes.git
@@ -145,12 +150,46 @@ rst_epilog = """
 .. _abacus: https://github.com/joaks1/abacus.git
 .. |abacus_url| replace:: https://github.com/joaks1/abacus.git
 
+.. |dppsum| replace:: dmc_dpp_summary.py
+.. |ldppsum| replace:: ``dmc_dpp_summary.py``
+.. |dmcss| replace:: dmc_sum_sims.py
+.. |ldmcss| replace:: ``dmc_sum_sims.py``
+.. |dmc| replace:: dmc.py
+.. |ldmc| replace:: ``dmc.py``
+.. |dmcpr| replace:: dmc_plot_results.py
+.. |ldmcpr| replace:: ``dmc_plot_results.py``
+.. |dmcpp| replace:: dmc_posterior_probs.py
+.. |ldmcpp| replace:: ``dmc_posterior_probs.py``
+
 .. |MsBayesWorker| replace:: :class:`~pymsbayes.workers.MsBayesWorker`
 .. |Manager| replace:: :class:`~pymsbayes.manager.Manager`
 
-.. |True| replace:: `True`
-.. |False| replace:: `False`
-.. |None| replace:: `None`
+.. |True| replace:: ``True``
+.. |False| replace:: ``False``
+.. |None| replace:: ``None``
+
+.. |example-dir| replace:: ``pymsbayes-tutorial-data``
+.. _example-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/
+.. |lizard-dir| replace:: ``pymsbayes-tutorial-data/lizards``
+.. _lizard-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards
+.. |lizard-bin-dir| replace:: ``pymsbayes-tutorial-data/lizards/bin``
+.. _lizard-bin-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/bin
+.. |lizard-example-qsub| replace:: ``pymsbayes-tutorial-data/lizards/bin/example-qsub.sh``
+.. _lizard-example-qsub: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/bin/example-qsub.sh
+.. |lizard-seq-dir| replace:: ``pymsbayes-tutorial-data/lizards/sequences``
+.. _lizard-seq-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/sequences
+.. |lizard-config-dir| replace:: ``pymsbayes-tutorial-data/lizards/configs``
+.. _lizard-config-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/configs
+.. |lizard-sim-config-dir| replace:: ``pymsbayes-tutorial-data/lizards/configs/simulated-data-configs``
+.. _lizard-sim-config-dir: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/configs/simulated-data-configs
+.. |lizard-dpp-config| replace:: ``pymsbayes-tutorial-data/lizards/configs/dpp-simple.cfg``
+.. _lizard-dpp-config: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/configs/dpp-simple.cfg
+.. |lizard-example-results| replace:: ``pymsbayes-tutorial-data/lizards/results/sample-output/lizard-analysis``
+.. _lizard-example-results: https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/results/sample-output/lizard-analysis
+.. |result-dir| replace:: ``pymsbayes-results``
+.. |info-path| replace:: ``pymsbayes-results/pymsbayes.info.txt``
+.. |output-dir| replace:: ``pymsbayes-results/pymsbayes-output``
+.. |observed-stats-dir| replace:: ``pymsbayes-results/observed-summary-stats``
 """.format(this_year = time.strftime('%Y'))
 
 # If true, keep warnings as "system message" paragraphs in the built documents.
@@ -394,3 +433,24 @@ epub_exclude_files = ['search.html']
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'http://docs.python.org/': None}
+
+#####################################################
+# add LaTeX macros 
+latex_elements['preamble'] = '\usepackage{amsmath}\n\usepackage{amssymb}\n'
+
+f = file('latex_macros.sty')
+
+try:
+    pngmath_latex_preamble  # check whether this is already defined
+except NameError:
+    pngmath_latex_preamble = ""
+
+for macro in f:
+    # used when building latex and pdf versions
+    latex_elements['preamble'] += macro + '\n'
+    # used when building html version
+    pngmath_latex_preamble += macro + '\n'
+
+def setup(app):
+    app.add_javascript('dpp.js')
+

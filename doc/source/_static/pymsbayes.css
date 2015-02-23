@@ -1,5 +1,54 @@
 @import url("sphinxdoc.css");
 
+/*******************************************************************************
+Role directive styles
+*******************************************************************************/
+
+.strike {
+    text-decoration: line-through;
+}
+
+.bolditalic {
+    font-weight: bold;
+    font-style: italic;
+}
+
+.hlight {
+    font-weight: bold;
+    font-style: italic;
+    color: red;
+}
+
+.codehlight {
+    color: green;
+}
+
+/*******************************************************************************
+Admonition styles
+*******************************************************************************/
+
+/* make definition lists a bit prettier */
+dl {
+    padding: 1em;
+}
+dt {
+    font-weight: bold;
+    font-style: italic;
+}
+dt:after {
+    content: ":";
+}
+
+.definitions {
+}
+
+.keypoint {
+}
+
+/*******************************************************************************
+Page header styles
+*******************************************************************************/
+
 .pageheader {
     text-align: left;
     padding: 20px 20px;

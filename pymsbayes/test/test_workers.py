@@ -182,13 +182,9 @@ class MsBayesWorkerTestCase(PyMsBayesTestCase):
         self.assertTrue(os.path.isdir(staging_dir))
         self.assertEqual(os.listdir(staging_dir), [])
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_repeatability(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         jobs = []
         for i in range(4):
             w = workers.MsBayesWorker(
@@ -249,13 +245,9 @@ class MergePriorTestCase(PyMsBayesTestCase):
             return True
         return False
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_no_header_explicit_header_path(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         jobs = []
         for i in range(4):
             w = workers.MsBayesWorker(
@@ -279,13 +271,9 @@ class MergePriorTestCase(PyMsBayesTestCase):
         self.assertTrue(self._correct_n_lines(ppath, 40))
         self.assertTrue(self._correct_n_lines(hpath, 1))
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_no_header_no_explicit_header_path(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         jobs = []
         for i in range(4):
             w = workers.MsBayesWorker(
@@ -310,13 +298,9 @@ class MergePriorTestCase(PyMsBayesTestCase):
         self.assertTrue(self._correct_n_lines(ppath, 40))
         self.assertTrue(self._correct_n_lines(hpath, 1))
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_header_explicit_header_path(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         jobs = []
         for i in range(4):
             w = workers.MsBayesWorker(
@@ -340,13 +324,9 @@ class MergePriorTestCase(PyMsBayesTestCase):
         self.assertTrue(self._correct_n_lines(ppath, 41))
         self.assertTrue(self._correct_n_lines(hpath, 1))
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_merge_priors_with_headers(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         jobs = []
         for i in range(4):
             w = workers.MsBayesWorker(
@@ -384,13 +364,9 @@ class MergePriorFilesTestCase(PyMsBayesTestCase):
     def tearDown(self):
         self.tear_down()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_merge_error_with_headers(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         alt_cfg_path = package_paths.data_path('negros_panay.cfg')
         w1 = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
@@ -410,13 +386,9 @@ class MergePriorFilesTestCase(PyMsBayesTestCase):
         self.assertRaises(PriorMergeError, workers.merge_prior_files,
                 [w1.prior_path, w2.prior_path], ppath, True)
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_merge_error_without_headers(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         alt_cfg_path = package_paths.data_path('negros_panay.cfg')
         w1 = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
@@ -436,13 +408,9 @@ class MergePriorFilesTestCase(PyMsBayesTestCase):
         self.assertRaises(PriorMergeError, workers.merge_prior_files,
                 [w1.prior_path, w2.prior_path], ppath, True)
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_merge_prior_files_with_headers(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         jobs = []
         for i in range(4):
             w = workers.MsBayesWorker(
@@ -465,13 +433,9 @@ class MergePriorFilesTestCase(PyMsBayesTestCase):
         self.assertEqual(self.get_number_of_header_lines(ppath), 1)
         self.assertEqual(self.get_number_of_lines(ppath), 41)
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_merge_prior_files_no_headers(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         jobs = []
         for i in range(4):
             w = workers.MsBayesWorker(
@@ -494,13 +458,9 @@ class MergePriorFilesTestCase(PyMsBayesTestCase):
         self.assertEqual(self.get_number_of_header_lines(ppath), 0)
         self.assertEqual(self.get_number_of_lines(ppath), 40)
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_append_with_headers(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         jobs = []
         for i in range(4):
             w = workers.MsBayesWorker(
@@ -540,13 +500,9 @@ class MergePriorFilesTestCase(PyMsBayesTestCase):
                     append = True)
         self.assertSameFiles([ppath1, ppath2, ppath3, ppath4])
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_append_without_headers(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         jobs = []
         for i in range(4):
             w = workers.MsBayesWorker(
@@ -586,13 +542,9 @@ class MergePriorFilesTestCase(PyMsBayesTestCase):
                     append = True)
         self.assertSameFiles([ppath1, ppath2, ppath3, ppath4])
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_append_error_with_headers(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         alt_cfg_path = package_paths.data_path('negros_panay.cfg')
         w1 = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
@@ -613,13 +565,9 @@ class MergePriorFilesTestCase(PyMsBayesTestCase):
         self.assertRaises(PriorMergeError, workers.merge_prior_files,
                 [w2.prior_path], ppath, True)
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_append_error_without_headers(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         alt_cfg_path = package_paths.data_path('negros_panay.cfg')
         w1 = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
@@ -673,13 +621,9 @@ class MsRejectWorkerTestCase(PyMsBayesTestCase):
     def tearDown(self):
         self.tear_down()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_reject_no_parameters(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         self.msbayes_worker = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 10,
@@ -723,13 +667,9 @@ class MsRejectWorkerTestCase(PyMsBayesTestCase):
         pr.close()
         self.assertEqual(posterior, expected_post)
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_reject_with_parameters(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         self.msbayes_worker = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 10,
@@ -1315,13 +1255,9 @@ class ABCToolBoxRejectWorkerTestCase(PyMsBayesTestCase):
     def tearDown(self):
         self.tear_down()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_rejection_with_parameters(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         prior_worker = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 100,
@@ -1368,13 +1304,9 @@ class RejectWorkerComparisonTestCase(PyMsBayesTestCase):
     def tearDown(self):
         self.tear_down()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_compare_rejectors_100(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         prior_worker = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 100,
@@ -1456,13 +1388,9 @@ class RejectWorkerComparisonTestCase(PyMsBayesTestCase):
                 num_mismatches_per_sample = 0,
                 num_sample_mismatches = 0)
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_compare_rejectors_1000(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         prior_worker = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 1000,
@@ -1631,13 +1559,9 @@ class ABCToolBoxRegressWorkerTestCase(PyMsBayesTestCase):
         self.assertEqual(regress_worker.regress_summary_path, None)
         self.assertEqual(regress_worker.regress_posterior_path, None)
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_regression_from_prior_with_indices(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         post_worker1 = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 100,
@@ -1775,7 +1699,8 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
         self.results_dir = self.get_test_subdir(
                 prefix='test-posteriors')
         self.posterior_prefix = self.test_id + '-posterior'
-        self.expected_continuous_parameters = set(['PRI.omega', 'PRI.E.t'])
+        self.expected_continuous_parameters = set(['PRI.omega', 'PRI.E.t',
+                'PRI.cv'])
         self.expected_discrete_parameters = set(['PRI.Psi'])
         self.expected_discrete_parameters_with_models = set(['PRI.Psi',
                 'PRI.model'])
@@ -1803,13 +1728,9 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
         w.start()
         return w
     
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_msreject_no_regression(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         prior_worker = self._get_prior()
         obs_worker = self._get_prior(n=10, include_header=True)
         jobs = workers.assemble_rejection_workers(
@@ -1830,13 +1751,9 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
             self.assertTrue(os.path.isfile(j.posterior_path))
             self.assertEqual(self.get_number_of_lines(j.posterior_path), 6)
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_abctoolbox_no_regression(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         prior_worker = self._get_prior(schema='abctoolbox')
         obs_worker = self._get_prior(n=10, schema='abctoolbox')
         jobs = workers.assemble_rejection_workers(
@@ -1858,13 +1775,9 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
             self.assertTrue(os.path.isfile(j.posterior_path))
             self.assertTrue(self.get_number_of_lines(j.posterior_path), 11)
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_msreject_llr(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         prior_worker = self._get_prior(n=200)
         obs_worker = self._get_prior(n=2, include_header=True)
         msreject_workers = workers.assemble_rejection_workers(
@@ -1929,13 +1842,9 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
                 self.assertEqual(results['settings']['discrete_parameters'],
                         disc_params[0])
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_msreject_llr_with_models(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         prior_workers = []
         for i in range(2):
             prior_workers.append(self._get_prior(n=100, model_index=i))
@@ -2011,13 +1920,9 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
                 self.assertEqual(results['settings']['discrete_parameters'],
                         disc_params[0])
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_msreject_glm(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         prior_worker = self._get_prior(n=200)
         obs_worker = self._get_prior(n=2, include_header=True)
         msreject_workers = workers.assemble_rejection_workers(
@@ -2073,13 +1978,9 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
             self.assertEqual(sorted(stats),
                     sorted(j.regression_worker.stats_header))
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_msreject_glm_with_models(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         prior_workers = []
         for i in range(2):
             prior_workers.append(self._get_prior(n=100, model_index=i))
@@ -2147,13 +2048,9 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
             self.assertEqual(sorted(stats),
                     sorted(j.regression_worker.stats_header))
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_abctoolbox_glm(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         prior_worker = self._get_prior(n=200, schema='abctoolbox')
         obs_worker = self._get_prior(n=2, schema='abctoolbox')
         jobs = workers.assemble_rejection_workers(
@@ -2208,13 +2105,9 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
             self.assertEqual(sorted(stats),
                     sorted(j.regression_worker.stats_header))
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_abctoolbox_glm_with_models(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         prior_workers = []
         for i in range(2):
             prior_workers.append(self._get_prior(n=100, model_index=i,
@@ -2282,13 +2175,9 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
             self.assertEqual(sorted(stats),
                     sorted(j.regression_worker.stats_header))
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_abctoolbox_llr(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         prior_worker = self._get_prior(n=200, schema='abctoolbox')
         obs_worker = self._get_prior(n=2, schema='abctoolbox')
         jobs = workers.assemble_rejection_workers(
@@ -2354,13 +2243,9 @@ class AssembleMsRejectWorkersTestCase(PyMsBayesTestCase):
                 self.assertEqual(results['settings']['discrete_parameters'],
                         disc_params[0])
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_abctoolbox_llr_with_models(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         prior_workers = []
         for i in range(2):
             prior_workers.append(self._get_prior(n=100, model_index=i,
@@ -2501,14 +2386,10 @@ class RegressionWorkerTestCase(PyMsBayesTestCase):
         else:
             self.assertEqual(results['settings']['discrete_parameters'],
                     disc_params[0])
-        
+
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_regression_with_models(self):
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         posterior_worker1 = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 100,
@@ -2589,14 +2470,10 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
     def tearDown(self):
         self.tear_down()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_without_compression(self):
         MSBAYES_SORT_INDEX.set_index(7)
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         prior_worker = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 100,
@@ -2628,6 +2505,7 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
                 keep_temps = False,
                 regress_posterior_path = density_path,
                 omega_threshold = 0.01,
+                cv_threshold = 0.01,
                 abctoolbox_num_posterior_quantiles = 1000,
                 compress = False,
                 tag = 'test')
@@ -2669,6 +2547,13 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
         self.assertEqual(
                 self.get_number_of_header_lines(post_worker.omega_results_path),
                 1)
+        self.assertTrue(os.path.isfile(post_worker.cv_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.cv_results_path),
+                2)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.cv_results_path),
+                1)
         self.assertFalse(os.path.isfile(post_worker.model_results_path))
         MSBAYES_SORT_INDEX.reset_default()
 
@@ -2705,6 +2590,7 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
                 keep_temps = False,
                 regress_posterior_path = density_path,
                 omega_threshold = 0.01,
+                cv_threshold = 0.01,
                 abctoolbox_num_posterior_quantiles = -10,
                 abctoolbox_bandwidth = -2.0,
                 compress = False,
@@ -2736,6 +2622,13 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
                 2)
         self.assertEqual(
                 self.get_number_of_header_lines(post_worker.omega_results_path),
+                1)
+        self.assertTrue(os.path.isfile(post_worker.cv_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.cv_results_path),
+                2)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.cv_results_path),
                 1)
         self.assertFalse(os.path.isfile(post_worker.model_results_path))
         MSBAYES_SORT_INDEX.reset_default()
@@ -2782,6 +2675,7 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
                 keep_temps = False,
                 regress_posterior_path = density_path,
                 omega_threshold = 0.01,
+                cv_threshold = 0.01,
                 abctoolbox_num_posterior_quantiles = 1000,
                 compress = False,
                 tag = 'test')
@@ -2823,6 +2717,13 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
         self.assertEqual(
                 self.get_number_of_header_lines(post_worker.omega_results_path),
                 1)
+        self.assertTrue(os.path.isfile(post_worker.cv_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.cv_results_path),
+                2)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.cv_results_path),
+                1)
         self.assertTrue(os.path.isfile(post_worker.model_results_path))
         self.assertEqual(
                 self.get_number_of_lines(post_worker.model_results_path),
@@ -2832,14 +2733,10 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
                 1)
         MSBAYES_SORT_INDEX.reset_default()
 
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_without_compression_with_one_model(self):
         MSBAYES_SORT_INDEX.set_index(7)
-        if not TestLevel.test_enabled(
-                level = TestLevel.EXHAUSTIVE,
-                log = _LOG,
-                module_name = '.'.join([self.__class__.__name__,
-                        sys._getframe().f_code.co_name])):
-            return
         prior_worker = workers.MsBayesWorker(
                 temp_fs = self.temp_fs,
                 sample_size = 100,
@@ -2872,6 +2769,7 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
                 keep_temps = False,
                 regress_posterior_path = density_path,
                 omega_threshold = 0.01,
+                cv_threshold = 0.01,
                 abctoolbox_num_posterior_quantiles = 1000,
                 compress = False,
                 tag = 'test')
@@ -2912,6 +2810,13 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
                 2)
         self.assertEqual(
                 self.get_number_of_header_lines(post_worker.omega_results_path),
+                1)
+        self.assertTrue(os.path.isfile(post_worker.cv_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.cv_results_path),
+                2)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.cv_results_path),
                 1)
         self.assertTrue(os.path.isfile(post_worker.model_results_path))
         self.assertEqual(
@@ -2955,6 +2860,7 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
                 keep_temps = False,
                 regress_posterior_path = density_path,
                 omega_threshold = 0.01,
+                cv_threshold = 0.01,
                 abctoolbox_num_posterior_quantiles = 1000,
                 compress = True,
                 tag = 'test')
@@ -2995,6 +2901,13 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
                 2)
         self.assertEqual(
                 self.get_number_of_header_lines(post_worker.omega_results_path),
+                1)
+        self.assertTrue(os.path.isfile(post_worker.cv_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.cv_results_path),
+                2)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.cv_results_path),
                 1)
         self.assertFalse(os.path.isfile(post_worker.model_results_path))
         MSBAYES_SORT_INDEX.reset_default()
@@ -3041,6 +2954,7 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
                 keep_temps = False,
                 regress_posterior_path = density_path,
                 omega_threshold = 0.01,
+                cv_threshold = 0.01,
                 abctoolbox_num_posterior_quantiles = 1000,
                 compress = False,
                 tag = 'test')
@@ -3082,6 +2996,13 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
         self.assertEqual(
                 self.get_number_of_header_lines(post_worker.omega_results_path),
                 1)
+        self.assertTrue(os.path.isfile(post_worker.cv_results_path))
+        self.assertEqual(
+                self.get_number_of_lines(post_worker.cv_results_path),
+                2)
+        self.assertEqual(
+                self.get_number_of_header_lines(post_worker.cv_results_path),
+                1)
         self.assertTrue(os.path.isfile(post_worker.model_results_path))
         self.assertEqual(
                 self.get_number_of_lines(post_worker.model_results_path),
@@ -3096,6 +3017,56 @@ class PosteriorWorkerTestCase(PyMsBayesTestCase):
             current_count = d['count']
 
         MSBAYES_SORT_INDEX.reset_default()
+
+class DppSimWorkerTestCase(PyMsBayesTestCase):
+    def test_3_elements(self):
+        alpha = 2.0
+        num_elements = 3
+        num_samples = 100000
+        sim_worker = workers.DppSimWorker(
+                alpha = alpha,
+                num_elements = num_elements,
+                num_samples = num_samples)
+        sim_worker.start()
+        total = 0.0
+        for i in range(num_elements):
+            self.assertEqual(sim_worker.psi_summary[i + 1].n, num_samples)
+            total += sim_worker.psi_summary[i + 1].mean
+        self.assertAlmostEqual(sim_worker.psi_summary[1].mean, 
+                (1.0/(alpha + 1.0))*(2.0/(alpha + 2.0)), places = 2)
+        self.assertAlmostEqual(sim_worker.psi_summary[3].mean, 
+                (alpha/(alpha + 1.0))*(alpha/(alpha + 2.0)), places = 2)
+        self.assertAlmostEqual(1.0, total, places = 7)
+
+    def test_5_elements(self):
+        alpha = 2.0
+        num_elements = 5
+        num_samples = 100000
+        sim_worker = workers.DppSimWorker(
+                alpha = alpha,
+                num_elements = num_elements,
+                num_samples = num_samples)
+        sim_worker.start()
+        total = 0.0
+        for i in range(num_elements):
+            self.assertEqual(sim_worker.psi_summary[i + 1].n, num_samples)
+            total += sim_worker.psi_summary[i + 1].mean
+        self.assertAlmostEqual(sim_worker.psi_summary[1].mean, (
+                (1.0/(alpha + 1.0))*
+                (2.0/(alpha + 2.0))*
+                (3.0/(alpha + 3.0))*
+                (4.0/(alpha + 4.0))
+                ),
+                places = 2)
+        self.assertAlmostEqual(sim_worker.psi_summary[5].mean, (
+                (alpha/(alpha + 1.0))*
+                (alpha/(alpha + 2.0))*
+                (alpha/(alpha + 3.0))*
+                (alpha/(alpha + 4.0))
+                ),
+                places = 2)
+        self.assertAlmostEqual(1.0, total, places = 7)
+
 
 if __name__ == '__main__':
     unittest.main()

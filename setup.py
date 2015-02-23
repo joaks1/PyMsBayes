@@ -22,6 +22,7 @@ SCRIPT_NAMES = [
         'dmc_plot_stats.py',
         # 'dmc_prob_shared_divergence.py',
         'dmc_saturation_plot.py',
+        'dmc_sum_sims.py',
         ]
 TOOL_NAMES = [
         'ABCestimator',

@@ -7,6 +7,7 @@ import subprocess
 import time
 import shutil
 import traceback
+import tempfile
 from cStringIO import StringIO
 
 from pymsbayes.fileio import (expand_path, process_file_arg, FileStream, open,
@@ -40,6 +41,7 @@ class Worker(object):
             stdout_path = None,
             stderr_path = None,
             append_stdout = True,
+            subprocess_kwargs = {},
             tag = None):
         self.__class__.total += 1
         self.stdout_path = stdout_path
@@ -53,6 +55,7 @@ class Worker(object):
         self.append_stdout = append_stdout
         self.error = None
         self.trace_back = None
+        self.subprocess_kwargs = subprocess_kwargs
         self.tag = tag
 
     def get_stderr(self):
@@ -86,7 +89,7 @@ class Worker(object):
                     e.getvalue()))
             raise
         _LOG.debug('Starting process with following command:\n\t'
-                '{0}'.format(' '.join(self.cmd)))
+                '{0}'.format(' '.join([str(x) for x in self.cmd])))
         if self.stdout_path:
             if self.append_stdout:
                 sout = open(self.stdout_path, 'a')
@@ -101,7 +104,8 @@ class Worker(object):
         self.process = subprocess.Popen(self.cmd,
                 stdout = sout,
                 stderr = serr,
-                shell = False)
+                shell = False,
+                **self.subprocess_kwargs)
         self.stdout, self.stderr = self.process.communicate()
         self.exit_code = self.process.wait()
         if hasattr(sout, 'close'):
@@ -130,6 +134,30 @@ class Worker(object):
     def _pre_process(self):
         pass
 
+
+class GenericWorker(Worker):
+    count = 0
+    def __init__(self,
+            exe,
+            args,
+            stdout_path = None,
+            stderr_path = None,
+            append_stdout = True,
+            subprocess_kwargs = {},
+            tag = None):
+        Worker.__init__(self,
+                stdout_path = stdout_path,
+                stderr_path = stderr_path,
+                append_stdout = append_stdout,
+                subprocess_kwargs = subprocess_kwargs,
+                tag = tag)
+        self.__class__.count += 1
+        self.name = self.__class__.__name__ + '-' + str(self.count)
+        self.exe = ToolPathManager.get_tool_path(exe)
+        if isinstance(args, str):
+            args = args.strip().split()
+        self.args = [str(x) for x in args]
+        self.cmd = [self.exe] + self.args
 
 ##############################################################################
 ## functions for managing msbayes workers
@@ -746,7 +774,8 @@ class RegressionWorker(Worker):
             self.continuous_parameter_indices = parsing.get_parameter_indices(
                     self.header,
                     parameter_patterns=(parsing.MEAN_TAU_PATTERNS +
-                            parsing.OMEGA_PATTERNS))
+                            parsing.OMEGA_PATTERNS +
+                            parsing.CV_PATTERNS))
         if not self.discrete_parameter_indices:
             self.discrete_parameter_indices = parsing.get_parameter_indices(
                     self.header,
@@ -1094,6 +1123,7 @@ class ABCToolBoxRegressWorker(Worker):
                     self.header,
                     parameter_patterns=(parsing.MEAN_TAU_PATTERNS + \
                             parsing.OMEGA_PATTERNS + \
+                            parsing.CV_PATTERNS + \
                             parsing.MODEL_PATTERNS + \
                             parsing.PSI_PATTERNS + \
                             parsing.DIV_MODEL_PATTERNS)))
@@ -1218,6 +1248,7 @@ class PosteriorWorker(object):
             abctoolbox_bandwidth = None,
             abctoolbox_num_posterior_quantiles = None,
             omega_threshold = 0.01,
+            cv_threshold = 0.01,
             compress = False,
             keep_temps = False,
             tag = None):
@@ -1238,6 +1269,7 @@ class PosteriorWorker(object):
         self.psi_results_path = self.output_prefix + '-psi-results.txt'
         self.model_results_path = self.output_prefix + '-model-results.txt'
         self.omega_results_path = self.output_prefix + '-omega-results.txt'
+        self.cv_results_path = self.output_prefix + '-cv-results.txt'
         self.posterior_summary_path = self.output_prefix + \
                 '-posterior-summary.txt'
         self.regress_summary_path = self.output_prefix + \
@@ -1267,6 +1299,8 @@ class PosteriorWorker(object):
         self.abctoolbox_num_posterior_quantiles = \
                 abctoolbox_num_posterior_quantiles
         self.omega_threshold = float(omega_threshold)
+        self.cv_threshold = float(cv_threshold)
+        self.cv_included = False
         self.psi_probs = dict(zip(
                 [i+1 for i in range(self.num_taxon_pairs)],
                 [None for i in range(self.num_taxon_pairs)]))
@@ -1276,7 +1310,9 @@ class PosteriorWorker(object):
         self.model_probs = None
         self.adjusted_model_probs = None
         self.prob_omega_zero = None
+        self.prob_cv_zero = None
         self.adjusted_prob_omega_zero = None
+        self.adjusted_prob_cv_zero = None
         self.div_model_summary = None
         self.unadjusted_summaries = {}
         self.parameter_patterns_to_remove = set()
@@ -1339,10 +1375,19 @@ class PosteriorWorker(object):
             self.parameter_patterns_to_remove.update(parsing.PSI_PATTERNS)
         if len(set(post['omega'])) < 2:
             self.parameter_patterns_to_remove.update(parsing.OMEGA_PATTERNS)
+        if len(set(post['cv'])) < 2:
+            self.parameter_patterns_to_remove.update(parsing.CV_PATTERNS)
         if len(set(post['mean_tau'])) < 2:
+            self.cv_included = True
             self.parameter_patterns_to_remove.update(parsing.MEAN_TAU_PATTERNS)
         self.unadjusted_summaries['PRI.omega'] = stats.get_summary(
                 post['omega'])
+        if post.has_key('cv'):
+            self.cv_included = True
+            self.prob_cv_zero = stats.freq_less_than(post['cv'],
+                    self.cv_threshold)
+            self.unadjusted_summaries['PRI.cv'] = stats.get_summary(
+                    post['cv'])
         self.unadjusted_summaries['PRI.E.t'] = stats.get_summary(
                 post['mean_tau'])
         self.unadjusted_summaries['PRI.Psi'] = stats.get_summary(post['psi'])
@@ -1442,8 +1487,8 @@ class PosteriorWorker(object):
     def _prep_regression_worker(self):
         header = parsing.parse_header(self.temp_posterior_path)
         all_patterns = set(parsing.MEAN_TAU_PATTERNS + parsing.OMEGA_PATTERNS +
-                parsing.MODEL_PATTERNS + parsing.PSI_PATTERNS +
-                parsing.DIV_MODEL_PATTERNS)
+                parsing.CV_PATTERNS + parsing.MODEL_PATTERNS +
+                parsing.PSI_PATTERNS + parsing.DIV_MODEL_PATTERNS)
         # Adding tau parameters causes ABCEstimator to fail often
         # if MSBAYES_SORT_INDEX.current_value() == 0:
         #     all_patterns.update(parsing.TAU_PATTERNS)
@@ -1479,7 +1524,9 @@ class PosteriorWorker(object):
                     self.regress_posterior_path,
                     discrete_parameter_patterns = discrete_parameter_patterns,
                     include_omega_summary = True,
-                    omega_threshold = self.omega_threshold)
+                    omega_threshold = self.omega_threshold,
+                    include_cv_summary = True,
+                    cv_threshold = self.cv_threshold)
         except:
             _LOG.warning('{0}: Problem parsing posterior density file {1!r}'
                     '... Returning unadjusted results'.format(
@@ -1501,6 +1548,8 @@ class PosteriorWorker(object):
                             self.top_div_models_to_indices[k], 0.0)
         self.adjusted_prob_omega_zero = discrete_probs.get(
                 'PRI.omega', {0: float('nan')}).get(0, 0.0)
+        self.adjusted_prob_cv_zero = discrete_probs.get(
+                'PRI.cv', {0: float('nan')}).get(0, 0.0)
         if self.model_probs:
             self.adjusted_model_probs = {}
             for i in self.model_probs.iterkeys():
@@ -1554,6 +1603,18 @@ class PosteriorWorker(object):
                 self.adjusted_prob_omega_zero))
         if close:
             out.close()
+
+    def _write_cv_results(self):
+        if self.cv_included:
+            out, close = process_file_arg(self.cv_results_path, 'w')
+            out.write('cv_thresh\tprob_less_than\t'
+                    'glm_prob_less_than\n')
+            out.write('{0}\t{1}\t{2}\n'.format(
+                    self.cv_threshold,
+                    self.prob_cv_zero,
+                    self.adjusted_prob_cv_zero))
+            if close:
+                out.close()
 
     def _write_summary(self):
         try:
@@ -1619,6 +1680,7 @@ class PosteriorWorker(object):
         self._write_psi_results()
         self._write_model_results()
         self._write_omega_results()
+        self._write_cv_results()
         self._write_summary()
         self._post_process()
         self.finished = True
@@ -1628,6 +1690,7 @@ class ModelProbabilityEstimator(object):
     def __init__(self, config,
             num_samples = 1000,
             omega_threshold = 0.01,
+            cv_threshold = 0.01,
             rng = None,
             tag = None):
         self.__class__.count += 1
@@ -1638,12 +1701,14 @@ class ModelProbabilityEstimator(object):
         self.npairs = self.config.npairs
         self.num_samples = num_samples
         self.omega_threshold = omega_threshold
+        self.cv_threshold = cv_threshold
         self.shared_div_summary = dict(zip(
                 [i + 1 for i in range(1, self.npairs)],
                 [stats.SampleSummary() for i in range(1, self.npairs)]))
         self.psi_summary = dict(zip([i + 1 for i in range(self.npairs)],
                 [stats.SampleSummary() for i in range(self.npairs)]))
         self.omega_summary = stats.SampleSummary()
+        self.cv_summary = stats.SampleSummary()
         self.rng = rng
         self.tag = tag
         self.finished = False
@@ -1679,6 +1744,7 @@ class ModelProbabilityEstimator(object):
         psi_summarizer = dict(zip([i + 1 for i in range(self.npairs)],
                 [stats.SampleSummarizer() for i in range(self.npairs)]))
         omega_summarizer = stats.SampleSummarizer()
+        cv_summarizer = stats.SampleSummarizer()
         prior_sample_iter = self.get_prior_sample_iter()
         rng = self.rng
         if not rng:
@@ -1702,6 +1768,11 @@ class ModelProbabilityEstimator(object):
                 omega_summarizer.add_sample(1)
             else:
                 omega_summarizer.add_sample(0)
+            cv = ss.std_deviation / ss.mean
+            if cv < self.cv_threshold:
+                cv_summarizer.add_sample(1)
+            else:
+                cv_summarizer.add_sample(0)
         for k in self.psi_summary.iterkeys():
             self.psi_summary[k].update(stats.SampleSummary(
                 sample_size = psi_summarizer[k].n,
@@ -1716,6 +1787,10 @@ class ModelProbabilityEstimator(object):
                 sample_size = omega_summarizer.n,
                 mean = omega_summarizer.mean,
                 variance = omega_summarizer.variance))
+        self.cv_summary.update(stats.SampleSummary(
+                sample_size = cv_summarizer.n,
+                mean = cv_summarizer.mean,
+                variance = cv_summarizer.variance))
         self.finished = True
 
 class DivModelSimulator(object):
@@ -1765,3 +1840,102 @@ class DivModelSimulator(object):
         self.div_models.add_iter(self.get_prior_sample_iter())
         self.finished = True
 
+class DppSimWorker(object):
+    count = 0
+    def __init__(self,
+            alpha,
+            num_elements,
+            num_samples = 1000,
+            base_distribution = None,
+            rng = None,
+            tag = None):
+        self.__class__.count += 1
+        self.name = self.__class__.__name__ + '-' + str(self.count)
+        self.alpha = alpha
+        self.num_elements = num_elements
+        self.base_distribution = base_distribution
+        self.num_samples = num_samples
+        self.div_models = stats.PartitionCollection()
+        self.rng = rng
+        self.tag = tag
+        self.psi_summary = dict(zip([i + 1 for i in range(self.num_elements)],
+                [stats.SampleSummary() for i in range(self.num_elements)]))
+        self.finished = False
+
+    def get_prior_sample_iter(self):
+        p = stats.Partition()
+        return p.dirichlet_process_draw_iter(
+                alpha = self.alpha,
+                num_samples = self.num_samples,
+                num_elements = self.num_elements,
+                base_distribution = self.base_distribution,
+                rng = self.rng)
+
+    def start(self):
+        psi_summarizer = dict(zip([i + 1 for i in range(self.num_elements)],
+                [stats.SampleSummarizer() for i in range(self.num_elements)]))
+        rng = self.rng
+        if not rng:
+            rng = GLOBAL_RNG
+        for partition in self.get_prior_sample_iter():
+            self.div_models.add(partition)
+            for k in psi_summarizer.iterkeys():
+                if len(partition.values) == k:
+                    psi_summarizer[k].add_sample(1)
+                else:
+                    psi_summarizer[k].add_sample(0)
+        for k in self.psi_summary.iterkeys():
+            self.psi_summary[k].update(stats.SampleSummary(
+                sample_size = psi_summarizer[k].n,
+                mean = psi_summarizer[k].mean,
+                variance = psi_summarizer[k].variance))
+        self.finished = True
+
+
+class GeneTreeSimWorker(GenericWorker):
+    count = 0
+    def __init__(self,
+            args,
+            stdout_path = None,
+            stderr_path = None,
+            tag = None):
+        GenericWorker.__init__(self,
+                exe = 'genetree_in_sptree_sim',
+                args = args,
+                stdout_path = stdout_path,
+                stderr_path = stderr_path,
+                tag = tag)
+        self.__class__.count += 1
+        self.name = self.__class__.__name__ + '-' + str(self.count)
+
+
+class SequenceSimWorker(GenericWorker):
+    count = 0
+    def __init__(self,
+            args,
+            output_path,
+            stdout_path = None,
+            stderr_path = None,
+            tag = None):
+        GenericWorker.__init__(self,
+                exe = 'simulate_sequences',
+                args = args,
+                stdout_path = stdout_path,
+                stderr_path = stderr_path,
+                tag = tag)
+        self.__class__.count += 1
+        self.name = self.__class__.__name__ + '-' + str(self.count)
+        self.output_path = functions.get_new_path(output_path)
+        self.tmp_dir = None
+
+    def _pre_process(self):
+        self.tmp_dir = tempfile.mkdtemp()
+        self.subprocess_kwargs['cwd'] = self.tmp_dir
+
+    def _post_process(self):
+        f = os.listdir(self.tmp_dir)
+        if not ((len(f) == 1) and (os.path.splitext(f[0])[-1] == '.nex')):
+            raise Exception('{0} produced unexpected output'.format(self.name))
+        p = os.path.join(self.tmp_dir, f[0])
+        shutil.move(p, self.output_path)
+        os.rmdir(self.tmp_dir)

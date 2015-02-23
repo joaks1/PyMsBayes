@@ -17,8 +17,10 @@ Contents:
     intro/prerequisites
     intro/installation
     tutorials/index
+    intro/caveats
     changes
     thanks/acknowledgments
+    intro/users-group
     license/license-short
     zbib/references
 

@@ -31,18 +31,18 @@ def main_cli():
             action = 'store',
             type = argparse_utils.arg_is_positive_int,
             default = 100000,
-            help = ('The number of prior samples to simulate for estimating'
+            help = ('The number of prior samples to simulate for estimating '
                     'prior probabilities.'))
-    parser.add_argument('-i', '--iteration-index',
+    parser.add_argument('-i', '--sample-index',
             action = 'store',
             type = argparse_utils.arg_is_positive_int,
-            help = ('The batch iteration index of results to be summarized. '
+            help = ('The prior-sample index of results to be summarized. '
                     'Output files should have a consistent schema. For '
                     'example, a results file for divergence models might look '
                     'something like '
-                    '`d1-m1-s1-151-div-model-results.txt`. In this example, '
-                    'the batch iteration index is "151". The default is to '
-                    'use the largest batch iteration index, which is probably '
+                    '`d1-m1-s1-1000000-div-model-results.txt`. In this example, '
+                    'the prior-sample index is "1000000". The default is to '
+                    'use the largest prior-sample index, which is probably '
                     'what you want.'))
     parser.add_argument('-o', '--output-dir',
             action = 'store',
@@ -56,6 +56,19 @@ def main_cli():
             default = multiprocessing.cpu_count(),
             help = ('The maximum number of processes to run in parallel. The '
                     'default is the number of CPUs available on the machine.'))
+    parser.add_argument('-m', '--mu',
+            action = 'store',
+            type = argparse_utils.arg_is_positive_float,
+            default = None,
+            help = ('The mutation rate with which to scale time to units of '
+                    'generations. By default, time is not scaled to '
+                    'generations.'))
+    parser.add_argument('--extension',
+            action = 'store',
+            type = str,
+            default = 'pdf',
+            help = ('The file format extension of the plots (e.g., "pdf", '
+                    '"png"). The default is pdf.'))
     parser.add_argument('--seed',
             action = 'store',
             type = argparse_utils.arg_is_positive_int,
@@ -129,6 +142,18 @@ def main_cli():
                     'posterior-summary')
             div_model_path = get_result_path(result_path_prefix,
                     'div-model-results')
+            config_path = results.prior_index_to_config[prior_idx]
+            time_multiplier = 1.0
+            if args.mu is not None:
+                if prior_cfg.time_in_subs_per_site:
+                    time_multiplier = 1.0 / args.mu
+                else:
+                    try:
+                        mean_theta = prior_cfg.theta.mean
+                    except:
+                        mean_theta = prior_cfg.d_theta.mean
+                    time_multiplier = mean_theta / args.mu
+
             if results.sort_index == 0:
                 #plot marginal times
                 if not posterior_summary_path:
@@ -139,13 +164,12 @@ def main_cli():
                 else:
                     label_dimension = (0.34 * (prior_cfg.npairs + 1)) + 0.56
                     marginal_times_plot = plotting.get_marginal_divergence_time_plot(
-                            config_path = results.prior_index_to_config[
-                                    prior_idx],
+                            config_path = config_path,
                             posterior_summary_path = posterior_summary_path,
                             labels = None,
                             estimate = 'median',
                             interval = 'HPD_95_interval',
-                            time_multiplier = 1.0,
+                            time_multiplier = time_multiplier,
                             horizontal = True,
                             label_dimension = label_dimension,
                             measure_dimension = 8.0,
@@ -157,7 +181,7 @@ def main_cli():
                             label_axis_label_size = 14.0,
                             usetex = False)
                     marginal_times_path = '{0}{1}'.format(out_prefix,
-                            'marginal-divergence-times.pdf')
+                            'marginal-divergence-times.' + args.extension)
                     marginal_times_plot.savefig(marginal_times_path)
 
                 #plot top ordered models
@@ -167,13 +191,22 @@ def main_cli():
                                     result_path_prefix,
                                     'div-model-results'))
                 else:
+                    height = 12.0
+                    margin_top = 0.99
+                    margin_left = 0.03
+                    padding_between_vertical = 0.8
+                    if prior_cfg.npairs < 4:
+                        height *= 0.8
+                        margin_top -= 0.01
+                        margin_left += 0.05
+                        padding_between_vertical += 0.3
                     width = (0.38 * prior_cfg.npairs) + 1.5
                     div_model_plot = plotting.OrderedDivergenceModelPlotGrid(
                             div_model_results_path = div_model_path,
-                            config_path = results.prior_index_to_config[
-                                    prior_idx],
+                            config_path = config_path,
                             num_top_models = 10,
-                            height = 12.0,
+                            time_multiplier = time_multiplier,
+                            height = height,
                             width = width,
                             plot_label_schema = 'uppercase',
                             plot_label_offset = 0,
@@ -182,14 +215,15 @@ def main_cli():
                             y_title_size = 14.0,
                             y_tick_label_size = 10.0,
                             right_text_size = 10.0,
-                            margin_left = 0.03,
+                            margin_left = margin_left,
                             margin_bottom = 0.0,
                             margin_right = 1,
-                            margin_top = 0.99,
-                            padding_between_vertical = 0.8)
+                            margin_top = margin_top,
+                            padding_between_vertical = padding_between_vertical,
+                            tab = 0.08)
                     plot = div_model_plot.create_grid()
                     div_model_plot_path = '{0}{1}'.format(out_prefix,
-                            'ordered-div-models.pdf')
+                            'ordered-div-models.' + args.extension)
                     plot.savefig(div_model_plot_path)
 
             else:
@@ -204,6 +238,7 @@ def main_cli():
                     div_model_plot = plotting.UnorderedDivergenceModelPlotGrid(
                             div_model_results_path = div_model_path,
                             num_top_models = 10,
+                            time_multiplier = time_multiplier,
                             height = 10.0,
                             width = width,
                             data_label_size = 10.0,
@@ -218,10 +253,11 @@ def main_cli():
                             margin_bottom = 0.0,
                             margin_right = 1,
                             margin_top = 0.99,
-                            padding_between_vertical = 0.8)
+                            padding_between_vertical = 0.8,
+                            tab = 0.08)
                     plot = div_model_plot.create_grid()
                     div_model_plot_path = '{0}{1}'.format(out_prefix,
-                            'ordered-div-models.pdf')
+                            'ordered-div-models.' + args.extension)
                     plot.savefig(div_model_plot_path)
 
             #plot ndiv plot
@@ -253,12 +289,17 @@ def main_cli():
                         width = width,
                         margin_bottom = 0.0,
                         margin_left = 0.0,
-                        margin_top = 0.98,
+                        margin_top = 0.97,
                         margin_right = 1.0,
                         padding_between_vertical = 1.0)
                 num_div_plot_path = '{0}{1}'.format(out_prefix,
-                        'number-of-divergences.pdf')
+                        'number-of-divergences.' + args.extension)
                 num_div_summary.save_plot(num_div_plot_path)
+
+                bf_plot_path = '{0}{1}'.format(out_prefix,
+                        ('number-of-divergences-bayes-factors-only.' +
+                                args.extension))
+                num_div_summary.save_bf_plot(bf_plot_path)
                 
                 num_div_bf_path = '{0}{1}'.format(out_prefix,
                         'number-of-divergences-bayes-factors.txt')
@@ -267,6 +308,8 @@ def main_cli():
                     for n in sorted(num_div_summary.psi_bayes_factors.keys()):
                         out.write('{0}\t{1}\n'.format(n,
                                 num_div_summary.psi_bayes_factors[n]))
+
+    log.info('The plots are in: {0}'.format(args.output_dir))
 
 def get_result_path(path_prefix, name):
     p = '{0}{1}.txt'.format(path_prefix, name)

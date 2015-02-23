@@ -3,11 +3,17 @@ Overview
 ********
 
 |pmb|_ provides a multi-processing interface to the comparative phylogeographic
-software packages |dpp-msbayes|_ and |msbayes|_. More generally, |pmb|_ can
-also serve as a multi-processing Python API for approximate Bayesian
-computation (ABC). The package is written by |jro|_.
+software packages |dpp-msbayes|_ and |msbayes|_.
+More generally, |pmb|_ can serve as a multi-processing Python API for inferring
+comparative models of diversification via approximate Bayesian computation
+(ABC).
+For more details about the methods implemented in |pmb|_ checkout :ref:`the
+background section<background>`.
+You should also be aware of :ref:`relevant caveats<caveats>` before using the
+method.
+The package is written by |jro|_.
 
-PyMsBayes is essentially a multi-processing wrapper around some popular ABC
+|pmb|_ is essentially a multi-processing wrapper around some popular ABC
 tools. Executables of the following tools come bundled with PyMsBayes:
 
  *  |dpp-msbayes|_

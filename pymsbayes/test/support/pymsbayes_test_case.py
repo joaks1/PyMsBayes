@@ -18,6 +18,12 @@ from pymsbayes.utils.parsing import (TAU_PATTERNS,
         MEAN_TAU_PATTERNS,
         OMEGA_PATTERNS,
         HEADER_PATTERN)
+_CV_INCLUDED = False
+try:
+    from pymsbayes.utils.parsing import CV_PATTERNS
+    _CV_INCLUDED = True 
+except ImportError:
+    pass
 from pymsbayes.config import MsBayesConfig
 from pymsbayes.utils.stats import SampleSummarizer
 from pymsbayes.utils import probability
@@ -95,6 +101,8 @@ class PyMsBayesTestCase(unittest.TestCase):
     def get_expected_indices(self, num_pairs, dummy_column=True,
             parameters_reported=True):
         num_summary_params = 4
+        if _CV_INCLUDED:
+            num_summary_params += 1
         num_params = 4*num_pairs
         num_default_stats = 4*num_pairs
         start = 0
@@ -167,6 +175,8 @@ class PyMsBayesTestCase(unittest.TestCase):
         configs = list(cfgs)
         c1 = configs.pop(0)
         for c2 in cfgs:
+            self.assertEqual(c1.time_in_subs_per_site,
+                    c2.time_in_subs_per_site)
             self.assertEqual(c1.npairs, c2.npairs)
             self.assertEqual(c1.implementation, c2.implementation)
             self.assertEqual(c1.div_model_prior, c2.div_model_prior)
@@ -174,7 +184,7 @@ class PyMsBayesTestCase(unittest.TestCase):
                     c2.bottle_proportion_shared)
             self.assertEqual(c1.theta_parameters, c2.theta_parameters)
             self.assertEqual(c1.taxa, c2.taxa)
-            self.assertEqual(c1.sample_table, c2.sample_table)
+            self.assertTrue(c1.sample_table.equals(c2.sample_table))
             if c1.psi:
                 self.assertSameDistributions(c1.psi, c2.psi)
             else:

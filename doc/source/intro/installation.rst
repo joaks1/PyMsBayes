@@ -26,26 +26,6 @@ work on your computer. If these tests pass, you are good to go and can install
 
     $ sudo python setup.py install
 
-If any of the tests fail and/or you get the following error message when you
-try to install |pmb|_::
-
-    **********************************************************************
-    ****************************** WARNING *******************************
-    The bundled `dpp-msbayes` tools are not being installed, because some
-    of them are not executable on this system. The `PyMsBayes` package and
-    scripts will still be installed, however, you will need to build and
-    install `dpp-msbayes` (https://github.com/joaks1/dpp-msbayes) yourself
-    in order to use them.  Sorry for the inconvenience.
-    **********************************************************************
-
-You will need to build and install |dpp-msbayes|_ from |dpp-msbayes-url|, and
-install |abctb|_ from |abctb_url|. After you install |dpp-msbayes|_ and
-|abctb|_ to your PATH, if you already ran the ``sudo python setup.py install``
-command above, you are good to go.  If you haven't, ``cd`` back to the
-``PyMsBayes`` directory and run this command (Note: you will still get the
-above warning message, but you can ignore it because the |dpp-msbayes|_ tools
-are already on your system).
-
 If the install was successful, you should be able to call up the help menu of
 the main program of |pmb|_::
 
@@ -82,4 +62,28 @@ You should see output that begins like::
                             data, do not use the `-r` option, and the fasta files
                             specified within the config must exist and contain the
                             sequence data.
-    
+
+
+Troubleshooting
+===============
+
+If any of the tests fail and/or you get the following error message when you
+try to install |pmb|_::
+
+    **********************************************************************
+    ****************************** WARNING *******************************
+    The bundled `dpp-msbayes` tools are not being installed, because some
+    of them are not executable on this system. The `PyMsBayes` package and
+    scripts will still be installed, however, you will need to build and
+    install `dpp-msbayes` (https://github.com/joaks1/dpp-msbayes) yourself
+    in order to use them.  Sorry for the inconvenience.
+    **********************************************************************
+
+You will need to build and install |dpp-msbayes|_ from |dpp-msbayes-url|, and
+install |abctb|_ from |abctb_url|. After you install |dpp-msbayes|_ and
+|abctb|_ to your PATH, if you already ran the ``sudo python setup.py install``
+command above, you are good to go.  If you haven't, ``cd`` back to the
+``PyMsBayes`` directory and run this command (Note: you will still get the
+above warning message, but you can ignore it because the |dpp-msbayes|_ tools
+are already on your system).
+

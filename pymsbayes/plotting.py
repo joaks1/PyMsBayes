@@ -1224,7 +1224,7 @@ class PlotGrid(object):
                     self.label_offset: self.label_offset + l]]
         elif self.label_schema == 'numbers':
             return [str(x) + s for x in range(
-                    self.label_offset + 1, self.label_offset + 2)]
+                    self.label_offset + 1, self.label_offset + l + 1)]
         else:
             raise Exception('invalid label schema {0!r}'.format(
                     self.label_schema))
@@ -1474,40 +1474,51 @@ class PowerPlotGrid(object):
             if len([e for e in estimates if ((e > 0.00000001) or (e < -0.00000001))]) < 1:
                 self.bins = list(functions.frange(0, 0.1, 20,
                         include_end_point = True))
-            hd = HistData(x = estimates,
-                    normed = True,
-                    bins = self.bins,
-                    histtype = 'bar',
-                    align = 'mid',
-                    orientation = 'vertical',
-                    zorder = 0)
-            # freqs = stats.get_freqs(estimates)
-            # s = ScatterPlot()
-            # f, bins, patches = hd.plot(s.ax)
-            # for i, v in enumerate(f):
-            #     assert probability.almost_equal(v, freqs.get(i + 1, 0))
-            xticks_obj = None
-            if (self.variable == 'psi') or (self.variable == 'tau_exclusion'):
-                tick_labels = []
-                for x in self.bins[0:-1]:
-                    if x % 2:
-                        tick_labels.append(str(x))
-                    else:
-                        tick_labels.append('')
-                kwargs = {'labels': tick_labels,
-                          'horizontalalignment': 'left'}
-                if self.xtick_label_size:
-                    kwargs['size'] = self.xtick_label_size
-                xticks_obj = Ticks(ticks = self.bins,
-                        **kwargs)
             if not self.include_right_text:
                 prob = None
-            hist = ScatterPlot(hist_data_list = [hd],
-                    vertical_lines = self.vertical_lines,
-                    left_text = dist,
-                    right_text = prob,
-                    xticks_obj = xticks_obj,
-                    tab = self.tab)
+            xticks_obj = None
+            if (self.variable == 'psi') or (self.variable == 'tau_exclusion'):
+                freq_dict = stats.get_freqs(estimates)
+                labels = list(range(1, self.num_taxon_pairs + 1))
+                freqs = [freq_dict.get(l, 0.0) for l in labels]
+                hd = BarData(values = freqs,
+                        labels = labels,
+                        width = 1.0,
+                        orientation = 'vertical',
+                        zorder = 0)
+                if self.num_taxon_pairs > 10:
+                    tick_labels = []
+                    for x in self.bins[0:-1]:
+                        if x % 2:
+                            tick_labels.append(str(x))
+                        else:
+                            tick_labels.append('')
+                    kwargs = {'labels': tick_labels,
+                              'horizontalalignment': 'left'}
+                    if self.xtick_label_size:
+                        kwargs['size'] = self.xtick_label_size
+                    xticks_obj = Ticks(ticks = self.bins,
+                            **kwargs)
+                hist = ScatterPlot(bar_data_list = [hd],
+                        vertical_lines = self.vertical_lines,
+                        left_text = dist,
+                        right_text = prob,
+                        xticks_obj = xticks_obj,
+                        tab = self.tab)
+            else:
+                hd = HistData(x = estimates,
+                        normed = True,
+                        bins = self.bins,
+                        histtype = 'bar',
+                        align = 'mid',
+                        orientation = 'vertical',
+                        zorder = 0)
+                hist = ScatterPlot(hist_data_list = [hd],
+                        vertical_lines = self.vertical_lines,
+                        left_text = dist,
+                        right_text = prob,
+                        xticks_obj = xticks_obj,
+                        tab = self.tab)
             if self.variable == 'omega':
                 hist.left_text_size = 12.0
                 hist.right_text_size = 12.0
@@ -1528,8 +1539,6 @@ class PowerPlotGrid(object):
                         labels = ytick_labels)
                 hist.xticks_obj = xticks_obj
                 hist.yticks_obj = yticks_obj
-            if self.variable == 'psi':
-                hist.set_xlim(left = (self.bins[0]), right = (self.bins[-1]))
             if self.text_size:
                 hist.left_text_size = self.text_size
                 hist.right_text_size = self.text_size
@@ -1819,6 +1828,7 @@ class ProbabilityValidationPlotGrid(object):
             omega_validation_probs_glm,
             omega_symbol = r'\Omega',
             psi_symbol = r'\Psi',
+            label_schema = 'uppercase',
             plot_glm = True,
             math_font = None,
             width = 8,
@@ -1846,6 +1856,7 @@ class ProbabilityValidationPlotGrid(object):
         self.margin_top = margin_top
         self.padding_between_horizontal = padding_between_horizontal
         self.padding_between_vertical = padding_between_vertical
+        self.label_schema = label_schema
         self.tab = tab
         self.num_columns = 2
         self.psi = psi_validation_probs
@@ -1917,7 +1928,7 @@ class ProbabilityValidationPlotGrid(object):
                 num_columns = self.num_columns,
                 share_x = True,
                 share_y = True,
-                label_schema = 'uppercase',
+                label_schema = self.label_schema,
                 width = self.width,
                 height = self.height,
                 auto_height = self.auto_height)
@@ -2534,6 +2545,7 @@ class ValidationResult(object):
             omega_symbol = r'\Omega',
             psi_symbol = r'\Psi',
             mean_time_symbol = r'E(\tau)',
+            label_schema = 'uppercase',
             math_font = None,
             prob_plot_glm = True,
             prob_plot_height = 9,
@@ -2552,6 +2564,7 @@ class ValidationResult(object):
         self.omega_symbol = omega_symbol
         self.psi_symbol = psi_symbol
         self.mean_time_symbol = mean_time_symbol
+        self.label_schema = label_schema
         self.math_font = math_font
         self.prob_plot_glm = prob_plot_glm
         self.prob_plot_height = prob_plot_height
@@ -2622,6 +2635,7 @@ class ValidationResult(object):
                 omega_validation_probs_glm = self.omega.validation_probs_glm,
                 omega_symbol = self.omega_symbol,
                 psi_symbol = self.psi_symbol,
+                label_schema = self.label_schema,
                 plot_glm = self.prob_plot_glm,
                 height = self.prob_plot_height,
                 margin_left = self.prob_plot_margin_left,
@@ -2653,6 +2667,7 @@ def plot_validation_results(info_path,
         omega_symbol = r'\Omega',
         psi_symbol = r'\Psi',
         mean_time_symbol = r'E(\tau)',
+        label_schema = 'uppercase',
         math_font = None,
         plot_accuracy = True,
         prob_plot_glm = True,
@@ -2691,6 +2706,7 @@ def plot_validation_results(info_path,
                     omega_symbol = omega_symbol,
                     psi_symbol = psi_symbol,
                     mean_time_symbol = mean_time_symbol,
+                    label_schema = label_schema,
                     prob_plot_glm = prob_plot_glm,
                     prob_plot_height = prob_plot_height,
                     prob_plot_margin_left = prob_plot_margin_left,
@@ -2749,6 +2765,7 @@ def get_tau_prior_in_generations(cfg, mu = 1e-8):
 class UnorderedDivergenceModelPlotGrid(object):
     def __init__(self, div_model_results_path,
             num_top_models = 10,
+            time_multiplier = 1.0,
             height = 10.0,
             width = 8.0,
             data_label_size = 10.0,
@@ -2763,7 +2780,8 @@ class UnorderedDivergenceModelPlotGrid(object):
             margin_bottom = 0.0,
             margin_right = 1,
             margin_top = 0.99,
-            padding_between_vertical = 0.8):
+            padding_between_vertical = 0.8,
+            tab = 0.08):
         self.model_results = sumresults.UnorderedDivergenceModelResults(
                 div_model_results_path = div_model_results_path,
                 inclusion_threshold = num_top_models)
@@ -2782,8 +2800,10 @@ class UnorderedDivergenceModelPlotGrid(object):
         self.margin_bottom = margin_bottom
         self.margin_top = margin_top
         self.padding_between_vertical = padding_between_vertical
+        self.tab = tab
         self.subplots = []
         self.plot_grid = None
+        self.time_multiplier = time_multiplier
         self.populate_subplots()
 
     def populate_subplots(self):
@@ -2796,9 +2816,9 @@ class UnorderedDivergenceModelPlotGrid(object):
             error_maxs = []
             for k, d in m.iter_divergences():
                 labels.append(str(k))
-                times.append(d['median'])
-                error_mins.append(d['hpdi_95'][0])
-                error_maxs.append(d['hpdi_95'][1])
+                times.append(d['median'] * self.time_multiplier)
+                error_mins.append(d['hpdi_95'][0] * self.time_multiplier)
+                error_maxs.append(d['hpdi_95'][1] * self.time_multiplier)
             mn = min([mn] + error_mins)
             mx = max([mx] + error_maxs)
             ed = ErrorData(labels = labels,
@@ -2809,7 +2829,8 @@ class UnorderedDivergenceModelPlotGrid(object):
                     labels_in_plot = True)
             s = r'$p(\mathbf{{t}} \, | \, B_{{\epsilon}}(S*)) = {0:.3f}$'.format(m.prob)
             sp = ScatterPlot(error_data_list = [ed],
-                    right_text = s)
+                    right_text = s,
+                    tab = self.tab)
             sp.right_text_size = self.right_text_size
             self.subplots.append(sp)
         fig = plt.figure()
@@ -2854,6 +2875,7 @@ class OrderedDivergenceModelPlotGrid(object):
     def __init__(self, div_model_results_path,
             config_path = None,
             num_top_models = 10,
+            time_multiplier = None,
             height = 12.0,
             width = 8.0,
             plot_label_schema = 'uppercase',
@@ -2867,7 +2889,8 @@ class OrderedDivergenceModelPlotGrid(object):
             margin_bottom = 0.0,
             margin_right = 1,
             margin_top = 0.99,
-            padding_between_vertical = 0.8):
+            padding_between_vertical = 0.8,
+            tab = 0.08):
         self.model_results = sumresults.OrderedDivergenceModelResults(
                 div_model_results_path = div_model_results_path,
                 inclusion_threshold = num_top_models)
@@ -2891,6 +2914,8 @@ class OrderedDivergenceModelPlotGrid(object):
         self.margin_bottom = margin_bottom
         self.margin_top = margin_top
         self.padding_between_vertical = padding_between_vertical
+        self.tab = tab
+        self.time_multiplier = time_multiplier
         self.subplots = []
         self.plot_grid = None
         self.populate_subplots()
@@ -2909,12 +2934,12 @@ class OrderedDivergenceModelPlotGrid(object):
                     labels.append(self.taxa[i])
                 else:
                     labels.append(str(i+1))
-                times.append(d['median'])
-                error_mins.append(d['hpdi_95'][0])
-                error_maxs.append(d['hpdi_95'][1])
+                times.append(d['median'] * self.time_multiplier)
+                error_mins.append(d['hpdi_95'][0] * self.time_multiplier)
+                error_maxs.append(d['hpdi_95'][1] * self.time_multiplier)
                 if not k in [i for i, l in horizontal_lines]:
-                    horizontal_lines.append((k,
-                            HorizontalLine(y = d['median'])))
+                    horizontal_lines.append((k, HorizontalLine(
+                            y = d['median'] * self.time_multiplier)))
             horizontal_lines = [l for i, l in horizontal_lines]
             mn = min([mn] + error_mins)
             mx = max([mx] + error_maxs)
@@ -2931,7 +2956,8 @@ class OrderedDivergenceModelPlotGrid(object):
             sp = ScatterPlot(error_data_list = [ed],
                     horizontal_lines = horizontal_lines,
                     right_text = s,
-                    left_text = l)
+                    left_text = l,
+                    tab = self.tab)
             sp.right_text_size = self.right_text_size
             sp.left_text_size = self.right_text_size
             self.subplots.append(sp)
@@ -2953,7 +2979,7 @@ class OrderedDivergenceModelPlotGrid(object):
         self.plot_grid = PlotGrid(subplots = self.subplots,
                 num_columns = 1,
                 share_x = True,
-                share_y = True,
+                share_y = False,
                 label_schema = self.plot_label_schema,
                 label_offset = self.plot_label_offset,
                 y_title = self.y_title,
@@ -2968,9 +2994,9 @@ class OrderedDivergenceModelPlotGrid(object):
         self.plot_grid.margin_right = self.margin_right
         self.plot_grid.margin_top = self.margin_top
         self.plot_grid.padding_between_vertical = self.padding_between_vertical
-        self.plot_grid.reset_figure()
-        # self.plot_grid.set_shared_x_limits()
         # self.plot_grid.reset_figure()
+        self.plot_grid.set_shared_y_limits()
+        self.plot_grid.reset_figure()
         return self.plot_grid
 
 class NumberOfDivergencesSummary(object):
@@ -2994,6 +3020,7 @@ class NumberOfDivergencesSummary(object):
         self.omega = None
         self.omega_hpd = None
         self.plot = None
+        self.bf_plot = None
         self._parse_psi_results_path()
         self._parse_posterior_summary_file()
         self._simulate_psi_prior_probs()
@@ -3082,9 +3109,10 @@ class NumberOfDivergencesSummary(object):
             ytick_label_size = 8.0,
             height = 6.0,
             width = 3.0,
+            bf_height = 2.5,
             margin_bottom = 0.0,
             margin_left = 0.0,
-            margin_top = 0.98,
+            margin_top = 0.97,
             margin_right = 1.0,
             padding_between_vertical = 1.0):
         if not MATPLOTLIB_AVAILABLE:
@@ -3146,6 +3174,13 @@ class NumberOfDivergencesSummary(object):
                         x_label_size = x_label_size,
                         ),
                 ]
+        bf_scatterplot = ScatterPlot(
+                        bar_data_list = [psi_bayes_factor_bar_data],
+                        y_label = '2ln(Bayes factor)',
+                        y_label_size = y_label_size,
+                        x_label = r'Number of divergence events, $|\tau|$',
+                        x_label_size = x_label_size,
+                        )
         for p in plots:
             p.right_text_size = right_text_size
             p.plot_label_size = plot_label_size
@@ -3175,9 +3210,28 @@ class NumberOfDivergencesSummary(object):
         self.plot.reset_figure()
         self.plot.reset_figure()
 
+        self.bf_plot = PlotGrid(subplots = [bf_scatterplot],
+                num_columns = 1,
+                label_schema = None,
+                share_x = True,
+                share_y = False,
+                height = bf_height,
+                width = width,
+                auto_height = False)
+        self.bf_plot.auto_adjust_margins = False
+        self.bf_plot.margin_top = 1.0
+        self.bf_plot.margin_bottom = 0.0 
+        self.bf_plot.margin_right = 1.0 
+        self.bf_plot.margin_left = 0.0
+        self.bf_plot.reset_figure()
+
     def save_plot(self, path):
         if self.plot:
             self.plot.savefig(path)
+
+    def save_bf_plot(self, path):
+        if self.bf_plot:
+            self.bf_plot.savefig(path)
 
 
 def get_marginal_divergence_time_plot(config_path, posterior_summary_path,
