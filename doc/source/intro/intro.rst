@@ -9,6 +9,8 @@ comparative models of diversification via approximate Bayesian computation
 (ABC).
 For more details about the methods implemented in |pmb|_ checkout :ref:`the
 background section<background>`.
+You should also be aware of :ref:`relevant caveats<caveats>` before using the
+method.
 The package is written by |jro|_.
 
 |pmb|_ is essentially a multi-processing wrapper around some popular ABC

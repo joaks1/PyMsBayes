@@ -412,6 +412,8 @@ We can see from the output above, that with a shape parameter of 2.0 for the
 gamma prior on the concentration parameter, the prior probability of the number
 of divergence events is now more spread out.
 
+.. _too_many_taxa:
+
 .. important:: 
     :class: keypoint
 

@@ -2,9 +2,9 @@
 .. role:: hlight 
 .. role:: codehlight 
 
-.. contents:: 
-    :local:
-    :depth: 3
+.. .. contents:: 
+..     :local:
+..     :depth: 3
 
 .. _simple_empirical_analysis:
 

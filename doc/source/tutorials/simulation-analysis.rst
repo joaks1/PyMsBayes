@@ -2,9 +2,9 @@
 .. role:: hlight 
 .. role:: codehlight 
 
-.. contents:: 
-    :local:
-    :depth: 3
+.. .. contents:: 
+..     :local:
+..     :depth: 3
 
 .. _simulation_analysis:
 
@@ -136,11 +136,12 @@ and
 respectively.
 
 From this, we know, for example, that all of the results in
-|output-dir|\ ``d3/m2/``
+|output-dir|\ ``/d3/m2/``
 directory are from datasets simulated under the ``d3`` model
 (``exponential-06.cfg``) and analyzed under the ``m2`` model (``msbayes.cfg``).
 You will also see that there are results for 100 simulated datasets in that
-directory (i.e., ``d3-m2-s1`` - ``d3-m2-s100``).
+directory (i.e., you will see file prefixes from ``d3-m2-s1`` to
+``d3-m2-s100``).
 
 Overall, you will find that there are results for all the data models
 analyzed under all of the prior models nested in the directories:
@@ -159,12 +160,12 @@ Summarizing the results
 
 To summarize the results across the 100 simulated datasets across all 6
 directories of simulation results, we can use the |ldmcss| program.
-All we need to do is tell |ldmcss| where the ``pymsbayes-info.txt``
-file is from our analysis:
+All we need to do is tell |ldmcss| where to find the ``pymsbayes-info.txt``
+file from our analysis:
 
 .. parsed-literal::
 
-    $ |dmcss| |result-dir|\ ``pymsbayes-info.txt``
+    $ |dmcss| |result-dir|\ ``/pymsbayes-info.txt``
 
 
 After running |ldmcss| we will find
@@ -180,13 +181,13 @@ the output directories:
 
 These files summarize the results across the analyses of all 100 simulated
 datasets.
-We can also tell |ldmcss| to create some plots summarzing the results:
+We can also tell |ldmcss| to create some plots summarizing the results:
 
 .. parsed-literal::
 
-    $ |dmcss| |result-dir|\ ``pymsbayes-info.txt`` --plot
+    $ |dmcss| |result-dir|\ ``/pymsbayes-info.txt`` --plot
 
-This will create a new directory |result-dir|\ ``plots`` with 6 PDF files
+This will create a new directory |result-dir|\ ``/plots`` with 6 PDF files
 containing plots:
 
 *   ``dpp-simple_accuracy_cv_median.pdf``
@@ -208,7 +209,7 @@ Let's take a look at the three kinds of plots that are created.
 CV accuracy plots
 =================
 
-These plots simply compares the true versus estimated (posterior median) values
+These plots simply compare the true versus estimated (posterior median) values
 for the coefficient of variation (CV) of divergence times.
 
 .. _cv_accuracy_plot:
@@ -221,10 +222,10 @@ for the coefficient of variation (CV) of divergence times.
     The true versus estimated values of the coefficient of variation of
     divergence times.
 
-Histograms of the estimates of the number of divergence events
-==============================================================
+Histograms of the estimated number of divergence events
+=======================================================
 
-These plot shows a histogram of the estimated (posterior mode) number of
+These plots show a histogram of the estimated (posterior mode) number of
 divergence events across all the analyses of simulated data.
 
 .. _power_psi_mode_plot:

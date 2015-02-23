@@ -2,9 +2,9 @@
 .. role:: hlight 
 .. role:: codehlight 
 
-.. contents:: 
-    :local:
-    :depth: 3
+.. .. contents:: 
+..     :local:
+..     :depth: 3
 
 .. _multiple_model_analysis:
 
@@ -66,8 +66,8 @@ This specifies an |msbayes|_ model that is roughly equivalent to the
 |dpp-msbayes|_ model specified in ``dpp-simple.cfg`` in terms of prior
 uncertainty about divergence times and population sizes.
 Notice that |pmb|_ and the version of |msbayes| that comes with |dpp-msbayes|_
-support the options ``lowerTau`` and ``timeInSubsPerSite``,
-which are not supported in |msbayes|_ version of :cite:`Huang2011`.
+support the options ``lowerTau`` and ``timeInSubsPerSite``, which are not
+supported in the |msbayes|_ version of :cite:`Huang2011`.
 
 The output
 ==========
@@ -140,18 +140,18 @@ the ``msbayes.cfg`` model within the |output-dir|\ ``/d1/m2`` directory.
 Model-averaged results
 ----------------------
 
-In addition to the results of the analyses under both models, there is also
+In addition to the results of the analyses under both models, there are also
 results in the |output-dir|\ ``/d1/m12-combined`` directory that are averaged
 over both models.
-This kind of model averaged results were encouraged by :cite:`Hickerson2013`,
+This kind of model-averaging analysis was encouraged by :cite:`Hickerson2013`,
 however, :cite:`Oaks2014reply` found such model-averaged analyses to perform
 quite poorly.
 Nonetheless, the option is yours to explore these types of model-averaging
 analyses.
 
 Rather than summarize and plot the results of this very short example
-multi-model analysis, let's go ahead and look at some provided output from the
-same analysis run for many more samples from the prior models.
+multi-model analysis, let's go ahead and look at some output from the
+same analysis run for many more samples from the priors.
 
 Output from a longer analysis
 =============================
@@ -182,7 +182,7 @@ both prior models (``-n 10000000``), and report the results
 every 200,000 samples (``--reporting-frequency 200000``).
 Furthermore, the first 100,000 samples from each prior will be used to
 standardize the summary statistics calculated from all the prior simulations
-and the observed data (``num-standardizing-samples 100000``).
+and the observed data (``--num-standardizing-samples 100000``).
 I chose the number of processes (``--np 8``) and the size of the "batches" in
 which the prior samples will be generated (``--prior-batch-size 12500``) such
 that their product (100,000 samples) is a common factor of the number of
@@ -430,7 +430,7 @@ Here is the output::
     2ln(Bayes factor) = -0.158264960929
 
 As we can see, the |dpp-msbayes|_ model approximates moderate support (2ln(BF)
-= 2.32 for the correct model of divergence, whereas the |msbayes|_ model
+= 2.32) for the correct model of divergence, whereas the |msbayes|_ model
 actually results in support *against* the correct divergence model (2ln(BF) =
 -0.16).
 

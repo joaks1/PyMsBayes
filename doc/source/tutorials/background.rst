@@ -14,21 +14,21 @@ Comparative divergence models
 
 Biogeographers are often interested in understanding how large-scale processes
 affect diversification and community assembly.
-In order to do this, we can infer the history of diversification across
-co-distributed species and test for patterns predicted by historical processes
-of interest (e.g., changes in climate fragmenting communities).
+One way to approach this challenge is to infer the history of diversification
+across co-distributed species and test for patterns predicted by historical
+processes of interest (e.g., changes in climate fragmenting communities).
 For example, if an event split a community of species 260,000 years ago, we
 might expect the divergences to be temporally clustered across multiple species
 co-distributed across the barrier created by the event (the ominous "black
-rectangle" below).
+rectangle" :ref:`below<divergence_model_111>`).
 More specifically, let's say we are interested in investigating three species
 of lizards that are co-distributed across the putative barrier.
 In order to infer the affect of the historical event on diversification, we
 want to compare, across the three species, the timing of the divergence between
 the populations on opposite sides of the putative barrier.
 If the historical event caused divergence, we would expect that each of the
-three pairs of lizard populations (or some subset of them) diverged at the same
-time, as shown in :ref:`the figure below<divergence_model_111>`.
+three pairs of lizard populations (or some subset of them) diverged around the
+same time, as shown in :ref:`the figure below<divergence_model_111>`.
 
 .. _divergence_model_111:
 .. figure:: /_static/div-model-cartoon-111.png
@@ -179,7 +179,7 @@ For example, for model :math:`\divModel{1}` in :ref:`Figure Divergence Model
 111<divergence_model_111>` above, the divergence times would be
 :math:`\divTimeMapVector = 260, 260, 260` (in thousands of years).
 For model :math:`\divModel{5}` in :ref:`Figure Divergence Model
-123<divergence_model_123` above, the divergence times would be 
+123<divergence_model_123>` above, the divergence times would be 
 :math:`\divTimeMapVector = 260, 96, 397`.
 In order to learn about the affect the "black rectangle" had on the
 diversification of these lizard populations, it would be ideal if we could
@@ -200,7 +200,7 @@ For simplicity, let's lump all the parameters of the substitution and
 coalescent models for all three pairs of lizard populations into
 :math:`\demographicParamVector`.
 Let's also use :math:`\alignmentVector` to represent all of our sequence
-alignments (which are in the directory |lizard-seq-dir|_).
+alignments.
 Lastly, let's use :math:`\geneTreeVector` to represent all of the gene trees
 (one for each alignment) that relate the sequences in our alignments.
 If we make assumptions about the relative rates of mutations and the relative
@@ -336,8 +336,8 @@ Approximate-likelihood techniques use simulations to avoid calculating the
 likelihood function.
 The idea is very simple: given values for all the parameters in the model, we
 simulate a dataset with the same "dimensions" as the observed data (i.e., the
-same number of sequence alignments with same number of rows and columns), and
-compare the simulated dataset to the observed data.
+same number of sequence alignments with the same number of rows and columns),
+and compare the simulated dataset to the observed data.
 The closer to the observed data, the higher the likelihood for the set of
 parameter values.
 If we did this many times, randomly drawing the set of parameter values from
@@ -679,8 +679,8 @@ decrease the concentration parameter.
 
 .. _sorting_taxa:
 
-Re-sorting the taxa during ABC algorithm
-========================================
+Re-sorting the taxa during the ABC algorithm
+============================================
 
 As discussed in :cite:`Oaks2014dpp`, before |msbayes|_ compares the simulated
 and observed summary statistics to determine whether or not to retain the set
@@ -695,11 +695,11 @@ must have :hlight:`identical`:
 #. HKY85 substitution model parameters
 #. Mutation-rate multipliers
 #. Ploidy multipliers
+#. The same loci sampled for all taxa
 
-Furthermore, you must have the same loci for all of the taxa.
 If any of these conditions are not met, which is the case for almost
 all empirical datasets, the re-sorting that is done by |msbayes|_ is
-invalid, and can produce biased results.
+mathematically incorrect, and can produce biased results.
 
 For example, below are some results based on analyses of 100,000 simulated
 datasets.
