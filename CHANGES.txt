@@ -15,7 +15,7 @@ New Features
     of simulation-based analyses.
 -   New "-m/--mu" option added to ``dmc_plot_results.py`` script for specifying
     the mutation rate to rescale time to generations.
--   New "--extension" option added to ``dmc_plot_results.py``script to allow
+-   New "--extension" option added to ``dmc_plot_results.py`` script to allow
     the file format of the plots to be specified.
 -   Adding new worker classes to the API for simulating data via Joseph Heled's
     ``biopy`` package.
