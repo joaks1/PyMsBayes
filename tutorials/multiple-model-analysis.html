@@ -1,0 +1,513 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>4.6. An Empirical Analysis under Multiple Models &mdash; PyMsBayes 0.3.2 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/pymsbayes.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.3.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/dpp.js"></script>
+    <link rel="top" title="PyMsBayes 0.3.2 documentation" href="../index.html" />
+    <link rel="up" title="4. PyMsBayes Tutorials" href="index.html" />
+    <link rel="next" title="4.7. A Simulation-based Validation Analysis" href="simulation-analysis.html" />
+    <link rel="prev" title="4.5. A Simple Empirical Analysis" href="simple-empirical-analysis.html" /> 
+  </head>
+  <body>
+<div id="header_wrap" class="outer">
+    <header class="inner">
+      <a id="forkme_banner" href="https://github.com/joaks1/PyMsBayes">View on GitHub</a>
+
+      <h1 id="project_title"><a href="../index.html">PyMsBayes</a></h1>
+      <h2 id="project_tagline">A multi-processing Python wrapper and API for approximate-Bayesian phylgeographical inference</h2>
+
+        <section id="downloads">
+          <a class="zip_download_link" href="https://github.com/joaks1/PyMsBayes/zipball/master">Download this project as a .zip file</a>
+          <a class="tar_download_link" href="https://github.com/joaks1/PyMsBayes/tarball/master">Download this project as a tar.gz file</a>
+        </section>
+    </header>
+</div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="simulation-analysis.html" title="4.7. A Simulation-based Validation Analysis"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="simple-empirical-analysis.html" title="4.5. A Simple Empirical Analysis"
+             accesskey="P">previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="../intro/installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+
+          <li><a href="index.html" accesskey="U">4. PyMsBayes Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../doc.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">4.6. An Empirical Analysis under Multiple Models</a><ul>
+<li><a class="reference internal" href="#the-output">4.6.1. The output</a><ul>
+<li><a class="reference internal" href="#the-info-file">4.6.1.1. The info file</a></li>
+<li><a class="reference internal" href="#the-data-and-model-keys-and-corresponding-directories">4.6.1.2. The data and model keys and corresponding directories</a></li>
+<li><a class="reference internal" href="#model-averaged-results">4.6.1.3. Model-averaged results</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#output-from-a-longer-analysis">4.6.2. Output from a longer analysis</a><ul>
+<li><a class="reference internal" href="#additional-results-reported-during-analysis">4.6.2.1. Additional results reported during analysis</a></li>
+<li><a class="reference internal" href="#the-trace-file">4.6.2.2. The trace file</a></li>
+<li><a class="reference internal" href="#plotting-the-results">4.6.2.3. Plotting the results</a></li>
+<li><a class="reference internal" href="#the-marginal-divergence-time-plots">4.6.2.4. The marginal divergence time plots</a></li>
+<li><a class="reference internal" href="#the-number-of-divergence-events-plots">4.6.2.5. The number of divergence events plots</a></li>
+<li><a class="reference internal" href="#the-divergence-models-plot">4.6.2.6. The divergence models plot</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#summarzing-results-about-divergence-time-scenarios">4.6.3. Summarzing results about divergence-time scenarios</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="simple-empirical-analysis.html"
+                        title="previous chapter">4.5. A Simple Empirical Analysis</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="simulation-analysis.html"
+                        title="next chapter">4.7. A Simulation-based Validation Analysis</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/tutorials/multiple-model-analysis.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="an-empirical-analysis-under-multiple-models">
+<span id="multiple-model-analysis"></span><h1>4.6. An Empirical Analysis under Multiple Models<a class="headerlink" href="#an-empirical-analysis-under-multiple-models" title="Permalink to this headline">¶</a></h1>
+<p>For this tutorial, I will assume that you have already run through
+the <a class="reference internal" href="simple-empirical-analysis.html#simple-empirical-analysis"><em>simple empirical analysis</em></a>,
+so we will go into a lot less detail here.</p>
+<p>In the tutorial for the <a class="reference internal" href="simple-empirical-analysis.html#simple-empirical-analysis"><em>simple empirical
+analysis</em></a>,
+we performed a basic analysis of the lizard sequence data under
+the model specified in the <tt class="docutils literal"><span class="pre">dpp-simple.cfg</span></tt> configuration file.
+We did this by entering the following at the command line
+from within the <tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/configs</span></tt> directory:</p>
+<pre class="literal-block">
+$ dmc.py -o dpp-simple.cfg -p dpp-simple.cfg -n 5000
+</pre>
+<p>One nice feature of <tt class="docutils literal"><span class="pre">dmc.py</span></tt> is that it is very easy to perform analyses
+of the same data under an arbitrary number of different models.
+For example, we can easily expand on our example above to analyze the lizard
+data under two different models: the <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> model specified in the
+<tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/configs</span></tt><tt class="docutils literal"><span class="pre">/dpp-simple.cfg</span></tt> configuration file and an <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a>
+model specified in the <tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/configs</span></tt><tt class="docutils literal"><span class="pre">msbayes.cfg</span></tt> file:</p>
+<pre class="literal-block">
+$ dmc.py -o dpp-simple.cfg -p dpp-simple.cfg msbayes.cfg -n 5000
+</pre>
+<p>Notice, we now specify both of the model configuration files for the prior
+model (<tt class="docutils literal"><span class="pre">-p</span></tt>) option.
+Also, because both of the configuration files share the same sample table,
+it does not matter which one is specified for the observed-data configuration
+option (<tt class="docutils literal"><span class="pre">-o</span></tt>) (i.e., either way the observed summary statistics will be
+calculated from the same sequence alignments).</p>
+<p>What this new command accomplishes is that <tt class="docutils literal"><span class="pre">dmc.py</span></tt> will now analyze the
+data under both models simultaneously.
+This will take a little longer to run than the previous analysis, but should
+finish in less than a few minutes or so on a modern laptop.</p>
+<p>The <tt class="docutils literal"><span class="pre">msbayes.cfg</span></tt> configuration file has the following preamble:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">lowerTheta</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">upperTheta</span> <span class="o">=</span> <span class="mf">0.01</span>
+<span class="n">timeInSubsPerSite</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">lowerTau</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">upperTau</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="n">numTauClasses</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">upperMig</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">upperRec</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">upperAncPopSize</span> <span class="o">=</span> <span class="mf">1.0</span>
+</pre></div>
+</div>
+<p>This specifies an <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> model that is roughly equivalent to the
+<a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> model specified in <tt class="docutils literal"><span class="pre">dpp-simple.cfg</span></tt> in terms of prior
+uncertainty about divergence times and population sizes.
+Notice that <a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a> and the version of msBayes that comes with <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a>
+support the options <tt class="docutils literal"><span class="pre">lowerTau</span></tt> and <tt class="docutils literal"><span class="pre">timeInSubsPerSite</span></tt>, which are not
+supported in the <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> version of <a class="reference internal" href="../zbib/references.html#huang2011" id="id1">[6]</a>.</p>
+<div class="section" id="the-output">
+<h2>4.6.1. The output<a class="headerlink" href="#the-output" title="Permalink to this headline">¶</a></h2>
+<p>Because we analyzed the data under two models, we will now have
+more output.
+There should be a new directory named <tt class="docutils literal"><span class="pre">pymsbayes-results</span></tt> that was created when you
+ran the analysis.
+If you still had the <tt class="docutils literal"><span class="pre">pymsbayes-results</span></tt> in the <tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/configs</span></tt> from the previous
+analysis, then the new results will be output to a new directory named
+<tt class="docutils literal"><span class="pre">pymsbayes-results</span></tt><tt class="docutils literal"><span class="pre">-0</span></tt>.</p>
+<div class="section" id="the-info-file">
+<h3>4.6.1.1. The info file<a class="headerlink" href="#the-info-file" title="Permalink to this headline">¶</a></h3>
+<p>Our new <tt class="docutils literal"><span class="pre">pymsbayes-results/pymsbayes.info.txt</span></tt>, will look something
+like:</p>
+<div class="highlight-python"><div class="highlight"><pre>[pymsbayes]
+    version = Version 0.2.4
+    output_directory = /home/jamie/software/dev/pymsbayes-tutorial-data/lizards/configs/pymsbayes-results-0
+    temp_directory = /home/jamie/software/dev/pymsbayes-tutorial-data/lizards/configs/pymsbayes-results-0/temp-files-5ym88h
+    sort_index = 0
+    simulation_reps = 0
+    seed = 192883961
+    num_processors = 8
+    num_prior_samples = 5000
+    num_standardizing_samples = 5000
+    bandwidth = 0.002
+    posterior_quantiles = 1000
+    posterior_sample_size = 1000
+    stat_patterns = ^\s*pi\.\d+\s*$, ^\s*wattTheta\.\d+\s*$, ^\s*pi\.net\.\d+\s*$, ^\s*tajD\.denom\.\d+\s*$
+    num_taxon_pairs = 3
+    dry_run = False
+    [[tool_paths]]
+            dpp_msbayes = /home/jamie/software/dev/PyMsBayes/bin/linux/dpp-msbayes.pl
+            msbayes = /home/jamie/software/dev/PyMsBayes/bin/linux/msbayes.pl
+            eureject = /home/jamie/software/dev/PyMsBayes/bin/linux/eureject
+            abcestimator = /home/jamie/software/dev/PyMsBayes/bin/linux/ABCestimator
+    [[observed_configs]]
+            1 = ../dpp-simple.cfg
+    [[observed_paths]]
+            1 = observed-summary-stats/observed-1.txt
+    [[prior_configs]]
+            1 = ../dpp-simple.cfg
+            2 = ../msbayes.cfg
+    [[run_stats]]
+            start_time = 2015-02-11 19:40:17.874783
+            stop_time = 2015-02-11 19:41:33.645795
+            total_duration = 0:01:15.771012
+</pre></div>
+</div>
+<p>This is very similar to our first analysis, except that there are now two prior
+configs listed.</p>
+</div>
+<div class="section" id="the-data-and-model-keys-and-corresponding-directories">
+<h3>4.6.1.2. The data and model keys and corresponding directories<a class="headerlink" href="#the-data-and-model-keys-and-corresponding-directories" title="Permalink to this headline">¶</a></h3>
+<p>If we look within the new <tt class="docutils literal"><span class="pre">pymsbayes-results/pymsbayes-output</span></tt> directory, we will
+see that the <tt class="docutils literal"><span class="pre">model-key.txt</span></tt> now contains:</p>
+<div class="highlight-python"><div class="highlight"><pre>m1 = ../../dpp-simple.cfg
+m2 = ../../msbayes.cfg
+</pre></div>
+</div>
+<p>This tells us that we will find the results of the analysis under
+the <tt class="docutils literal"><span class="pre">dpp-simple.cfg</span></tt> model within the <tt class="docutils literal"><span class="pre">pymsbayes-results/pymsbayes-output</span></tt><tt class="docutils literal"><span class="pre">/d1/m1</span></tt>
+directory, and will find the results of the analysis under
+the <tt class="docutils literal"><span class="pre">msbayes.cfg</span></tt> model within the <tt class="docutils literal"><span class="pre">pymsbayes-results/pymsbayes-output</span></tt><tt class="docutils literal"><span class="pre">/d1/m2</span></tt> directory.</p>
+</div>
+<div class="section" id="model-averaged-results">
+<h3>4.6.1.3. Model-averaged results<a class="headerlink" href="#model-averaged-results" title="Permalink to this headline">¶</a></h3>
+<p>In addition to the results of the analyses under both models, there are also
+results in the <tt class="docutils literal"><span class="pre">pymsbayes-results/pymsbayes-output</span></tt><tt class="docutils literal"><span class="pre">/d1/m12-combined</span></tt> directory that are averaged
+over both models.
+This kind of model-averaging analysis was encouraged by <a class="reference internal" href="../zbib/references.html#hickerson2013" id="id2">[5]</a>,
+however, <a class="reference internal" href="../zbib/references.html#oaks2014reply" id="id3">[9]</a> found such model-averaged analyses to perform
+quite poorly.
+Nonetheless, the option is yours to explore these types of model-averaging
+analyses.</p>
+<p>Rather than summarize and plot the results of this very short example
+multi-model analysis, let&#8217;s go ahead and look at some output from the
+same analysis run for many more samples from the priors.</p>
+</div>
+</div>
+<div class="section" id="output-from-a-longer-analysis">
+<h2>4.6.2. Output from a longer analysis<a class="headerlink" href="#output-from-a-longer-analysis" title="Permalink to this headline">¶</a></h2>
+<p>In the tutorial data you downloaded, you can find the output of the same
+multi-model analysis we ran above, but run for much longer.
+You can find these results in the directory, <a class="reference external" href="https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/results/sample-output/lizard-analysis"><tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/results/sample-output/lizard-analysis</span></tt></a>.</p>
+<p>These results were generated via the following command, which took
+less than a day to run on a laptop:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ dmc.py --np 8 \
+    -o dpp-simple.cfg \
+    -p dpp-simple.cfg msbayes.cfg \
+    -n 10000000 \
+    --prior-batch-size 12500 \
+    --num-posterior-samples 1000 \
+    --num-standardizing-samples 100000 \
+    -q 1000 \
+    --reporting-frequency 200000 \
+    --compress \
+    --seed 845225390
+</pre></div>
+</div>
+<p>You can see the full bash script that was used to run this analysis
+in the file <a class="reference external" href="https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/bin/example-qsub.sh"><tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/bin/example-qsub.sh</span></tt></a>.
+We can see that this analysis will draw 10 million samples from
+both prior models (<tt class="docutils literal"><span class="pre">-n</span> <span class="pre">10000000</span></tt>), and report the results
+every 200,000 samples (<tt class="docutils literal"><span class="pre">--reporting-frequency</span> <span class="pre">200000</span></tt>).
+Furthermore, the first 100,000 samples from each prior will be used to
+standardize the summary statistics calculated from all the prior simulations
+and the observed data (<tt class="docutils literal"><span class="pre">--num-standardizing-samples</span> <span class="pre">100000</span></tt>).
+I chose the number of processes (<tt class="docutils literal"><span class="pre">--np</span> <span class="pre">8</span></tt>) and the size of the &#8220;batches&#8221; in
+which the prior samples will be generated (<tt class="docutils literal"><span class="pre">--prior-batch-size</span> <span class="pre">12500</span></tt>) such
+that their product (100,000 samples) is a common factor of the number of
+standardizing samples (100,000), the reporting frequency (200,000), and the
+total number of samples (10 million).
+This is not mandatory, but it will maximize the efficiency of the
+multi-processing.
+I also specify a seed for the random number generator (<tt class="docutils literal"><span class="pre">--seed</span> <span class="pre">845225390</span></tt>) so
+that I, or anyone else, can replicate the results.
+The seed is always reported in the <tt class="docutils literal"><span class="pre">pymsbayes-info.txt</span></tt> file, so this is not
+necessary unless you are trying to replicate previous results.
+But, it is <strong>always</strong> good to report the seed (or at least make it available)
+so that others can replicate your work.</p>
+<div class="section" id="additional-results-reported-during-analysis">
+<h3>4.6.2.1. Additional results reported during analysis<a class="headerlink" href="#additional-results-reported-during-analysis" title="Permalink to this headline">¶</a></h3>
+<p>If we look in the <tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/results/sample-output/lizard-analysis</span></tt><tt class="docutils literal"><span class="pre">/</span></tt><tt class="docutils literal"><span class="pre">pymsbayes-results</span></tt> directory, we
+will find that most of the output (e.g., the info file, key files, directory
+structure) is very similar to the short analysis we ran above.
+The main difference is in the number of result files that are in the
+<tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/results/sample-output/lizard-analysis</span></tt><tt class="docutils literal"><span class="pre">/</span></tt><tt class="docutils literal"><span class="pre">pymsbayes-results/pymsbayes-output</span></tt><tt class="docutils literal"><span class="pre">/d1/m1</span></tt>
+,
+<tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/results/sample-output/lizard-analysis</span></tt><tt class="docutils literal"><span class="pre">/</span></tt><tt class="docutils literal"><span class="pre">pymsbayes-results/pymsbayes-output</span></tt><tt class="docutils literal"><span class="pre">/d1/m2</span></tt>
+, and
+<tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/results/sample-output/lizard-analysis</span></tt><tt class="docutils literal"><span class="pre">/</span></tt><tt class="docutils literal"><span class="pre">pymsbayes-results/pymsbayes-output</span></tt><tt class="docutils literal"><span class="pre">/d1/m12-combined</span></tt>
+directories.
+As you can see, we have results files for every 200,000 prior samples.</p>
+</div>
+<div class="section" id="the-trace-file">
+<h3>4.6.2.2. The trace file<a class="headerlink" href="#the-trace-file" title="Permalink to this headline">¶</a></h3>
+<p>There is also an additional &#8220;trace&#8221; file:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-trace.txt</span></tt></li>
+</ul>
+<p>Which shows the posterior means of various estimates as the prior samples
+accumulated.
+This file is created whenever the <tt class="docutils literal"><span class="pre">--reporting-frequency</span></tt> option is used to
+report results as the analysis progresses.
+This file is useful for checking to see if estimates stabilized as the number
+of prior samples evaluated increased, and to see if estimates from multiple,
+independent analyses &#8220;converged&#8221; to similar estimates.</p>
+</div>
+<div class="section" id="plotting-the-results">
+<h3>4.6.2.3. Plotting the results<a class="headerlink" href="#plotting-the-results" title="Permalink to this headline">¶</a></h3>
+<p>Go ahead and navigate into the <tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/results/sample-output/lizard-analysis</span></tt><tt class="docutils literal"><span class="pre">/</span></tt><tt class="docutils literal"><span class="pre">pymsbayes-results</span></tt>
+directory.
+From there, we will use <tt class="docutils literal"><span class="pre">dmc_plot_results.py</span></tt> to plot the results of the multi-model
+analysis that was run for 10 million prior samples.
+Once again, we just have to tell <tt class="docutils literal"><span class="pre">dmc_plot_results.py</span></tt> where to find the
+<tt class="docutils literal"><span class="pre">pymsbayes-info.txt</span></tt> file, which is in our current working
+directory:</p>
+<pre class="literal-block">
+$ dmc_plot_results.py pymsbayes-info.txt
+</pre>
+<p>This will create a <tt class="docutils literal"><span class="pre">plots</span></tt> directory, which now has two sets of plots: one
+for each model we used to analyze the data (&#8220;m1&#8221; = <tt class="docutils literal"><span class="pre">dpp-simple.cfg</span></tt> and &#8220;m2&#8221;
+= <tt class="docutils literal"><span class="pre">msbayes.cfg</span></tt> according to the <tt class="docutils literal"><span class="pre">model-key.txt</span></tt> output file):</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-10000000-marginal-divergence-times.pdf</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-10000000-number-of-divergences-bayes-factors-only.pdf</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-10000000-number-of-divergences.pdf</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-10000000-ordered-div-models.pdf</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m2-s1-10000000-marginal-divergence-times.pdf</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m2-s1-10000000-number-of-divergences-bayes-factors-only.pdf</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m2-s1-10000000-number-of-divergences.pdf</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m2-s1-10000000-ordered-div-models.pdf</span></tt></li>
+</ul>
+<p>Now, we can compare the results from both the <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> and
+<a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> models.
+I know what the truth is, because I simulated the data we are
+analyzing on the following species tree.</p>
+<div class="figure align-center" id="lizard-species-tree" style="width: 60%">
+<a class="reference internal image-reference" href="../_images/lizard-species-tree.png"><img alt="lizard species tree" src="../_images/lizard-species-tree.png" style="width: 600px;" /></a>
+<p class="caption">The true species tree for the three pairs of lizard populations.</p>
+</div>
+<p>So, &#8220;species-1&#8221; and &#8220;species-3&#8221; co-diverged 0.01 units (expected substitutions
+per site) ago, and &#8220;species-2&#8221; diverged earlier, at 0.02 units ago.</p>
+</div>
+<div class="section" id="the-marginal-divergence-time-plots">
+<h3>4.6.2.4. The marginal divergence time plots<a class="headerlink" href="#the-marginal-divergence-time-plots" title="Permalink to this headline">¶</a></h3>
+<p>We see below that under the <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> model, the 95% HPD for the
+divergence time of all three species contain the true value, whereas only one
+of the three contain  the true value under the <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> model.</p>
+<div class="figure align-center" id="dpp-marginal-div-time-plot" style="width: 80%">
+<a class="reference internal image-reference" href="../_images/d1-m1-s1-10000000-marginal-divergence-times.png"><img alt="marginal divergence times" src="../_images/d1-m1-s1-10000000-marginal-divergence-times.png" style="width: 800px;" /></a>
+<p class="caption">Estimated marginal divergence times under the DPP model</p>
+</div>
+<div class="figure align-center" id="msbayes-marginal-div-time-plot" style="width: 80%">
+<a class="reference internal image-reference" href="../_images/d1-m2-s1-10000000-marginal-divergence-times.png"><img alt="marginal divergence times" src="../_images/d1-m2-s1-10000000-marginal-divergence-times.png" style="width: 800px;" /></a>
+<p class="caption">Estimated marginal divergence times under the msBayes model</p>
+</div>
+</div>
+<div class="section" id="the-number-of-divergence-events-plots">
+<h3>4.6.2.5. The number of divergence events plots<a class="headerlink" href="#the-number-of-divergence-events-plots" title="Permalink to this headline">¶</a></h3>
+<p>The <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> model correctly estimates that there were two events, but
+with quite a bit of uncertainty (<a class="reference internal" href="#dpp-number-of-divergences-plot"><em>see plot
+below</em></a>.)
+The <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> model is quite confident that there was a single divergence
+event, and actually has support against the correct answer of two events
+(negative 2ln(Bayes factor))
+(<a class="reference internal" href="#msbayes-number-of-divergences-plot"><em>see plot below</em></a>.)</p>
+<div class="figure align-center" id="dpp-number-of-divergences-plot" style="width: 50%">
+<a class="reference internal image-reference" href="../_images/d1-m1-s1-10000000-number-of-divergences.png"><img alt="number of divergence events" src="../_images/d1-m1-s1-10000000-number-of-divergences.png" style="width: 300px;" /></a>
+<p class="caption">Posterior probabilities of the number of divergence events
+under the DPP model</p>
+</div>
+<div class="figure align-center" id="msbayes-number-of-divergences-plot" style="width: 50%">
+<a class="reference internal image-reference" href="../_images/d1-m2-s1-10000000-number-of-divergences.png"><img alt="number of divergence events" src="../_images/d1-m2-s1-10000000-number-of-divergences.png" style="width: 300px;" /></a>
+<p class="caption">Posterior probabilities of the number of divergence events
+under the msBayes model</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Despite inferring multiple divergence events, the dispersion index of
+divergence times (<img class="math" src="../_images/math/2a8b701f9a393e65ca74402e2d2e218f5aea2420.png" alt="D_T"/>; or &#8220;omega&#8221; in <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> literature) is
+estimated to be zero.
+This is a great example of how &#8220;omega&#8221; is extremely sensitive to the scale
+of the divergence times and is <strong>not</strong> a very useful measure of
+&#8220;simultaneous divergence&#8221;.</p>
+</div>
+</div>
+<div class="section" id="the-divergence-models-plot">
+<h3>4.6.2.6. The divergence models plot<a class="headerlink" href="#the-divergence-models-plot" title="Permalink to this headline">¶</a></h3>
+<p>The plots of the divergence models below show that both the <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> and
+<a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> model infers the wrong divergence model.
+The <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> weakly supports the most general divergence model with three
+divergence events, whereas the <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> model quite strongly supports the
+model with a single divergence event.
+The second most probable divergence model under both analyses is the correct
+model; the <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> model approximates a larger posterior probability for
+the correct model (0.201 vs 0.078).
+We can use, <tt class="docutils literal"><span class="pre">dmc_posterior_probs.py</span></tt> to determine the support for the correct
+divergence-time scenario under both models, which we do in the
+next section.</p>
+<div class="figure align-center" id="dpp-div-model-plot" style="width: 50%">
+<a class="reference internal image-reference" href="../_images/d1-m1-s1-10000000-ordered-div-models.png"><img alt="divergence models" src="../_images/d1-m1-s1-10000000-ordered-div-models.png" style="width: 300px;" /></a>
+<p class="caption">Posterior probabilities of the divergence models under the DPP model</p>
+</div>
+<div class="figure align-center" id="msbayes-div-model-plot" style="width: 50%">
+<a class="reference internal image-reference" href="../_images/d1-m2-s1-10000000-ordered-div-models.png"><img alt="divergence models" src="../_images/d1-m2-s1-10000000-ordered-div-models.png" style="width: 300px;" /></a>
+<p class="caption">Posterior probabilities of the divergence models under the msBayes model</p>
+</div>
+</div>
+</div>
+<div class="section" id="summarzing-results-about-divergence-time-scenarios">
+<h2>4.6.3. Summarzing results about divergence-time scenarios<a class="headerlink" href="#summarzing-results-about-divergence-time-scenarios" title="Permalink to this headline">¶</a></h2>
+<p>So, we know the correct divergence-time scenario is
+&#8220;species-1 == species-3 &lt; species-2&#8221;, so let&#8217;s compare the
+support for this divergence model under the <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a>
+and <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> model:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ dmc_posterior_probs.py -e &quot;0 == 2 &lt; 1&quot; -n 10000 \
+    ../../../../configs/dpp-simple.cfg \
+    pymsbayes-output/d1/m1/d1-m1-s1-10000000-posterior-sample.txt.gz
+</pre></div>
+</div>
+<p>Here, the <tt class="docutils literal"><span class="pre">-e</span> <span class="pre">&quot;0</span> <span class="pre">==</span> <span class="pre">2</span> <span class="pre">&lt;</span> <span class="pre">1&quot;</span></tt> argument is the true divergence scenario we are
+interested in, where &#8220;0 = species-1&#8221;, &#8220;1 = species-2&#8221;, and &#8220;2 = species-3&#8221; are
+the indices of the taxa in the order they appear in the configuration file.
+The <tt class="docutils literal"><span class="pre">-n</span> <span class="pre">10000</span></tt> argument tells the program to perform 10000 simulations
+to estimate the prior probability of the scenario (to allow Bayes
+factors to be calculated).
+The second to last argument is the path to the configuration file
+that specifies the <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> model.
+The last option is the path to the approximate posterior sample from the
+analysis under the <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> models specified in the configuration file.
+This posterior-sample file is gzipped, but that&#8217;s okay, because <a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a> can
+handle gzipped files just fine.</p>
+<p>Here is the output:</p>
+<div class="highlight-python"><div class="highlight"><pre>l[0] == l[2] &lt; l[1] --- species-1 == species-3 &lt; species-2:
+-----------------------------------------------------------
+posterior probability = 0.184
+prior probability = 0.066
+Bayes factor = 3.19102792632
+2ln(Bayes factor) = 2.32068619769
+</pre></div>
+</div>
+<p>Let&#8217;s do the same thing for the <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> model:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ dmc_posterior_probs.py -e &quot;0 == 2 &lt; 1&quot; -n 10000 \
+    ../../../../configs/msbayes.cfg \
+    pymsbayes-output/d1/m2/d1-m2-s1-10000000-posterior-sample.txt.gz
+</pre></div>
+</div>
+<p>Notice, in the last argument (the path to the posterior sample),
+we are using &#8220;m2&#8221; in instead of &#8220;m1&#8221; to specify the posterior
+sample from the analysis under the <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> model specified
+in <tt class="docutils literal"><span class="pre">msbayes.cfg</span></tt>.
+Here is the output:</p>
+<div class="highlight-python"><div class="highlight"><pre>l[0] == l[2] &lt; l[1] --- species-1 == species-3 &lt; species-2:
+-----------------------------------------------------------
+posterior probability = 0.071
+prior probability = 0.0764
+Bayes factor = 0.923917515315
+2ln(Bayes factor) = -0.158264960929
+</pre></div>
+</div>
+<p>As we can see, the <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> model approximates moderate support (2ln(BF)
+= 2.32) for the correct model of divergence, whereas the <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> model
+actually results in support <em>against</em> the correct divergence model (2ln(BF) =
+-0.16).</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="simulation-analysis.html" title="4.7. A Simulation-based Validation Analysis"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="simple-empirical-analysis.html" title="4.5. A Simple Empirical Analysis"
+             >previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="../intro/installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+
+          <li><a href="index.html" >4. PyMsBayes Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>
+<div class="footer">
+<span class="creativecommons">
+<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
+</span>
+</div>
+
+  </body>
+</html>

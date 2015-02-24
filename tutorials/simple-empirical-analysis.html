@@ -1,0 +1,973 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>4.5. A Simple Empirical Analysis &mdash; PyMsBayes 0.3.2 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/pymsbayes.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.3.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/dpp.js"></script>
+    <link rel="top" title="PyMsBayes 0.3.2 documentation" href="../index.html" />
+    <link rel="up" title="4. PyMsBayes Tutorials" href="index.html" />
+    <link rel="next" title="4.6. An Empirical Analysis under Multiple Models" href="multiple-model-analysis.html" />
+    <link rel="prev" title="4.4. Getting the exampe data" href="get-example-data.html" /> 
+  </head>
+  <body>
+<div id="header_wrap" class="outer">
+    <header class="inner">
+      <a id="forkme_banner" href="https://github.com/joaks1/PyMsBayes">View on GitHub</a>
+
+      <h1 id="project_title"><a href="../index.html">PyMsBayes</a></h1>
+      <h2 id="project_tagline">A multi-processing Python wrapper and API for approximate-Bayesian phylgeographical inference</h2>
+
+        <section id="downloads">
+          <a class="zip_download_link" href="https://github.com/joaks1/PyMsBayes/zipball/master">Download this project as a .zip file</a>
+          <a class="tar_download_link" href="https://github.com/joaks1/PyMsBayes/tarball/master">Download this project as a tar.gz file</a>
+        </section>
+    </header>
+</div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="multiple-model-analysis.html" title="4.6. An Empirical Analysis under Multiple Models"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="get-example-data.html" title="4.4. Getting the exampe data"
+             accesskey="P">previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="../intro/installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+
+          <li><a href="index.html" accesskey="U">4. PyMsBayes Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../doc.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">4.5. A Simple Empirical Analysis</a><ul>
+<li><a class="reference internal" href="#the-data-files">4.5.1. The data files</a><ul>
+<li><a class="reference internal" href="#converting-from-im-files">4.5.1.1. Converting from IM files</a></li>
+<li><a class="reference internal" href="#the-configuration-file">4.5.1.2. The configuration file</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#the-primary-analysis-program-ldmc">4.5.2. The primary analysis program <tt class="docutils literal"><span class="pre">dmc.py</span></tt></a><ul>
+<li><a class="reference internal" href="#running-a-very-short-example-analysis">4.5.2.1. Running a (very) short example analysis</a></li>
+<li><a class="reference internal" href="#the-output">4.5.2.2. The output</a><ul>
+<li><a class="reference internal" href="#the-info-file">4.5.2.2.1. The info file</a></li>
+<li><a class="reference internal" href="#the-observed-summary-statistics">4.5.2.2.2. The observed summary statistics</a></li>
+<li><a class="reference internal" href="#the-data-and-model-keys-and-corresponding-directories">4.5.2.2.3. The data and model keys and corresponding directories</a></li>
+<li><a class="reference internal" href="#the-results-files">4.5.2.2.4. The results files</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#plotting-the-results">4.5.3. Plotting the results</a><ul>
+<li><a class="reference internal" href="#the-marginal-divergence-time-plot">4.5.3.1. The marginal divergence time plot</a></li>
+<li><a class="reference internal" href="#the-divergence-models-plot">4.5.3.2. The divergence models plot</a></li>
+<li><a class="reference internal" href="#the-number-of-divergence-events-plots">4.5.3.3. The number of divergence events plots</a></li>
+<li><a class="reference internal" href="#the-number-of-divergence-events-bayes-factor-plot">4.5.3.4. The number of divergence events Bayes factor plot</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#summarzing-results-about-divergence-time-scenarios">4.5.4. Summarzing results about divergence-time scenarios</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="get-example-data.html"
+                        title="previous chapter">4.4. Getting the exampe data</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="multiple-model-analysis.html"
+                        title="next chapter">4.6. An Empirical Analysis under Multiple Models</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/tutorials/simple-empirical-analysis.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="a-simple-empirical-analysis">
+<span id="simple-empirical-analysis"></span><h1>4.5. A Simple Empirical Analysis<a class="headerlink" href="#a-simple-empirical-analysis" title="Permalink to this headline">¶</a></h1>
+<p>In this section, we will walk through an example of how to run an analysis
+using <a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a>.
+In this tutorial, I will assume that you have successfully
+<a class="reference internal" href="../intro/installation.html#installation"><em>installed</em></a> PyMsBayes, and
+read the following sections:</p>
+<ul class="simple">
+<li><a class="reference internal" href="background.html#background"><em>Background</em></a></li>
+<li><a class="reference internal" href="configuration.html#config"><em>The Configuration File</em></a></li>
+<li><a class="reference internal" href="selecting-priors.html#selecting-priors"><em>Selecting Priors</em></a></li>
+</ul>
+<p>I will also assume you have <a class="reference internal" href="get-example-data.html#get-example-data"><em>downloaded the example
+data</em></a>.</p>
+<p>We will continue with the example that was introduced in the
+<a class="reference internal" href="background.html#background"><em>background</em></a> section:
+Three lizard species co-distributed across a putative dispersal barrier that
+was formed by a past geological event.</p>
+<div class="section" id="the-data-files">
+<h2>4.5.1. The data files<a class="headerlink" href="#the-data-files" title="Permalink to this headline">¶</a></h2>
+<p>We will start with a properly formatted configuration file and sequence
+alignments for each species.
+These can be found in the <a class="reference external" href="https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/configs"><tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/configs</span></tt></a> and <a class="reference external" href="https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/sequences"><tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/sequences</span></tt></a>
+directories, respectively, within the <a class="reference internal" href="get-example-data.html#get-example-data"><em>tutorial data you
+downloaded</em></a>.
+For information about how the configuration file and sequence files need to be
+formatted, please see <a class="reference internal" href="configuration.html#config"><em>the section on the configuration file</em></a>.</p>
+<div class="section" id="converting-from-im-files">
+<h3>4.5.1.1. Converting from IM files<a class="headerlink" href="#converting-from-im-files" title="Permalink to this headline">¶</a></h3>
+<p>Also, both <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> and <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> come with a Perl script called
+<tt class="docutils literal"><span class="pre">convertIM.pl</span></tt>, which takes sequence files formatted for the popular
+program IM, and creates the configuration file and sequence files needed
+for <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a>.
+You might want to use this script if you are starting with IM files.
+After you run the <tt class="docutils literal"><span class="pre">convertIM.pl</span></tt> you will have to update the preamble of the
+configuration file to specify the priors for the <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> model.
+See the sections about <a class="reference internal" href="selecting-priors.html#selecting-priors"><em>selecting priors</em></a> and the
+<a class="reference internal" href="configuration.html#config"><em>configuration file</em></a> for details about how to modify the preamble.</p>
+</div>
+<div class="section" id="the-configuration-file">
+<h3>4.5.1.2. The configuration file<a class="headerlink" href="#the-configuration-file" title="Permalink to this headline">¶</a></h3>
+<p>Ok, let&#8217;s take a look at our configuration file <a class="reference external" href="https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/configs/dpp-simple.cfg"><tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/configs/dpp-simple.cfg</span></tt></a>:</p>
+<div class="highlight-python"><div class="highlight"><pre>concentrationShape = 1000.0
+concentrationScale = 0.00437
+thetaShape = 4.0
+thetaScale = 0.001
+ancestralThetaShape = 0
+ancestralThetaScale = 0
+thetaParameters = 000
+tauShape = 1.0
+tauScale = 0.02
+timeInSubsPerSite = 1
+bottleProportionShapeA = 0
+bottleProportionShapeB = 0
+bottleProportionShared = 0
+migrationShape = 0
+migrationScale = 0
+numTauClasses = 0
+
+BEGIN SAMPLE_TBL
+species-1   locus-1 1.0     1.0     10      8       32.422050       389     0.271215        0.240174        0.266343        ../sequences/species-1-locus-1.fasta
+species-1   locus-2 1.0     1.0     8       6       5.507905        500     0.254861        0.225477        0.246877        ../sequences/species-1-locus-2.fasta
+species-1   locus-3 1.0     1.0     6       8       8.379708        524     0.260506        0.233269        0.266142        ../sequences/species-1-locus-3.fasta
+species-1   locus-4 1.0     1.0     8       10      5.204980        345     0.251830        0.232765        0.249506        ../sequences/species-1-locus-4.fasta
+species-1   locus-5 1.0     1.0     8       8       29.592792       417     0.272341        0.237232        0.210548        ../sequences/species-1-locus-5.fasta
+species-1   locus-mt        0.25    4.0     5       5       8.153262        600     0.222976        0.242721        0.271977        ../sequences/species-1-locus-mt.fasta
+species-2   locus-1 1.0     1.0     6       10      7.536519        400     0.256404        0.246540        0.266092        ../sequences/species-2-locus-1.fasta
+species-2   locus-3 1.0     1.0     10      8       11.148510       550     0.270202        0.229906        0.249895        ../sequences/species-2-locus-3.fasta
+species-2   locus-4 1.0     1.0     8       8       9.391906        350     0.246659        0.242283        0.237685        ../sequences/species-2-locus-4.fasta
+species-2   locus-5 1.0     1.0     10      10      13.327843       450     0.264189        0.240497        0.227266        ../sequences/species-2-locus-5.fasta
+species-2   locus-mt        0.25    4.0     4       5       7.595008        549     0.233664        0.264141        0.234924        ../sequences/species-2-locus-mt.fasta
+species-3   locus-1 1.0     1.0     10      6       17.035406       367     0.258149        0.231107        0.276950        ../sequences/species-3-locus-1.fasta
+species-3   locus-3 1.0     1.0     8       10      59.177467       541     0.262631        0.225555        0.251191        ../sequences/species-3-locus-3.fasta
+species-3   locus-4 1.0     1.0     6       8       6.901196        333     0.287292        0.230559        0.215738        ../sequences/species-3-locus-4.fasta
+species-3   locus-mt        0.25    4.0     5       4       11.423634       587     0.227487        0.222071        0.259081        ../sequences/species-3-locus-mt.fasta
+END SAMPLE_TBL
+</pre></div>
+</div>
+<p>From the sample table, we see that we have 3 species and 6 loci.
+For &#8220;species-2,&#8221; we are missing &#8220;locus-2,&#8221; and for &#8220;species-3,&#8221; we are missing
+&#8220;locus-2&#8221; and &#8220;locus-5&#8221;.
+In the preamble, we specify our parameterization and priors for the
+<a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> model.
+We are specifying a relatively &#8220;simple&#8221; model; there is no migration, no
+population bottlenecks, and only one population-size parameter (theta) per
+species.</p>
+</div>
+</div>
+<div class="section" id="the-primary-analysis-program-ldmc">
+<h2>4.5.2. The primary analysis program <tt class="docutils literal"><span class="pre">dmc.py</span></tt><a class="headerlink" href="#the-primary-analysis-program-ldmc" title="Permalink to this headline">¶</a></h2>
+<p>The main program for running analyses with <a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a> is <tt class="docutils literal"><span class="pre">dmc.py</span></tt> (the
+mnemonic here is <strong>d</strong>ivergence-<strong>m</strong>odel <strong>c</strong>hoice).
+We can take a look at the help menu for <tt class="docutils literal"><span class="pre">dmc.py</span></tt> by entering the following
+command line:</p>
+<pre class="literal-block">
+$ dmc.py -h
+</pre>
+<p>Which should print the following help menu to the terminal:</p>
+<div class="highlight-python"><div class="highlight"><pre>usage: dmc.py [-h] -o OBSERVED_CONFIGS [OBSERVED_CONFIGS ...] -p PRIOR_CONFIGS
+              [PRIOR_CONFIGS ...] [-r REPS] [-n NUM_PRIOR_SAMPLES]
+              [--prior-batch-size PRIOR_BATCH_SIZE] [--generate-samples-only]
+              [--num-posterior-samples NUM_POSTERIOR_SAMPLES]
+              [--num-standardizing-samples NUM_STANDARDIZING_SAMPLES]
+              [--np NP] [--output-dir OUTPUT_DIR] [--temp-dir TEMP_DIR]
+              [--staging-dir STAGING_DIR]
+              [-s [STAT_PREFIXES [STAT_PREFIXES ...]]] [-b BANDWIDTH]
+              [-q NUM_POSTERIOR_QUANTILES]
+              [--reporting-frequency REPORTING_FREQUENCY]
+              [--sort-index {0,1,2,3,4,5,6,7,8,9,10,11}]
+              [--no-global-estimate] [--compress] [--keep-temps] [--seed SEED]
+              [--output-prefix OUTPUT_PREFIX] [--data-key-path DATA_KEY_PATH]
+              [--start-from-simulation-index START_FROM_SIMULATION_INDEX]
+              [--start-from-observed-index START_FROM_OBSERVED_INDEX]
+              [--dry-run] [--version] [--quiet] [--debug]
+
+main_dmc.py Version 0.2.4
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o OBSERVED_CONFIGS [OBSERVED_CONFIGS ...], --observed-configs OBSERVED_CONFIGS [OBSERVED_CONFIGS ...]
+                        One or more msBayes config files to be used to either
+                        calculate or simulate observed summary statistics. If
+                        used in combination with `-r` each config will be used
+                        to simulate pseudo-observed data. If analyzing real
+                        data, do not use the `-r` option, and the fasta files
+                        specified within the config must exist and contain the
+                        sequence data.
+  -p PRIOR_CONFIGS [PRIOR_CONFIGS ...], --prior-configs PRIOR_CONFIGS [PRIOR_CONFIGS ...]
+                        One or more config files to be used to generate prior
+                        samples. If more than one config is specified, they
+                        should be separated by spaces. This option can also be
+                        used to specify the path to a directory containing the
+                        prior samples and summary statistic means and standard
+                        deviations generated by a previous run using the
+                        `generate-samples-only` option. These files should be
+                        found in the directory `pymsbayes-output/prior-stats-
+                        summaries`. The`pymsbayes-output/model-key.txt` also
+                        needs to be present. If specifying this directory, it
+                        should be the only argument (i.e., no other
+                        directories or config files can be provided).
+  -r REPS, --reps REPS  This option has two effects. First, it signifies that
+                        the analysis will be simulation based (i.e., no real
+                        data will be used). Second, it specifies how many
+                        simulation replicates to perform (i.e., how many data
+                        sets to simulate and analyze).
+  -n NUM_PRIOR_SAMPLES, --num-prior-samples NUM_PRIOR_SAMPLES
+                        The number of prior samples to simulate for each prior
+                        config specified with `-p`.
+  --prior-batch-size PRIOR_BATCH_SIZE
+                        The number of prior samples to simulate for each
+                        batch.
+  --generate-samples-only
+                        Only generate samples from models as requested. I.e.,
+                        No analyses are performed to approximate posteriors.
+                        This option can be useful if you want the prior
+                        samples for other purposes.
+  --num-posterior-samples NUM_POSTERIOR_SAMPLES
+                        The number of posterior samples desired for each
+                        analysis. Default: 1000.
+  --num-standardizing-samples NUM_STANDARDIZING_SAMPLES
+                        The number of prior samples desired to use for
+                        standardizing statistics. Default: 10000.
+  --np NP               The maximum number of processes to run in parallel.
+                        The default is the number of CPUs available on the
+                        machine.
+  --output-dir OUTPUT_DIR
+                        The directory in which all output files will be
+                        written. The default is to use the directory of the
+                        first observed config file.
+  --temp-dir TEMP_DIR   A directory to temporarily stage files. The default is
+                        to use the output directory.
+  --staging-dir STAGING_DIR
+                        A directory to temporarily stage prior files. This
+                        option can be useful on clusters to speed up I/O while
+                        generating prior samples. You can designate a local
+                        temp directory on a compute node to avoid constant
+                        writing to a shared drive. The default is to use the
+                        `temp-dir`.
+  -s [STAT_PREFIXES [STAT_PREFIXES ...]], --stat-prefixes [STAT_PREFIXES [STAT_PREFIXES ...]]
+                        Prefixes of summary statistics to use in the analyses.
+                        The prefixes should be separated by spaces. Default:
+                        `-s pi wattTheta pi.net tajD.denom`.
+  -b BANDWIDTH, --bandwidth BANDWIDTH
+                        Smoothing parameter for the posterior kernal density
+                        estimation. This option is used for the `glm`
+                        regression method. The default is 2 / `num-posterior-
+                        samples`.
+  -q NUM_POSTERIOR_QUANTILES, --num-posterior-quantiles NUM_POSTERIOR_QUANTILES
+                        The number of equally spaced quantiles at which to
+                        evaluate the GLM-estimated posterior density. Default:
+                        1000.
+  --reporting-frequency REPORTING_FREQUENCY
+                        Suggested frequency (in number of prior samples) for
+                        running regression and reporting current results.
+                        Default: 0 (only report final results). If a value is
+                        given, it may be adjusted so that the reporting
+                        frequency is a multiple of the multi-processed batch
+                        size.
+  --sort-index {0,1,2,3,4,5,6,7,8,9,10,11}
+                        The sorting index used by
+                        `dpp-msbayes.pl`/`msbayes.pl` and `obsSumStats.pl`
+                        scripts to determine how the summary statistic vectors
+                        calculated from the alignments of the observed and
+                        simulated data are to be grouped and sorted.
+                        The default is 0.
+                        0:    Do not group or sort. The identity and order of
+                              the summary statistics of each alignment are
+                              maintained and compared when calculating
+                              Euclidean distance.
+                        1-7:  **NOTE**, options 1-7 all re-sort the summary
+                              statistics in some way, and thus compare the
+                              statistics from *different* alignments when
+                              calculating the Euclidean distance.  This is not
+                              valid and these options should *NOT* be used.
+                              They are maintained for backwards compatibility
+                              with the original msBayes.
+                        8-11: All of these options group the summary
+                              statistics from multiple loci by taxon and then
+                              calculate moments of each statistic across the
+                              loci for each taxon, and then use these moments
+                              to calculate Euclidean distance. The order of
+                              the taxa is maintained, and so this is valid,
+                              but you are losing a lot of information
+                              contained in your loci by simply taking the mean
+                              (option 11) across them. If you have A LOT of
+                              loci, this sacrifice might be necessary to
+                              reduce the number of summary statistics.
+                              **NOTE**, options 8-10 are NOT well tested.
+                              8:  Use the first 4 moments (mean, variance,
+                                  skewness, and kurtosis) of each statistic.
+                              9:  Use the first 3 moments (mean, variance,
+                                  and skewness) of each statistic.
+                              10: Use the first 2 moments (mean and variance)
+                                  of each statistic.
+                              11: Use the first 1 moment (mean) of each
+                                  statistic.
+  --no-global-estimate  If multiple prior models are specified, by default a
+                        global estimate is performed averaging over all
+                        models. This option prevents the global estimation
+                        (i.e., only inferences for each model are made).
+  --compress            Compress large results files.
+  --keep-temps          Keep all temporary files.
+  --seed SEED           Random number seed to use for the analysis.
+  --output-prefix OUTPUT_PREFIX
+                        Prefix to use at beginning of output files. The
+                        default is no prefix.
+  --data-key-path DATA_KEY_PATH
+                        The path to a `data-key.txt` file generated by a
+                        previous run. This file should be found in the
+                        directory `pymsbayes-output/data-key.txt`. This option
+                        will override the `-o`/`--observed-configs` option,
+                        and is intended to be used in combination with the
+                        `--start-from` option to restart an analysis.
+  --start-from-simulation-index START_FROM_SIMULATION_INDEX
+                        The simulation index at which to begin analyses. Must
+                        be used in combination with either the number of
+                        simulation replicates (`-r`/`--reps`) or the `--data-
+                        key-path` option, and must be a positive integer that
+                        is less than the number of simulation replicates. This
+                        option can be useful if an analysis needs to be
+                        restarted.
+  --start-from-observed-index START_FROM_OBSERVED_INDEX
+                        The observed config index at which to begin analyses.
+                        Can be used in combination with the `--data-key-path`
+                        option to restart long-running, multi-observed-config
+                        analyses
+  --dry-run             Do not run analyses; only process settings
+  --version             Report version and exit.
+  --quiet               Run without verbose messaging.
+  --debug               Run in debugging mode.
+</pre></div>
+</div>
+<p>If the help menu is not printed to the terminal, <a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a> may not be installed
+correctly; please see the <a class="reference internal" href="../intro/installation.html#installation"><em>installation section</em></a>.</p>
+<div class="section" id="running-a-very-short-example-analysis">
+<h3>4.5.2.1. Running a (very) short example analysis<a class="headerlink" href="#running-a-very-short-example-analysis" title="Permalink to this headline">¶</a></h3>
+<p>If you are in the directory with the example configuration files
+(<tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/configs</span></tt>), we can run an example analysis by entering the following
+command:</p>
+<pre class="literal-block">
+$ dmc.py -o dpp-simple.cfg -p dpp-simple.cfg -n 5000
+</pre>
+<p>This should take a few minutes or less to run on a modern laptop.
+Let&#8217;s look at what each option is doing:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">-o</span> <span class="pre">dpp-simple.cfg</span></tt></dt>
+<dd>Tells the program to use the sequence alignments specified in the
+<tt class="docutils literal"><span class="pre">dpp-simple.cfg</span></tt> configuration file to calculate the observed summary
+statistics.</dd>
+<dt><tt class="docutils literal"><span class="pre">-p</span> <span class="pre">dpp-simple.cfg</span></tt></dt>
+<dd>Tells the program to use the model specified in the <tt class="docutils literal"><span class="pre">dpp-simple.cfg</span></tt>
+file as the prior.</dd>
+<dt><tt class="docutils literal"><span class="pre">-n</span> <span class="pre">5000</span></tt></dt>
+<dd>Tells the program to simulate 5000 datasets under the prior specified
+in <tt class="docutils literal"><span class="pre">dpp-simple.cfg</span></tt> (i.e. &#8220;get 5000 samples from the prior&#8221;).</dd>
+</dl>
+</div></blockquote>
+<p>By default, <tt class="docutils literal"><span class="pre">dmc.py</span></tt> will retain the &#8220;best&#8221; 1000 simulations as the approximate
+posterior sample (use the <tt class="docutils literal"><span class="pre">--num-posterior-samples</span></tt> option to adjust this);
+i.e., the parameter values associated with the 1000 simulated datasets that
+yield summary statistics most similar to the observed summary statistics (see
+the <a class="reference internal" href="background.html#abc-algorithm"><em>section on the ABC algorithm</em></a> for more details).
+A sample of 5000 simulations from the prior is far too small for a meaningful
+approximation of the posterior, but it will allow you to perform a successful
+(hopefully!) analysis and see some output in a short amount of time.</p>
+<p>That&#8217;s it! <tt class="docutils literal"><span class="pre">dmc.py</span></tt> does the full analysis for you: It calculates the observed
+summary statistics, simulates datasets from the prior and calculates summary
+statistics from them, performs rejection to get the approximate posterior
+sample, and performs a post-hoc regression-adjusted of the posterior sample
+(using <a class="reference external" href="http://www.cmpg.iee.unibe.ch/content/softwares__services/computer_programs/abctoolbox/index_eng.html">ABCtoolbox</a>).
+It also spreads all this work over multiple processors (<tt class="docutils literal"><span class="pre">dmc.py</span></tt> uses all the
+processors on your computer by default; use the <tt class="docutils literal"><span class="pre">--np</span></tt> option to control the
+number of processes).</p>
+</div>
+<div class="section" id="the-output">
+<h3>4.5.2.2. The output<a class="headerlink" href="#the-output" title="Permalink to this headline">¶</a></h3>
+<p>Let&#8217;s take a look at the output generated by the (very) short analysis
+we ran above.
+There should be a new directory named <tt class="docutils literal"><span class="pre">pymsbayes-results</span></tt> that was created when you
+ran the analysis.
+This directory contains all of the results organized in a rather convoluted
+hierarchy of folders and files.</p>
+<div class="section" id="the-info-file">
+<h4>4.5.2.2.1. The info file<a class="headerlink" href="#the-info-file" title="Permalink to this headline">¶</a></h4>
+<p>One file inside the result directory is <tt class="docutils literal"><span class="pre">pymsbayes-results/pymsbayes.info.txt</span></tt>, which looks something
+like:</p>
+<div class="highlight-python"><div class="highlight"><pre>[pymsbayes]
+    version = Version 0.2.4
+    output_directory = /home/jamie/software/dev/PyMsBayes/examples/lizards/configs/pymsbayes-results
+    temp_directory = /home/jamie/software/dev/PyMsBayes/examples/lizards/configs/pymsbayes-results/temp-files-LkLsum
+    sort_index = 0
+    simulation_reps = 0
+    seed = 922800765
+    num_processors = 4
+    num_prior_samples = 5000
+    num_standardizing_samples = 5000
+    bandwidth = 0.002
+    posterior_quantiles = 1000
+    posterior_sample_size = 1000
+    stat_patterns = ^\s*pi\.\d+\s*$, ^\s*wattTheta\.\d+\s*$, ^\s*pi\.net\.\d+\s*$, ^\s*tajD\.denom\.\d+\s*$
+    num_taxon_pairs = 3
+    dry_run = False
+    [[tool_paths]]
+        dpp_msbayes = /home/jamie/software/dev/PyMsBayes/bin/linux/dpp-msbayes.pl
+        msbayes = /home/jamie/software/dev/PyMsBayes/bin/linux/msbayes.pl
+        eureject = /home/jamie/software/dev/PyMsBayes/bin/linux/eureject
+        abcestimator = /home/jamie/software/dev/PyMsBayes/bin/linux/ABCestimator
+    [[observed_configs]]
+        1 = ../dpp-simple.cfg
+    [[observed_paths]]
+        1 = observed-summary-stats/observed-1.txt
+    [[prior_configs]]
+        1 = ../dpp-simple.cfg
+    [[run_stats]]
+        start_time = 2015-02-05 12:36:44.292840
+        stop_time = 2015-02-05 12:37:23.341727
+        total_duration = 0:00:39.048887
+</pre></div>
+</div>
+<p>This file is useful, because it contains:</p>
+<ol class="arabic simple">
+<li>The settings that were used for the analysis.</li>
+<li>The paths to the external tools that were used for the analysis.</li>
+<li>A key for all of the observed and prior configuration files
+specified in the analysis (only one file for this simple example).</li>
+<li>And some run statistics.</li>
+</ol>
+</div>
+<div class="section" id="the-observed-summary-statistics">
+<h4>4.5.2.2.2. The observed summary statistics<a class="headerlink" href="#the-observed-summary-statistics" title="Permalink to this headline">¶</a></h4>
+<p>The result directory also contains the <tt class="docutils literal"><span class="pre">pymsbayes-results/observed-summary-stats</span></tt>, which contains the
+observed summary statistics calculated from the datasets specified in all of
+the observed configuration files. Because there was only one observed
+configuration file in our simple analysis (i.e., <tt class="docutils literal"><span class="pre">-o</span> <span class="pre">dpp-simple.cfg</span></tt>), there
+is only a single file, <tt class="docutils literal"><span class="pre">pymsbayes-results/observed-summary-stats</span></tt><tt class="docutils literal"><span class="pre">/observed-1.txt</span></tt>; The <tt class="docutils literal"><span class="pre">1</span></tt> in
+the file name corresponds to the key in the <tt class="docutils literal"><span class="pre">pymsbayes-results/pymsbayes.info.txt</span></tt> file (this is useful in
+more complicated analyses).</p>
+</div>
+<div class="section" id="the-data-and-model-keys-and-corresponding-directories">
+<h4>4.5.2.2.3. The data and model keys and corresponding directories<a class="headerlink" href="#the-data-and-model-keys-and-corresponding-directories" title="Permalink to this headline">¶</a></h4>
+<p>The &#8220;meat&#8221; of the results lies within the <tt class="docutils literal"><span class="pre">pymsbayes-results/pymsbayes-output</span></tt> directory.
+Inside this directory, we see two &#8220;key&#8221; files.
+<tt class="docutils literal"><span class="pre">data-key.txt</span></tt>, which contains:</p>
+<div class="highlight-python"><div class="highlight"><pre>d1 = ../observed-summary-stats/observed-1.txt
+</pre></div>
+</div>
+<p>and <tt class="docutils literal"><span class="pre">model-key.txt</span></tt>, which contains:</p>
+<div class="highlight-python"><div class="highlight"><pre>m1 = ../../dpp-simple.cfg
+</pre></div>
+</div>
+<p>These are keys to the subdirectories within the <tt class="docutils literal"><span class="pre">pymsbayes-results/pymsbayes-output</span></tt> directory.
+For example, from these keys, we know that the <tt class="docutils literal"><span class="pre">pymsbayes-results/pymsbayes-output</span></tt><tt class="docutils literal"><span class="pre">/d1/m1</span></tt>
+directory will contain the results of observed summary statistics
+<tt class="docutils literal"><span class="pre">observed-1.txt</span></tt> analyzed under the <tt class="docutils literal"><span class="pre">dpp-simple.cfg</span></tt> model.</p>
+<p>This system of keys and nested directories may seem unnecessarily confusing,
+and is certainly overkill for a simple analysis under a single model, However,
+this system is actually very nice when running complicated, simulation-based
+analyses with many data models, each with 1000s of simulated datasets, all
+analysed under many analysis models.</p>
+</div>
+<div class="section" id="the-results-files">
+<h4>4.5.2.2.4. The results files<a class="headerlink" href="#the-results-files" title="Permalink to this headline">¶</a></h4>
+<p>For this section, it might be helpful to checkout <a class="reference internal" href="parameter-key.html#parameter-key"><em>the detailed key for
+the parameters included in the output</em></a>, to get familiar with the
+syntax of the output.</p>
+<p>Within the
+<tt class="docutils literal"><span class="pre">pymsbayes-results/pymsbayes-output</span></tt><tt class="docutils literal"><span class="pre">/d1/m1</span></tt>
+directory you will find the following results files:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-5000-cv-results.txt</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-5000-div-model-results.txt</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-5000-glm-posterior-density-estimates.txt</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-5000-glm-posterior-summary.txt</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-5000-model-results.txt</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-5000-omega-results.txt</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-5000-posterior-sample.txt</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-5000-posterior-summary.txt</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-5000-psi-results.txt</span></tt></li>
+</ul>
+<p>Let&#8217;s break down the information in the files&#8217; prefix <tt class="docutils literal"><span class="pre">d1-m1-s1-5000</span></tt>:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">d1</span></tt></dt>
+<dd>This tells us these results are from the &#8220;d1&#8221; observed data
+(<tt class="docutils literal"><span class="pre">observed-1.txt</span></tt> according to <tt class="docutils literal"><span class="pre">data-key.txt</span></tt>).</dd>
+<dt><tt class="docutils literal"><span class="pre">m1</span></tt></dt>
+<dd>This tells us the observed data were analyzed under the &#8220;m1&#8221; model
+(<tt class="docutils literal"><span class="pre">dpp-simple.cfg</span></tt> according to <tt class="docutils literal"><span class="pre">model-key.txt</span></tt>).</dd>
+<dt><tt class="docutils literal"><span class="pre">s1</span></tt></dt>
+<dd>This tells us these results are from simulation replicate 1 (&#8220;s1&#8221;).  We
+analyzed &#8220;real&#8221; empirical data (there were no simulated datasets), and
+&#8220;s1&#8221; here is not very meaningful. However, when we perform
+simulation-based analyses with thousands of simulated observed
+datasets(e.g., power analyses), the &#8220;s#&#8221; part of the file name
+corresponds to each simulation replicate.</dd>
+<dt><tt class="docutils literal"><span class="pre">5000</span></tt></dt>
+<dd>This tells us the results are based on 5000 random samples from the
+prior.</dd>
+</dl>
+</div></blockquote>
+<p>Ok, now let&#8217;s look at what is in each file:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">posterior-sample.txt</span></tt></dt>
+<dd>The approximate posterior sample. The parameter values, parameter
+summaries, and associated summary statitics of the samples from the
+prior that were closest to the observed summary statistics.</dd>
+<dt><tt class="docutils literal"><span class="pre">posterior-summary.txt</span></tt></dt>
+<dd>Various summaries (mean, median, mode, range, etc.) of the parameter
+estimates (summarized from the posterior samples in
+<tt class="docutils literal"><span class="pre">posterior-sample.txt</span></tt>).</dd>
+<dt><tt class="docutils literal"><span class="pre">glm-posterior-density-estimates.txt</span></tt></dt>
+<dd>The GLM-adjusted posterior density estimates of several parameters
+and parameter summaries. This is the output of <a class="reference external" href="http://www.cmpg.iee.unibe.ch/content/softwares__services/computer_programs/abctoolbox/index_eng.html">ABCtoolbox</a>.</dd>
+<dt><tt class="docutils literal"><span class="pre">glm-posterior-summary.txt</span></tt></dt>
+<dd>A summary (mean, median, mode, etc) of the GLM-adjusted posterior
+density estimates from the <tt class="docutils literal"><span class="pre">glm-posterior-density-estimates.txt</span></tt>
+file. This is output of <a class="reference external" href="http://www.cmpg.iee.unibe.ch/content/softwares__services/computer_programs/abctoolbox/index_eng.html">ABCtoolbox</a>.</dd>
+<dt><tt class="docutils literal"><span class="pre">psi-results.txt</span></tt></dt>
+<dd>The approximate posterior probabilities of the number of divergence
+events shared across the taxa.</dd>
+<dt><tt class="docutils literal"><span class="pre">div-model-results.txt</span></tt></dt>
+<dd>The approximate posterior probabilities of the model of divergence.
+The first column shows the assignment of taxon pairs to divergence-time
+parameters.
+For example, if we have 3 taxa, <tt class="docutils literal"><span class="pre">0,</span> <span class="pre">1,</span> <span class="pre">2</span></tt> is the most general model
+in which all three taxa have their own divergence-time parameter.
+<tt class="docutils literal"><span class="pre">0,</span> <span class="pre">1,</span> <span class="pre">0</span></tt> indicates that the first and third taxon share the same
+divergence time-parameter, and the second taxon has its own
+divergence-time parameter.
+The order of the taxa in the models is the same as the order they
+appear in the sample table of the configuration file.
+The second column is the approximate posterior probability of the
+divergence model.
+The third column is the GLM-regression-adjusted posterior probability
+of the divergence model.
+NOTE, <a class="reference internal" href="../zbib/references.html#oaks2012" id="id1">[10]</a>, <a class="reference internal" href="../zbib/references.html#oaks2014reply" id="id2">[9]</a>, and <a class="reference internal" href="../zbib/references.html#oaks2014dpp" id="id3">[8]</a>
+showed that the unadjusted posterior estimate was much more accurate
+than estimates adjusted via GLM or multinomial logistic regression.
+The last column shows the divergence model (as in the first column)
+annotated with conditional divergence-time estimates (i.e.,
+divergence-time estimates conditional on the divergence model).</dd>
+<dt><tt class="docutils literal"><span class="pre">omega-results.txt</span></tt></dt>
+<dd>In the original <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> &#8220;omega&#8221; is used to denote the
+dispersion index (variance / mean) of the divergence times
+across the pairs of populations.
+<span class="hlight">omega is NOT a parameter of either the msBayes or
+dpp-msbayes model</span>. Rather, it is a statistic summarizing
+the variance in divergences across taxa.
+This is calculated for every posterior sample, and this file
+tells us the proportion of those posterior samples that
+has a dispersion index of divergence times less than some
+arbitrary threshold (0.01 by default). This is an estimate
+of the posterior probability that the dispersion index is
+less than the threshold.
+It also reports the GLM-regression-adjusted posterior probability the
+dispersion index is smaller than the threshold. However,
+<a class="reference internal" href="../zbib/references.html#oaks2012" id="id4">[10]</a>, <a class="reference internal" href="../zbib/references.html#oaks2014reply" id="id5">[9]</a>, and <a class="reference internal" href="../zbib/references.html#oaks2014dpp" id="id6">[8]</a> showed
+that the unadjusted posterior estimate was much more accurate than
+estimates adjusted via GLM or multinomial logistic regression.</dd>
+<dt><tt class="docutils literal"><span class="pre">cv-results.txt</span></tt></dt>
+<dd>Similar to the <tt class="docutils literal"><span class="pre">omega-results.txt</span></tt> file, but containing the results
+for the coefficient of variation (standard deviation / mean) of the
+divergence times across the pairs of populations.
+The coefficient of variation is unitless, and thus comparable across
+analyses and across time scales, unlike the dispersion index.</dd>
+<dt><tt class="docutils literal"><span class="pre">model-results.txt</span></tt></dt>
+<dd>The posterior probability of the prior models. Because we only analyzed
+the data under a single model, this result is not meaningful in this
+example.</dd>
+</dl>
+</div></blockquote>
+</div>
+</div>
+</div>
+<div class="section" id="plotting-the-results">
+<h2>4.5.3. Plotting the results<a class="headerlink" href="#plotting-the-results" title="Permalink to this headline">¶</a></h2>
+<p>If you have <a class="reference external" href="http://matplotlib.org/"><tt class="docutils literal"><span class="pre">matplotlib</span></tt></a> installed on your computer, you can also plot the results of
+the analysis using the <tt class="docutils literal"><span class="pre">dmc_plot_results.py</span></tt> program.
+Let&#8217;s take a look at the help menu:</p>
+<pre class="literal-block">
+$ dmc_plot_results.py -h
+
+usage: dmc_plot_results.py [-h] [-n NUM_PRIOR_SAMPLES] [-i SAMPLE_INDEX]
+                           [-o OUTPUT_DIR] [--np NP] [-m MU] [--seed SEED]
+                           [--version] [--quiet] [--debug]
+                           PYMSBAYES-INFO-FILE
+
+dmc_plot_results.py Version 0.1.1
+
+positional arguments:
+  PYMSBAYES-INFO-FILE   Path to <cite>pymsbayes-info.txt</cite> file.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -n NUM_PRIOR_SAMPLES, --num-prior-samples NUM_PRIOR_SAMPLES
+                        The number of prior samples to simulate for estimating
+                        prior probabilities.
+  -i SAMPLE_INDEX, --sample-index SAMPLE_INDEX
+                        The prior-sample index of results to be summarized.
+                        Output files should have a consistent schema. For
+                        example, a results file for divergence models might
+                        look something like <cite>d1-m1-s1-1000000-div-model-
+                        results.txt</cite>. In this example, the prior-sample index
+                        is &quot;1000000&quot;. The default is to use the largest prior-
+                        sample index, which is probably what you want.
+  -o OUTPUT_DIR, --output-dir OUTPUT_DIR
+                        The directory in which all output plots will be
+                        written. The default is to use the directory of the
+                        pymsbayes info file.
+  --np NP               The maximum number of processes to run in parallel.
+                        The default is the number of CPUs available on the
+                        machine.
+  -m MU, --mu MU        The mutation rate with which to scale time to units of
+                        generations. By default, time is not scaled to
+                        generations.
+  --seed SEED           Random number seed to use for the analysis.
+  --version             Report version and exit.
+  --quiet               Run without verbose messaging.
+  --debug               Run in debugging mode.
+</pre>
+<p>Let&#8217;s go ahead and plot the results of our short example analysis.
+All we have to do is tell the program where the <tt class="docutils literal"><span class="pre">pymbayes-info.txt</span></tt> file
+resides:</p>
+<pre class="literal-block">
+$ dmc_plot_results.py pymsbayes-results/pymsbayes-info.txt
+</pre>
+<p>This will create the directory
+<tt class="docutils literal"><span class="pre">pymsbayes-results</span></tt><tt class="docutils literal"><span class="pre">/plots</span></tt>
+with several PDFs of plots summarizing the results (you can use the
+<tt class="docutils literal"><span class="pre">-o</span></tt>/<tt class="docutils literal"><span class="pre">--output-dir</span></tt> to specify an alternative directory):</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-5000-marginal-divergence-times.pdf</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-5000-number-of-divergences-bayes-factors-only.pdf</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-5000-number-of-divergences.pdf</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-5000-ordered-div-models.pdf</span></tt></li>
+</ul>
+<p>Also included in the <tt class="docutils literal"><span class="pre">pymsbayes-results</span></tt><tt class="docutils literal"><span class="pre">/plots</span></tt> directory is
+a text file named:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">d1-m1-s1-5000-number-of-divergences-bayes-factors.txt</span></tt></li>
+</ul>
+<p>which contains the Bayes factors for the number of divergence events that is
+plotted in <a class="reference internal" href="#number-of-divergence-events"><em>the number-of-divergence-events plot shown
+below</em></a>.</p>
+<div class="section" id="the-marginal-divergence-time-plot">
+<h3>4.5.3.1. The marginal divergence time plot<a class="headerlink" href="#the-marginal-divergence-time-plot" title="Permalink to this headline">¶</a></h3>
+<p>This plot shows the posterior median and 95% highest posterior density (HPD) of
+divergence times, averaged over all models of divergence.</p>
+<div class="figure align-center" id="marginal-div-time-plot" style="width: 80%">
+<a class="reference internal image-reference" href="../_images/d1-m1-s1-5000-marginal-divergence-times.png"><img alt="marginal divergence times" src="../_images/d1-m1-s1-5000-marginal-divergence-times.png" style="width: 800px;" /></a>
+<p class="caption">Estimated marginal divergence times</p>
+</div>
+</div>
+<div class="section" id="the-divergence-models-plot">
+<h3>4.5.3.2. The divergence models plot<a class="headerlink" href="#the-divergence-models-plot" title="Permalink to this headline">¶</a></h3>
+<p>The <a class="reference internal" href="#div-model-plot"><em>plot below</em></a> shows the estimated divergence times
+conditional on models of divergence.
+The divergence models are shown from top to bottom in order of decreasing
+posterior probability, which is given at the top right of each model plot.
+Also, given at the top left of each plot is the number of divergence-time
+parameters in the model.
+Each dotted line represents the estimated median and 95% HPD interval of the
+divergence time for one of the divergence-time parameters (conditional on the
+divergence model).
+If there are more than 10 possible divergence models (i.e., the number of pairs
+of taxa is greater than 3), only the 10 models with the highest posterior
+probability are plotted.
+This is a graphical depiction of the divergence models listed in the
+<tt class="docutils literal"><span class="pre">div-model-results.txt</span></tt> file.</p>
+<div class="figure align-center" id="div-model-plot" style="width: 50%">
+<a class="reference internal image-reference" href="../_images/d1-m1-s1-5000-ordered-div-models.png"><img alt="divergence models" src="../_images/d1-m1-s1-5000-ordered-div-models.png" style="width: 300px;" /></a>
+<p class="caption">Posterior probabilities of the divergence models</p>
+</div>
+</div>
+<div class="section" id="the-number-of-divergence-events-plots">
+<span id="number-of-divergence-events"></span><h3>4.5.3.3. The number of divergence events plots<a class="headerlink" href="#the-number-of-divergence-events-plots" title="Permalink to this headline">¶</a></h3>
+<p>The <a class="reference internal" href="#number-of-divergences-plot"><em>plot below</em></a> shows (A) the posterior
+probability (B) prior probability, and (C) Bayes factor (2ln(BF)) for the
+number of of divergence events.
+The Bayes factor for each number of divergence events compares that number of
+events to all other possible number of events.
+As expected, because we only simulated 5000 samples from the prior for this
+&#8220;toy&#8221; example, the posterior sample is very similar to the prior.
+Also given at the top is the posterior estimate (and 95% highest posterior
+density interval) for <a class="reference internal" href="parameter-key.html#pri-omega"><em>the dispersion index of divergence times
+(PRI.omega)</em></a>.</p>
+<div class="figure align-center" id="number-of-divergences-plot" style="width: 50%">
+<a class="reference internal image-reference" href="../_images/d1-m1-s1-5000-number-of-divergences.png"><img alt="number of divergence events" src="../_images/d1-m1-s1-5000-number-of-divergences.png" style="width: 300px;" /></a>
+<p class="caption">Posterior probabilities of the number of divergence events</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Despite inferring multiple divergence events, the dispersion index of
+divergence times (<img class="math" src="../_images/math/2a8b701f9a393e65ca74402e2d2e218f5aea2420.png" alt="D_T"/>; or &#8220;omega&#8221; in <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> literature) is
+estimated to be zero.
+This is a great example of how &#8220;omega&#8221; is extremely sensitive to the scale
+of the divergence times and is <strong>not</strong> a very useful measure of
+&#8220;simultaneous divergence&#8221;.</p>
+</div>
+</div>
+<div class="section" id="the-number-of-divergence-events-bayes-factor-plot">
+<span id="number-of-divergence-events-bf"></span><h3>4.5.3.4. The number of divergence events Bayes factor plot<a class="headerlink" href="#the-number-of-divergence-events-bayes-factor-plot" title="Permalink to this headline">¶</a></h3>
+<p>This plot is the same plot as (C) in <a class="reference internal" href="#number-of-divergence-events"><em>the plots of the number of
+divergence events above</em></a>.
+Here the Bayes factor plot is on its own, because it is often of interest.</p>
+<div class="figure align-center" id="number-of-divergences-bf-plot" style="width: 50%">
+<a class="reference internal image-reference" href="../_images/d1-m1-s1-5000-number-of-divergences-bayes-factors-only.png"><img alt="number of divergence events Bayes factors" src="../_images/d1-m1-s1-5000-number-of-divergences-bayes-factors-only.png" style="width: 400px;" /></a>
+<p class="caption">Bayes factors for the number of divergence events</p>
+</div>
+</div>
+</div>
+<div class="section" id="summarzing-results-about-divergence-time-scenarios">
+<span id="dmc-posterior-probs"></span><h2>4.5.4. Summarzing results about divergence-time scenarios<a class="headerlink" href="#summarzing-results-about-divergence-time-scenarios" title="Permalink to this headline">¶</a></h2>
+<p>There&#8217;s another useful program included in <a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a> called <tt class="docutils literal"><span class="pre">dmc_posterior_probs.py</span></tt>.
+This allows us to estimate the posterior probability (and Bayes factor if we
+wish) of any arbitrary divergence time scenario.</p>
+<p>For example, if we are interested in the posterior probability that
+the first and third species in our analysis co-diverged, we can
+enter the following at the command line:</p>
+<pre class="literal-block">
+$ dmc_posterior_probs.py -e 0==2 dpp-simple.cfg pymsbayes-results/pymsbayes-output/d1/m1/d1-m1-s1-5000-posterior-sample.txt
+</pre>
+<p>which will produce output like:</p>
+<div class="highlight-python"><div class="highlight"><pre>l[0] == l[2] --- species-1 == species-3:
+----------------------------------------
+posterior probability = 0.223
+</pre></div>
+</div>
+<p>telling us that the approximate posterior probability that &#8220;species-1&#8221; and
+&#8220;species-3&#8221; co-diverged is 0.223.</p>
+<p>If we also want to know the approximate Bayes factor of this scenario, we can
+specify the number of prior simulations to use to estimate the prior
+probability of the scenario with the <tt class="docutils literal"><span class="pre">-n</span></tt> option:</p>
+<pre class="literal-block">
+$ dmc_posterior_probs.py -e 0==2 -n 10000 dpp-simple.cfg pymsbayes-results/pymsbayes-output/d1/m1/d1-m1-s1-5000-posterior-sample.txt
+</pre>
+<p>which now produces output like:</p>
+<div class="highlight-python"><div class="highlight"><pre>l[0] == l[2] --- species-1 == species-3:
+----------------------------------------
+posterior probability = 0.223
+prior probability = 0.1864
+Bayes factor = 1.25270518833
+2ln(Bayes factor) = 0.450610727151
+</pre></div>
+</div>
+<p>Any scenario is possible. For example, if we want to know the approximated
+probability that the first and third pair of populations co-diverged <strong>AND</strong>
+diverged more recently than the second pair of populations.</p>
+<pre class="literal-block">
+$ dmc_posterior_probs.py -e &quot;0 == 2 &lt; 1&quot; -n 10000 dpp-simple.cfg pymsbayes-results/pymsbayes-output/d1/m1/d1-m1-s1-5000-posterior-sample.txt
+</pre>
+<p>which produces the output:</p>
+<div class="highlight-python"><div class="highlight"><pre>l[0] == l[2] &lt; l[1] --- species-1 == species-3 &lt; species-2:
+-----------------------------------------------------------
+posterior probability = 0.091
+prior probability = 0.0552
+Bayes factor = 1.71347714482
+2ln(Bayes factor) = 1.07704944788
+</pre></div>
+</div>
+<p>The expressions designated by the <tt class="docutils literal"><span class="pre">-e</span></tt> option are very flexible.
+For example, we used <tt class="docutils literal"><span class="pre">-e</span> <span class="pre">&quot;0</span> <span class="pre">==</span> <span class="pre">2</span> <span class="pre">&lt;</span> <span class="pre">1&quot;</span></tt> above.
+We could also have used <tt class="docutils literal"><span class="pre">-e</span> <span class="pre">&quot;(0</span> <span class="pre">==</span> <span class="pre">2)</span> <span class="pre">and</span> <span class="pre">(0</span> <span class="pre">&lt;</span> <span class="pre">1)&quot;</span></tt>, which is equivalent.</p>
+<p>We can also specify an arbitrary number of scenarios, for example:</p>
+<pre class="literal-block">
+$ dmc_posterior_probs.py -e &quot;0 == 2&quot; -e &quot;0 &gt; 1&quot; -e &quot;1 == 2 and 1 &gt; 0&quot; -e &quot;0 == 1 or 0 == 2&quot; -n 10000 dpp-simple.cfg pymsbayes-results/pymsbayes-output/d1/m1/d1-m1-s1-5000-posterior-sample.txt
+</pre>
+<p>which will report the approximate posterior probabilities of all of the
+scenarios:</p>
+<div class="highlight-python"><div class="highlight"><pre>l[0] == l[2] --- species-1 == species-3:
+----------------------------------------
+posterior probability = 0.223
+prior probability = 0.1844
+Bayes factor = 1.26940482472
+2ln(Bayes factor) = 0.477096297341
+
+
+l[0] &gt; l[1] --- species-1 &gt; species-2:
+--------------------------------------
+posterior probability = 0.298
+prior probability = 0.3956
+Bayes factor = 0.648555765846
+2ln(Bayes factor) = -0.866014573741
+
+
+l[1] == l[2] and l[1] &gt; l[0] --- species-2 == species-3 and species-2 &gt; species-1:
+----------------------------------------------------------------------------------
+posterior probability = 0.054
+prior probability = 0.0636
+Bayes factor = 0.840440384539
+2ln(Bayes factor) = -0.347658514434
+
+
+l[0] == l[1] or l[0] == l[2] --- species-1 == species-2 or species-1 == species-3:
+----------------------------------------------------------------------------------
+posterior probability = 0.389
+prior probability = 0.3152
+Bayes factor = 1.38320303738
+2ln(Bayes factor) = 0.648803702581
+</pre></div>
+</div>
+<p>In summary the main options of <tt class="docutils literal"><span class="pre">dmc_posterior_probs.py</span></tt> are:</p>
+<ol class="arabic simple">
+<li><tt class="docutils literal"><span class="pre">-e</span> <span class="pre">&lt;SCENARIO-EXPRESSION&gt;</span></tt>: The expression of the divergence
+scenario we are interested in.</li>
+<li><tt class="docutils literal"><span class="pre">-n</span> <span class="pre">&lt;INTEGER&gt;</span></tt>: The number of simulations to perform to get an
+approximation of the prior probability (if we want Bayes factors).</li>
+</ol>
+<p>The last two arguments must be:</p>
+<ol class="arabic simple">
+<li>The path the configuration file that defines the model under which data
+were analyzed.</li>
+<li>The path to the posterior sample file.</li>
+</ol>
+<p>For more information about options, you can use <tt class="docutils literal"><span class="pre">dmc_posterior_probs.py</span> <span class="pre">-h</span></tt>
+to check out the help menu:</p>
+<div class="highlight-python"><div class="highlight"><pre>usage: dmc_posterior_probs.py [-h] -e TAXON-INDEX-EXPRESSION
+                              [-n NUM_PRIOR_SAMPLES] [--np NP] [--seed SEED]
+                              [--version] [--quiet] [--debug]
+                              CONFIG-FILE POSTERIOR-SAMPLE-FILE
+
+dmc_posterior_probs.py Version 0.1.1
+
+positional arguments:
+  CONFIG-FILE           msBayes config file used to estimate the posterior
+                        sample.
+  POSTERIOR-SAMPLE-FILE
+                        Path to posterior sample file (i.e., `*-posterior-
+                        sample.txt`).
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -e TAXON-INDEX-EXPRESSION, --expression TAXON-INDEX-EXPRESSION
+                        A conditional expression of divergence times based on
+                        the taxon-pair indices for which to calculate the
+                        posterior probability of being true. Indices
+                        correspond to the order that pairs of taxa appear in
+                        the sample table of the config, starting at 0 for the
+                        first taxon-pair to appear in the table (starting from
+                        the top). E.g., `-e &quot;0 == 3 == 4&quot;` would request the
+                        proportion of times the 1st, 4th, and 5th taxon-pairs
+                        (in order of appearance in the sample table of the
+                        config) share the same divergence time in the
+                        posterior sample, whereas `-e &quot;0 &gt; 1&quot; would request
+                        the proportion of times the the 1st taxon-pair
+                        diverged further back in time than the 2nd taxon-pair
+                        in the posterior sample.
+  -n NUM_PRIOR_SAMPLES, --num-prior-samples NUM_PRIOR_SAMPLES
+                        The number of prior samples to simulate for estimating
+                        prior probabilities; prior probabilities and Bayes
+                        factors will be reported. The default is to only
+                        report posterior probabilities.
+  --np NP               The maximum number of processes to run in parallel for
+                        prior simulations. The default is the number of CPUs
+                        available on the machine. This option is only relevant
+                        if the number of prior samples is specified using the
+                        `-n` argument.
+  --seed SEED           Random number seed to use for simulations. This option
+                        is only relevant if the number of prior samples is
+                        specified using the `-n` argument.
+  --version             Report version and exit.
+  --quiet               Run without verbose messaging.
+  --debug               Run in debugging mode.
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="multiple-model-analysis.html" title="4.6. An Empirical Analysis under Multiple Models"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="get-example-data.html" title="4.4. Getting the exampe data"
+             >previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="../intro/installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+
+          <li><a href="index.html" >4. PyMsBayes Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>
+<div class="footer">
+<span class="creativecommons">
+<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
+</span>
+</div>
+
+  </body>
+</html>

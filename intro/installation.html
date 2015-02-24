@@ -1,0 +1,221 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>3. Installation &mdash; PyMsBayes 0.3.2 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/pymsbayes.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.3.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/dpp.js"></script>
+    <link rel="top" title="PyMsBayes 0.3.2 documentation" href="../index.html" />
+    <link rel="next" title="4. PyMsBayes Tutorials" href="../tutorials/index.html" />
+    <link rel="prev" title="2. Prerequisites" href="prerequisites.html" /> 
+  </head>
+  <body>
+<div id="header_wrap" class="outer">
+    <header class="inner">
+      <a id="forkme_banner" href="https://github.com/joaks1/PyMsBayes">View on GitHub</a>
+
+      <h1 id="project_title"><a href="../index.html">PyMsBayes</a></h1>
+      <h2 id="project_tagline">A multi-processing Python wrapper and API for approximate-Bayesian phylgeographical inference</h2>
+
+        <section id="downloads">
+          <a class="zip_download_link" href="https://github.com/joaks1/PyMsBayes/zipball/master">Download this project as a .zip file</a>
+          <a class="tar_download_link" href="https://github.com/joaks1/PyMsBayes/tarball/master">Download this project as a tar.gz file</a>
+        </section>
+    </header>
+</div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../tutorials/index.html" title="4. PyMsBayes Tutorials"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="prerequisites.html" title="2. Prerequisites"
+             accesskey="P">previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="#">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+ 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../doc.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">3. Installation</a><ul>
+<li><a class="reference internal" href="#troubleshooting">3.1. Troubleshooting</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="prerequisites.html"
+                        title="previous chapter">2. Prerequisites</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../tutorials/index.html"
+                        title="next chapter">4. PyMsBayes Tutorials</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/intro/installation.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="installation">
+<span id="id1"></span><h1>3. Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<p>You should have <a class="reference external" href="http://www.python.org/download/releases/2.7/">Python 2.7</a> installed.</p>
+<p>First, if you have <a class="reference external" href="http://git-scm.com/">Git</a> installed, clone the Git repository:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ git clone https://github.com/joaks1/PyMsBayes.git
+</pre></div>
+</div>
+<p>If you do not have <a class="reference external" href="http://git-scm.com/">Git</a>, you can download a snapshot of the repository as a
+tar or zip archive by clicking the respective folder icons at the top of this
+page. Either way, move into the downloaded directory:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ cd PyMsBayes
+</pre></div>
+</div>
+<p>Next, let&#8217;s make sure the bundled <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> tools work on your machine:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ python setup.py test
+</pre></div>
+</div>
+<p>This will run a small number of tests to ensure the tools bundled with <a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a>
+work on your computer. If these tests pass, you are good to go and can install
+<a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a>:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ sudo python setup.py install
+</pre></div>
+</div>
+<p>If the install was successful, you should be able to call up the help menu of
+the main program of <a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a>:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ dmc.py -h
+</pre></div>
+</div>
+<p>You should see output that begins like:</p>
+<div class="highlight-python"><div class="highlight"><pre>usage: dmc.py [-h] -o OBSERVED_CONFIGS [OBSERVED_CONFIGS ...] -p PRIOR_CONFIGS
+              [PRIOR_CONFIGS ...] [-r REPS] [-n NUM_PRIOR_SAMPLES]
+              [--prior-batch-size PRIOR_BATCH_SIZE] [--generate-samples-only]
+              [--num-posterior-samples NUM_POSTERIOR_SAMPLES]
+              [--num-standardizing-samples NUM_STANDARDIZING_SAMPLES]
+              [--np NP] [--output-dir OUTPUT_DIR] [--temp-dir TEMP_DIR]
+              [--staging-dir STAGING_DIR]
+              [-s [STAT_PREFIXES [STAT_PREFIXES ...]]] [-b BANDWIDTH]
+              [-q NUM_POSTERIOR_QUANTILES]
+              [--reporting-frequency REPORTING_FREQUENCY]
+              [--sort-index {0,1,2,3,4,5,6,7,8,9,10,11}]
+              [--no-global-estimate] [--compress] [--keep-temps] [--seed SEED]
+              [--output-prefix OUTPUT_PREFIX] [--data-key-path DATA_KEY_PATH]
+              [--start-from-simulation-index START_FROM_SIMULATION_INDEX]
+              [--start-from-observed-index START_FROM_OBSERVED_INDEX]
+              [--dry-run] [--version] [--quiet] [--debug]
+
+dmc.py Version 0.2.4
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o OBSERVED_CONFIGS [OBSERVED_CONFIGS ...], --observed-configs OBSERVED_CONFIGS [OBSERVED_CONFIGS ...]
+                        One or more msBayes config files to be used to either
+                        calculate or simulate observed summary statistics. If
+                        used in combination with `-r` each config will be used
+                        to simulate pseudo-observed data. If analyzing real
+                        data, do not use the `-r` option, and the fasta files
+                        specified within the config must exist and contain the
+                        sequence data.
+</pre></div>
+</div>
+<div class="section" id="troubleshooting">
+<h2>3.1. Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this headline">¶</a></h2>
+<p>If any of the tests fail and/or you get the following error message when you
+try to install <a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a>:</p>
+<div class="highlight-python"><div class="highlight"><pre>**********************************************************************
+****************************** WARNING *******************************
+The bundled `dpp-msbayes` tools are not being installed, because some
+of them are not executable on this system. The `PyMsBayes` package and
+scripts will still be installed, however, you will need to build and
+install `dpp-msbayes` (https://github.com/joaks1/dpp-msbayes) yourself
+in order to use them.  Sorry for the inconvenience.
+**********************************************************************
+</pre></div>
+</div>
+<p>You will need to build and install <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> from <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">https://github.com/joaks1/dpp-msbayes.git</a>, and
+install <a class="reference external" href="http://www.cmpg.iee.unibe.ch/content/softwares__services/computer_programs/abctoolbox/index_eng.html">ABCtoolbox</a> from <a class="reference external" href="http://www.cmpg.iee.unibe.ch/content/softwares__services/computer_programs/abctoolbox/index_eng.html">http://www.cmpg.iee.unibe.ch/content/softwares__services/computer_programs/abctoolbox/index_eng.html</a>. After you install <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> and
+<a class="reference external" href="http://www.cmpg.iee.unibe.ch/content/softwares__services/computer_programs/abctoolbox/index_eng.html">ABCtoolbox</a> to your PATH, if you already ran the <tt class="docutils literal"><span class="pre">sudo</span> <span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">install</span></tt>
+command above, you are good to go.  If you haven&#8217;t, <tt class="docutils literal"><span class="pre">cd</span></tt> back to the
+<tt class="docutils literal"><span class="pre">PyMsBayes</span></tt> directory and run this command (Note: you will still get the
+above warning message, but you can ignore it because the <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> tools
+are already on your system).</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../tutorials/index.html" title="4. PyMsBayes Tutorials"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="prerequisites.html" title="2. Prerequisites"
+             >previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="#">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+ 
+      </ul>
+    </div>
+<div class="footer">
+<span class="creativecommons">
+<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
+</span>
+</div>
+
+  </body>
+</html>

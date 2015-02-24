@@ -1,0 +1,159 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>1. Overview &mdash; PyMsBayes 0.3.2 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/pymsbayes.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.3.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/dpp.js"></script>
+    <link rel="top" title="PyMsBayes 0.3.2 documentation" href="../index.html" />
+    <link rel="next" title="2. Prerequisites" href="prerequisites.html" />
+    <link rel="prev" title="PyMsBayes Documentation" href="../doc.html" /> 
+  </head>
+  <body>
+<div id="header_wrap" class="outer">
+    <header class="inner">
+      <a id="forkme_banner" href="https://github.com/joaks1/PyMsBayes">View on GitHub</a>
+
+      <h1 id="project_title"><a href="../index.html">PyMsBayes</a></h1>
+      <h2 id="project_tagline">A multi-processing Python wrapper and API for approximate-Bayesian phylgeographical inference</h2>
+
+        <section id="downloads">
+          <a class="zip_download_link" href="https://github.com/joaks1/PyMsBayes/zipball/master">Download this project as a .zip file</a>
+          <a class="tar_download_link" href="https://github.com/joaks1/PyMsBayes/tarball/master">Download this project as a tar.gz file</a>
+        </section>
+    </header>
+</div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="prerequisites.html" title="2. Prerequisites"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../doc.html" title="PyMsBayes Documentation"
+             accesskey="P">previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+ 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../doc.html"
+                        title="previous chapter">PyMsBayes Documentation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="prerequisites.html"
+                        title="next chapter">2. Prerequisites</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/intro/intro.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="overview">
+<h1>1. Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
+<p><a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a> provides a multi-processing interface to the comparative phylogeographic
+software packages <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> and <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a>.
+More generally, <a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a> can serve as a multi-processing Python API for inferring
+comparative models of diversification via approximate Bayesian computation
+(ABC).
+For more details about the methods implemented in <a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a> checkout <a class="reference internal" href="../tutorials/background.html#background"><em>the
+background section</em></a>.
+You should also be aware of <a class="reference internal" href="caveats.html#caveats"><em>relevant caveats</em></a> before using the
+method.
+The package is written by <a class="reference external" href="http://www.phyletica.com">Jamie Oaks</a>.</p>
+<p><a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a> is essentially a multi-processing wrapper around some popular ABC
+tools. Executables of the following tools come bundled with PyMsBayes:</p>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a></li>
+<li><a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a></li>
+<li><a class="reference external" href="http://www.cmpg.iee.unibe.ch/content/softwares__services/computer_programs/abctoolbox/index_eng.html">ABCtoolbox</a></li>
+<li><a class="reference external" href="https://github.com/joaks1/abacus.git">euReject</a> of the <a class="reference external" href="https://github.com/joaks1/abacus.git">ABACUS</a> package</li>
+</ul>
+</div></blockquote>
+<p>Executables for Linux and Mac are included. The Linux executables are
+statically linked and should run on any 32-bit or 64-bit Linux system. The Mac
+executables are universal (built for architectures ppc, i386, and x86_64) and
+<em>mostly</em> statically-linked, and so <em>should</em> work on any Mac. But, Macs are
+weird, so no promises. See the &#8220;<a class="reference internal" href="installation.html#installation"><em>Installation</em></a>&#8221; section for more details
+about installing the bundled tools.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="prerequisites.html" title="2. Prerequisites"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../doc.html" title="PyMsBayes Documentation"
+             >previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+ 
+      </ul>
+    </div>
+<div class="footer">
+<span class="creativecommons">
+<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
+</span>
+</div>
+
+  </body>
+</html>

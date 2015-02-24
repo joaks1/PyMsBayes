@@ -1,0 +1,270 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>4.8. A key to the output of model parameters and associated statstics &mdash; PyMsBayes 0.3.2 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/pymsbayes.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.3.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/dpp.js"></script>
+    <link rel="top" title="PyMsBayes 0.3.2 documentation" href="../index.html" />
+    <link rel="up" title="4. PyMsBayes Tutorials" href="index.html" />
+    <link rel="next" title="5. Caveats and Recommendations" href="../intro/caveats.html" />
+    <link rel="prev" title="4.7. A Simulation-based Validation Analysis" href="simulation-analysis.html" /> 
+  </head>
+  <body>
+<div id="header_wrap" class="outer">
+    <header class="inner">
+      <a id="forkme_banner" href="https://github.com/joaks1/PyMsBayes">View on GitHub</a>
+
+      <h1 id="project_title"><a href="../index.html">PyMsBayes</a></h1>
+      <h2 id="project_tagline">A multi-processing Python wrapper and API for approximate-Bayesian phylgeographical inference</h2>
+
+        <section id="downloads">
+          <a class="zip_download_link" href="https://github.com/joaks1/PyMsBayes/zipball/master">Download this project as a .zip file</a>
+          <a class="tar_download_link" href="https://github.com/joaks1/PyMsBayes/tarball/master">Download this project as a tar.gz file</a>
+        </section>
+    </header>
+</div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../intro/caveats.html" title="5. Caveats and Recommendations"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="simulation-analysis.html" title="4.7. A Simulation-based Validation Analysis"
+             accesskey="P">previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="../intro/installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+
+          <li><a href="index.html" accesskey="U">4. PyMsBayes Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../doc.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">4.8. A key to the output of model parameters and associated statstics</a><ul>
+<li><a class="reference internal" href="#the-parameters">4.8.1. The parameters</a><ul>
+<li><a class="reference internal" href="#pri-t-1-pri-t-2">4.8.1.1. PRI.t.1, PRI.t.2, ...</a></li>
+<li><a class="reference internal" href="#pri-d1theta-1-prid-1theta-2">4.8.1.2. PRI.d1theta.1, PRId.1theta.2, ...</a></li>
+<li><a class="reference internal" href="#pri-d2theta-1-pri-d2theta-2">4.8.1.3. PRI.d2theta.1, PRI.d2theta.2, ...</a></li>
+<li><a class="reference internal" href="#pri-atheta-1-pri-atheta-2">4.8.1.4. PRI.atheta.1, PRI.atheta.2, ...</a></li>
+<li><a class="reference internal" href="#pri-div-model">4.8.1.5. PRI.div.model</a></li>
+<li><a class="reference internal" href="#pri-model">4.8.1.6. PRI.model</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#the-statistics">4.8.2. The statistics</a><ul>
+<li><a class="reference internal" href="#pri-psi">4.8.2.1. PRI.Psi</a></li>
+<li><a class="reference internal" href="#pri-e-t">4.8.2.2. PRI.E.t</a></li>
+<li><a class="reference internal" href="#pri-var-t">4.8.2.3. PRI.var.t</a></li>
+<li><a class="reference internal" href="#pri-omega">4.8.2.4. PRI.omega</a></li>
+<li><a class="reference internal" href="#pri-cv">4.8.2.5. PRI.cv</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="simulation-analysis.html"
+                        title="previous chapter">4.7. A Simulation-based Validation Analysis</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../intro/caveats.html"
+                        title="next chapter">5. Caveats and Recommendations</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/tutorials/parameter-key.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="a-key-to-the-output-of-model-parameters-and-associated-statstics">
+<span id="parameter-key"></span><h1>4.8. A key to the output of model parameters and associated statstics<a class="headerlink" href="#a-key-to-the-output-of-model-parameters-and-associated-statstics" title="Permalink to this headline">¶</a></h1>
+<p>Below is a key to all of the parameter and statistics you will see in the
+output.
+In the <tt class="docutils literal"><span class="pre">posterior-sample.txt</span></tt>, all column headers that start with <tt class="docutils literal"><span class="pre">PRI.</span></tt>
+designate a parameter or a summary statistic of parameters.
+All other column headers designate summary statistics calculated from the
+simulated data, which are used to calculate the distance from the summary
+statistics calculated from the observed data.</p>
+<div class="contents local topic" id="contents">
+<ul class="simple">
+<li><a class="reference internal" href="#the-parameters" id="id2">The parameters</a><ul>
+<li><a class="reference internal" href="#pri-t-1-pri-t-2" id="id3">PRI.t.1, PRI.t.2, ...</a></li>
+<li><a class="reference internal" href="#pri-d1theta-1-prid-1theta-2" id="id4">PRI.d1theta.1, PRId.1theta.2, ...</a></li>
+<li><a class="reference internal" href="#pri-d2theta-1-pri-d2theta-2" id="id5">PRI.d2theta.1, PRI.d2theta.2, ...</a></li>
+<li><a class="reference internal" href="#pri-atheta-1-pri-atheta-2" id="id6">PRI.atheta.1, PRI.atheta.2, ...</a></li>
+<li><a class="reference internal" href="#pri-div-model" id="id7">PRI.div.model</a></li>
+<li><a class="reference internal" href="#pri-model" id="id8">PRI.model</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#the-statistics" id="id9">The statistics</a><ul>
+<li><a class="reference internal" href="#pri-psi" id="id10">PRI.Psi</a></li>
+<li><a class="reference internal" href="#pri-e-t" id="id11">PRI.E.t</a></li>
+<li><a class="reference internal" href="#pri-var-t" id="id12">PRI.var.t</a></li>
+<li><a class="reference internal" href="#pri-omega" id="id13">PRI.omega</a></li>
+<li><a class="reference internal" href="#pri-cv" id="id14">PRI.cv</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="the-parameters">
+<h2><a class="toc-backref" href="#id2">4.8.1. The parameters</a><a class="headerlink" href="#the-parameters" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="pri-t-1-pri-t-2">
+<h3><a class="toc-backref" href="#id3">4.8.1.1. PRI.t.1, PRI.t.2, ...</a><a class="headerlink" href="#pri-t-1-pri-t-2" title="Permalink to this headline">¶</a></h3>
+<p>These are the divergence times of the populations pairs.
+The pairs are numbered in the order that they appear (from top to bottom) in
+the configuration file.</p>
+</div>
+<div class="section" id="pri-d1theta-1-prid-1theta-2">
+<h3><a class="toc-backref" href="#id4">4.8.1.2. PRI.d1theta.1, PRId.1theta.2, ...</a><a class="headerlink" href="#pri-d1theta-1-prid-1theta-2" title="Permalink to this headline">¶</a></h3>
+<p>The effective population size of one of the descendant populations of
+each pair of populations.
+The pairs are numbered in the order that they appear (from top to bottom) in
+the configuration file.</p>
+</div>
+<div class="section" id="pri-d2theta-1-pri-d2theta-2">
+<h3><a class="toc-backref" href="#id5">4.8.1.3. PRI.d2theta.1, PRI.d2theta.2, ...</a><a class="headerlink" href="#pri-d2theta-1-pri-d2theta-2" title="Permalink to this headline">¶</a></h3>
+<p>The effective population size of the other descendant population of each pair
+of populations.
+The pairs are numbered in the order that they appear (from top to bottom) in
+the configuration file.</p>
+</div>
+<div class="section" id="pri-atheta-1-pri-atheta-2">
+<h3><a class="toc-backref" href="#id6">4.8.1.4. PRI.atheta.1, PRI.atheta.2, ...</a><a class="headerlink" href="#pri-atheta-1-pri-atheta-2" title="Permalink to this headline">¶</a></h3>
+<p>The effective population size of the ancestral population of each pair of
+populations.
+The pairs are numbered in the order that they appear (from top to bottom) in
+the configuration file.</p>
+</div>
+<div class="section" id="pri-div-model">
+<h3><a class="toc-backref" href="#id7">4.8.1.5. PRI.div.model</a><a class="headerlink" href="#pri-div-model" title="Permalink to this headline">¶</a></h3>
+<p>The model of divergence (see <a class="reference internal" href="background.html#comparative-divergence-models"><em>the section on divergence
+models</em></a>).
+In the <tt class="docutils literal"><span class="pre">posterior-sample.txt</span></tt> file, only indices of the
+divergence models are given, which is not very useful.
+However, the <tt class="docutils literal"><span class="pre">div-model-results.txt</span></tt> file contains all of the information
+regarding the posterior sample of divergence models.</p>
+</div>
+<div class="section" id="pri-model">
+<h3><a class="toc-backref" href="#id8">4.8.1.6. PRI.model</a><a class="headerlink" href="#pri-model" title="Permalink to this headline">¶</a></h3>
+<p>The prior model.
+This will not be meaningful if only analyzing data under a single prior model.
+However, if you average over multiple models, the estimated posterior
+probability of each model is reported in the <tt class="docutils literal"><span class="pre">model-results.txt</span></tt> file.</p>
+</div>
+</div>
+<div class="section" id="the-statistics">
+<h2><a class="toc-backref" href="#id9">4.8.2. The statistics</a><a class="headerlink" href="#the-statistics" title="Permalink to this headline">¶</a></h2>
+<p><span class="hlight">NOTE:</span> the variables below are <span class="hlight">NOT</span> parameters of the model.
+They are statistics that summarize the values of parameters.</p>
+<div class="section" id="pri-psi">
+<h3><a class="toc-backref" href="#id10">4.8.2.1. PRI.Psi</a><a class="headerlink" href="#pri-psi" title="Permalink to this headline">¶</a></h3>
+<p>The number of divergence events, or the number of divergence-time parameters in
+the divergence model.</p>
+</div>
+<div class="section" id="pri-e-t">
+<h3><a class="toc-backref" href="#id11">4.8.2.2. PRI.E.t</a><a class="headerlink" href="#pri-e-t" title="Permalink to this headline">¶</a></h3>
+<p>The mean of the divergence times across all pairs of populations.
+<span class="hlight">NOTE</span>, this is the mean across all the population pairs, not the
+divergence-time parameters (which can be shared across pairs).</p>
+</div>
+<div class="section" id="pri-var-t">
+<h3><a class="toc-backref" href="#id12">4.8.2.3. PRI.var.t</a><a class="headerlink" href="#pri-var-t" title="Permalink to this headline">¶</a></h3>
+<p>The variance of the divergence times across all pairs of populations.
+<span class="hlight">NOTE</span>, this is the variance across all the population pairs, not
+the divergence-time parameters (which can be shared across pairs).</p>
+</div>
+<div class="section" id="pri-omega">
+<span id="id1"></span><h3><a class="toc-backref" href="#id13">4.8.2.4. PRI.omega</a><a class="headerlink" href="#pri-omega" title="Permalink to this headline">¶</a></h3>
+<p>The dispersion index (i.e., variance / mean) of the divergence times across all
+pairs of populations.
+<span class="hlight">NOTE</span>, this is the dispersion index across all the population pairs,
+not the divergence-time parameters (which can be shared across pairs).</p>
+</div>
+<div class="section" id="pri-cv">
+<h3><a class="toc-backref" href="#id14">4.8.2.5. PRI.cv</a><a class="headerlink" href="#pri-cv" title="Permalink to this headline">¶</a></h3>
+<p>The coefficient of variation (CV; i.e., standard deviation / mean) of the
+divergence times across all pairs of populations.
+<span class="hlight">NOTE</span>, this is the CV across all the population pairs, not the
+divergence-time parameters (which can be shared across pairs).</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../intro/caveats.html" title="5. Caveats and Recommendations"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="simulation-analysis.html" title="4.7. A Simulation-based Validation Analysis"
+             >previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="../intro/installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+
+          <li><a href="index.html" >4. PyMsBayes Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>
+<div class="footer">
+<span class="creativecommons">
+<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
+</span>
+</div>
+
+  </body>
+</html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>4.7. A Simulation-based Validation Analysis &mdash; PyMsBayes 0.3.2 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/pymsbayes.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.3.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/dpp.js"></script>
+    <link rel="top" title="PyMsBayes 0.3.2 documentation" href="../index.html" />
+    <link rel="up" title="4. PyMsBayes Tutorials" href="index.html" />
+    <link rel="next" title="4.8. A key to the output of model parameters and associated statstics" href="parameter-key.html" />
+    <link rel="prev" title="4.6. An Empirical Analysis under Multiple Models" href="multiple-model-analysis.html" /> 
+  </head>
+  <body>
+<div id="header_wrap" class="outer">
+    <header class="inner">
+      <a id="forkme_banner" href="https://github.com/joaks1/PyMsBayes">View on GitHub</a>
+
+      <h1 id="project_title"><a href="../index.html">PyMsBayes</a></h1>
+      <h2 id="project_tagline">A multi-processing Python wrapper and API for approximate-Bayesian phylgeographical inference</h2>
+
+        <section id="downloads">
+          <a class="zip_download_link" href="https://github.com/joaks1/PyMsBayes/zipball/master">Download this project as a .zip file</a>
+          <a class="tar_download_link" href="https://github.com/joaks1/PyMsBayes/tarball/master">Download this project as a tar.gz file</a>
+        </section>
+    </header>
+</div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="parameter-key.html" title="4.8. A key to the output of model parameters and associated statstics"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="multiple-model-analysis.html" title="4.6. An Empirical Analysis under Multiple Models"
+             accesskey="P">previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="../intro/installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+
+          <li><a href="index.html" accesskey="U">4. PyMsBayes Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../doc.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">4.7. A Simulation-based Validation Analysis</a><ul>
+<li><a class="reference internal" href="#background">4.7.1. Background</a></li>
+<li><a class="reference internal" href="#the-example-configs-for-simulated-datasets">4.7.2. The example configs for simulated datasets</a></li>
+<li><a class="reference internal" href="#running-the-simulation-based-analysis">4.7.3. Running the simulation-based analysis</a></li>
+<li><a class="reference internal" href="#the-output">4.7.4. The output</a></li>
+<li><a class="reference internal" href="#summarizing-the-results">4.7.5. Summarizing the results</a></li>
+<li><a class="reference internal" href="#cv-accuracy-plots">4.7.6. CV accuracy plots</a></li>
+<li><a class="reference internal" href="#histograms-of-the-estimated-number-of-divergence-events">4.7.7. Histograms of the estimated number of divergence events</a></li>
+<li><a class="reference internal" href="#histograms-of-the-support-for-the-single-divergence-model">4.7.8. Histograms of the support for the single divergence model</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="multiple-model-analysis.html"
+                        title="previous chapter">4.6. An Empirical Analysis under Multiple Models</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="parameter-key.html"
+                        title="next chapter">4.8. A key to the output of model parameters and associated statstics</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/tutorials/simulation-analysis.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="a-simulation-based-validation-analysis">
+<span id="simulation-analysis"></span><h1>4.7. A Simulation-based Validation Analysis<a class="headerlink" href="#a-simulation-based-validation-analysis" title="Permalink to this headline">¶</a></h1>
+<p>For this tutorial, I will assume that you have already run through the
+<a class="reference internal" href="simple-empirical-analysis.html#simple-empirical-analysis"><em>simple empirical analysis</em></a>, and
+<a class="reference internal" href="multiple-model-analysis.html#multiple-model-analysis"><em>multi-model empirical analysis</em></a> so we will go
+into a lot less detail here.</p>
+<div class="section" id="background">
+<h2>4.7.1. Background<a class="headerlink" href="#background" title="Permalink to this headline">¶</a></h2>
+<p>As shown by <a class="reference internal" href="../zbib/references.html#oaks2012" id="id1">[10]</a>, <a class="reference internal" href="../zbib/references.html#oaks2014reply" id="id2">[9]</a>, and <a class="reference internal" href="../zbib/references.html#oaks2014dpp" id="id3">[8]</a>,
+it can be very informative to see how a model performs when applied to data
+where there is no shared divergences (i.e., the divergences across the
+taxa are independent and completely random).
+For example, if we find that <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> and/or <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> cannot reliably
+detect random variation in divergence times over the time scale in which we are
+interested, then we know that we should not interpret estimates of
+co-divergence by the method biogeographically (because we were likely to infer
+co-divergence even if the taxa diverged randomly over the period of time we are
+interested in).</p>
+<p><tt class="docutils literal"><span class="pre">dmc.py</span></tt> allows us to assess the performance of models under a wide variety
+of condtions very easily.
+All we have to do is designate configuration files with the <tt class="docutils literal"><span class="pre">-o</span></tt> option that
+specify models under which we want to simulate datasets; these simulated
+datasets will all be analyzed under the model(s) specified in the configuration
+files designated with the <tt class="docutils literal"><span class="pre">-p</span></tt> option.</p>
+</div>
+<div class="section" id="the-example-configs-for-simulated-datasets">
+<h2>4.7.2. The example configs for simulated datasets<a class="headerlink" href="#the-example-configs-for-simulated-datasets" title="Permalink to this headline">¶</a></h2>
+<p>If you look in the <a class="reference external" href="https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/configs/simulated-data-configs"><tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/configs/simulated-data-configs</span></tt></a> directory within the tutorial data
+that you downloaded, you will see that there are three more configuration
+files:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">exponential-02.cfg</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">exponential-04.cfg</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">exponential-06.cfg</span></tt></li>
+</ul>
+<p>The preamble of the <tt class="docutils literal"><span class="pre">exponential-02.cfg</span></tt> file looks like:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">thetaShape</span> <span class="o">=</span> <span class="mf">4.0</span>
+<span class="n">thetaScale</span> <span class="o">=</span> <span class="mf">0.001</span>
+<span class="n">ancestralThetaShape</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">ancestralThetaScale</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">thetaParameters</span> <span class="o">=</span> <span class="mo">000</span>
+<span class="n">tauShape</span> <span class="o">=</span> <span class="mf">1.0</span>
+<span class="n">tauScale</span> <span class="o">=</span> <span class="mf">0.02</span>
+<span class="n">timeInSubsPerSite</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">bottleProportionShapeA</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">bottleProportionShapeB</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">bottleProportionShared</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">migrationShape</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">migrationScale</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">numTauClasses</span> <span class="o">=</span> <span class="mi">3</span>
+</pre></div>
+</div>
+<p>The setting <tt class="docutils literal"><span class="pre">numTauClasses</span> <span class="pre">=</span> <span class="pre">3</span></tt> will constrain the model to only sample from
+the most general model of divergence with three divergence-time parameters (one
+for each species).
+Thus, under this model the three pairs of populations diverge randomly
+according to the prior on divergence time (<tt class="docutils literal"><span class="pre">tauShape</span> <span class="pre">=</span> <span class="pre">1.0</span></tt>;
+<tt class="docutils literal"><span class="pre">tauScale=0.02</span></tt>), which is an exponential distribution with a mean of 0.02.
+The configuration files <tt class="docutils literal"><span class="pre">exponential-04.cfg</span></tt> and <tt class="docutils literal"><span class="pre">exponential-06.cfg</span></tt> are
+identical except that their exponential distribution on divergence times have
+means of 0.04 and 0.06, respectively.</p>
+</div>
+<div class="section" id="running-the-simulation-based-analysis">
+<h2>4.7.3. Running the simulation-based analysis<a class="headerlink" href="#running-the-simulation-based-analysis" title="Permalink to this headline">¶</a></h2>
+<p>We can use <tt class="docutils literal"><span class="pre">dmc.py</span></tt> to generate as many datasets as we wish under each of these
+three models (random divergence times from an exponential distribution with a
+mean of 0.02, 0.04, and 0.06), and analyze all of the simulated datasets under
+the same two models we used to analyze the lizard data.</p>
+<p>If we are in the <a class="reference external" href="https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/configs"><tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/configs</span></tt></a>, all we have to do is:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ dmc.py -o simulated-data-configs/exponential-02.cfg \
+    simulated-data-configs/exponential-04.cfg \
+    simulated-data-configs/exponential-06.cfg \
+    -p dpp-simple.cfg msbayes.cfg \
+    -r 100 -n 5000 --no-global-estimate
+</pre></div>
+</div>
+<p>The <tt class="docutils literal"><span class="pre">-r</span> <span class="pre">100</span></tt> option specifies to simulate 100 datasets under each
+of the three models specified in the configuration files listed after
+the <tt class="docutils literal"><span class="pre">-o</span></tt> flag, and analyze them all under the models specified
+in the configuration files listed after the <tt class="docutils literal"><span class="pre">-p</span></tt> flag.
+To keep the runtime short, we also specify with the <tt class="docutils literal"><span class="pre">-n</span> <span class="pre">5000</span></tt> that only 5000 samples
+will be sampled for each of the prior models (<tt class="docutils literal"><span class="pre">dpp-simple.cfg</span></tt> and <tt class="docutils literal"><span class="pre">msbayes.cfg</span></tt>).
+We also specify not to perform model-averaging analyses on the 300 simulated datasets
+by using the <tt class="docutils literal"><span class="pre">--no-global-estimate</span></tt> option; there is no reason you cannot
+perform model-averaging analyses, but it will save a little bit of time in this
+trivial example.</p>
+<p><strong>NOTE</strong>, the results of this example analysis will not be meaningful, because
+5000 samples from the prior models are not sufficient for a meaningful
+approximation of the posterior.
+The command above took less than 3 minutes to run on my laptop.</p>
+<p>After running this example simulation-based analysis you should have a new
+<tt class="docutils literal"><span class="pre">pymsbayes-results</span></tt> directory within the <a class="reference external" href="https://github.com/joaks1/pymsbayes-tutorial-data/tree/master/lizards/configs/simulated-data-configs"><tt class="docutils literal"><span class="pre">pymsbayes-tutorial-data/lizards/configs/simulated-data-configs</span></tt></a> (by default
+<tt class="docutils literal"><span class="pre">dmc.py</span></tt> puts the results directory in the same directory as the first &#8220;observed
+config file&#8221; specified with the <tt class="docutils literal"><span class="pre">-o</span></tt> option).</p>
+</div>
+<div class="section" id="the-output">
+<h2>4.7.4. The output<a class="headerlink" href="#the-output" title="Permalink to this headline">¶</a></h2>
+<p>The output of a simulation-based analysis has the same structure and
+is very similar to the empirical analyses you have already run.
+One difference is that the <tt class="docutils literal"><span class="pre">pymsbayes-results/observed-summary-stats</span></tt> now has three files
+(<tt class="docutils literal"><span class="pre">observed-1.txt</span></tt>, <tt class="docutils literal"><span class="pre">observed-2.txt</span></tt>, and <tt class="docutils literal"><span class="pre">observed-3.txt</span></tt>), which each
+contain the &#8220;observed&#8221; summary statistics from 100 simulated datasets.</p>
+<p>Also, the data-model-key file <tt class="docutils literal"><span class="pre">pymsbayes-results/pymsbayes-output</span></tt><tt class="docutils literal"><span class="pre">/data-key.txt</span></tt> now has three
+keys (&#8220;d1&#8221;, &#8220;d2&#8221;, and &#8220;d3&#8221;) which correspond to the <tt class="docutils literal"><span class="pre">observed-summary-stats</span></tt>
+files.
+Furthermore, the <tt class="docutils literal"><span class="pre">pymsbayes-info.txt</span></tt> file tells us that the
+&#8220;1&#8221;, &#8220;2&#8221;, and &#8220;3&#8221; correspond with the configuration files
+<tt class="docutils literal"><span class="pre">exponential-02.cfg</span></tt>,
+<tt class="docutils literal"><span class="pre">exponential-04.cfg</span></tt>,
+and
+<tt class="docutils literal"><span class="pre">exponential-06.cfg</span></tt>,
+respectively.</p>
+<p>From this, we know, for example, that all of the results in
+<tt class="docutils literal"><span class="pre">pymsbayes-results/pymsbayes-output</span></tt><tt class="docutils literal"><span class="pre">/d3/m2/</span></tt>
+directory are from datasets simulated under the <tt class="docutils literal"><span class="pre">d3</span></tt> model
+(<tt class="docutils literal"><span class="pre">exponential-06.cfg</span></tt>) and analyzed under the <tt class="docutils literal"><span class="pre">m2</span></tt> model (<tt class="docutils literal"><span class="pre">msbayes.cfg</span></tt>).
+You will also see that there are results for 100 simulated datasets in that
+directory (i.e., you will see file prefixes from <tt class="docutils literal"><span class="pre">d3-m2-s1</span></tt> to
+<tt class="docutils literal"><span class="pre">d3-m2-s100</span></tt>).</p>
+<p>Overall, you will find that there are results for all the data models
+analyzed under all of the prior models nested in the directories:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">d1/m1/</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1/m2/</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d2/m1/</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d2/m2/</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d3/m1/</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d3/m2/</span></tt></li>
+</ul>
+<p>And, for each of these, there are results for 100 simulated datasets.</p>
+</div>
+<div class="section" id="summarizing-the-results">
+<h2>4.7.5. Summarizing the results<a class="headerlink" href="#summarizing-the-results" title="Permalink to this headline">¶</a></h2>
+<p>To summarize the results across the 100 simulated datasets across all 6
+directories of simulation results, we can use the <tt class="docutils literal"><span class="pre">dmc_sum_sims.py</span></tt> program.
+All we need to do is tell <tt class="docutils literal"><span class="pre">dmc_sum_sims.py</span></tt> where to find the <tt class="docutils literal"><span class="pre">pymsbayes-info.txt</span></tt>
+file from our analysis:</p>
+<pre class="literal-block">
+$ dmc_sum_sims.py <tt class="docutils literal"><span class="pre">pymsbayes-results</span></tt><tt class="docutils literal"><span class="pre">/pymsbayes-info.txt</span></tt>
+</pre>
+<p>After running <tt class="docutils literal"><span class="pre">dmc_sum_sims.py</span></tt> we will find
+a compressed (gzipped) file named <tt class="docutils literal"><span class="pre">results.txt.gz</span></tt> in each of
+the output directories:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">d1/m1/results.txt.gz</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d1/m2/results.txt.gz</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d2/m1/results.txt.gz</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d2/m2/results.txt.gz</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d3/m1/results.txt.gz</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">d3/m2/results.txt.gz</span></tt></li>
+</ul>
+<p>These files summarize the results across the analyses of all 100 simulated
+datasets.
+We can also tell <tt class="docutils literal"><span class="pre">dmc_sum_sims.py</span></tt> to create some plots summarizing the results:</p>
+<pre class="literal-block">
+$ dmc_sum_sims.py <tt class="docutils literal"><span class="pre">pymsbayes-results</span></tt><tt class="docutils literal"><span class="pre">/pymsbayes-info.txt</span></tt> --plot
+</pre>
+<p>This will create a new directory <tt class="docutils literal"><span class="pre">pymsbayes-results</span></tt><tt class="docutils literal"><span class="pre">/plots</span></tt> with 6 PDF files
+containing plots:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">dpp-simple_accuracy_cv_median.pdf</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">dpp-simple_power_psi_mode.pdf</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">dpp-simple_power_psi_prob.pdf</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">msbayes_accuracy_cv_median.pdf</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">msbayes_power_psi_mode.pdf</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">msbayes_power_psi_prob.pdf</span></tt></li>
+</ul>
+<p>Three of the PDFs summarize the results when the simulated data were analyzed
+under the model specified in the <tt class="docutils literal"><span class="pre">dpp-simple.cfg</span></tt> configuration file, and
+thus their file names begin with <tt class="docutils literal"><span class="pre">dpp-simple</span></tt>.
+The other three summarize the results when the simulated data were analyzed
+under the model specified in <tt class="docutils literal"><span class="pre">msbayes.cfg</span></tt>, and thus their file names begin
+with <tt class="docutils literal"><span class="pre">msbayes</span></tt>.</p>
+<p>Let&#8217;s take a look at the three kinds of plots that are created.</p>
+</div>
+<div class="section" id="cv-accuracy-plots">
+<h2>4.7.6. CV accuracy plots<a class="headerlink" href="#cv-accuracy-plots" title="Permalink to this headline">¶</a></h2>
+<p>These plots simply compare the true versus estimated (posterior median) values
+for the coefficient of variation (CV) of divergence times.</p>
+<div class="figure align-center" id="cv-accuracy-plot" style="width: 60%">
+<a class="reference internal image-reference" href="../_images/dpp-simple_accuracy_cv_median.png"><img alt="CV accuracy plots" src="../_images/dpp-simple_accuracy_cv_median.png" style="width: 600px;" /></a>
+<p class="caption">The true versus estimated values of the coefficient of variation of
+divergence times.</p>
+</div>
+</div>
+<div class="section" id="histograms-of-the-estimated-number-of-divergence-events">
+<h2>4.7.7. Histograms of the estimated number of divergence events<a class="headerlink" href="#histograms-of-the-estimated-number-of-divergence-events" title="Permalink to this headline">¶</a></h2>
+<p>These plots show a histogram of the estimated (posterior mode) number of
+divergence events across all the analyses of simulated data.</p>
+<div class="figure align-center" id="power-psi-mode-plot" style="width: 60%">
+<a class="reference internal image-reference" href="../_images/dpp-simple_power_psi_mode.png"><img alt="Histograms of the estimated number of divergence events" src="../_images/dpp-simple_power_psi_mode.png" style="width: 600px;" /></a>
+<p class="caption">Histograms of the estimated number of divergence events.</p>
+</div>
+</div>
+<div class="section" id="histograms-of-the-support-for-the-single-divergence-model">
+<h2>4.7.8. Histograms of the support for the single divergence model<a class="headerlink" href="#histograms-of-the-support-for-the-single-divergence-model" title="Permalink to this headline">¶</a></h2>
+<p>These plots show the histograms of the approximated posterior probability of
+the single-divergence-event model across all the analyses of simulated data.</p>
+<div class="figure align-center" id="power-psi-prob-plot" style="width: 60%">
+<a class="reference internal image-reference" href="../_images/dpp-simple_power_psi_prob.png"><img alt="Histogram of the support for the single divergence model" src="../_images/dpp-simple_power_psi_prob.png" style="width: 600px;" /></a>
+<p class="caption">Histogram of the support (posterior probability) for the single divergence
+model.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="parameter-key.html" title="4.8. A key to the output of model parameters and associated statstics"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="multiple-model-analysis.html" title="4.6. An Empirical Analysis under Multiple Models"
+             >previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="../intro/installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+
+          <li><a href="index.html" >4. PyMsBayes Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>
+<div class="footer">
+<span class="creativecommons">
+<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
+</span>
+</div>
+
+  </body>
+</html>

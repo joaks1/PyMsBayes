@@ -1,0 +1,186 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>4. PyMsBayes Tutorials &mdash; PyMsBayes 0.3.2 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/pymsbayes.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.3.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/dpp.js"></script>
+    <link rel="top" title="PyMsBayes 0.3.2 documentation" href="../index.html" />
+    <link rel="next" title="4.1. Background" href="background.html" />
+    <link rel="prev" title="3. Installation" href="../intro/installation.html" /> 
+  </head>
+  <body>
+<div id="header_wrap" class="outer">
+    <header class="inner">
+      <a id="forkme_banner" href="https://github.com/joaks1/PyMsBayes">View on GitHub</a>
+
+      <h1 id="project_title"><a href="../index.html">PyMsBayes</a></h1>
+      <h2 id="project_tagline">A multi-processing Python wrapper and API for approximate-Bayesian phylgeographical inference</h2>
+
+        <section id="downloads">
+          <a class="zip_download_link" href="https://github.com/joaks1/PyMsBayes/zipball/master">Download this project as a .zip file</a>
+          <a class="tar_download_link" href="https://github.com/joaks1/PyMsBayes/tarball/master">Download this project as a tar.gz file</a>
+        </section>
+    </header>
+</div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="background.html" title="4.1. Background"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../intro/installation.html" title="3. Installation"
+             accesskey="P">previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="../intro/installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+ 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../intro/installation.html"
+                        title="previous chapter">3. Installation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="background.html"
+                        title="next chapter">4.1. Background</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/tutorials/index.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="pymsbayes-tutorials">
+<h1>4. PyMsBayes Tutorials<a class="headerlink" href="#pymsbayes-tutorials" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="background.html">4.1. Background</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="background.html#comparative-divergence-models">4.1.1. Comparative divergence models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="background.html#bayesian-divergence-model-choice">4.1.2. Bayesian divergence-model choice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="background.html#approximate-likelihood-bayesian-computation">4.1.3. Approximate-<em>likelihood</em> Bayesian computation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="background.html#prior-on-divergence-times">4.1.4. Prior on divergence times</a></li>
+<li class="toctree-l2"><a class="reference internal" href="background.html#prior-on-divergence-models">4.1.5. Prior on divergence models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="background.html#re-sorting-the-taxa-during-the-abc-algorithm">4.1.6. Re-sorting the taxa during the ABC algorithm</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">4.2. The Configuration File</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#the-preamble">4.2.1. The Preamble</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#the-sample-table">4.2.2. The Sample Table</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="selecting-priors.html">4.3. Selecting Priors</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="selecting-priors.html#an-introduction-to-the-gamma-probability-distribution">4.3.1. An introduction to the gamma probability distribution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="selecting-priors.html#important-priors-for-the-dpp-msbayes-model">4.3.2. Important priors for the dpp-msbayes model</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="get-example-data.html">4.4. Getting the exampe data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simple-empirical-analysis.html">4.5. A Simple Empirical Analysis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="simple-empirical-analysis.html#the-data-files">4.5.1. The data files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simple-empirical-analysis.html#the-primary-analysis-program-ldmc">4.5.2. The primary analysis program <tt class="docutils literal"><span class="pre">dmc.py</span></tt></a></li>
+<li class="toctree-l2"><a class="reference internal" href="simple-empirical-analysis.html#plotting-the-results">4.5.3. Plotting the results</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simple-empirical-analysis.html#summarzing-results-about-divergence-time-scenarios">4.5.4. Summarzing results about divergence-time scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="multiple-model-analysis.html">4.6. An Empirical Analysis under Multiple Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="multiple-model-analysis.html#the-output">4.6.1. The output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multiple-model-analysis.html#output-from-a-longer-analysis">4.6.2. Output from a longer analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multiple-model-analysis.html#summarzing-results-about-divergence-time-scenarios">4.6.3. Summarzing results about divergence-time scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="simulation-analysis.html">4.7. A Simulation-based Validation Analysis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="simulation-analysis.html#background">4.7.1. Background</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simulation-analysis.html#the-example-configs-for-simulated-datasets">4.7.2. The example configs for simulated datasets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simulation-analysis.html#running-the-simulation-based-analysis">4.7.3. Running the simulation-based analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simulation-analysis.html#the-output">4.7.4. The output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simulation-analysis.html#summarizing-the-results">4.7.5. Summarizing the results</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simulation-analysis.html#cv-accuracy-plots">4.7.6. CV accuracy plots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simulation-analysis.html#histograms-of-the-estimated-number-of-divergence-events">4.7.7. Histograms of the estimated number of divergence events</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simulation-analysis.html#histograms-of-the-support-for-the-single-divergence-model">4.7.8. Histograms of the support for the single divergence model</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="parameter-key.html">4.8. A key to the output of model parameters and associated statstics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="parameter-key.html#the-parameters">4.8.1. The parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="parameter-key.html#the-statistics">4.8.2. The statistics</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="background.html" title="4.1. Background"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../intro/installation.html" title="3. Installation"
+             >previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="../intro/installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+ 
+      </ul>
+    </div>
+<div class="footer">
+<span class="creativecommons">
+<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
+</span>
+</div>
+
+  </body>
+</html>

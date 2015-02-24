@@ -1,0 +1,495 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>4.2. The Configuration File &mdash; PyMsBayes 0.3.2 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/pymsbayes.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.3.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/dpp.js"></script>
+    <link rel="top" title="PyMsBayes 0.3.2 documentation" href="../index.html" />
+    <link rel="up" title="4. PyMsBayes Tutorials" href="index.html" />
+    <link rel="next" title="4.3. Selecting Priors" href="selecting-priors.html" />
+    <link rel="prev" title="4.1. Background" href="background.html" /> 
+  </head>
+  <body>
+<div id="header_wrap" class="outer">
+    <header class="inner">
+      <a id="forkme_banner" href="https://github.com/joaks1/PyMsBayes">View on GitHub</a>
+
+      <h1 id="project_title"><a href="../index.html">PyMsBayes</a></h1>
+      <h2 id="project_tagline">A multi-processing Python wrapper and API for approximate-Bayesian phylgeographical inference</h2>
+
+        <section id="downloads">
+          <a class="zip_download_link" href="https://github.com/joaks1/PyMsBayes/zipball/master">Download this project as a .zip file</a>
+          <a class="tar_download_link" href="https://github.com/joaks1/PyMsBayes/tarball/master">Download this project as a tar.gz file</a>
+        </section>
+    </header>
+</div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="selecting-priors.html" title="4.3. Selecting Priors"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="background.html" title="4.1. Background"
+             accesskey="P">previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="../intro/installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+
+          <li><a href="index.html" accesskey="U">4. PyMsBayes Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../doc.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">4.2. The Configuration File</a><ul>
+<li><a class="reference internal" href="#the-preamble">4.2.1. The Preamble</a><ul>
+<li><a class="reference internal" href="#concentrationshape-concentrationscale">4.2.1.1. <tt class="docutils literal"><span class="pre">concentrationShape</span></tt> / <tt class="docutils literal"><span class="pre">concentrationScale</span></tt></a></li>
+<li><a class="reference internal" href="#thetaparameters">4.2.1.2. <tt class="docutils literal"><span class="pre">thetaParameters</span></tt></a></li>
+<li><a class="reference internal" href="#thetashape-thetascale">4.2.1.3. <tt class="docutils literal"><span class="pre">thetaShape</span></tt> / <tt class="docutils literal"><span class="pre">thetaScale</span></tt></a></li>
+<li><a class="reference internal" href="#ancestralthetashape-ancestralthetascale">4.2.1.4. <tt class="docutils literal"><span class="pre">ancestralThetaShape</span></tt> / <tt class="docutils literal"><span class="pre">ancestralThetaScale</span></tt></a></li>
+<li><a class="reference internal" href="#taushape-tauscale">4.2.1.5. <tt class="docutils literal"><span class="pre">tauShape</span></tt> / <tt class="docutils literal"><span class="pre">tauScale</span></tt></a></li>
+<li><a class="reference internal" href="#timeinsubspersite">4.2.1.6. <tt class="docutils literal"><span class="pre">timeInSubsPerSite</span></tt></a></li>
+<li><a class="reference internal" href="#bottleproportionshapea-bottleproportionshapeb">4.2.1.7. <tt class="docutils literal"><span class="pre">bottleProportionShapeA</span></tt> / <tt class="docutils literal"><span class="pre">bottleProportionShapeB</span></tt></a></li>
+<li><a class="reference internal" href="#bottleproportionshared">4.2.1.8. <tt class="docutils literal"><span class="pre">bottleProportionShared</span></tt></a></li>
+<li><a class="reference internal" href="#migrationshape-migrationscale">4.2.1.9. <tt class="docutils literal"><span class="pre">migrationShape</span></tt> / <tt class="docutils literal"><span class="pre">migrationScale</span></tt></a></li>
+<li><a class="reference internal" href="#recombinationshape-recombinationscale">4.2.1.10. <tt class="docutils literal"><span class="pre">recombinationShape</span></tt> / <tt class="docutils literal"><span class="pre">recombinationScale</span></tt></a></li>
+<li><a class="reference internal" href="#numtauclasses">4.2.1.11. <tt class="docutils literal"><span class="pre">numTauClasses</span></tt></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#the-sample-table">4.2.2. The Sample Table</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="background.html"
+                        title="previous chapter">4.1. Background</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="selecting-priors.html"
+                        title="next chapter">4.3. Selecting Priors</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/tutorials/configuration.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="the-configuration-file">
+<span id="config"></span><h1>4.2. The Configuration File<a class="headerlink" href="#the-configuration-file" title="Permalink to this headline">¶</a></h1>
+<p id="sample-config">Configuration files are used to control analysis settings for <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a>
+and <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a>.
+<a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a> allows you to use <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> and <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> configuration files (and
+their respective models) interchangeably.
+Here is an example of a configuration file for <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a>:</p>
+<div class="highlight-python"><div class="highlight"><pre>concentrationShape = 1000.0
+concentrationScale = 0.00437
+thetaShape = 4.0
+thetaScale = 0.001
+ancestralThetaShape = 0
+ancestralThetaScale = 0
+thetaParameters = 000
+tauShape = 1.0
+tauScale = 0.02
+timeInSubsPerSite = 1
+bottleProportionShapeA = 0
+bottleProportionShapeB = 0
+bottleProportionShared = 0
+migrationShape = 0
+migrationScale = 0
+numTauClasses = 0
+
+BEGIN SAMPLE_TBL
+species-1   locus-1 1.0     1.0     10      8       32.42   389     0.27    0.24    0.26    species-1-locus-1.fasta
+species-1   locus-2 1.0     1.0     8       6       5.51    500     0.25    0.22    0.24    species-1-locus-2.fasta
+species-1   locus-3 1.0     1.0     6       8       8.38    524     0.26    0.23    0.26    species-1-locus-3.fasta
+species-1   locus-4 1.0     1.0     8       10      5.20    345     0.25    0.23    0.24    species-1-locus-4.fasta
+species-1   locus-5 1.0     1.0     8       8       29.59   417     0.27    0.23    0.21    species-1-locus-5.fasta
+species-1   mito-1  0.25    4.0     5       5       8.15    600     0.22    0.24    0.27    species-1-mito-1.fasta
+species-2   locus-1 1.0     1.0     6       10      7.53    400     0.25    0.24    0.26    species-2-locus-1.fasta
+species-2   locus-3 1.0     1.0     10      8       11.14   550     0.27    0.22    0.24    species-2-locus-3.fasta
+species-2   locus-4 1.0     1.0     8       8       9.39    350     0.24    0.24    0.23    species-2-locus-4.fasta
+species-2   locus-5 1.0     1.0     10      10      13.32   450     0.26    0.24    0.22    species-2-locus-5.fasta
+species-2   mito-1  0.25    4.0     4       5       7.59    549     0.23    0.26    0.23    species-2-mito-1.fasta
+species-3   locus-1 1.0     1.0     10      6       17.03   367     0.25    0.23    0.27    species-3-locus-1.fasta
+species-3   locus-3 1.0     1.0     8       10      59.17   541     0.26    0.22    0.25    species-3-locus-3.fasta
+species-3   locus-4 1.0     1.0     6       8       6.90    333     0.28    0.23    0.21    species-3-locus-4.fasta
+species-3   mito-1  0.25    4.0     5       4       11.42   587     0.22    0.22    0.25    species-3-mito-1.fasta
+END SAMPLE_TBL
+</pre></div>
+</div>
+<p>A configuration file has two parts:</p>
+<ol class="arabic simple">
+<li>The <a class="reference internal" href="#preamble">preamble</a> containing keyword arguments for specifying prior probability
+distributions of model parameters.</li>
+<li>The <a class="reference internal" href="#sample-table">sample_table</a> containing information and parameter values for each sequence
+alignment. This section is delimited by the <tt class="docutils literal"><span class="pre">BEGIN</span> <span class="pre">SAMPLE_TBL</span></tt> and <tt class="docutils literal"><span class="pre">END</span>
+<span class="pre">SAMPLE_TBL</span></tt> lines.</li>
+</ol>
+<div class="section" id="the-preamble">
+<span id="preamble"></span><h2>4.2.1. The Preamble<a class="headerlink" href="#the-preamble" title="Permalink to this headline">¶</a></h2>
+<p>There are two main differences to the preamble between <a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a> and
+<a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a>.</p>
+<ol class="arabic">
+<li><p class="first">The <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> preamble gives you more (and different) options to
+control the number of parameters in the model and the priors on those
+parameters.</p>
+</li>
+<li><p class="first">The <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a>- and <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a>-style preambles are processed differently
+in <a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a>: The keywords in the preamble are case insensitive, and if any
+unrecognized keywords are encountered, an error is reported and the process
+exits (i.e., crashes).</p>
+<p>In <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a>, the keywords are case-sensitive and, more importantly, the
+the default value for a setting is <span class="hlight">quietly</span> used when any options
+are mis-typed.
+For example, if you specify <tt class="docutils literal"><span class="pre">uppertheta</span> <span class="pre">=</span> <span class="pre">0.01</span></tt> in an <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> config
+file (note the lower case &#8220;t&#8221;), it will quietly use the default setting for
+<tt class="docutils literal"><span class="pre">upperTheta</span></tt> and <span class="hlight">not</span> report any warning or error.
+So, if you prefer the model implemented in <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a>, <a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a> is useful as a
+&#8220;safer&#8221; interface for it.</p>
+</li>
+</ol>
+<p>Below we walk through all of the options for the <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> preamble.
+If you want to use the <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> model with <a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a>, please see the
+<a class="reference external" href="https://docs.google.com/document/d/15heQlz60cGe6GWKcXqf1AIYMBZ6p2sKuGct-EoEHiNU/edit">msBayes documentation</a>
+for information about the preamble.</p>
+<div class="contents local topic" id="preamble-elements">
+<p class="topic-title first">Preamble Elements</p>
+<ul class="simple">
+<li><a class="reference internal" href="#concentrationshape-concentrationscale" id="id5"><tt class="docutils literal"><span class="pre">concentrationShape</span></tt> / <tt class="docutils literal"><span class="pre">concentrationScale</span></tt></a></li>
+<li><a class="reference internal" href="#thetaparameters" id="id6"><tt class="docutils literal"><span class="pre">thetaParameters</span></tt></a></li>
+<li><a class="reference internal" href="#thetashape-thetascale" id="id7"><tt class="docutils literal"><span class="pre">thetaShape</span></tt> / <tt class="docutils literal"><span class="pre">thetaScale</span></tt></a></li>
+<li><a class="reference internal" href="#ancestralthetashape-ancestralthetascale" id="id8"><tt class="docutils literal"><span class="pre">ancestralThetaShape</span></tt> / <tt class="docutils literal"><span class="pre">ancestralThetaScale</span></tt></a></li>
+<li><a class="reference internal" href="#taushape-tauscale" id="id9"><tt class="docutils literal"><span class="pre">tauShape</span></tt> / <tt class="docutils literal"><span class="pre">tauScale</span></tt></a></li>
+<li><a class="reference internal" href="#timeinsubspersite" id="id10"><tt class="docutils literal"><span class="pre">timeInSubsPerSite</span></tt></a></li>
+<li><a class="reference internal" href="#bottleproportionshapea-bottleproportionshapeb" id="id11"><tt class="docutils literal"><span class="pre">bottleProportionShapeA</span></tt> / <tt class="docutils literal"><span class="pre">bottleProportionShapeB</span></tt></a></li>
+<li><a class="reference internal" href="#bottleproportionshared" id="id12"><tt class="docutils literal"><span class="pre">bottleProportionShared</span></tt></a></li>
+<li><a class="reference internal" href="#migrationshape-migrationscale" id="id13"><tt class="docutils literal"><span class="pre">migrationShape</span></tt> / <tt class="docutils literal"><span class="pre">migrationScale</span></tt></a></li>
+<li><a class="reference internal" href="#recombinationshape-recombinationscale" id="id14"><tt class="docutils literal"><span class="pre">recombinationShape</span></tt> / <tt class="docutils literal"><span class="pre">recombinationScale</span></tt></a></li>
+<li><a class="reference internal" href="#numtauclasses" id="id15"><tt class="docutils literal"><span class="pre">numTauClasses</span></tt></a></li>
+</ul>
+</div>
+<div class="section" id="concentrationshape-concentrationscale">
+<span id="concentration-parameter-prior"></span><h3><a class="toc-backref" href="#id5">4.2.1.1. <tt class="docutils literal"><span class="pre">concentrationShape</span></tt> / <tt class="docutils literal"><span class="pre">concentrationScale</span></tt></a><a class="headerlink" href="#concentrationshape-concentrationscale" title="Permalink to this headline">¶</a></h3>
+<p>The shape and scale parameters of a gamma-distributed prior on the
+concentration parameter of the Dirichlet-process prior on divergence models.</p>
+<p>See the &#8220;<a class="reference internal" href="background.html#dpp"><em>Dirichlet-process prior on divergence models</em></a>&#8221; section for more information on the Dirichlet process
+and the concentration parameter that controls it.</p>
+</div>
+<div class="section" id="thetaparameters">
+<span id="theta-parameterization"></span><h3><a class="toc-backref" href="#id6">4.2.1.2. <tt class="docutils literal"><span class="pre">thetaParameters</span></tt></a><a class="headerlink" href="#thetaparameters" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> gives you full control over the parameterization of the
+population sizes for each pair of populations.
+We will refer to the sizes of the ancestral and two descendant populations as
+<img class="math" src="../_images/math/984ca37eae2e0e249cc073140d43ef5c95ed2975.png" alt="\ancestralTheta{}"/>, <img class="math" src="../_images/math/532e50a2da36648f9a324f8ffc6e7ec6537a1cb3.png" alt="\descendantTheta{1}{}"/>, and
+<img class="math" src="../_images/math/b652f9cb84accdcac4ea75f4bded70ba1f1df95f.png" alt="\descendantTheta{2}{}"/>.</p>
+<p>This setting is controlled by a sequence of three integers that always starts
+with <tt class="docutils literal"><span class="pre">0</span></tt> and increments by 1 whenever a free parameter is added.
+The first, second, and third integers represent <img class="math" src="../_images/math/532e50a2da36648f9a324f8ffc6e7ec6537a1cb3.png" alt="\descendantTheta{1}{}"/>,
+<img class="math" src="../_images/math/b652f9cb84accdcac4ea75f4bded70ba1f1df95f.png" alt="\descendantTheta{2}{}"/>, and <img class="math" src="../_images/math/984ca37eae2e0e249cc073140d43ef5c95ed2975.png" alt="\ancestralTheta{}"/>, respectively.</p>
+<p><tt class="docutils literal"><span class="pre">000</span></tt> is one extreme, where <img class="math" src="../_images/math/984ca37eae2e0e249cc073140d43ef5c95ed2975.png" alt="\ancestralTheta{}"/>,
+<img class="math" src="../_images/math/532e50a2da36648f9a324f8ffc6e7ec6537a1cb3.png" alt="\descendantTheta{1}{}"/>, and <img class="math" src="../_images/math/b652f9cb84accdcac4ea75f4bded70ba1f1df95f.png" alt="\descendantTheta{2}{}"/> are all
+constrained to be equal for each population pair (population sizes will still
+vary among pairs).</p>
+<p><tt class="docutils literal"><span class="pre">012</span></tt> is the other extreme, where <img class="math" src="../_images/math/984ca37eae2e0e249cc073140d43ef5c95ed2975.png" alt="\ancestralTheta{}"/>,
+<img class="math" src="../_images/math/532e50a2da36648f9a324f8ffc6e7ec6537a1cb3.png" alt="\descendantTheta{1}{}"/>, and <img class="math" src="../_images/math/b652f9cb84accdcac4ea75f4bded70ba1f1df95f.png" alt="\descendantTheta{2}{}"/> are all
+estimated as independent parameters for each pair of populations.
+This is most similar to the original <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a>.
+However, the descendant population sizes are <em>not</em> constrained to be negatively
+correlated, as they are in <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> (see <a class="reference internal" href="../zbib/references.html#oaks2014dpp" id="id1">[8]</a> and
+<a class="reference internal" href="../zbib/references.html#oaks2012" id="id2">[10]</a>).</p>
+<p>Another example is <tt class="docutils literal"><span class="pre">001</span></tt>: the descendant populations share the same size
+parameter, but the ancestral population size is free to vary.</p>
+<p>For <tt class="docutils literal"><span class="pre">011</span></tt> and <tt class="docutils literal"><span class="pre">010</span></tt>, one of the descendant population is constrained to the
+same size as the ancestral, and the other is free to vary.</p>
+</div>
+<div class="section" id="thetashape-thetascale">
+<span id="theta-prior"></span><h3><a class="toc-backref" href="#id7">4.2.1.3. <tt class="docutils literal"><span class="pre">thetaShape</span></tt> / <tt class="docutils literal"><span class="pre">thetaScale</span></tt></a><a class="headerlink" href="#thetashape-thetascale" title="Permalink to this headline">¶</a></h3>
+<p>These settings define the shape and scale parameters of a gamma prior on the
+effective population sizes. Population sizes are scaled by the per-site
+mutation rate (<img class="math" src="../_images/math/6e853ba0c7899c7dec1c8a89d9a127a59f8bd7d8.png" alt="\mu"/>): <img class="math" src="../_images/math/9bc345c0c02801cf31d9f3d64d856b0df16d5df7.png" alt="4\effectivePopSize\mutationRate"/>.</p>
+</div>
+<div class="section" id="ancestralthetashape-ancestralthetascale">
+<span id="ancestral-theta-prior"></span><h3><a class="toc-backref" href="#id8">4.2.1.4. <tt class="docutils literal"><span class="pre">ancestralThetaShape</span></tt> / <tt class="docutils literal"><span class="pre">ancestralThetaScale</span></tt></a><a class="headerlink" href="#ancestralthetashape-ancestralthetascale" title="Permalink to this headline">¶</a></h3>
+<p>If these settings are both provided, and are both positive, they define the
+shape and scale parameters of a gamma prior on the effective population size of
+the ancestral population of each pair of populations.</p>
+<p>If they are excluded, or both are zero, the <a class="reference internal" href="#theta-prior"><em>thetaShape / thetaScale</em></a>
+settings are used for the gamma prior on ancestral population sizes (i.e.,
+all population size parameters have the same prior).</p>
+<div class="keypoint admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If you specify a setting such as <tt class="docutils literal"><span class="pre">000</span></tt> for the
+<a class="reference internal" href="#theta-parameterization"><em>thetaParameters</em></a> option, the ancestral population size is
+constrained to be the same as the descendant populations, and thus the
+<a class="reference internal" href="#ancestral-theta-prior"><em>ancestralThetaShape / ancestralThetaScale</em></a> options will be overridden and have no affect.</p>
+</div>
+</div>
+<div class="section" id="taushape-tauscale">
+<span id="divergence-time-prior"></span><h3><a class="toc-backref" href="#id9">4.2.1.5. <tt class="docutils literal"><span class="pre">tauShape</span></tt> / <tt class="docutils literal"><span class="pre">tauScale</span></tt></a><a class="headerlink" href="#taushape-tauscale" title="Permalink to this headline">¶</a></h3>
+<p>These settings define the shape and scale parameters of a gamma prior
+on divergence times.
+See the <a class="reference internal" href="#timescale-setting"><em>timeInSubsPerSite</em></a> setting for the information on
+the time units.</p>
+</div>
+<div class="section" id="timeinsubspersite">
+<span id="timescale-setting"></span><h3><a class="toc-backref" href="#id10">4.2.1.6. <tt class="docutils literal"><span class="pre">timeInSubsPerSite</span></tt></a><a class="headerlink" href="#timeinsubspersite" title="Permalink to this headline">¶</a></h3>
+<p>This setting controls the time scale of the model and has two settings:</p>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">timeInSubsPerSite</span> <span class="pre">=</span> <span class="pre">1</span></tt>: Time units are in expected substitutions per
+site.
+For example, a divergence of 0.05 means that, on average, 5% of sites have
+changed since the populations diverged (so you expect 10% divergence
+between the populations since the population divergence).
+Thus, you can convert these units to the number of generations or years by
+dividing by the mutation rate.</p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">timeInSubsPerSite</span> <span class="pre">=</span> <span class="pre">0</span></tt>: Time units are in coalescent units,
+<img class="math" src="../_images/math/8b24632d511826302cb5f2c39ee52e2781447cd8.png" alt="\globalcoalunit"/> generations, where <img class="math" src="../_images/math/52a436f47763f02b526af165e77657997ec96ccf.png" alt="\globalpopsize"/> is the
+size of a constant reference population based on the mean of the prior on
+theta (defined by the <a class="reference internal" href="#theta-prior"><em>thetaShape / thetaScale</em></a> settings ).</p>
+<p>If we use <img class="math" src="../_images/math/325ec93d657207aa64fc7eb036128677772afbc4.png" alt="\globaltheta"/> to represent the mean of the theta prior,
+then</p>
+<div class="math">
+<p><img src="../_images/math/dcb92b74e73b2144ca9b9100a9b968a11c7117e0.png" alt="\globalcoalunit = \frac{\globaltheta}{\mutationRate},"/></p>
+</div><p>where <img class="math" src="../_images/math/fe7f5828f30dc62ed2ce3c513e00e77f508395c5.png" alt="\mutationRate"/> is the per-site mutation rate.  Thus, you can
+convert these &#8220;<img class="math" src="../_images/math/8b24632d511826302cb5f2c39ee52e2781447cd8.png" alt="\globalcoalunit"/> generations&#8221; units to the number of
+generations by assuming a mutation rate and multiplying by
+<img class="math" src="../_images/math/2022f657d8a758453de8e946d1072fc15d67241a.png" alt="(\globaltheta/\mutationRate)"/>.  See <a class="reference internal" href="../zbib/references.html#oaks2014dpp" id="id3">[8]</a> for more
+details.</p>
+<p><a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a> supports the use of the <tt class="docutils literal"><span class="pre">timeInSubsPerSite</span></tt> option for <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a>
+configuration files as well.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last"><span class="hlight">Why use the mean of the prior on theta to scale time?</span>
+I have no idea.
+This is legacy from <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a>, and is the default setting.
+However, I strongly discourage using this time scale, because it makes it
+very difficult to compare results across analyses with different settings
+for the <a class="reference internal" href="#theta-prior">theta_prior</a>.
+It also requires you to re-scale the <a class="reference internal" href="#divergence-time-prior">divergence_time_prior</a> every time
+you change the <a class="reference internal" href="#theta-prior">theta_prior</a>.
+Having time in units of expected substitutions per site is much more
+straight forward (i.e., <tt class="docutils literal"><span class="pre">timeInSubsPerSite</span> <span class="pre">=</span> <span class="pre">1</span></tt>).</p>
+</div>
+</li>
+</ul>
+</div>
+<div class="section" id="bottleproportionshapea-bottleproportionshapeb">
+<span id="bottleneck-prior"></span><h3><a class="toc-backref" href="#id11">4.2.1.7. <tt class="docutils literal"><span class="pre">bottleProportionShapeA</span></tt> / <tt class="docutils literal"><span class="pre">bottleProportionShapeB</span></tt></a><a class="headerlink" href="#bottleproportionshapea-bottleproportionshapeb" title="Permalink to this headline">¶</a></h3>
+<p>If both are positive, these settings define a beta prior on the magnitude of a
+post-divergence bottleneck in each of the descendant populations.
+<tt class="docutils literal"><span class="pre">bottleProportionShapeA</span></tt> and <tt class="docutils literal"><span class="pre">bottleProportionShapeB</span></tt> correspond to the
+shape parameters alpha and beta, respectively, of the beta prior.</p>
+<p>The bottleneck magnitude is the proportion of the effective population size
+that remains during the bottleneck.
+For example, a value of 0.95 would mean that bottleneck reduces the effective
+population size by 5%.</p>
+<p>If either or both are zero or less, there is no post-divergence population
+bottleneck in the descendant populations (i.e., the bottleneck-magnitude
+parameters, along with the timing of each bottleneck, are removed from the
+model).</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">There are also parameters in the model for the timing of the end of the
+bottleneck (it begins at speciation in forward time). There is one of these
+parameters for each pair of populations (i.e., the descendant populations
+of each pair share the same bottleneck-end-time parameter).
+Thus if either or both of the <a class="reference internal" href="#bottleneck-prior"><em>bottleProportionShapeA / bottleProportionShapeB</em></a> settings are zero or
+less, you are also removing these bottleneck timing parameters from the
+model.
+This means you are removing <img class="math" src="../_images/math/1d317268878443f4b3ad0e6026c8f8a862101683.png" alt="3\npairs{}"/> parameters from the model,
+where &#8220;<img class="math" src="../_images/math/7cc506ae2d7273993fcf18b3bea8f31b3fe96744.png" alt="\npairs{}"/>&#8221; is the number of pairs of populations.</p>
+</div>
+</div>
+<div class="section" id="bottleproportionshared">
+<span id="bottleneck-parameterization"></span><h3><a class="toc-backref" href="#id12">4.2.1.8. <tt class="docutils literal"><span class="pre">bottleProportionShared</span></tt></a><a class="headerlink" href="#bottleproportionshared" title="Permalink to this headline">¶</a></h3>
+<p>If <tt class="docutils literal"><span class="pre">bottleProportionShared</span> <span class="pre">=</span> <span class="pre">0</span></tt>, then there are two free bottleneck-magnitude
+parameters for each population pair (one for each descendant population).
+If <tt class="docutils literal"><span class="pre">bottleProportionShared</span> <span class="pre">=</span> <span class="pre">1</span></tt>, then there is one bottleneck-magnitude
+parameter for each population pair (i.e., the descendant populations of each
+pair share the same bottleneck magnitude; the bottleneck magnitude still varies
+among the pairs).</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This setting is overridden if either or both of the
+<tt class="docutils literal"><span class="pre">bottleProportionShapeA</span></tt> and <tt class="docutils literal"><span class="pre">bottleProportionShapeB</span></tt> settings is zero
+or less (because then there is no bottleneck at all).</p>
+</div>
+</div>
+<div class="section" id="migrationshape-migrationscale">
+<h3><a class="toc-backref" href="#id13">4.2.1.9. <tt class="docutils literal"><span class="pre">migrationShape</span></tt> / <tt class="docutils literal"><span class="pre">migrationScale</span></tt></a><a class="headerlink" href="#migrationshape-migrationscale" title="Permalink to this headline">¶</a></h3>
+<p>These settings define the shape and scale parameters of a gamma prior on the
+symmetric migration between the descendant populations of each pair (in units
+of the number of gene copies per generation).</p>
+<p>If either or both settings are zero or less, there is no migration in the
+model.</p>
+</div>
+<div class="section" id="recombinationshape-recombinationscale">
+<h3><a class="toc-backref" href="#id14">4.2.1.10. <tt class="docutils literal"><span class="pre">recombinationShape</span></tt> / <tt class="docutils literal"><span class="pre">recombinationScale</span></tt></a><a class="headerlink" href="#recombinationshape-recombinationscale" title="Permalink to this headline">¶</a></h3>
+<p>These settings define the shape and scale parameters of a gamma prior
+on the intragenic recombination rate.</p>
+<p>If either or both are zero or less, there is no recombination in the model.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">I recommend <span class="hlight">not</span> including intragenic recombination in the model,
+because the current implementation is very inefficient and poorly tested.</p>
+</div>
+</div>
+<div class="section" id="numtauclasses">
+<h3><a class="toc-backref" href="#id15">4.2.1.11. <tt class="docutils literal"><span class="pre">numTauClasses</span></tt></a><a class="headerlink" href="#numtauclasses" title="Permalink to this headline">¶</a></h3>
+<p>If this setting is zero (the default), the number of divergence events is free
+to vary according to the Dirichlet process prior on divergence models.</p>
+<p>If it is greater than zero, then the model is constrained to <tt class="docutils literal"><span class="pre">numTauClasses</span></tt>
+divergence events.
+This is useful for simulation-based power analyses, but should not be used for
+empirical analyses.</p>
+</div>
+</div>
+<div class="section" id="the-sample-table">
+<span id="sample-table"></span><h2>4.2.2. The Sample Table<a class="headerlink" href="#the-sample-table" title="Permalink to this headline">¶</a></h2>
+<p>Delimited by the <tt class="docutils literal"><span class="pre">BEGIN</span> <span class="pre">SAMPLE_TBL</span></tt> and <tt class="docutils literal"><span class="pre">END</span> <span class="pre">SAMPLE_TBL</span></tt> lines is the
+sample table section of our <a class="reference internal" href="#sample-config"><em>example configuration file</em></a>
+above.
+This is a tab-delimited table where each column represents information or
+parameter values for each row, which represents a locus for a particular taxon
+(i.e., each row will correspond to a sequence alignment we wish to include in
+our analysis).</p>
+<div class="definitions admonition" id="sample-table-columns">
+<p class="first admonition-title">Sample Table Columns</p>
+<dl class="last docutils">
+<dt>Column 1&#8212;Taxon label</dt>
+<dd>A unique label must be used to identify each pair of populations in the
+analysis.</dd>
+<dt>Column 2&#8212;Locus label</dt>
+<dd>A unique label must be used to identify each locus in the analysis.</dd>
+<dt>Column 3&#8212;Ploidy and/or generation-time multiplier</dt>
+<dd>The number in this column is used to scale for differences in ploidy
+among loci or for differences in generation-times among taxa.
+In our <a class="reference internal" href="#sample-config"><em>example configuration file</em></a> 1.0 is used for
+loci from a diploid nuclear genome, whereas 0.25 is used for a region
+of the mitochondrial genome (because its haploid and maternally
+inherited).
+However, if a taxon &#8220;species-3&#8221; had <img class="math" src="../_images/math/66e0facb6393cc8fba4bdc5951b10d77e34b5370.png" alt="1/4"/> the generation times of
+the other two taxa, we would specify &#8220;1.0&#8221; for the third column for its
+mitochondrial locus, and &#8220;4.0&#8221; for the third column for its nuclear
+loci.</dd>
+<dt>Column 4&#8212;Mutation-rate multiplier</dt>
+<dd>The number in this column is used to scale for differences in mutation
+rates among taxa and/or loci.
+In our <a class="reference internal" href="#sample-config"><em>example configuration file</em></a>, we are
+assuming that the mitochondrial locus (&#8220;mito-1&#8221;) is evolving
+four-times faster than the other loci (hence, the &#8220;4.0&#8221; in this fourth
+column for the three rows representing the mitochondrial locus).</dd>
+<dt>Columns 5 and 6&#8212;Number of gene copies from Populations 1 and 2</dt>
+<dd>For example, for &#8220;locus-1&#8221; of &#8220;species-1&#8221; in our <a class="reference internal" href="#sample-config"><em>example
+configuration file</em></a>, we have &#8220;10&#8221; and &#8220;8&#8221; in Columns 5
+and 6.
+Thus, the first 10 sequences in the &#8220;<tt class="docutils literal"><span class="pre">species-1-locus-1.fasta</span></tt>&#8221; file
+specified in Column 12 must be from one population, and the last 8
+sequences must be from the other population.
+NOTE, which population is &#8220;1&#8221; or &#8220;2&#8221; is completely arbitrary. However,
+the numbers in Columns 5 and 6 must correspond to the first and
+last sequences, respectively, in the sequence file specified in Column
+12.</dd>
+<dt>Column 7&#8212;The transition/transversion rate ratio</dt>
+<dd>This is the transition/transversion rate ratio (&#8220;Kappa&#8221;) of the HKY85
+model of nucleotide substitution <a class="reference internal" href="../zbib/references.html#hky" id="id4">[4]</a> for this alignment.
+NOTE: This is the transition/transversion <em>rate</em> ratio, not the &#8220;count&#8221;
+ratio. I.e., Kappa = 1 is equal to the Jukes-Cantor model.</dd>
+<dt>Column 8&#8212;The length of the alignment</dt>
+<dd>The number of columns in the alignment specified in Column 12.</dd>
+<dt>Columns 9, 10, and 11&#8212;Base frequencies</dt>
+<dd>Equilibrium frequencies of nucleotide bases A, C, and G, respectively.
+The frequency of T is simply 1 minus the sum of these three columns.</dd>
+<dt>Column 12&#8212;Path to sequence alignment</dt>
+<dd>The path to the fasta-formatted file containing the aligned sequences.
+The first sequences in the file should correspond to Column 5, and the
+last sequences in the file should correspond to Column 6.
+If only the name of the file is given (as in the <a class="reference internal" href="#sample-config"><em>example
+configuration file</em></a> above), the file must be in the
+same directory (&#8220;folder&#8221;) as the configuration file.
+The paths can be relative (e.g.,
+<tt class="docutils literal"><span class="pre">../alignments/species-1-locus-1.fasta</span></tt>).</dd>
+</dl>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="selecting-priors.html" title="4.3. Selecting Priors"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="background.html" title="4.1. Background"
+             >previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="../intro/installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+
+          <li><a href="index.html" >4. PyMsBayes Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>
+<div class="footer">
+<span class="creativecommons">
+<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
+</span>
+</div>
+
+  </body>
+</html>

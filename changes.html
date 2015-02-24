@@ -1,0 +1,326 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>6. PyMsBayes Change History &mdash; PyMsBayes 0.3.2 documentation</title>
+    
+    <link rel="stylesheet" href="_static/pymsbayes.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.3.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/dpp.js"></script>
+    <link rel="top" title="PyMsBayes 0.3.2 documentation" href="index.html" />
+    <link rel="next" title="7. Acknowledgements" href="thanks/acknowledgments.html" />
+    <link rel="prev" title="5. Caveats and Recommendations" href="intro/caveats.html" /> 
+  </head>
+  <body>
+<div id="header_wrap" class="outer">
+    <header class="inner">
+      <a id="forkme_banner" href="https://github.com/joaks1/PyMsBayes">View on GitHub</a>
+
+      <h1 id="project_title"><a href="index.html">PyMsBayes</a></h1>
+      <h2 id="project_tagline">A multi-processing Python wrapper and API for approximate-Bayesian phylgeographical inference</h2>
+
+        <section id="downloads">
+          <a class="zip_download_link" href="https://github.com/joaks1/PyMsBayes/zipball/master">Download this project as a .zip file</a>
+          <a class="tar_download_link" href="https://github.com/joaks1/PyMsBayes/tarball/master">Download this project as a tar.gz file</a>
+        </section>
+    </header>
+</div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="thanks/acknowledgments.html" title="7. Acknowledgements"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="intro/caveats.html" title="5. Caveats and Recommendations"
+             accesskey="P">previous</a> |</li>
+<li><a href="index.html">Home</a>&nbsp;|</li>
+<li><a href="intro/installation.html">Install</a>&nbsp;|</li>
+<li><a href="doc.html">Documentation</a>&nbsp;|</li>
+ 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="doc.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">6. PyMsBayes Change History</a><ul>
+<li><a class="reference internal" href="#version-0-3-2">6.1. Version 0.3.2</a><ul>
+<li><a class="reference internal" href="#new-features">6.1.1. New Features</a></li>
+<li><a class="reference internal" href="#changes">6.1.2. Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#version-0-3-1">6.2. Version 0.3.1</a><ul>
+<li><a class="reference internal" href="#id1">6.2.1. Changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#version-0-3-0">6.3. Version 0.3.0</a><ul>
+<li><a class="reference internal" href="#id2">6.3.1. Changes</a></li>
+<li><a class="reference internal" href="#bug-fixes">6.3.2. Bug Fixes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#version-0-2-2">6.4. Version 0.2.2</a><ul>
+<li><a class="reference internal" href="#id3">6.4.1. Changes</a></li>
+<li><a class="reference internal" href="#id4">6.4.2. New Features</a></li>
+<li><a class="reference internal" href="#id5">6.4.3. Bug Fixes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#version-0-2-1">6.5. Version 0.2.1</a><ul>
+<li><a class="reference internal" href="#id6">6.5.1. Changes</a></li>
+<li><a class="reference internal" href="#id7">6.5.2. Bug Fixes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#version-0-2-0">6.6. Version 0.2.0</a><ul>
+<li><a class="reference internal" href="#id8">6.6.1. New Features</a></li>
+<li><a class="reference internal" href="#id9">6.6.2. Changes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="intro/caveats.html"
+                        title="previous chapter">5. Caveats and Recommendations</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="thanks/acknowledgments.html"
+                        title="next chapter">7. Acknowledgements</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/changes.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="pymsbayes-change-history">
+<h1>6. PyMsBayes Change History<a class="headerlink" href="#pymsbayes-change-history" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="version-0-3-2">
+<h2>6.1. Version 0.3.2<a class="headerlink" href="#version-0-3-2" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="new-features">
+<h3>6.1.1. New Features<a class="headerlink" href="#new-features" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>New documentation.</li>
+<li>New tutorials.</li>
+<li>A new option <tt class="docutils literal"><span class="pre">timeInSubsPerSite</span></tt> is now supported for dpp-msbayes and
+msbayes analyses.</li>
+<li>The coefficient of variation of divergence times is now reported.</li>
+<li>The <tt class="docutils literal"><span class="pre">dmc_dpp_summary.py</span></tt> CLI script now estimates and reports the
+probabilities of the number of categoories.</li>
+<li>New <tt class="docutils literal"><span class="pre">dmc_sum_sims.py</span></tt> CLI script for summarizing and plotting the results
+of simulation-based analyses.</li>
+<li>New &#8220;-m/&#8211;mu&#8221; option added to <tt class="docutils literal"><span class="pre">dmc_plot_results.py</span></tt> script for specifying
+the mutation rate to rescale time to generations.</li>
+<li>New &#8220;&#8211;extension&#8221; option added to <tt class="docutils literal"><span class="pre">dmc_plot_results.py</span></tt> script to allow
+the file format of the plots to be specified.</li>
+<li>Adding new worker classes to the API for simulating data via Joseph Heled&#8217;s
+<tt class="docutils literal"><span class="pre">biopy</span></tt> package.</li>
+<li>Adding <tt class="docutils literal"><span class="pre">DppSimWorker</span></tt> and <tt class="docutils literal"><span class="pre">DppSimTeam</span></tt> to the API.</li>
+</ul>
+</div>
+<div class="section" id="changes">
+<h3>6.1.2. Changes<a class="headerlink" href="#changes" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>More rigorous checks added to <tt class="docutils literal"><span class="pre">dmc.py</span></tt> to make sure all the sample tables
+are the same within an analysis.</li>
+<li>The logging frequency is now in units of prior samples rather than batch
+iterations.</li>
+<li>Help menus of CLI scripts have been updated.</li>
+<li>New dpp-msbayes executables were added that accommodate the
+<tt class="docutils literal"><span class="pre">timeInSubsPerSite</span></tt> option and reporting the coefficient of variation of
+divergence times.</li>
+<li>The package has been updated to handle these new options.</li>
+<li>For the <tt class="docutils literal"><span class="pre">dmc_plot_results.py</span></tt> CLI script, changing the the
+<tt class="docutils literal"><span class="pre">--iteration-index</span></tt> option to <tt class="docutils literal"><span class="pre">--sample-index</span></tt> to reflect the new
+logging behavior (units of prior samples rather than batch iterations).</li>
+</ul>
+</div>
+</div>
+<div class="section" id="version-0-3-1">
+<h2>6.2. Version 0.3.1<a class="headerlink" href="#version-0-3-1" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id1">
+<h3>6.2.1. Changes<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Cleaning up intra-package imports and rearranging some of the code.</li>
+</ul>
+</div>
+</div>
+<div class="section" id="version-0-3-0">
+<h2>6.3. Version 0.3.0<a class="headerlink" href="#version-0-3-0" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id2">
+<h3>6.3.1. Changes<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Updated the version of <tt class="docutils literal"><span class="pre">dpp-msprior</span></tt> binary (for both mac and linux) that
+is bundled with the package. This version of <tt class="docutils literal"><span class="pre">dpp-msprior</span></tt> is from
+version 0.2 of the <tt class="docutils literal"><span class="pre">dpp-msbayes</span></tt> package and was updated to create a
+lower limit (0.000000000001) for values of theta. In rare cases, a theta
+value of zero would cause the coalescent simulator <tt class="docutils literal"><span class="pre">msDQH</span></tt> to crash.
+Any previous analyses that did not crash should not be affected by
+this change.</li>
+<li>The newer version of <tt class="docutils literal"><span class="pre">dpp-msprior</span></tt> also changes the weirdness from the
+original <tt class="docutils literal"><span class="pre">msBayes</span></tt> where there was a check for small (i.e., 0.0001)
+divergence times. In such simulations, the div time was set to this
+arbitrary lower bound, and the bottleneck time was set to 0.5 of this.  I
+am guessing this was to prevent unrealistic (and numerically unstable?)
+changes in pop size. However, 0.0001 can be thousands of generations which
+is not trivial. Also, rather than this weird hack of the bottleneck time,
+it seems much better to simply have no bottleneck if the div time is
+essentially zero. Accordingly, I lowered the threshold and simply &#8220;turn
+off&#8221; the bottleneck if the time is below it (I no longer adjust the div
+time or bottleneck time). This change should have very little affect on
+most analyses.</li>
+</ul>
+</div>
+<div class="section" id="bug-fixes">
+<h3>6.3.2. Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>As mentioned in the change above, in rare cases, theta values of zero drawn
+from the prior via <tt class="docutils literal"><span class="pre">dpp-msprior</span></tt> would cause <tt class="docutils literal"><span class="pre">msDQH</span></tt> to crash. The new
+version of the <tt class="docutils literal"><span class="pre">dpp-msprior</span></tt> binaries should prevent this. Any previous
+analyses that did not crash were not affected by this bug.</li>
+</ul>
+</div>
+</div>
+<div class="section" id="version-0-2-2">
+<h2>6.4. Version 0.2.2<a class="headerlink" href="#version-0-2-2" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id3">
+<h3>6.4.1. Changes<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>End-user CLI scripts log additional information.</li>
+<li><tt class="docutils literal"><span class="pre">dmc.py</span></tt> will now set the number of standardizing samples equal to the
+number of prior samples, if the former is larger than the latter.</li>
+</ul>
+</div>
+<div class="section" id="id4">
+<h3>6.4.2. New Features<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>New management of paths to dpp-msbayes and msBayes executables. Previously,
+the package only used the executables bundled with the package, which
+required the package to be installed via <tt class="docutils literal"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">develop</span></tt>. Now,
+the package will also look for executables on the system.</li>
+<li>Updating <tt class="docutils literal"><span class="pre">setup.py</span></tt> so that the bundled executables will be installed
+along with end-user scripts via <tt class="docutils literal"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">install</span></tt> after checking
+that all the executables work on the system.</li>
+<li>32-bit Linux versions of the dpp-msbayes/msBayes executables are now
+bundled with the package.</li>
+</ul>
+</div>
+<div class="section" id="id5">
+<h3>6.4.3. Bug Fixes<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Fixed a bug where <tt class="docutils literal"><span class="pre">MsBayesWorker</span></tt> instances with a sample size of zero
+would hang indefinitely. A ValueError is now raised if an <tt class="docutils literal"><span class="pre">MsBayesWorder</span></tt>
+is initiated with an integer less than one for the sample size.</li>
+</ul>
+</div>
+</div>
+<div class="section" id="version-0-2-1">
+<h2>6.5. Version 0.2.1<a class="headerlink" href="#version-0-2-1" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id6">
+<h3>6.5.1. Changes<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Adding working version of documentation.</li>
+<li>Overhauled package-wide and CLI-script logging management.</li>
+</ul>
+</div>
+<div class="section" id="id7">
+<h3>6.5.2. Bug Fixes<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Fixing bug in <tt class="docutils literal"><span class="pre">dmc.py</span></tt> script, where the wrong value for the number of
+standardizing samples was being written to the run summary file.</li>
+</ul>
+</div>
+</div>
+<div class="section" id="version-0-2-0">
+<h2>6.6. Version 0.2.0<a class="headerlink" href="#version-0-2-0" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id8">
+<h3>6.6.1. New Features<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>New options added to package and scripts for the sort index. These allow
+summary statistics to be grouped by taxon, but without re-sorting.</li>
+</ul>
+</div>
+<div class="section" id="id9">
+<h3>6.6.2. Changes<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>The new default option for the sort index for the entire package and for
+end-user scripts is to not group or re-sort the summary statistics of each
+alignment. The re-sorting that was done prior to this was NOT VALID,
+because the summary statics calculated from the different alignments are
+NOT exchangeable.</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="thanks/acknowledgments.html" title="7. Acknowledgements"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="intro/caveats.html" title="5. Caveats and Recommendations"
+             >previous</a> |</li>
+<li><a href="index.html">Home</a>&nbsp;|</li>
+<li><a href="intro/installation.html">Install</a>&nbsp;|</li>
+<li><a href="doc.html">Documentation</a>&nbsp;|</li>
+ 
+      </ul>
+    </div>
+<div class="footer">
+<span class="creativecommons">
+<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
+</span>
+</div>
+
+  </body>
+</html>

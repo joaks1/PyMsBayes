@@ -1,0 +1,213 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>5. Caveats and Recommendations &mdash; PyMsBayes 0.3.2 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/pymsbayes.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.3.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/dpp.js"></script>
+    <link rel="top" title="PyMsBayes 0.3.2 documentation" href="../index.html" />
+    <link rel="next" title="6. PyMsBayes Change History" href="../changes.html" />
+    <link rel="prev" title="4.8. A key to the output of model parameters and associated statstics" href="../tutorials/parameter-key.html" /> 
+  </head>
+  <body>
+<div id="header_wrap" class="outer">
+    <header class="inner">
+      <a id="forkme_banner" href="https://github.com/joaks1/PyMsBayes">View on GitHub</a>
+
+      <h1 id="project_title"><a href="../index.html">PyMsBayes</a></h1>
+      <h2 id="project_tagline">A multi-processing Python wrapper and API for approximate-Bayesian phylgeographical inference</h2>
+
+        <section id="downloads">
+          <a class="zip_download_link" href="https://github.com/joaks1/PyMsBayes/zipball/master">Download this project as a .zip file</a>
+          <a class="tar_download_link" href="https://github.com/joaks1/PyMsBayes/tarball/master">Download this project as a tar.gz file</a>
+        </section>
+    </header>
+</div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../changes.html" title="6. PyMsBayes Change History"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../tutorials/parameter-key.html" title="4.8. A key to the output of model parameters and associated statstics"
+             accesskey="P">previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+ 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../doc.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">5. Caveats and Recommendations</a><ul>
+<li><a class="reference internal" href="#be-skeptical-of-strongly-supported-results">5.1. Be skeptical of strongly supported results</a></li>
+<li><a class="reference internal" href="#issues-of-abc-model-choice">5.2. Issues of ABC model choice</a></li>
+<li><a class="reference internal" href="#assess-the-sensitivity-of-results-to-prior-assumptions">5.3. Assess the sensitivity of results to prior assumptions</a></li>
+<li><a class="reference internal" href="#simulation-based-analyses-can-illuminate-temporal-resolution">5.4. Simulation-based analyses can illuminate temporal resolution</a></li>
+<li><a class="reference internal" href="#do-not-scramble-the-summary-statistics-among-taxa">5.5. Do not scramble the summary statistics among taxa!</a></li>
+<li><a class="reference internal" href="#the-method-might-be-inappropriate-for-comparing-many-taxa">5.6. The method might be inappropriate for comparing many taxa</a></li>
+<li><a class="reference internal" href="#please-choose-your-priors">5.7. Please choose your priors</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../tutorials/parameter-key.html"
+                        title="previous chapter">4.8. A key to the output of model parameters and associated statstics</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../changes.html"
+                        title="next chapter">6. PyMsBayes Change History</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/intro/caveats.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="caveats-and-recommendations">
+<span id="caveats"></span><h1>5. Caveats and Recommendations<a class="headerlink" href="#caveats-and-recommendations" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="be-skeptical-of-strongly-supported-results">
+<h2>5.1. Be skeptical of strongly supported results<a class="headerlink" href="#be-skeptical-of-strongly-supported-results" title="Permalink to this headline">¶</a></h2>
+<p>Both <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> and <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> attempt to approximate the posterior of a
+very parameter rich and highly stochastic model.
+Furthermore, both methods use relatively little information from the data
+when doing so (i.e., the sequence alignments are reduced to a small number
+of simple statistics).
+Under these conditions we should expect there to be quite a bit of posterior
+uncertainty about divergence models and the number of divergence events.
+A lack of posterior uncertainty (i.e., strongly supported results) is likely a
+red flag that the prior on divergence times is strongly weighting the posterior
+probabilities of the divergence models (i.e., the strong support is being
+driven by the prior on the divergence times, and <strong>not</strong> the data).
+See the <a class="reference internal" href="../tutorials/background.html#prior-on-divergence-times"><em>the section about the prior on divergence
+times</em></a> for more details.</p>
+</div>
+<div class="section" id="issues-of-abc-model-choice">
+<h2>5.2. Issues of ABC model choice<a class="headerlink" href="#issues-of-abc-model-choice" title="Permalink to this headline">¶</a></h2>
+<p>ABC approximations of posterior probabilities (and associated Bayes factors)
+can be inaccurate when the summary statistics are insufficient across models
+(which will always be the case for <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> and <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> analyses)
+<a class="reference internal" href="../zbib/references.html#robert2011" id="id1">[11]</a>.
+Thus, ABC model choice should really be treated as a means of exploring your
+data, rather than a rigorous evaluation of hypotheses.</p>
+</div>
+<div class="section" id="assess-the-sensitivity-of-results-to-prior-assumptions">
+<h2>5.3. Assess the sensitivity of results to prior assumptions<a class="headerlink" href="#assess-the-sensitivity-of-results-to-prior-assumptions" title="Permalink to this headline">¶</a></h2>
+<p>Given some of the pitfalls discussed above, it is always a good idea to
+assess the sensitivity of your results to your prior assumptions.
+Luckily, <a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a> makes this very easy for you, because it allows
+you to analyze data under an arbitrary number of models very
+easily.
+See the <a class="reference internal" href="../tutorials/multiple-model-analysis.html#multiple-model-analysis"><em>multi-model tutorial</em></a> about how to do
+this.</p>
+</div>
+<div class="section" id="simulation-based-analyses-can-illuminate-temporal-resolution">
+<h2>5.4. Simulation-based analyses can illuminate temporal resolution<a class="headerlink" href="#simulation-based-analyses-can-illuminate-temporal-resolution" title="Permalink to this headline">¶</a></h2>
+<p>As shown in <a class="reference internal" href="../zbib/references.html#oaks2012" id="id2">[10]</a>, <a class="reference internal" href="../zbib/references.html#oaks2014reply" id="id3">[9]</a>, and <a class="reference internal" href="../zbib/references.html#oaks2014dpp" id="id4">[8]</a>,
+simulation-based analyses provide insight about the time scale at which the
+method can detect random variation in divergence times from your data.
+This can be very useful in guiding your interpretation of the results.</p>
+</div>
+<div class="section" id="do-not-scramble-the-summary-statistics-among-taxa">
+<h2>5.5. Do not scramble the summary statistics among taxa!<a class="headerlink" href="#do-not-scramble-the-summary-statistics-among-taxa" title="Permalink to this headline">¶</a></h2>
+<p>See <a class="reference internal" href="../tutorials/background.html#sorting-taxa"><em>the section about the re-sorting across taxa</em></a> that is
+done in <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> (and is still an option in <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a>).
+This is mathematically incorrect, introduces bias, and should not be done.</p>
+</div>
+<div class="section" id="the-method-might-be-inappropriate-for-comparing-many-taxa">
+<h2>5.6. The method might be inappropriate for comparing many taxa<a class="headerlink" href="#the-method-might-be-inappropriate-for-comparing-many-taxa" title="Permalink to this headline">¶</a></h2>
+<p>See the note about <a class="reference internal" href="../tutorials/selecting-priors.html#too-many-taxa"><em>the number of divergence models as the number of taxa
+increase</em></a>.
+Once the number of taxa gets above 15 or so, the number of possible models of
+divergence gets enormous, and might be beyond the capacity of the simple
+rejection sampling algorithm implemented in <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> and <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a>.
+If you use either method with this many pairs of taxa, you should run multiple
+replicates, each with large numbers of samples from the prior, to make sure
+your estimates are stabilizing as the samples increase within each run, and
+converging to similar values across runs.</p>
+</div>
+<div class="section" id="please-choose-your-priors">
+<h2>5.7. Please choose your priors<a class="headerlink" href="#please-choose-your-priors" title="Permalink to this headline">¶</a></h2>
+<p>Please do not use the default priors. You know your system infinitely better
+than I do, and thus you should be the one to choose the assumptions about prior
+uncertainty.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../changes.html" title="6. PyMsBayes Change History"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../tutorials/parameter-key.html" title="4.8. A key to the output of model parameters and associated statstics"
+             >previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+ 
+      </ul>
+    </div>
+<div class="footer">
+<span class="creativecommons">
+<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
+</span>
+</div>
+
+  </body>
+</html>

@@ -1,0 +1,736 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>4.1. Background &mdash; PyMsBayes 0.3.2 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/pymsbayes.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.3.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/dpp.js"></script>
+    <link rel="top" title="PyMsBayes 0.3.2 documentation" href="../index.html" />
+    <link rel="up" title="4. PyMsBayes Tutorials" href="index.html" />
+    <link rel="next" title="4.2. The Configuration File" href="configuration.html" />
+    <link rel="prev" title="4. PyMsBayes Tutorials" href="index.html" /> 
+  </head>
+  <body>
+<div id="header_wrap" class="outer">
+    <header class="inner">
+      <a id="forkme_banner" href="https://github.com/joaks1/PyMsBayes">View on GitHub</a>
+
+      <h1 id="project_title"><a href="../index.html">PyMsBayes</a></h1>
+      <h2 id="project_tagline">A multi-processing Python wrapper and API for approximate-Bayesian phylgeographical inference</h2>
+
+        <section id="downloads">
+          <a class="zip_download_link" href="https://github.com/joaks1/PyMsBayes/zipball/master">Download this project as a .zip file</a>
+          <a class="tar_download_link" href="https://github.com/joaks1/PyMsBayes/tarball/master">Download this project as a tar.gz file</a>
+        </section>
+    </header>
+</div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="configuration.html" title="4.2. The Configuration File"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="4. PyMsBayes Tutorials"
+             accesskey="P">previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="../intro/installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+
+          <li><a href="index.html" accesskey="U">4. PyMsBayes Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../doc.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">4.1. Background</a><ul>
+<li><a class="reference internal" href="#comparative-divergence-models">4.1.1. Comparative divergence models</a></li>
+<li><a class="reference internal" href="#bayesian-divergence-model-choice">4.1.2. Bayesian divergence-model choice</a></li>
+<li><a class="reference internal" href="#approximate-likelihood-bayesian-computation">4.1.3. Approximate-<em>likelihood</em> Bayesian computation</a></li>
+<li><a class="reference internal" href="#prior-on-divergence-times">4.1.4. Prior on divergence times</a></li>
+<li><a class="reference internal" href="#prior-on-divergence-models">4.1.5. Prior on divergence models</a><ul>
+<li><a class="reference internal" href="#dirichlet-process-prior-on-divergence-models">4.1.5.1. Dirichlet-process prior on divergence models</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#re-sorting-the-taxa-during-the-abc-algorithm">4.1.6. Re-sorting the taxa during the ABC algorithm</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">4. PyMsBayes Tutorials</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="configuration.html"
+                        title="next chapter">4.2. The Configuration File</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/tutorials/background.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="background">
+<span id="id1"></span><h1>4.1. Background<a class="headerlink" href="#background" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="comparative-divergence-models">
+<span id="id2"></span><h2>4.1.1. Comparative divergence models<a class="headerlink" href="#comparative-divergence-models" title="Permalink to this headline">¶</a></h2>
+<p>Biogeographers are often interested in understanding how large-scale processes
+affect diversification and community assembly.
+One way to approach this challenge is to infer the history of diversification
+across co-distributed species and test for patterns predicted by historical
+processes of interest (e.g., changes in climate fragmenting communities).
+For example, if an event split a community of species 260,000 years ago, we
+might expect the divergences to be temporally clustered across multiple species
+co-distributed across the barrier created by the event (the ominous &#8220;black
+rectangle&#8221; <a class="reference internal" href="#divergence-model-111"><em>below</em></a>).
+More specifically, let&#8217;s say we are interested in investigating three species
+of lizards that are co-distributed across the putative barrier.
+In order to infer the affect of the historical event on diversification, we
+want to compare, across the three species, the timing of the divergence between
+the populations on opposite sides of the putative barrier.
+If the historical event caused divergence, we would expect that each of the
+three pairs of lizard populations (or some subset of them) diverged around the
+same time, as shown in <a class="reference internal" href="#divergence-model-111"><em>the figure below</em></a>.</p>
+<div class="figure align-center" id="divergence-model-111" style="width: 60%">
+<a class="reference internal image-reference" href="../_images/div-model-cartoon-111.png"><img alt="divergence model 111" src="../_images/div-model-cartoon-111.png" style="width: 600px;" /></a>
+<p class="caption">A cartoon showing three pairs of lizard populations that co-diverge due to
+an event 260,000 years ago.</p>
+</div>
+<p>We can think of this as a particular <em>divergence model</em> where all three pairs
+of populations share the same divergence-time parameter.
+If we give the divergence-time parameter the index &#8220;1&#8221;, we can use the notation
+<img class="math" src="../_images/math/ffe1b0d938eecc00b0fd2d5993a77006aa4a2e39.png" alt="\divModel{1} = 111"/> to show that this divergence model assigns
+population pairs 1, 2, and 3 to divergence-time parameter 1.
+However, this is only one possible divergence model, and happens to be the most
+constrained.
+With three population pairs, there are 4 other possible models of divergence (5
+total possible models).
+Three of these models have two divergence-time parameters.
+We can assign population-pair 1 to a second divergence-time parameter to get
+divergence model <img class="math" src="../_images/math/abe4ca7b10c64f33c8d6d6011893be0d1783e176.png" alt="\divModel{2} = 211"/>, as shown in
+<a class="reference internal" href="#divergence-model-211"><em>the figure below</em></a>.</p>
+<div class="figure align-center" id="divergence-model-211" style="width: 60%">
+<a class="reference internal image-reference" href="../_images/div-model-cartoon-211.png"><img alt="divergence model 211" src="../_images/div-model-cartoon-211.png" style="width: 600px;" /></a>
+<p class="caption">A cartoon showing population-pair 1 assigned to divergence-time parameter 2,
+and population-pairs 2 and 3 assigned to divergence-time parameter 1.</p>
+</div>
+<p>We can also assign population-pair 2 to divergence-time parameter 2 to get
+divergence model <img class="math" src="../_images/math/c9502b2a161ed3e3244bcb7a507f088d9469017f.png" alt="\divModel{3} = 121"/>, as <a class="reference internal" href="#divergence-model-121"><em>shown
+below</em></a>.</p>
+<div class="figure align-center" id="divergence-model-121" style="width: 60%">
+<a class="reference internal image-reference" href="../_images/div-model-cartoon-121.png"><img alt="divergence model 121" src="../_images/div-model-cartoon-121.png" style="width: 600px;" /></a>
+<p class="caption">A cartoon showing population-pair 2 assigned to divergence-time parameter 2,
+and population-pairs 1 and 3 assigned to divergence-time parameter 1.</p>
+</div>
+<p>And for the last possible divergence model with two divergence-time parameters,
+we assign population-pair 3 to divergence-time parameter 2 to get divergence
+model <img class="math" src="../_images/math/147687e681a16468ca4ca8fe3ed439ef2eef7141.png" alt="\divModel{4} = 112"/>, as shown in <a class="reference internal" href="#divergence-model-112"><em>the figure
+below</em></a>.</p>
+<div class="figure align-center" id="divergence-model-112" style="width: 60%">
+<a class="reference internal image-reference" href="../_images/div-model-cartoon-112.png"><img alt="divergence model 112" src="../_images/div-model-cartoon-112.png" style="width: 600px;" /></a>
+<p class="caption">A cartoon showing population-pair 3 assigned to divergence-time parameter 2,
+and population-pairs 1 and 2 assigned to divergence-time parameter 1.</p>
+</div>
+<p>Finally, we can add a third divergence-time parameter so that each pair of
+populations is assigned to its own divergence-time parameter (divergence model
+<img class="math" src="../_images/math/9ae8649e4f85f259db73d271d0c80a0e2d028eab.png" alt="\divModel{5} = 123"/>), as shown in <a class="reference internal" href="#divergence-model-123"><em>the last divergence-model
+figure</em></a>.
+This is the most general model of divergence, and has no co-divergence among
+taxa.
+Biogeographically, we can think of each free divergence-time parameter
+as a &#8220;divergence event&#8221; during which one or more pairs of populations
+can diverge.</p>
+<div class="figure align-center" id="divergence-model-123" style="width: 60%">
+<a class="reference internal image-reference" href="../_images/div-model-cartoon-123.png"><img alt="divergence model 123" src="../_images/div-model-cartoon-123.png" style="width: 600px;" /></a>
+<p class="caption">A cartoon showing the most general model of divergence where all three
+pairs of lizard populations diverge at unique times.</p>
+</div>
+<p>Being energetic herpetologists, we go out and sample individuals from each of
+the lizard populations, and from those individuals collect DNA sequence data
+from one or more orthologous loci per pair of populations.
+We know that the sequences of a locus are related by a genealogy,
+and that the shape of this genealogy is governed by demographic processes.
+We also know that the genetic variation we see in the data accumulated as the
+sequences evolved via mutational processes along the genealogy.
+We can modify our cartoon of model <img class="math" src="../_images/math/9ae8649e4f85f259db73d271d0c80a0e2d028eab.png" alt="\divModel{5} = 123"/> to better represent this,
+as I try to do in <a class="reference internal" href="#pop-divergence-model-123"><em>the figure below</em></a>.</p>
+<div class="figure align-center" id="pop-divergence-model-123" style="width: 60%">
+<a class="reference internal image-reference" href="../_images/pop-div-model-cartoon-123.png"><img alt="divergence model 123" src="../_images/pop-div-model-cartoon-123.png" style="width: 600px;" /></a>
+<p class="caption">A cartoon showing the most general model of divergence where all three
+pairs of lizard populations diverge at unique times.</p>
+</div>
+<p>Before we go any further, let&#8217;s clarify some terminology that will be
+used throughout the <a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a> documentation:</p>
+<div class="definitions admonition">
+<p class="first admonition-title">Definitions</p>
+<dl class="last docutils">
+<dt>Taxon</dt>
+<dd>A pair of populations that diverged in the past. We are interested in
+comparing the timing of this divergence to other pairs of populations.
+I will use taxon interchangeably with <em>species</em> and <em>population pair</em>.</dd>
+<dt>Divergence event</dt>
+<dd>Synonymous with <em>divergence-time parameter</em>. It is a parameter of a
+<em>divergence model</em> that represents a time point in the past at which
+one or more of the taxa diverged.</dd>
+<dt>Divergence model</dt>
+<dd>A particular assignment (set partiton) of taxa to divergence-time
+parameter(s). It can range from all taxa being assigned to a single
+divergence-time parameter (i.e., &#8220;simultaneous&#8221; divergence) to each
+taxon being assigned to a unique divergence-time parameter (i.e., no
+co-divergence). Sometimes I get sloppy and just use <em>model</em>.</dd>
+</dl>
+</div>
+<p>Next, let&#8217;s jump to the &#8220;<a class="reference internal" href="#bayesian-divergence-model-choice"><em>Bayesian divergence-model choice</em></a>&#8221; section to
+see how we can use the information in the sequence data to infer the temporal
+distribution of the population divergences across the three lizard species.</p>
+</div>
+<div class="section" id="bayesian-divergence-model-choice">
+<span id="id3"></span><h2>4.1.2. Bayesian divergence-model choice<a class="headerlink" href="#bayesian-divergence-model-choice" title="Permalink to this headline">¶</a></h2>
+<p>In the figures above, we used <img class="math" src="../_images/math/bf0bf7a2b78dec0f3a6df4341253cfedfae61ef2.png" alt="\divTimeMap{1}, \divTimeMap{2},"/> and
+<img class="math" src="../_images/math/3d325f902c9bcbe0e61cf3422193fc21535734b6.png" alt="\divTimeMap{3}"/> to represent the divergence times of the three
+pairs of lizard populations. Now, let&#8217;s use <img class="math" src="../_images/math/5b95eda0cc761881dca4c4edddab2f3b152584f5.png" alt="\divTimeMapVector"/>
+to represent all three divergence times; that is,
+<img class="math" src="../_images/math/6c46f04f2f3c56014d6abe214ee3604d7d9068b4.png" alt="\divTimeMapVector = \divTimeMap{1}, \divTimeMap{2}, \divTimeMap{3}"/>.
+The number of unique divergence times (i.e., the number of free divergence-time
+parameters) within <img class="math" src="../_images/math/5b95eda0cc761881dca4c4edddab2f3b152584f5.png" alt="\divTimeMapVector"/>, and the assignment of the lizard
+species to these times, depends on the divergence model.
+For example, for model <img class="math" src="../_images/math/77b2843fa84c6eb71b45651862abd381ac1ae33b.png" alt="\divModel{1}"/> in <a class="reference internal" href="#divergence-model-111"><em>Figure Divergence Model
+111</em></a> above, the divergence times would be
+<img class="math" src="../_images/math/a83c4392ea66373a25b355265e243a0947ae9d65.png" alt="\divTimeMapVector = 260, 260, 260"/> (in thousands of years).
+For model <img class="math" src="../_images/math/5de407a1c0294837e1166915910a5683f3c4776b.png" alt="\divModel{5}"/> in <a class="reference internal" href="#divergence-model-123"><em>Figure Divergence Model
+123</em></a> above, the divergence times would be
+<img class="math" src="../_images/math/4aa4ca43198695c7df8e5f22cbaa82d160764ca0.png" alt="\divTimeMapVector = 260, 96, 397"/>.
+In order to learn about the affect the &#8220;black rectangle&#8221; had on the
+diversification of these lizard populations, it would be ideal if we could
+jointly infer the divergence model and the divergence times from the DNA
+sequence data we collected.</p>
+<p>In order to do this, we need to assume a probabilistic evolutionary model
+that gave rise to the data we collected.
+If we assume a Markov-chain model of nucleotide substitution, we can calculate
+the probability of the sequence data given the genealogies and a set of
+parameter values for the substitution model.
+Both <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> and <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> assume an HKY85 model of nucleotide
+substitution <a class="reference internal" href="../zbib/references.html#hky" id="id4">[4]</a>.
+If we further assume a coalescent model of ancestral processes, we can
+calculate the probability of the genealogies given the sizes of the
+populations.
+For simplicity, let&#8217;s lump all the parameters of the substitution and
+coalescent models for all three pairs of lizard populations into
+<img class="math" src="../_images/math/a5e8bca2ddf902b38c06c880326426245935e632.png" alt="\demographicParamVector"/>.
+Let&#8217;s also use <img class="math" src="../_images/math/75d6b89a7c7763ffb19a90cadeb5492c94955085.png" alt="\alignmentVector"/> to represent all of our sequence
+alignments.
+Lastly, let&#8217;s use <img class="math" src="../_images/math/5eb24c610fe93fb1dbcebf18a44c80212b6d97a1.png" alt="\geneTreeVector"/> to represent all of the gene trees
+(one for each alignment) that relate the sequences in our alignments.
+If we make assumptions about the relative rates of mutations and the relative
+generation times among the three lizard species, we can calculate the posterior
+probability distribution of the divergence times (and other nuisance
+parameters) given the data and one of the models of divergence using Bayes
+rule:</p>
+<div class="math" id="equation-postdensity">
+<p><span class="eqno">(1)</span><img src="../_images/math/a4e9f6cbc0f4674e61264bc8c264f79b0d762853.png" alt="p(\divTimeMapVector, \geneTreeVector, \demographicParamVector \given
+\alignmentVector, \divModel{1}) = \frac{p(\alignmentVector \given
+\divTimeMapVector, \geneTreeVector, \demographicParamVector,
+\divModel{1})p(\divTimeMapVector,\geneTreeVector,\demographicParamVector
+\given \divModel{1})}{p(\alignmentVector\given\divModel{1})}"/></p>
+</div><p>The denominator of Bayes&#8217; rule (Equation <a href="#equation-postdensity">(1)</a>) is the marginal
+probability of the data under divergence model <img class="math" src="../_images/math/77b2843fa84c6eb71b45651862abd381ac1ae33b.png" alt="\divModel{1}"/>, a.k.a the
+marginal likelihood of divergence model <img class="math" src="../_images/math/77b2843fa84c6eb71b45651862abd381ac1ae33b.png" alt="\divModel{1}"/>.
+This is equal to the integral over the entire parameter space of model
+<img class="math" src="../_images/math/77b2843fa84c6eb71b45651862abd381ac1ae33b.png" alt="\divModel{1}"/> of the likelihood density weighted by the prior density:</p>
+<div class="math" id="equation-marginallike">
+<p><span class="eqno">(2)</span><img src="../_images/math/5b579a381217291259b5af1788e419ae54c2fd08.png" alt="p(\alignmentVector \given \divModel{1}) =
+\int_{\divTimeMapVector}
+\int_{\geneTreeVector}
+\int_{\demographicParamVector}
+p(\alignmentVector \given \divTimeMapVector, \geneTreeVector,
+\demographicParamVector, \divModel{1})
+p(\divTimeMapVector, \geneTreeVector, \demographicParamVector, \given
+\divModel{1})
+d\divTimeMapVector
+d\geneTreeVector
+d\demographicParamVector"/></p>
+</div><p>You can think of this as the &#8220;average&#8221; likelihood of divergence model
+<img class="math" src="../_images/math/77b2843fa84c6eb71b45651862abd381ac1ae33b.png" alt="\divModel{1}"/>, and this average is weighted by the prior over the
+entire space of the model.
+If we calculate the marginal likelihood of all five possible divergence
+models, we can use Bayes&#8217; rule again to calculate the posterior probability
+of divergence model <img class="math" src="../_images/math/77b2843fa84c6eb71b45651862abd381ac1ae33b.png" alt="\divModel{1}"/> given our sequence data:</p>
+<div class="math" id="equation-postmass1">
+<p><span class="eqno">(3)</span><img src="../_images/math/aca1aa9c60607d2bed0a302433ceb245cc8ff4cb.png" alt="p(\divModel{1} \given \alignmentVector) = \frac{ p(\alignmentVector \given
+\divModel{1}) p(\divModel{1}) }{
+p(\alignmentVector \given \divModel{1}) p(\divModel{1}) +
+p(\alignmentVector \given \divModel{2}) p(\divModel{2}) +
+p(\alignmentVector \given \divModel{3}) p(\divModel{3}) +
+p(\alignmentVector \given \divModel{4}) p(\divModel{4}) +
+p(\alignmentVector \given \divModel{5}) p(\divModel{5}) }"/></p>
+</div><p>Or, more generally, we can calculate the posterior probability of any
+divergence model &#8220;<img class="math" src="../_images/math/bf2b510f8c0f1e55edb3ef1955a28c34bb185448.png" alt="i"/>&#8221; using:</p>
+<div class="math" id="equation-postmass">
+<p><span class="eqno">(4)</span><img src="../_images/math/ca6bea19705a1eeb07d8fa8c76ce1c44634aeec2.png" alt="p(\divModel{i} \given \alignmentVector) = \frac{ p(\alignmentVector \given
+\divModel{i}) p(\divModel{i}) }{ \sum_{i} p(\alignmentVector \given
+\divModel{i}) p(\divModel{i}) }"/></p>
+</div><p>This is essentially the relative marginal likelihood of the model (it is
+exactly that if assume equal prior mass for each divergence model).
+We can combine Equations <a href="#equation-postdensity">(1)</a> and <a href="#equation-postmass">(4)</a> to better
+represent that we will be jointly inferring the posterior probabilities of
+divergence models and the posterior densities of the divergence models&#8217;
+parameters:</p>
+<div class="math" id="equation-jointpost">
+<p><span class="eqno">(5)</span><img src="../_images/math/ec17aaec52c73b24422e65fb6a1164916b207ad5.png" alt="p(\divTimeMapVector, \geneTreeVector, \demographicParamVector, \divModel{i}
+\given \alignmentVector) = \frac{p(\alignmentVector \given
+\divTimeMapVector, \geneTreeVector, \demographicParamVector,
+\divModel{i})p(\divTimeMapVector,\geneTreeVector,\demographicParamVector
+\given \divModel{i})p(\divModel{i})}{p(\alignmentVector)}"/></p>
+</div><p>By jointly sampling over the posterior of all the divergence models, Equation
+<a href="#equation-jointpost">(5)</a> will also give us model-averaged estimates of the divergence
+times for each of our pairs of populations (i.e., we get estimates of
+divergence times that account for uncertainty in divergence models).</p>
+<div class="keypoint admonition">
+<p class="first admonition-title">Key point</p>
+<p class="last">The key take home here is that the <span class="bolditalic">marginal</span> likelihoods are
+the &#8220;guts&#8221; of Bayesian model choice, as shown in Equation <a href="#equation-postmass">(4)</a>.
+I.e., it is the <span class="bolditalic">marginal</span> probability of our data under a
+given model that updates our prior expectation and informs the posterior
+probability of that model.
+As you might expect, because the marginal likelihoods are weighted by the
+priors on parameters, the posterior probabilities of the models can be
+quite sensitive to these priors.
+<span class="hlight">NOTE</span>, it is important to realize here that the posterior
+probability of the models can be very sensitive to the priors on the
+<span class="bolditalic">parameters</span>, not just the priors on the <span class="bolditalic">models</span>
+themselves.
+Thus, we have to choose the priors on parameters carefully, and should always
+assess the sensitivity of our results to differences in these prior
+assumptions.</p>
+</div>
+<p>We will discuss how the choice of prior distribution on divergence times can
+have a major affect on posterior probabilities of divergence models for both
+<a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> and <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> in the &#8220;<a class="reference internal" href="#prior-on-divergence-times"><em>Prior on divergence times</em></a>&#8221;
+section.
+But first, let&#8217;s talk about how we will approximate the posterior in Equation
+<a href="#equation-jointpost">(5)</a>.</p>
+<p>We cannot calculate all of the integrals in Equation <a href="#equation-marginallike">(2)</a>
+exactly, so we will need to use a numerical integration algorithm to
+approximate the posterior.
+Furthermore, to avoid deriving and calculating the likelihood function, we will
+use approximate likelihoods for our numerical integration algorithm.
+(Digression: this is why I do not like the term &#8220;approximate Bayesian
+computation.&#8221; This describes <em>all</em> Bayesian applications except for trivial
+models where the posterior can be solved exactly. &#8220;Approximate-likelihood
+Bayesian computation&#8221; is a much better description.)</p>
+</div>
+<div class="section" id="approximate-likelihood-bayesian-computation">
+<span id="abc-algorithm"></span><h2>4.1.3. Approximate-<em>likelihood</em> Bayesian computation<a class="headerlink" href="#approximate-likelihood-bayesian-computation" title="Permalink to this headline">¶</a></h2>
+<p>We will use a simple Monte Carlo rejection algorithm based on approximate
+likelihoods to approximate the posterior in Equation <a href="#equation-postmass">(4)</a>.
+Approximate-likelihood techniques use simulations to avoid calculating the
+likelihood function.
+The idea is very simple: given values for all the parameters in the model, we
+simulate a dataset with the same &#8220;dimensions&#8221; as the observed data (i.e., the
+same number of sequence alignments with the same number of rows and columns),
+and compare the simulated dataset to the observed data.
+The closer to the observed data, the higher the likelihood for the set of
+parameter values.
+If we did this many times, randomly drawing the set of parameter values from
+the prior distribution each time, and only retained the samples that produced
+datasets that matched our observed sequence alignments (or sufficient summary
+statistics of those alignments) exactly, this would be equivalent to an
+exact-likelihood Bayesian approach.
+However, the sun would probably burn out while we waited to run enough
+simulations to collect a decent number of posterior samples in this way.
+So, to make things more computationally tractable, we will introduce
+two sources of approximation:</p>
+<ol class="arabic simple">
+<li>We will reduce our observed and simulated datasets down to a set of
+insufficient statistics. This adds a &#8220;fudge&#8221; factor to the method, because
+we are throwing away information in our data when we do this.</li>
+<li>We will retain simulations that produce values of these insufficient
+statistics that are &#8220;close enough&#8221; to the values calculated from our
+observed data. This &#8220;wiggle room&#8221; (tolerance) around the observed summary
+statistics is another source of approximation.</li>
+</ol>
+<p>For illustration purposes, let&#8217;s assume we reduce our dataset for the three
+pairs of lizard populations into one summary statistic per species; perhaps its
+the average sequence divergence between the two populations.
+Then, we will simulate lots of datasets under the model (each time based on a
+set of parameter values drawn from the prior distribution) and reduce each of
+them to the same three summary statistics.
+Lastly, we retain the sets of parameter values that produced summary statistics
+that fall within the &#8220;good enough&#8221; zone around our observed data.
+An example of this is animated in the <a class="reference internal" href="#rejection-sampling"><em>rejection sampling gif
+below</em></a>.</p>
+<div class="figure align-center" id="rejection-sampling" style="width: 60%">
+<a class="reference internal image-reference" href="../_images/rejection-sampling.gif"><img alt="rejection sampler gif" src="../_images/rejection-sampling.gif" style="width: 600px;" /></a>
+<p class="caption">An illustration of a Monte Carlo rejection sampler.</p>
+</div>
+<p>This animation begins with a blue dot representing the values of the three
+summary statistics calculated from the observed sequence alignments.
+Next, a grey sphere illustrates the &#8220;good enough&#8221; zone.
+Then, we see black points accumulate, which represent the values of the three
+summary statistics calculated from datasets that were simulated under sets of
+parameter values drawn randomly from the prior.
+Lastly, we see the retained sample of points that fell within our &#8220;good enough&#8221;
+zone; this is our sample from the approximate posterior.</p>
+<p>So, how do we decide how large the &#8220;good enough&#8221; zone is? Well, the smaller the
+better, but this is governed arbitrarily by computational limitations.
+What we do is simulate as many datasets as we are willing to wait for and then
+select the desired number of them that produced summary statistics closest to
+the observed summary statistics.
+For example, we might draw 10 million sets of parameter values from the prior,
+and keep the 10,000 sets that produced summary statistics nearest to the
+observed statistics; that&#8217;s our approximate posterior sample.
+In this example, the radius of the &#8220;good enough&#8221; space is determined by the
+distance between the observed summary statistics and the 10,001st nearest
+simulated summary statistics.
+Again, this is arbitrary; drawing 100 million samples and keeping the closest
+10,000 would be better.
+However, we can get a sense of whether we have evaluated a sufficient number of
+samples from the prior by:</p>
+<ol class="arabic simple">
+<li>Keeping track of the parameter estimates as we accumulate samples and watch
+for them to stabilize.</li>
+<li>Running multiple, independent analyses to make sure the estimates stabilize
+to similar values each time.</li>
+</ol>
+</div>
+<div class="section" id="prior-on-divergence-times">
+<span id="id5"></span><h2>4.1.4. Prior on divergence times<a class="headerlink" href="#prior-on-divergence-times" title="Permalink to this headline">¶</a></h2>
+<p>As mentioned in section &#8220;<a class="reference internal" href="#bayesian-divergence-model-choice"><em>Bayesian divergence-model choice</em></a>&#8221;, the prior
+distribution used for divergence-time parameters can have a very large affect
+on the posterior probabilities of the divergence models, due to how the priors
+weight the marginal likelihoods of the models
+<a class="reference internal" href="../zbib/references.html#oaks2014reply" id="id6">[9]</a> <a class="reference internal" href="../zbib/references.html#oaks2014dpp" id="id7">[8]</a>.
+So, we have to take care when we choose a probability distribution to represent
+our prior knowledge about the divergence times of our three pairs of lizard
+populations.
+This is because this prior has a strong influence on the marginal likelihoods
+of the divergence models.
+As we add divergence-time parameters to a divergence model, the model is forced
+to integrate over a <em>much</em> greater parameter space.
+For example, let&#8217;s consider a uniform prior of 0 to 5 million years on
+divergence times.
+The <img class="math" src="../_images/math/77b2843fa84c6eb71b45651862abd381ac1ae33b.png" alt="\divModel{1}"/> model above only has a single divergence-time
+parameter, and so would have to integrate over a single dimension from 0 to 5.
+The <img class="math" src="../_images/math/8df0e623997f9048a53c5f0d90d8bbe688595709.png" alt="\divModel{2}"/>, <img class="math" src="../_images/math/936c9646117df171cd52f0e145e1e3d52155210e.png" alt="\divModel{3}"/>, and <img class="math" src="../_images/math/16cbe2d289522f9d95bafe55db47ce15fd7273aa.png" alt="\divModel{4}"/> models
+each have 2 divergence-time parameters, and so have to integrate over a
+<img class="math" src="../_images/math/0a04f7db8c2e8c364d9221e31a6ca6e95d36d40a.png" alt="5 \times 5"/> square.
+The <img class="math" src="../_images/math/936c9646117df171cd52f0e145e1e3d52155210e.png" alt="\divModel{3}"/> model has three divergence-time parameters, and so has
+to integrate over a <img class="math" src="../_images/math/01e39c51fb4722c1b26d956299aadb35c37e1257.png" alt="5 \times 5 \times 5"/> cube.
+Now imagine we were comparing 20 pairs of populations; the most general model
+would integrate over a <img class="math" src="../_images/math/9f1cc38dd16f570bbb8c6ca69158c5e2f469ebdb.png" alt="5^{20}"/> multidimensional space!!</p>
+<p>If using a uniform distribution to represent our prior uncertainty, we
+necessarily have to put a lot of prior density in unlikely regions of parameter
+space to avoid excluding the true divergence times before we even start the
+analysis <a class="reference internal" href="../zbib/references.html#oaks2014reply" id="id8">[9]</a>.
+For example, we might suspect all three pairs of lizard populations diverged
+within the last 5 million years.
+However, to feel confident that we are not excluding the (unknown) true values
+of the divergence times <em>a priori</em>, we might need to specify a prior of 0 to 10
+million years.
+The consequence of this is that we are placing the same amount of prior density
+between 5&#8211;10 million years as we are between 0&#8211;5, even though we suspect the
+former is quite improbable <em>a priori</em>.
+So, why does this matter?
+Well, if we were correct <em>a priori</em>, and the likelihood of the three species
+diverging between 5&#8211;10 million years is small, we have imposed a very
+strong &#8220;penalty&#8221; for models with more divergence-time parameters.
+The <img class="math" src="../_images/math/936c9646117df171cd52f0e145e1e3d52155210e.png" alt="\divModel{3}"/> will integrate over a <img class="math" src="../_images/math/01e39c51fb4722c1b26d956299aadb35c37e1257.png" alt="5 \times 5 \times 5"/> cube
+with very small likelihood, but a lot of prior weight, which will result in a
+very small marginal (or &#8220;average&#8221;) likelihood, and thus a small posterior
+probability.
+Again, imagine the marginal likelihood of the most general model if we were
+comparing 20 lizard species!!
+The <img class="math" src="../_images/math/77b2843fa84c6eb71b45651862abd381ac1ae33b.png" alt="\divModel{1}"/> might have the largest marginal likelihood (even if it
+does not explain the data very well) simply because it is &#8220;averaged&#8221; over less
+space with small likelihood.</p>
+<p>A simple example of this is shown in the <a class="reference internal" href="#likelihood-surface"><em>plot below</em></a>,
+which compares a one- vs two-parameter model.
+From the plot, it seems intuitive that the model with two divergence-time
+parameters does a much better job of explaining the data.
+However, because it is averaged over a two-dimensional uniform prior, it
+actually has a smaller <em>marginal</em> likelihood in this example than the
+constrained model with only one divergence-time parameter.</p>
+<div class="figure align-center" id="likelihood-surface" style="width: 60%">
+<a class="reference internal image-reference" href="../_images/marginal-plot-3d.png"><img alt="likelihood surface plot" src="../_images/marginal-plot-3d.png" style="width: 600px;" /></a>
+<p class="caption">The likelihood surface of a divergence model with two divergence-time
+parameters.
+The white line shows the likelihood of the co-divergence (1-parameter)
+model, and the red dashed line shows the outline of a uniform prior.
+Despite capturing much less of the likelihood density, the constrained
+1-parameter model has a larger <em>marginal</em> likelihood in this example.</p>
+</div>
+<p>If we use a uniform prior, we will likely end up with strong posterior support
+for a model with shared divergence times, even if the three pairs of lizard
+populations diverged at quite different times.
+<a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> uses a uniform prior on divergence times, and this is a key reason
+it will often support models of highly clustered divergences even when taxa
+diverge randomly over quite broad timescales; see <a class="reference internal" href="../zbib/references.html#oaks2012" id="id9">[10]</a> and
+<a class="reference internal" href="../zbib/references.html#oaks2014reply" id="id10">[9]</a> for more details.</p>
+<p>A simple solution to this problem is to use a more flexible prior on divergence
+times that allows us to better represent our prior uncertainty.
+In this example, we would like to specify a prior that places most of the prior
+density on divergence times between 0&#8211;5 million years, but allows for a tail
+with low density to capture our prior uncertainty up to 10 million years.
+If we look at just one divergence-time dimension (Figure <a class="reference internal" href="#gamma-prior">gamma_prior</a>), we can
+see in <a class="reference internal" href="#gamma-prior"><em>the figure below</em></a> that a gamma probability
+distribution works quite well for this; <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> uses a gamma prior on
+divergence times.</p>
+<div class="figure align-center" id="gamma-prior" style="width: 60%">
+<a class="reference internal image-reference" href="../_images/marginal-plot-2d.png"><img alt="gamma prior plot" src="../_images/marginal-plot-2d.png" style="width: 600px;" /></a>
+<p class="caption">The flexibility of a gamma distribution (blue) to better represent prior
+knowledge about divergence times. The black line represents the likelihood
+density, and the red line is a uniform prior.</p>
+</div>
+<p>From a lot of analyses of simulated and empirical data, I have found that by
+placing much less prior weight in unlikely regions of parameters space, gamma
+priors on divergence times are much less likely to spuriously support models of
+shared divergences across taxa <a class="reference internal" href="../zbib/references.html#oaks2014dpp" id="id11">[8]</a>.</p>
+</div>
+<div class="section" id="prior-on-divergence-models">
+<span id="id12"></span><h2>4.1.5. Prior on divergence models<a class="headerlink" href="#prior-on-divergence-models" title="Permalink to this headline">¶</a></h2>
+<p>In addition to placing priors on all of the parameters of the divergence
+models, we also have to place a prior on the divergence models themselves.
+This can be a bit tricky, because there can be <em>a lot</em> of divergence models.
+In our example of <img class="math" src="../_images/math/4ad1de2a5d0e9a1e016bd0dfe412114ef59b1cfe.png" alt="\npairs{} = 3"/> lizard species above, we saw there were
+five possible models of divergence (i.e., there were five possible ways to
+assign the three species to divergence-time parameters):
+There was only one way to assign the species to both one and three divergence
+events,
+and there were three ways to assign the three species to two divergence events.
+More generally, the number of ways to assign <img class="math" src="../_images/math/7cc506ae2d7273993fcf18b3bea8f31b3fe96744.png" alt="\npairs{}"/> taxa to
+<img class="math" src="../_images/math/4a609434147301b21f7e7992137d921ff5875f80.png" alt="n"/> divergence events is the
+<a class="reference external" href="http://en.wikipedia.org/wiki/Stirling_numbers_of_the_second_kind">Stirling number of the second kind</a>.
+Taking this a step further, there can be anywhere from <img class="math" src="../_images/math/e4c60d68ede39ecf0aae51d989213b0d49996cb9.png" alt="1"/> to
+<img class="math" src="../_images/math/7cc506ae2d7273993fcf18b3bea8f31b3fe96744.png" alt="\npairs{}"/> divergence events, and so to calculate
+the total number of possible divergence models, we need to calculate
+the
+<a class="reference external" href="http://en.wikipedia.org/wiki/Stirling_numbers_of_the_second_kind">Stirling number of the second kind</a>
+for <img class="math" src="../_images/math/d5beb430b3c05c53f87b6ca05104779f84d9bd59.png" alt="1,2,\ldots,\npairs{}"/> divergence events and sum them all up
+(this is the <a class="reference external" href="http://en.wikipedia.org/wiki/Bell_number">Bell number</a>
+<a class="reference internal" href="../zbib/references.html#bell1934" id="id14">[2]</a>).
+For 3, 5, 10, and 20 taxa, there are 5, 52, 115975, and 51724158235372
+possible divergence models, respectively.
+The number of possible models quickly explodes as we compare more taxa!
+So, how do we put a prior on all of them?!</p>
+<p><a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> approaches this problem by assigning equal prior probability to all
+possible <em>numbers</em> of divergence events (divergence-time parameters).
+However, it is important to realize that this strategy can create a <em>very</em>
+non-uniform prior on the divergence <em>models</em>.
+This is because there are <em>many</em> more ways to assign our taxa to intermediate
+numbers of divergence events.
+For example, if we are comparing 10 taxa, <a class="reference internal" href="#number-of-models"><em>the histogram
+below</em></a> shows the number of possible assignments of those
+taxa to <img class="math" src="../_images/math/8883f2950413ddcb119e21521fe805698600f319.png" alt="1,2,\ldots,10"/> divergence events (i.e., the number of possible
+divergence models with <img class="math" src="../_images/math/8883f2950413ddcb119e21521fe805698600f319.png" alt="1,2,\ldots,10"/> divergence-time parameters).</p>
+<div class="figure align-center" id="number-of-models" style="width: 60%">
+<a class="reference internal image-reference" href="../_images/number-of-div-models-10.png"><img alt="number-of-models plot" src="../_images/number-of-div-models-10.png" style="width: 600px;" /></a>
+<p class="caption">The number of divergence models for 10 taxa.</p>
+</div>
+<p>As we can see, for 10 taxa, there are over 40,000 different models of
+divergence with five divergence-time parameters, whereas there is only one
+model with one or 10 divergence-time parameters.
+Thus, if we place a uniform prior on the <em>number</em> of divergence-time
+parameters, as is done in <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a>, the prior probability of each <em>divergence
+model</em> with <img class="math" src="../_images/math/8883f2950413ddcb119e21521fe805698600f319.png" alt="1,2,\ldots,10"/> divergence-time parameters is <em>very</em>
+non-uniform, as shown in <a class="reference internal" href="#probability-of-models"><em>the figure below</em></a>.</p>
+<div class="figure align-center" id="probability-of-models" style="width: 60%">
+<a class="reference internal image-reference" href="../_images/prob-of-div-models-10.png"><img alt="probability-of-models plot" src="../_images/prob-of-div-models-10.png" style="width: 600px;" /></a>
+<p class="caption">The average prior probability of a divergence model with 1 to 10 divergence
+events.</p>
+</div>
+<p>Almost all of the prior probability mass is placed on the divergence models
+with one and ten divergence-time parameters.
+If we consider that the marginal likelihood of the model with 10
+divergence-time parameters will be very small under a uniform prior on
+divergence times (see the &#8220;<a class="reference internal" href="#prior-on-divergence-times"><em>Prior on divergence times</em></a>&#8221; section),
+<a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> effectively is placing most of the prior probability on the model of
+divergence with a single divergence event (a single divergence-time parameter
+shared across all taxa).
+Due to this interaction between the uniform priors on divergence times and the
+<em>number</em> of divergence events, <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> often incorrectly supports models
+with very few divergence events shared across taxa
+<a class="reference internal" href="../zbib/references.html#oaks2014dpp" id="id15">[8]</a><a class="reference internal" href="../zbib/references.html#oaks2014reply" id="id16">[9]</a><a class="reference internal" href="../zbib/references.html#oaks2012" id="id17">[10]</a>.</p>
+<div class="section" id="dirichlet-process-prior-on-divergence-models">
+<span id="dpp"></span><h3>4.1.5.1. Dirichlet-process prior on divergence models<a class="headerlink" href="#dirichlet-process-prior-on-divergence-models" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a> takes a non-parametric approach to this problem, and treats the
+number of divergence events, and the assignment of the taxa to the events, as a
+Dirichlet process <a class="reference internal" href="../zbib/references.html#ferguson1973" id="id18">[3]</a>.
+This assigns prior probabilities directly to the divergence <em>models</em> and avoids
+the combinatorial problem created when assigning prior probabilities to the
+<em>number</em> of events (Figure <a class="reference internal" href="#probability-of-models">probability_of_models</a>).
+Also, the &#8220;clumpiness&#8221; of the Dirichlet process is controlled by a
+concentration parameter (<img class="math" src="../_images/math/cfe3d773b9dc10efcc2fe954b87857e119645878.png" alt="\alpha"/>), which makes it a very flexible prior
+to use for divergence models (I.e., we can control how much co-divergence we
+expect across taxa <em>a priori</em>).</p>
+<p>The basic idea of the Dirichlet process is quite simple; you assign
+random variables (divergence times of our population pairs) to categories
+(divergence events) one at a time following a very simple rule. When assigning
+the <img class="math" src="../_images/math/7ec278b9f6b821eaeef80ec571588888b39dda5d.png" alt="n^{th}"/> random variable, you assign it to its own category (i.e.,
+a new category) with probability</p>
+<div class="math" id="equation-dppnewcat">
+<p><span class="eqno">(6)</span><img src="../_images/math/345766e5a2c836859ee6790ed31c2342c9ea5cc0.png" alt="\frac{\alpha}{\alpha + n -1}"/></p>
+</div><p>or you assign it to an existing category <img class="math" src="../_images/math/bd8b95237265c4394cd55d76b01d89b12f2afcbf.png" alt="x"/> with probability</p>
+<div class="math" id="equation-dppexistingcat">
+<p><span class="eqno">(7)</span><img src="../_images/math/4975001ff0f4efa7f354876c1efef49a148f981c.png" alt="\frac{n_x}{\alpha + n -1}"/></p>
+</div><p>where <img class="math" src="../_images/math/e6f113c2e8df286185fc774e0a442c5b1214c9cf.png" alt="n_x"/> is the number of random variables already assigned to
+category <img class="math" src="../_images/math/bd8b95237265c4394cd55d76b01d89b12f2afcbf.png" alt="x"/>.
+OK, that might not sound very simple, but it is if we just walk through
+an example using our three lizard species.
+First, we have to assign our first lizard specie (&#8220;A&#8221;) to a
+divergence event with probability 1.0 (the species had to diverge
+sometime!); let&#8217;s call this the &#8220;blue&#8221; divergence event.
+Next we assign the second species (&#8220;B&#8221;) to either a new (&#8220;red&#8221;) divergence
+event with probability <img class="math" src="../_images/math/01e926f0d6e458e564a3bdf67521c35f07823188.png" alt="\alpha/\alpha + 1"/> or to the same &#8220;blue&#8221;
+divergence event as the first species with probability <img class="math" src="../_images/math/5213db4bd4c932b1a4ba7527be4cd2d271edde40.png" alt="1/\alpha + 1"/>.
+For this example, let&#8217;s say it gets assigned to the &#8220;blue&#8221; event.
+Lastly, we assign the third species (&#8220;C&#8221;) to either a new (&#8220;red&#8221;) divergence
+event with probability <img class="math" src="../_images/math/1331aeca80dfa757dac9b126104f5b822fde9682.png" alt="\alpha/\alpha + 2"/> or to the same &#8220;blue&#8221;
+divergence event as the first two species with probability <img class="math" src="../_images/math/91ed4d9c7d8757bcb59b1b1667de0021e12e5564.png" alt="2/\alpha +
+2"/>.</p>
+<p>If we draw out all possible assignments as a tree, we get Figure <a class="reference internal" href="#dpp-tree">dpp_tree</a>
+below. You can adjust the concentration parameter to get a feel for how it
+affects the prior probability of each divergence model. Notice that as the
+concentration parameter increases we place more and more probability on the
+divergence models with less clustering (less shared divergences), whereas we
+place more and more probability on clustered models (shared divergences) as we
+decrease the concentration parameter.</p>
+<div id="dpp_div" name="dpp_div" align="center">
+    <form id="dpp_3_form" name="dpp_3_form">
+        <label>Concentration parameter: </label>
+        <input id="cparam" type="number" label="label" name="concentration_param" min="0.0" max="100000.0" step="any" value="1.5" onkeypress="parse_key_press(event, 3);"></input>
+        <input id="update_3_button" type="button" value="Update" onclick="update_dpp_tree(3,'../_static/dpp-3-example-blank.png',1.0);"></input>
+        <input type="text" name="StackOverflow1370021" value="Fix IE bug" style="display: none;"></input>
+    </form>
+    <canvas id="dpp_3_canvas" width="600" height="450" style="border: 1px solid rgb(211, 211, 211); align:center;"></canvas>
+    <script type="text/javascript">
+        update_dpp_tree(3, "../_static/dpp-3-example-blank.png", "1");
+    </script>
+</div></div>
+</div>
+<div class="section" id="re-sorting-the-taxa-during-the-abc-algorithm">
+<span id="sorting-taxa"></span><h2>4.1.6. Re-sorting the taxa during the ABC algorithm<a class="headerlink" href="#re-sorting-the-taxa-during-the-abc-algorithm" title="Permalink to this headline">¶</a></h2>
+<p>As discussed in <a class="reference internal" href="../zbib/references.html#oaks2014dpp" id="id19">[8]</a>, before <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> compares the simulated
+and observed summary statistics to determine whether or not to retain the set
+of parameters for the posterior sample, it re-sorts them.
+Thus, the summary statistics being compared were calculated from alignments of
+<span class="hlight">different</span> taxa and/or loci.
+In order for this to be mathematically valid, <span class="hlight">all</span> of the alignments
+must have <span class="hlight">identical</span>:</p>
+<ol class="arabic simple">
+<li>Length</li>
+<li>Numbers of sequences</li>
+<li>HKY85 substitution model parameters</li>
+<li>Mutation-rate multipliers</li>
+<li>Ploidy multipliers</li>
+<li>The same loci sampled for all taxa</li>
+</ol>
+<p>If any of these conditions are not met, which is the case for almost
+all empirical datasets, the re-sorting that is done by <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> is
+mathematically incorrect, and can produce biased results.</p>
+<p>For example, below are some results based on analyses of 100,000 simulated
+datasets.
+All of the simulated datasets had a single locus for six taxa, with varying
+numbers of individuals per population and varying sequence lengths across taxa.
+All of the other conditions specified above were met, and the prior was
+exactly correct (no model misspecification).
+When analyzing these datasets under the original <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> model, but
+maintaining the order of the taxa, the method does well, as shown at the top of
+Figure <a class="reference internal" href="#model-choice">model_choice</a> below.
+When the taxa are re-sorted during the ABC algorithm, the method is strongly
+biased toward over-estimating the probability of simultaneous divergence
+(Figure <a class="reference internal" href="#model-choice">model_choice</a> bottom).</p>
+<div class="figure align-center" id="model-choice" style="width: 60%">
+<a class="reference internal image-reference" href="../_images/mc-no-sort.jpg"><img alt="no sorting model choice plot" src="../_images/mc-no-sort.jpg" style="width: 600px;" /></a>
+</div>
+<div class="figure align-center" style="width: 60%">
+<a class="reference internal image-reference" href="../_images/mc-sort.jpg"><img alt="sorting model choice plot" src="../_images/mc-sort.jpg" style="width: 600px;" /></a>
+<p class="caption">Model choice behavior without (top) and with (bottom) re-sorting of the
+taxa.</p>
+</div>
+<p>The take-home message here is:</p>
+<div class="keypoint admonition">
+<p class="first admonition-title"><span class="hlight">Important</span></p>
+<p class="last"><span class="hlight">Do not use the sorting options in</span> <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> <span class="hlight">or</span>
+<a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a><span class="hlight">!!</span></p>
+</div>
+<p><a class="reference external" href="http://joaks1.github.io/PyMsBayes/">PyMsBayes</a> allows you to use the models of <a class="reference external" href="http://msbayes.sourceforge.net/">msBayes</a> and <a class="reference external" href="https://github.com/joaks1/dpp-msbayes.git">dpp-msbayes</a>
+while maintaining the order of the taxa.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="configuration.html" title="4.2. The Configuration File"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="4. PyMsBayes Tutorials"
+             >previous</a> |</li>
+<li><a href="../index.html">Home</a>&nbsp;|</li>
+<li><a href="../intro/installation.html">Install</a>&nbsp;|</li>
+<li><a href="../doc.html">Documentation</a>&nbsp;|</li>
+
+          <li><a href="index.html" >4. PyMsBayes Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>
+<div class="footer">
+<span class="creativecommons">
+<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
+</span>
+</div>
+
+  </body>
+</html>
