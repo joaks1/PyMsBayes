@@ -178,7 +178,7 @@ with this mean and a shape of 1.0 (i.e., an exponential prior) will look like:</
 <p>With a little more typing in the R prompt, we can get a more accurate
 illustration of this prior:</p>
 <div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> x.max <span class="o">=</span> qgamma<span class="p">(</span><span class="m">0.999</span><span class="p">,</span> shape<span class="o">=</span><span class="m">1.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">10.0</span><span class="p">)</span>
-<span class="o">&gt;</span> x <span class="o">=</span> seq<span class="p">(</span>from<span class="o">=</span><span class="m">0</span><span class="p">,</span> to<span class="o">=</span>x.max<span class="p">,</span> by<span class="o">=</span>x.max<span class="o">/</span><span class="m">1000</span><span class="p">)</span>
+<span class="o">&gt;</span> x <span class="o">=</span> <span class="kp">seq</span><span class="p">(</span>from<span class="o">=</span><span class="m">0</span><span class="p">,</span> to<span class="o">=</span>x.max<span class="p">,</span> by<span class="o">=</span>x.max<span class="o">/</span><span class="m">1000</span><span class="p">)</span>
 <span class="o">&gt;</span> dens <span class="o">=</span> dgamma<span class="p">(</span>x<span class="p">,</span> shape<span class="o">=</span><span class="m">1.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">10.0</span><span class="p">)</span>
 <span class="o">&gt;</span> plot<span class="p">(</span>x<span class="p">,</span> dens<span class="p">,</span> type<span class="o">=</span><span class="s">&#39;l&#39;</span><span class="p">)</span>
 </pre></div>
@@ -193,26 +193,26 @@ It looks like this prior puts too much prior probability on values less than 5
 and greater than 15.
 We can use R to see that the prior probability of this parameter being less
 than 5.0 or greater than 15.0 is about 0.39 and 0.22, respectively:</p>
-<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">5.0</span><span class="p">,</span> shape<span class="o">=</span><span class="m">1.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">10.0</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="k-Variable">T</span><span class="p">)</span>
+<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">5.0</span><span class="p">,</span> shape<span class="o">=</span><span class="m">1.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">10.0</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="bp">T</span><span class="p">)</span>
 <span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="m">0.3934693</span>
-<span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">15.0</span><span class="p">,</span> shape<span class="o">=</span><span class="m">1.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">10.0</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="k-Variable">F</span><span class="p">)</span>
+<span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">15.0</span><span class="p">,</span> shape<span class="o">=</span><span class="m">1.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">10.0</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="bp">F</span><span class="p">)</span>
 <span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="m">0.2231302</span>
 </pre></div>
 </div>
 <p>So, it looks like we need to increase our prior knowledge. Let&#8217;s try a shape
 parameter of 2.0 (we need to adjust the scale parameter to 5.0 to keep the mean
 of 10.0):</p>
-<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">5.0</span><span class="p">,</span> shape<span class="o">=</span><span class="m">2.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">5.0</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="k-Variable">T</span><span class="p">)</span>
+<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">5.0</span><span class="p">,</span> shape<span class="o">=</span><span class="m">2.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">5.0</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="bp">T</span><span class="p">)</span>
 <span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="m">0.2642411</span>
-<span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">15.0</span><span class="p">,</span> shape<span class="o">=</span><span class="m">2.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">5.0</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="k-Variable">F</span><span class="p">)</span>
+<span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">15.0</span><span class="p">,</span> shape<span class="o">=</span><span class="m">2.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">5.0</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="bp">F</span><span class="p">)</span>
 <span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="m">0.1991483</span>
 </pre></div>
 </div>
 <p>Hmmm... Still too much prior probability on values outside of 5&#8211;15. Let&#8217;s try
 a shape of 10.0:</p>
-<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">5.0</span><span class="p">,</span> shape<span class="o">=</span><span class="m">10.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">1.0</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="k-Variable">T</span><span class="p">)</span>
+<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">5.0</span><span class="p">,</span> shape<span class="o">=</span><span class="m">10.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">1.0</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="bp">T</span><span class="p">)</span>
 <span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="m">0.03182806</span>
-<span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">15.0</span><span class="p">,</span> shape<span class="o">=</span><span class="m">10.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">1.0</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="k-Variable">F</span><span class="p">)</span>
+<span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">15.0</span><span class="p">,</span> shape<span class="o">=</span><span class="m">10.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">1.0</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="bp">F</span><span class="p">)</span>
 <span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="m">0.06985366</span>
 </pre></div>
 </div>
@@ -221,7 +221,7 @@ state <em>a priori</em> that the probability of the prior being between 5 and 15
 about 0.9).
 Let&#8217;s take a look at this gamma prior with a shape and mean of 10.0:</p>
 <div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> x.max <span class="o">=</span> qgamma<span class="p">(</span><span class="m">0.999</span><span class="p">,</span> shape<span class="o">=</span><span class="m">10.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">1.0</span><span class="p">)</span>
-<span class="o">&gt;</span> x <span class="o">=</span> seq<span class="p">(</span>from<span class="o">=</span><span class="m">0</span><span class="p">,</span> to<span class="o">=</span>x.max<span class="p">,</span> by<span class="o">=</span>x.max<span class="o">/</span><span class="m">1000</span><span class="p">)</span>
+<span class="o">&gt;</span> x <span class="o">=</span> <span class="kp">seq</span><span class="p">(</span>from<span class="o">=</span><span class="m">0</span><span class="p">,</span> to<span class="o">=</span>x.max<span class="p">,</span> by<span class="o">=</span>x.max<span class="o">/</span><span class="m">1000</span><span class="p">)</span>
 <span class="o">&gt;</span> dens <span class="o">=</span> dgamma<span class="p">(</span>x<span class="p">,</span> shape<span class="o">=</span><span class="m">10.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">1.0</span><span class="p">)</span>
 <span class="o">&gt;</span> plot<span class="p">(</span>x<span class="p">,</span> dens<span class="p">,</span> type<span class="o">=</span><span class="s">&#39;l&#39;</span><span class="p">)</span>
 </pre></div>
@@ -535,13 +535,13 @@ Let&#8217;s see how much of our prior probability will fall on values greater
 than 0.004 if we use an exponential with a mean of 0.002.
 Because the shape parameter is 1, this means the scale parameter is simply
 0.002 (remember, the mean is simply the product of the shape and scale):</p>
-<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">0.004</span><span class="p">,</span> shape<span class="o">=</span><span class="m">1.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">0.002</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="k-Variable">F</span><span class="p">)</span>
+<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">0.004</span><span class="p">,</span> shape<span class="o">=</span><span class="m">1.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">0.002</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="bp">F</span><span class="p">)</span>
 <span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="m">0.1353353</span>
 </pre></div>
 </div>
 <p>Perhaps this seems like too much prior probability greater than 0.004; let&#8217;s
 try a scale parameter of 0.001:</p>
-<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">0.004</span><span class="p">,</span> shape<span class="o">=</span><span class="m">1.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">0.001</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="k-Variable">F</span><span class="p">)</span>
+<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">0.004</span><span class="p">,</span> shape<span class="o">=</span><span class="m">1.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">0.001</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="bp">F</span><span class="p">)</span>
 <span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="m">0.01831564</span>
 </pre></div>
 </div>
@@ -594,7 +594,7 @@ greater than 0.1 substitutions-per-site ago, perhaps an exponential prior
 Again, let&#8217;s figure out a value for the scale parameter that limits
 the prior probability of values greater than 0.1 to meet our prior
 expectations. Let&#8217;s try scale of 0.05:</p>
-<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">0.1</span><span class="p">,</span> shape<span class="o">=</span><span class="m">1.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">0.05</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="k-Variable">F</span><span class="p">)</span>
+<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> pgamma<span class="p">(</span><span class="m">0.1</span><span class="p">,</span> shape<span class="o">=</span><span class="m">1.0</span><span class="p">,</span> scale<span class="o">=</span><span class="m">0.05</span><span class="p">,</span> lower.tail<span class="o">=</span><span class="bp">F</span><span class="p">)</span>
 <span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="m">0.1353353</span>
 </pre></div>
 </div>
@@ -654,7 +654,7 @@ The beta distribution has two shape parameters <img class="math" src="../_images
 When <img class="math" src="../_images/math/81b3b4cbfebfd2f8afd3c1d9261be266918d82b0.png" alt="\bshapea"/> and <img class="math" src="../_images/math/824646ea974998c990387705f5497be9e3e5f3be.png" alt="\bshapeb"/> are both 1, the beta converges
 to a uniform distribution.
 We can confirm this with a little R code:</p>
-<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> x <span class="o">=</span> seq<span class="p">(</span><span class="m">0</span><span class="p">,</span> <span class="m">1</span><span class="p">,</span> by<span class="o">=</span><span class="m">1</span><span class="o">/</span><span class="m">1000</span><span class="p">)</span>
+<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> x <span class="o">=</span> <span class="kp">seq</span><span class="p">(</span><span class="m">0</span><span class="p">,</span> <span class="m">1</span><span class="p">,</span> by<span class="o">=</span><span class="m">1</span><span class="o">/</span><span class="m">1000</span><span class="p">)</span>
 <span class="o">&gt;</span> dens <span class="o">=</span> dbeta<span class="p">(</span>x<span class="p">,</span> shape1<span class="o">=</span><span class="m">1</span><span class="p">,</span> shape2<span class="o">=</span><span class="m">1</span><span class="p">)</span>
 <span class="o">&gt;</span> plot<span class="p">(</span>x<span class="p">,</span> dens<span class="p">,</span> type<span class="o">=</span><span class="s">&#39;l&#39;</span><span class="p">)</span>
 </pre></div>
@@ -666,7 +666,7 @@ We can confirm this with a little R code:</p>
 </div>
 <p>If we want to place more prior weight on larger proportions (i.e., the bottlenecks are less severe),
 we can increase <img class="math" src="../_images/math/81b3b4cbfebfd2f8afd3c1d9261be266918d82b0.png" alt="\bshapea"/>. For example, let&#8217;s try <img class="math" src="../_images/math/2c01ea77b534b740b115056fb3156b0a604e6c6e.png" alt="\bshapea = 5"/> looks like:</p>
-<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> x <span class="o">=</span> seq<span class="p">(</span><span class="m">0</span><span class="p">,</span> <span class="m">1</span><span class="p">,</span> by<span class="o">=</span><span class="m">1</span><span class="o">/</span><span class="m">1000</span><span class="p">)</span>
+<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> x <span class="o">=</span> <span class="kp">seq</span><span class="p">(</span><span class="m">0</span><span class="p">,</span> <span class="m">1</span><span class="p">,</span> by<span class="o">=</span><span class="m">1</span><span class="o">/</span><span class="m">1000</span><span class="p">)</span>
 <span class="o">&gt;</span> dens <span class="o">=</span> dbeta<span class="p">(</span>x<span class="p">,</span> shape1<span class="o">=</span><span class="m">5</span><span class="p">,</span> shape2<span class="o">=</span><span class="m">1</span><span class="p">)</span>
 <span class="o">&gt;</span> plot<span class="p">(</span>x<span class="p">,</span> dens<span class="p">,</span> type<span class="o">=</span><span class="s">&#39;l&#39;</span><span class="p">)</span>
 </pre></div>
@@ -678,8 +678,8 @@ we can increase <img class="math" src="../_images/math/81b3b4cbfebfd2f8afd3c1d92
 </div>
 <p>Likewise, we could place a strong prior on severe bottlenecks (i.e., small proportions) if
 we increase <img class="math" src="../_images/math/824646ea974998c990387705f5497be9e3e5f3be.png" alt="\bshapeb"/>. For example, let&#8217;s try <img class="math" src="../_images/math/442ee0a760b2bc926f6a6a9dce5dac97334aff69.png" alt="\bshapeb = 10"/>:</p>
-<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> x <span class="o">=</span> seq<span class="p">(</span><span class="m">0</span><span class="p">,</span> <span class="m">1</span><span class="p">,</span> by<span class="o">=</span><span class="m">1</span><span class="o">/</span><span class="m">1000</span><span class="p">)</span>
-<span class="o">&gt;</span> dens <span class="o">=</span> dbeta<span class="p">(</span>x<span class="p">,</span> shape1<span class="o">=</span><span class="m">5</span><span class="p">,</span> shape2<span class="o">=</span><span class="m">1</span><span class="p">)</span>
+<div class="highlight-r"><div class="highlight"><pre><span class="o">&gt;</span> x <span class="o">=</span> <span class="kp">seq</span><span class="p">(</span><span class="m">0</span><span class="p">,</span> <span class="m">1</span><span class="p">,</span> by<span class="o">=</span><span class="m">1</span><span class="o">/</span><span class="m">1000</span><span class="p">)</span>
+<span class="o">&gt;</span> dens <span class="o">=</span> dbeta<span class="p">(</span>x<span class="p">,</span> shape1<span class="o">=</span><span class="m">1</span><span class="p">,</span> shape2<span class="o">=</span><span class="m">10</span><span class="p">)</span>
 <span class="o">&gt;</span> plot<span class="p">(</span>x<span class="p">,</span> dens<span class="p">,</span> type<span class="o">=</span><span class="s">&#39;l&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
