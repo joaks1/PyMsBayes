@@ -694,7 +694,7 @@ we increase :math:`\bshapeb`. For example, let's try :math:`\bshapeb = 10`:
 .. code-block:: r
 
     > x = seq(0, 1, by=1/1000)
-    > dens = dbeta(x, shape1=5, shape2=1)
+    > dens = dbeta(x, shape1=1, shape2=10)
     > plot(x, dens, type='l')
 
 which should look like:
