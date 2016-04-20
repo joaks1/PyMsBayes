@@ -35,3 +35,11 @@ class SampleTableRowError(PyMsBayesError):
 class SampleTableError(PyMsBayesError):
     def __init__(self, *args, **kwargs):
         PyMsBayesError.__init__(self, *args, **kwargs)
+
+class ObservedSummaryStatError(PyMsBayesError):
+    def __init__(self, *args, **kwargs):
+        PyMsBayesError.__init__(self, *args, **kwargs)
+
+class ObservedSummaryStatNanError(PyMsBayesError):
+    def __init__(self, *args, **kwargs):
+        PyMsBayesError.__init__(self, *args, **kwargs)

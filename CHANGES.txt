@@ -1,3 +1,14 @@
+Version 0.3.3
+=============
+
+Changes
+-------
+
+-   If 'nan' observed summary statistics are produced, an error is raised to
+    crash the analysis early on. This can happen for some summary statistics
+    when there are populations with only a single sequence sampled.
+
+
 Version 0.3.2
 =============
 

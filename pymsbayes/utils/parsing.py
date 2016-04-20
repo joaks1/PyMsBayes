@@ -85,6 +85,7 @@ CV_PATTERNS = [
 DIV_MODEL_PATTERNS = [
         re.compile(r'^\s*PRI\.div\.model\s*$'),
         ]
+NAN_PATTERN = re.compile(r'^\s*nan\s*$', re.IGNORECASE)
 
 def line_count(file_obj, ignore_headers=False):
     f, close = process_file_arg(file_obj)
