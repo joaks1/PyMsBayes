@@ -325,6 +325,20 @@ class ObsSumStatsWorker(Worker):
                     in_file = self.temp_output_path,
                     out_file = self.output_path,
                     stat_patterns = self.stat_patterns)
+        # vet the results
+        d = parsing.get_dict_from_spreadsheets([self.output_path])
+        for stat, value_list in d.iteritems():
+            if len(value_list) < 1:
+                raise errors.ObservedSummaryStatError(
+                        "missing value for statistic {0!r}".format(stat))
+            if len(value_list) > 2:
+                raise errors.ObservedSummaryStatError(
+                        "multiple rows found for statistic {0!r}".format(stat))
+            if parsing.NAN_PATTERN.match(value_list[0]):
+                raise errors.ObservedSummaryStatNanError(
+                        "'nan' found for statistic {0!r}; please don't use this "
+                        "statistic if you have a population with only a single "
+                        "sequence sampled".format(stat))
         if not self.keep_temps:
             self.temp_fs.remove_dir(self.output_dir)
 

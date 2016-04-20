@@ -4,6 +4,7 @@ import unittest
 import os
 import sys
 import shutil
+import re
 
 from pymsbayes import workers
 from pymsbayes.fileio import is_gzipped
@@ -25,10 +26,44 @@ class ObsSumStatsWorkerTestCase(PyMsBayesTestCase):
         self.set_up()
         self.cfg_path = package_paths.data_path('negros_panay.cfg')
         self.new_cfg_path = package_paths.data_path('negros_panay_new.cfg')
+        self.singleton_cfg_path = package_paths.data_path('negros_panay_singletons.cfg')
         self.expected = package_paths.data_path('negros_panay_sum_stats.txt')
 
     def tearDown(self):
         self.tear_down()
+
+    def test_nan_error(self):
+        pi_net = re.compile(r'^\s*pi\.net\.\d+\s*$')
+        pi_b = re.compile(r'^\s*pi\.b\.\d+\s*$')
+        ss_path = self.get_test_path(prefix='sum-stats')
+        ss_worker = workers.ObsSumStatsWorker(
+                temp_fs = self.temp_fs,
+                config_path = self.singleton_cfg_path,
+                output_path = ss_path,
+                exe_path = None,
+                schema = 'abctoolbox',
+                stat_patterns = [pi_net],
+                stderr_path = None,
+                tag = None)
+        self.assertFalse(ss_worker.finished)
+        ss_worker.start()
+        self.assertTrue(ss_worker.error != None)
+        self.assertFalse(ss_worker.finished)
+
+        ss_path2 = self.get_test_path(prefix='sum-stats')
+        ss_worker2 = workers.ObsSumStatsWorker(
+                temp_fs = self.temp_fs,
+                config_path = self.singleton_cfg_path,
+                output_path = ss_path2,
+                exe_path = None,
+                schema = 'abctoolbox',
+                stat_patterns = [pi_b],
+                stderr_path = None,
+                tag = None)
+        self.assertFalse(ss_worker2.finished)
+        ss_worker2.start()
+        self.assertTrue(ss_worker2.error == None)
+        self.assertTrue(ss_worker2.finished)
 
     def test_negros_panay(self):
         MSBAYES_SORT_INDEX.set_index(7)
