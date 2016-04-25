@@ -1,3 +1,17 @@
+Version 0.3.4
+=============
+
+Changes
+-------
+
+-   Making 'pretty' summary output of ``dmc_posterior_probs.py`` script more
+    robust. The regex used by ``ListConditionEvaluator`` to put the names of
+    the taxon pairs into the expression was easily fooled by numbers included
+    in the names. This did not affect the results, but led confusing summary
+    output. This is now more robust, and the output messages should now help
+    rather than confuse.
+
+
 Version 0.3.3
 =============
 
