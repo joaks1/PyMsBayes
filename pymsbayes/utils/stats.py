@@ -627,11 +627,13 @@ class ListConditionEvaluator(object):
         self.pretty_expression = self.expression
         pretty_exp = None
         if self.index_labels:
-            pretty_exp = exp_str
+            pretty_exp = self.expression
             for i in sorted(self.indices, reverse = True):
                 try:
-                    pretty_exp = pretty_exp.replace(str(i), ' {0} '.format(
-                            self.index_labels[i]))
+                    pretty_exp = pretty_exp.replace(
+                            'l[{0}]'.format(i),
+                            '{0}'.format(
+                                    self.index_labels[i]))
                 except IndexError as ie:
                     raise IndexError('expression {0!r} uses indices out of '
                             'range for labels {1}'.format(self.expression,
