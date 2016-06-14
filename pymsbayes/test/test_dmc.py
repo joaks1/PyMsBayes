@@ -238,6 +238,64 @@ class DmcTestCase(PyMsBayesTestCase):
 
     @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
             "EXHAUSTIVE test")
+    # Test for previous bug where prior sample file was being compressed, which
+    # borked eureject.
+    def test_two_stage_with_compress(self):
+        args = ['-o', self.cfg_path,
+                '-p', self.cfg_path,
+                '-r', 1,
+                '-n', 400,
+                '--num-posterior-samples', 200,
+                '--num-standardizing-samples', 300,
+                '-q', 100,
+                '--np', 4,
+                '--seed', self.seed,
+                '--debug']
+        self._exe_dmc(args, return_code=0)
+        results1 = self.get_result_paths(1, 'm1', 1, 400)
+        self.assertTrue(os.path.exists(results1['prior-dir']))
+        self.assertTrue(os.path.exists(results1['sample']))
+
+        out_dir1 = self.get_test_subdir(prefix='repeat-')
+
+        args = ['-o', self.cfg_path,
+                '-p', self.cfg_path,
+                '-r', 1,
+                '-n', 400,
+                '--num-posterior-samples', 200,
+                '--num-standardizing-samples', 300,
+                '--compress',
+                '-q', 100,
+                '--np', 4,
+                '--generate-samples-only',
+                '--seed', self.seed,
+                '--debug']
+        self._exe_dmc(args, return_code=0, output_dir = out_dir1)
+        results2 = self.get_result_paths(1, 'm1', 1, 400, compressed = True, output_dir = out_dir1)
+        self.assertTrue(os.path.exists(results2['prior-dir']))
+        self.assertFalse(os.path.exists(results2['sample']))
+
+        out_dir2 = self.get_test_subdir(prefix='repeat2-')
+
+        args = ['-o', self.cfg_path,
+                '-p', results2['prior-dir'],
+                '-r', 1,
+                '-n', 400,
+                '--num-posterior-samples', 200,
+                '--num-standardizing-samples', 300,
+                '-q', 100,
+                '--np', 4,
+                '--seed', self.seed,
+                '--debug']
+        self._exe_dmc(args, return_code=0, output_dir = out_dir2)
+        results3 = self.get_result_paths(1, 'm1', 1, 400, output_dir = out_dir2)
+
+        self.assertNotEqual(results1['prior-dir'], results3['prior-dir'])
+        self.assertNotEqual(results1['sample'], results3['sample'])
+        self.assertSameFiles([results1['sample'], results3['sample']])
+
+    @unittest.skipIf(TestLevel.get_current_level() < TestLevel.EXHAUSTIVE,
+            "EXHAUSTIVE test")
     def test_sort_index(self):
         args = ['-o', self.cfg_path,
                 '-p', self.cfg_path,
