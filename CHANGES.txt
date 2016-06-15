@@ -1,3 +1,25 @@
+Version 0.3.5
+=============
+
+Changes
+-------
+
+-   Updating versions of bundled msbayes.pl and dpp-msbayes.pl PERL scripts
+    from dpp-msbayes package. These no longer use deprecated POSIX::tmpnam.
+    Instead, they use File::Temp::tempfile.
+
+Bug Fixes
+---------
+
+-   Fixing a bug that occurred for two-stage analyses (i.e., Stage 1: generate
+    all prior samples, and Stage 2: then do rejection). When '--compress'
+    option was used in Stage 1 command, the prior sample file was being
+    compressed, which caused eureject (and ultimately dmc.py) to crash during
+    rejection (Stage 2). This bug is fixed in this release.
+-   Fixing issue where the reporting frequency could be greater than the total
+    number of prior samples.
+
+
 Version 0.3.4
 =============
 

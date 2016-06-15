@@ -61,9 +61,9 @@ use strict;
 
 use File::Copy;
 use IO::File;
-use POSIX qw(tmpnam);
 use IPC::Open2;
 use File::Basename;
+use File::Temp qw/ tempfile /;
 
 use Getopt::Std;
 
@@ -188,9 +188,7 @@ my $newMspriorConf = MkNewMspriorBatchConf($mspriorConf{configFile},
 
 # open and close a temp file
 # This is used to store the new msprior conf file
-my ($tmpMspriorConf, $tmpMspriorConffh);
-do {$tmpMspriorConf = tmpnam()} until $tmpMspriorConffh = 
-    IO::File->new($tmpMspriorConf, O_RDWR|O_CREAT|O_EXCL);
+my ($tmpMspriorConffh, $tmpMspriorConf) = tempfile();
 END {                   # delete the temp file when done
     if (defined($tmpMspriorConf) && -e $tmpMspriorConf) {
 	if ($rmTempFiles) {

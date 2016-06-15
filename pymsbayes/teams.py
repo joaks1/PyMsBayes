@@ -127,6 +127,8 @@ class ABCTeam(object):
         self.omega_threshold = omega_threshold
         self.cv_threshold = cv_threshold
         self.compress = compress
+        if self.generate_prior_samples_only:
+            self.compress = False
         self.num_processors = num_processors
         self.num_posterior_samples = num_posterior_samples
         self.num_posterior_density_quantiles = num_posterior_density_quantiles
@@ -233,6 +235,8 @@ class ABCTeam(object):
                 self.reporting_frequency -= (self.reporting_frequency % mp_batch)
             if self.reporting_frequency < mp_batch:
                 self.reporting_frequency = mp_batch
+            if self.reporting_frequency > self.num_prior_samples:
+                self.reporting_frequency = self.num_prior_samples
             _LOG.info('Using reporting frequency of {0} samples.'.format(
                     self.reporting_frequency))
         self.finished = False
