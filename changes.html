@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>6. PyMsBayes Change History &mdash; PyMsBayes 0.3.2 documentation</title>
+    <title>6. PyMsBayes Change History &mdash; PyMsBayes 0.3.5 documentation</title>
     
     <link rel="stylesheet" href="_static/pymsbayes.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '0.3.2',
+        VERSION:     '0.3.5',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="_static/dpp.js"></script>
-    <link rel="top" title="PyMsBayes 0.3.2 documentation" href="index.html" />
+    <link rel="top" title="PyMsBayes 0.3.5 documentation" href="index.html" />
     <link rel="next" title="7. Acknowledgements" href="thanks/acknowledgments.html" />
     <link rel="prev" title="5. Caveats and Recommendations" href="intro/caveats.html" /> 
   </head>
@@ -66,34 +66,47 @@
   <h3><a href="doc.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">6. PyMsBayes Change History</a><ul>
-<li><a class="reference internal" href="#version-0-3-2">6.1. Version 0.3.2</a><ul>
-<li><a class="reference internal" href="#new-features">6.1.1. New Features</a></li>
-<li><a class="reference internal" href="#changes">6.1.2. Changes</a></li>
+<li><a class="reference internal" href="#version-0-3-5">6.1. Version 0.3.5</a><ul>
+<li><a class="reference internal" href="#changes">6.1.1. Changes</a></li>
+<li><a class="reference internal" href="#bug-fixes">6.1.2. Bug Fixes</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#version-0-3-1">6.2. Version 0.3.1</a><ul>
+<li><a class="reference internal" href="#version-0-3-4">6.2. Version 0.3.4</a><ul>
 <li><a class="reference internal" href="#id1">6.2.1. Changes</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#version-0-3-0">6.3. Version 0.3.0</a><ul>
+<li><a class="reference internal" href="#version-0-3-3">6.3. Version 0.3.3</a><ul>
 <li><a class="reference internal" href="#id2">6.3.1. Changes</a></li>
-<li><a class="reference internal" href="#bug-fixes">6.3.2. Bug Fixes</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#version-0-2-2">6.4. Version 0.2.2</a><ul>
-<li><a class="reference internal" href="#id3">6.4.1. Changes</a></li>
-<li><a class="reference internal" href="#id4">6.4.2. New Features</a></li>
-<li><a class="reference internal" href="#id5">6.4.3. Bug Fixes</a></li>
+<li><a class="reference internal" href="#version-0-3-2">6.4. Version 0.3.2</a><ul>
+<li><a class="reference internal" href="#new-features">6.4.1. New Features</a></li>
+<li><a class="reference internal" href="#id3">6.4.2. Changes</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#version-0-2-1">6.5. Version 0.2.1</a><ul>
-<li><a class="reference internal" href="#id6">6.5.1. Changes</a></li>
-<li><a class="reference internal" href="#id7">6.5.2. Bug Fixes</a></li>
+<li><a class="reference internal" href="#version-0-3-1">6.5. Version 0.3.1</a><ul>
+<li><a class="reference internal" href="#id4">6.5.1. Changes</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#version-0-2-0">6.6. Version 0.2.0</a><ul>
-<li><a class="reference internal" href="#id8">6.6.1. New Features</a></li>
-<li><a class="reference internal" href="#id9">6.6.2. Changes</a></li>
+<li><a class="reference internal" href="#version-0-3-0">6.6. Version 0.3.0</a><ul>
+<li><a class="reference internal" href="#id5">6.6.1. Changes</a></li>
+<li><a class="reference internal" href="#id6">6.6.2. Bug Fixes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#version-0-2-2">6.7. Version 0.2.2</a><ul>
+<li><a class="reference internal" href="#id7">6.7.1. Changes</a></li>
+<li><a class="reference internal" href="#id8">6.7.2. New Features</a></li>
+<li><a class="reference internal" href="#id9">6.7.3. Bug Fixes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#version-0-2-1">6.8. Version 0.2.1</a><ul>
+<li><a class="reference internal" href="#id10">6.8.1. Changes</a></li>
+<li><a class="reference internal" href="#id11">6.8.2. Bug Fixes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#version-0-2-0">6.9. Version 0.2.0</a><ul>
+<li><a class="reference internal" href="#id12">6.9.1. New Features</a></li>
+<li><a class="reference internal" href="#id13">6.9.2. Changes</a></li>
 </ul>
 </li>
 </ul>
@@ -134,10 +147,58 @@
             
   <div class="section" id="pymsbayes-change-history">
 <h1>6. PyMsBayes Change History<a class="headerlink" href="#pymsbayes-change-history" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="version-0-3-5">
+<h2>6.1. Version 0.3.5<a class="headerlink" href="#version-0-3-5" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="changes">
+<h3>6.1.1. Changes<a class="headerlink" href="#changes" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Updating versions of bundled msbayes.pl and dpp-msbayes.pl PERL scripts
+from dpp-msbayes package. These no longer use deprecated POSIX::tmpnam.
+Instead, they use File::Temp::tempfile.</li>
+</ul>
+</div>
+<div class="section" id="bug-fixes">
+<h3>6.1.2. Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Fixing a bug that occurred for two-stage analyses (i.e., Stage 1: generate
+all prior samples, and Stage 2: then do rejection). When &#8216;&#8211;compress&#8217;
+option was used in Stage 1 command, the prior sample file was being
+compressed, which caused eureject (and ultimately dmc.py) to crash during
+rejection (Stage 2). This bug is fixed in this release.</li>
+<li>Fixing issue where the reporting frequency could be greater than the total
+number of prior samples.</li>
+</ul>
+</div>
+</div>
+<div class="section" id="version-0-3-4">
+<h2>6.2. Version 0.3.4<a class="headerlink" href="#version-0-3-4" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id1">
+<h3>6.2.1. Changes<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Making &#8216;pretty&#8217; summary output of <tt class="docutils literal"><span class="pre">dmc_posterior_probs.py</span></tt> script more
+robust. The regex used by <tt class="docutils literal"><span class="pre">ListConditionEvaluator</span></tt> to put the names of
+the taxon pairs into the expression was easily fooled by numbers included
+in the names. This did not affect the results, but led confusing summary
+output. This is now more robust, and the output messages should now help
+rather than confuse.</li>
+</ul>
+</div>
+</div>
+<div class="section" id="version-0-3-3">
+<h2>6.3. Version 0.3.3<a class="headerlink" href="#version-0-3-3" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id2">
+<h3>6.3.1. Changes<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>If &#8216;nan&#8217; observed summary statistics are produced, an error is raised to
+crash the analysis early on. This can happen for some summary statistics
+when there are populations with only a single sequence sampled.</li>
+</ul>
+</div>
+</div>
 <div class="section" id="version-0-3-2">
-<h2>6.1. Version 0.3.2<a class="headerlink" href="#version-0-3-2" title="Permalink to this headline">¶</a></h2>
+<h2>6.4. Version 0.3.2<a class="headerlink" href="#version-0-3-2" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="new-features">
-<h3>6.1.1. New Features<a class="headerlink" href="#new-features" title="Permalink to this headline">¶</a></h3>
+<h3>6.4.1. New Features<a class="headerlink" href="#new-features" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>New documentation.</li>
 <li>New tutorials.</li>
@@ -157,8 +218,8 @@ the file format of the plots to be specified.</li>
 <li>Adding <tt class="docutils literal"><span class="pre">DppSimWorker</span></tt> and <tt class="docutils literal"><span class="pre">DppSimTeam</span></tt> to the API.</li>
 </ul>
 </div>
-<div class="section" id="changes">
-<h3>6.1.2. Changes<a class="headerlink" href="#changes" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id3">
+<h3>6.4.2. Changes<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>More rigorous checks added to <tt class="docutils literal"><span class="pre">dmc.py</span></tt> to make sure all the sample tables
 are the same within an analysis.</li>
@@ -176,18 +237,18 @@ logging behavior (units of prior samples rather than batch iterations).</li>
 </div>
 </div>
 <div class="section" id="version-0-3-1">
-<h2>6.2. Version 0.3.1<a class="headerlink" href="#version-0-3-1" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="id1">
-<h3>6.2.1. Changes<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<h2>6.5. Version 0.3.1<a class="headerlink" href="#version-0-3-1" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id4">
+<h3>6.5.1. Changes<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Cleaning up intra-package imports and rearranging some of the code.</li>
 </ul>
 </div>
 </div>
 <div class="section" id="version-0-3-0">
-<h2>6.3. Version 0.3.0<a class="headerlink" href="#version-0-3-0" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="id2">
-<h3>6.3.1. Changes<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<h2>6.6. Version 0.3.0<a class="headerlink" href="#version-0-3-0" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id5">
+<h3>6.6.1. Changes<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Updated the version of <tt class="docutils literal"><span class="pre">dpp-msprior</span></tt> binary (for both mac and linux) that
 is bundled with the package. This version of <tt class="docutils literal"><span class="pre">dpp-msprior</span></tt> is from
@@ -210,8 +271,8 @@ time or bottleneck time). This change should have very little affect on
 most analyses.</li>
 </ul>
 </div>
-<div class="section" id="bug-fixes">
-<h3>6.3.2. Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id6">
+<h3>6.6.2. Bug Fixes<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>As mentioned in the change above, in rare cases, theta values of zero drawn
 from the prior via <tt class="docutils literal"><span class="pre">dpp-msprior</span></tt> would cause <tt class="docutils literal"><span class="pre">msDQH</span></tt> to crash. The new
@@ -221,17 +282,17 @@ analyses that did not crash were not affected by this bug.</li>
 </div>
 </div>
 <div class="section" id="version-0-2-2">
-<h2>6.4. Version 0.2.2<a class="headerlink" href="#version-0-2-2" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="id3">
-<h3>6.4.1. Changes<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<h2>6.7. Version 0.2.2<a class="headerlink" href="#version-0-2-2" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id7">
+<h3>6.7.1. Changes<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>End-user CLI scripts log additional information.</li>
 <li><tt class="docutils literal"><span class="pre">dmc.py</span></tt> will now set the number of standardizing samples equal to the
 number of prior samples, if the former is larger than the latter.</li>
 </ul>
 </div>
-<div class="section" id="id4">
-<h3>6.4.2. New Features<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id8">
+<h3>6.7.2. New Features<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>New management of paths to dpp-msbayes and msBayes executables. Previously,
 the package only used the executables bundled with the package, which
@@ -244,8 +305,8 @@ that all the executables work on the system.</li>
 bundled with the package.</li>
 </ul>
 </div>
-<div class="section" id="id5">
-<h3>6.4.3. Bug Fixes<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id9">
+<h3>6.7.3. Bug Fixes<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Fixed a bug where <tt class="docutils literal"><span class="pre">MsBayesWorker</span></tt> instances with a sample size of zero
 would hang indefinitely. A ValueError is now raised if an <tt class="docutils literal"><span class="pre">MsBayesWorder</span></tt>
@@ -254,16 +315,16 @@ is initiated with an integer less than one for the sample size.</li>
 </div>
 </div>
 <div class="section" id="version-0-2-1">
-<h2>6.5. Version 0.2.1<a class="headerlink" href="#version-0-2-1" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="id6">
-<h3>6.5.1. Changes<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<h2>6.8. Version 0.2.1<a class="headerlink" href="#version-0-2-1" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id10">
+<h3>6.8.1. Changes<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Adding working version of documentation.</li>
 <li>Overhauled package-wide and CLI-script logging management.</li>
 </ul>
 </div>
-<div class="section" id="id7">
-<h3>6.5.2. Bug Fixes<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id11">
+<h3>6.8.2. Bug Fixes<a class="headerlink" href="#id11" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Fixing bug in <tt class="docutils literal"><span class="pre">dmc.py</span></tt> script, where the wrong value for the number of
 standardizing samples was being written to the run summary file.</li>
@@ -271,16 +332,16 @@ standardizing samples was being written to the run summary file.</li>
 </div>
 </div>
 <div class="section" id="version-0-2-0">
-<h2>6.6. Version 0.2.0<a class="headerlink" href="#version-0-2-0" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="id8">
-<h3>6.6.1. New Features<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h3>
+<h2>6.9. Version 0.2.0<a class="headerlink" href="#version-0-2-0" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id12">
+<h3>6.9.1. New Features<a class="headerlink" href="#id12" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>New options added to package and scripts for the sort index. These allow
 summary statistics to be grouped by taxon, but without re-sorting.</li>
 </ul>
 </div>
-<div class="section" id="id9">
-<h3>6.6.2. Changes<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id13">
+<h3>6.9.2. Changes<a class="headerlink" href="#id13" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>The new default option for the sort index for the entire package and for
 end-user scripts is to not group or re-sort the summary statistics of each
