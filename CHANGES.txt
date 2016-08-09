@@ -1,3 +1,15 @@
+Version 0.3.6
+=============
+
+Changes
+-------
+
+-   Minor update to the main cli function of the 'dmc_sum_sims.py' script;
+    Removing unnecessary parsing of GLM regression adjusted columns.  (these
+    were being parsed but not used for plotting). This caused unnecessary
+    crashes if there were 'NaN' values in the GLM columns.
+
+
 Version 0.3.5
 =============
 
