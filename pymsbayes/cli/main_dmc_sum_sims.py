@@ -33,10 +33,10 @@ class PowerResult(object):
     def __init__(self):
         self.true = []
         self.mode = []
-        self.mode_glm = []
+        # self.mode_glm = []
         self.median = []
         self.prob = []
-        self.prob_glm = []
+        # self.prob_glm = []
 
     @classmethod
     def parse_result_summary(cls, result_summary_path):
@@ -45,15 +45,15 @@ class PowerResult(object):
         for d in spreadsheet_iter([result_summary_path]):
             psi.true.append(int(d['psi_true']))
             psi.mode.append(int(d['psi_mode']))
-            psi.mode_glm.append(int(round(float(d['psi_mode_glm']))))
+            # psi.mode_glm.append(int(round(float(d['psi_mode_glm']))))
             psi.prob.append(float(d['psi_1_prob']))
-            psi.prob_glm.append(float(d['psi_1_prob_glm']))
+            # psi.prob_glm.append(float(d['psi_1_prob_glm']))
             cv.true.append(float(d['cv_true']))
             cv.mode.append(float(d['cv_mode']))
             cv.median.append(float(d['cv_median']))
-            cv.mode_glm.append(float(d['cv_mode_glm']))
+            # cv.mode_glm.append(float(d['cv_mode_glm']))
             cv.prob.append(float(d['cv_prob_less']))
-            cv.prob_glm.append(float(d['cv_prob_less_glm']))
+            # cv.prob_glm.append(float(d['cv_prob_less_glm']))
         return psi, cv
 
 def parse_results(dmc_sim):
