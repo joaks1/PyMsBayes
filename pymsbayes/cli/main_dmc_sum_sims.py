@@ -24,7 +24,7 @@ from pymsbayes.plotting import (PowerPlotGrid, ProbabilityPowerPlotGrid,
 _program_info = {
     'name': os.path.basename(__file__),
     'author': 'Jamie Oaks',
-    'version': 'Version 0.1',
+    'version': 'Version 0.1.1',
     'description': __doc__,
     'copyright': 'Copyright (C) 2015 Jamie Oaks',
     'license': 'GNU GPL version 3 or later',}
