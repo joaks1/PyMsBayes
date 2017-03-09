@@ -1,3 +1,13 @@
+Version 0.3.7
+=============
+
+Changes
+-------
+
+-   Bundling new version of eureject to support larger numbers of loci (new
+    version has larger line buffer for reading files).
+
+
 Version 0.3.6
 =============
 
